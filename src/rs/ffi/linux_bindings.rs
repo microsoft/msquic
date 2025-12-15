@@ -230,10 +230,12 @@ pub struct QUIC_ADDR_STR {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_ADDR_STR"][::std::mem::size_of::<QUIC_ADDR_STR>() - 64usize];
-    ["Alignment of QUIC_ADDR_STR"][::std::mem::align_of::<QUIC_ADDR_STR>() - 1usize];
-    ["Offset of field: QUIC_ADDR_STR::Address"]
+    const { ["Size of QUIC_ADDR_STR"][::std::mem::size_of::<QUIC_ADDR_STR>() - 64usize]; }
+    const { ["Alignment of QUIC_ADDR_STR"][::std::mem::align_of::<QUIC_ADDR_STR>() - 1usize]; }
+    const {
+        ["Offset of field: QUIC_ADDR_STR::Address"]
         [::std::mem::offset_of!(QUIC_ADDR_STR, Address) - 0usize];
+    }
 };
 pub type QUIC_EVENTQ = ::std::os::raw::c_int;
 pub type QUIC_CQE = epoll_event;
@@ -247,11 +249,13 @@ pub struct QUIC_SQE {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_SQE"][::std::mem::size_of::<QUIC_SQE>() - 16usize];
-    ["Alignment of QUIC_SQE"][::std::mem::align_of::<QUIC_SQE>() - 8usize];
-    ["Offset of field: QUIC_SQE::fd"][::std::mem::offset_of!(QUIC_SQE, fd) - 0usize];
-    ["Offset of field: QUIC_SQE::Completion"]
+    const { ["Size of QUIC_SQE"][::std::mem::size_of::<QUIC_SQE>() - 16usize]; }
+    const { ["Alignment of QUIC_SQE"][::std::mem::align_of::<QUIC_SQE>() - 8usize]; }
+    const { ["Offset of field: QUIC_SQE::fd"][::std::mem::offset_of!(QUIC_SQE, fd) - 0usize]; }
+    const {
+        ["Offset of field: QUIC_SQE::Completion"]
         [::std::mem::offset_of!(QUIC_SQE, Completion) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -453,18 +457,30 @@ pub struct QUIC_GLOBAL_EXECUTION_CONFIG {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_GLOBAL_EXECUTION_CONFIG"]
+    const {
+        ["Size of QUIC_GLOBAL_EXECUTION_CONFIG"]
         [::std::mem::size_of::<QUIC_GLOBAL_EXECUTION_CONFIG>() - 16usize];
-    ["Alignment of QUIC_GLOBAL_EXECUTION_CONFIG"]
+    }
+    const {
+        ["Alignment of QUIC_GLOBAL_EXECUTION_CONFIG"]
         [::std::mem::align_of::<QUIC_GLOBAL_EXECUTION_CONFIG>() - 4usize];
-    ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::Flags"]
+    }
+    const {
+        ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::Flags"]
         [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, Flags) - 0usize];
-    ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::PollingIdleTimeoutUs"]
+    }
+    const {
+        ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::PollingIdleTimeoutUs"]
         [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, PollingIdleTimeoutUs) - 4usize];
-    ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::ProcessorCount"]
+    }
+    const {
+        ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::ProcessorCount"]
         [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorCount) - 8usize];
-    ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::ProcessorList"]
+    }
+    const {
+        ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::ProcessorList"]
         [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorList) - 12usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -474,13 +490,19 @@ pub struct QUIC_EXECUTION_CONFIG {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_EXECUTION_CONFIG"][::std::mem::size_of::<QUIC_EXECUTION_CONFIG>() - 16usize];
-    ["Alignment of QUIC_EXECUTION_CONFIG"]
+    const { ["Size of QUIC_EXECUTION_CONFIG"][::std::mem::size_of::<QUIC_EXECUTION_CONFIG>() - 16usize]; }
+    const {
+        ["Alignment of QUIC_EXECUTION_CONFIG"]
         [::std::mem::align_of::<QUIC_EXECUTION_CONFIG>() - 8usize];
-    ["Offset of field: QUIC_EXECUTION_CONFIG::IdealProcessor"]
+    }
+    const {
+        ["Offset of field: QUIC_EXECUTION_CONFIG::IdealProcessor"]
         [::std::mem::offset_of!(QUIC_EXECUTION_CONFIG, IdealProcessor) - 0usize];
-    ["Offset of field: QUIC_EXECUTION_CONFIG::EventQ"]
+    }
+    const {
+        ["Offset of field: QUIC_EXECUTION_CONFIG::EventQ"]
         [::std::mem::offset_of!(QUIC_EXECUTION_CONFIG, EventQ) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -508,14 +530,22 @@ pub struct QUIC_REGISTRATION_CONFIG {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_REGISTRATION_CONFIG"]
+    const {
+        ["Size of QUIC_REGISTRATION_CONFIG"]
         [::std::mem::size_of::<QUIC_REGISTRATION_CONFIG>() - 16usize];
-    ["Alignment of QUIC_REGISTRATION_CONFIG"]
+    }
+    const {
+        ["Alignment of QUIC_REGISTRATION_CONFIG"]
         [::std::mem::align_of::<QUIC_REGISTRATION_CONFIG>() - 8usize];
-    ["Offset of field: QUIC_REGISTRATION_CONFIG::AppName"]
+    }
+    const {
+        ["Offset of field: QUIC_REGISTRATION_CONFIG::AppName"]
         [::std::mem::offset_of!(QUIC_REGISTRATION_CONFIG, AppName) - 0usize];
-    ["Offset of field: QUIC_REGISTRATION_CONFIG::ExecutionProfile"]
+    }
+    const {
+        ["Offset of field: QUIC_REGISTRATION_CONFIG::ExecutionProfile"]
         [::std::mem::offset_of!(QUIC_REGISTRATION_CONFIG, ExecutionProfile) - 8usize];
+    }
 };
 pub type QUIC_CREDENTIAL_LOAD_COMPLETE = ::std::option::Option<
     unsafe extern "C" fn(
@@ -532,11 +562,15 @@ pub struct QUIC_CERTIFICATE_HASH {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CERTIFICATE_HASH"][::std::mem::size_of::<QUIC_CERTIFICATE_HASH>() - 20usize];
-    ["Alignment of QUIC_CERTIFICATE_HASH"]
+    const { ["Size of QUIC_CERTIFICATE_HASH"][::std::mem::size_of::<QUIC_CERTIFICATE_HASH>() - 20usize]; }
+    const {
+        ["Alignment of QUIC_CERTIFICATE_HASH"]
         [::std::mem::align_of::<QUIC_CERTIFICATE_HASH>() - 1usize];
-    ["Offset of field: QUIC_CERTIFICATE_HASH::ShaHash"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_HASH::ShaHash"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_HASH, ShaHash) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -547,16 +581,26 @@ pub struct QUIC_CERTIFICATE_HASH_STORE {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CERTIFICATE_HASH_STORE"]
+    const {
+        ["Size of QUIC_CERTIFICATE_HASH_STORE"]
         [::std::mem::size_of::<QUIC_CERTIFICATE_HASH_STORE>() - 152usize];
-    ["Alignment of QUIC_CERTIFICATE_HASH_STORE"]
+    }
+    const {
+        ["Alignment of QUIC_CERTIFICATE_HASH_STORE"]
         [::std::mem::align_of::<QUIC_CERTIFICATE_HASH_STORE>() - 4usize];
-    ["Offset of field: QUIC_CERTIFICATE_HASH_STORE::Flags"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_HASH_STORE::Flags"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_HASH_STORE, Flags) - 0usize];
-    ["Offset of field: QUIC_CERTIFICATE_HASH_STORE::ShaHash"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_HASH_STORE::ShaHash"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_HASH_STORE, ShaHash) - 4usize];
-    ["Offset of field: QUIC_CERTIFICATE_HASH_STORE::StoreName"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_HASH_STORE::StoreName"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_HASH_STORE, StoreName) - 24usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -566,13 +610,19 @@ pub struct QUIC_CERTIFICATE_FILE {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CERTIFICATE_FILE"][::std::mem::size_of::<QUIC_CERTIFICATE_FILE>() - 16usize];
-    ["Alignment of QUIC_CERTIFICATE_FILE"]
+    const { ["Size of QUIC_CERTIFICATE_FILE"][::std::mem::size_of::<QUIC_CERTIFICATE_FILE>() - 16usize]; }
+    const {
+        ["Alignment of QUIC_CERTIFICATE_FILE"]
         [::std::mem::align_of::<QUIC_CERTIFICATE_FILE>() - 8usize];
-    ["Offset of field: QUIC_CERTIFICATE_FILE::PrivateKeyFile"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_FILE::PrivateKeyFile"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_FILE, PrivateKeyFile) - 0usize];
-    ["Offset of field: QUIC_CERTIFICATE_FILE::CertificateFile"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_FILE::CertificateFile"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_FILE, CertificateFile) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -583,16 +633,26 @@ pub struct QUIC_CERTIFICATE_FILE_PROTECTED {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CERTIFICATE_FILE_PROTECTED"]
+    const {
+        ["Size of QUIC_CERTIFICATE_FILE_PROTECTED"]
         [::std::mem::size_of::<QUIC_CERTIFICATE_FILE_PROTECTED>() - 24usize];
-    ["Alignment of QUIC_CERTIFICATE_FILE_PROTECTED"]
+    }
+    const {
+        ["Alignment of QUIC_CERTIFICATE_FILE_PROTECTED"]
         [::std::mem::align_of::<QUIC_CERTIFICATE_FILE_PROTECTED>() - 8usize];
-    ["Offset of field: QUIC_CERTIFICATE_FILE_PROTECTED::PrivateKeyFile"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_FILE_PROTECTED::PrivateKeyFile"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_FILE_PROTECTED, PrivateKeyFile) - 0usize];
-    ["Offset of field: QUIC_CERTIFICATE_FILE_PROTECTED::CertificateFile"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_FILE_PROTECTED::CertificateFile"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile) - 8usize];
-    ["Offset of field: QUIC_CERTIFICATE_FILE_PROTECTED::PrivateKeyPassword"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_FILE_PROTECTED::PrivateKeyPassword"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_FILE_PROTECTED, PrivateKeyPassword) - 16usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -603,15 +663,23 @@ pub struct QUIC_CERTIFICATE_PKCS12 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CERTIFICATE_PKCS12"][::std::mem::size_of::<QUIC_CERTIFICATE_PKCS12>() - 24usize];
-    ["Alignment of QUIC_CERTIFICATE_PKCS12"]
+    const { ["Size of QUIC_CERTIFICATE_PKCS12"][::std::mem::size_of::<QUIC_CERTIFICATE_PKCS12>() - 24usize]; }
+    const {
+        ["Alignment of QUIC_CERTIFICATE_PKCS12"]
         [::std::mem::align_of::<QUIC_CERTIFICATE_PKCS12>() - 8usize];
-    ["Offset of field: QUIC_CERTIFICATE_PKCS12::Asn1Blob"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_PKCS12::Asn1Blob"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_PKCS12, Asn1Blob) - 0usize];
-    ["Offset of field: QUIC_CERTIFICATE_PKCS12::Asn1BlobLength"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_PKCS12::Asn1BlobLength"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_PKCS12, Asn1BlobLength) - 8usize];
-    ["Offset of field: QUIC_CERTIFICATE_PKCS12::PrivateKeyPassword"]
+    }
+    const {
+        ["Offset of field: QUIC_CERTIFICATE_PKCS12::PrivateKeyPassword"]
         [::std::mem::offset_of!(QUIC_CERTIFICATE_PKCS12, PrivateKeyPassword) - 16usize];
+    }
 };
 pub type QUIC_CERTIFICATE = ::std::os::raw::c_void;
 pub type QUIC_CERTIFICATE_CHAIN = ::std::os::raw::c_void;
@@ -639,46 +707,78 @@ pub union QUIC_CREDENTIAL_CONFIG__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CREDENTIAL_CONFIG__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_CREDENTIAL_CONFIG__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_CREDENTIAL_CONFIG__bindgen_ty_1>() - 8usize];
-    ["Alignment of QUIC_CREDENTIAL_CONFIG__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_CREDENTIAL_CONFIG__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_CREDENTIAL_CONFIG__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateHash"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateHash"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG__bindgen_ty_1, CertificateHash) - 0usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateHashStore"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateHashStore"][::std::mem::offset_of!(
         QUIC_CREDENTIAL_CONFIG__bindgen_ty_1,
         CertificateHashStore
-    ) - 0usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateContext"]
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateContext"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG__bindgen_ty_1, CertificateContext) - 0usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateFile"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateFile"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG__bindgen_ty_1, CertificateFile) - 0usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateFileProtected"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificateFileProtected"][::std::mem::offset_of!(
         QUIC_CREDENTIAL_CONFIG__bindgen_ty_1,
         CertificateFileProtected
-    ) - 0usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificatePkcs12"]
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG__bindgen_ty_1::CertificatePkcs12"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG__bindgen_ty_1, CertificatePkcs12) - 0usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CREDENTIAL_CONFIG"][::std::mem::size_of::<QUIC_CREDENTIAL_CONFIG>() - 56usize];
-    ["Alignment of QUIC_CREDENTIAL_CONFIG"]
+    const { ["Size of QUIC_CREDENTIAL_CONFIG"][::std::mem::size_of::<QUIC_CREDENTIAL_CONFIG>() - 56usize]; }
+    const {
+        ["Alignment of QUIC_CREDENTIAL_CONFIG"]
         [::std::mem::align_of::<QUIC_CREDENTIAL_CONFIG>() - 8usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG::Type"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG::Type"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, Type) - 0usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG::Flags"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG::Flags"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, Flags) - 4usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG::Principal"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG::Principal"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, Principal) - 16usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG::Reserved"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG::Reserved"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, Reserved) - 24usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG::AsyncHandler"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG::AsyncHandler"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, AsyncHandler) - 32usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG::AllowedCipherSuites"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG::AllowedCipherSuites"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, AllowedCipherSuites) - 40usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG::CaCertificateFile"]
+    }
+    const {
+        ["Offset of field: QUIC_CREDENTIAL_CONFIG::CaCertificateFile"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, CaCertificateFile) - 48usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -689,15 +789,23 @@ pub struct QUIC_TICKET_KEY_CONFIG {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_TICKET_KEY_CONFIG"][::std::mem::size_of::<QUIC_TICKET_KEY_CONFIG>() - 81usize];
-    ["Alignment of QUIC_TICKET_KEY_CONFIG"]
+    const { ["Size of QUIC_TICKET_KEY_CONFIG"][::std::mem::size_of::<QUIC_TICKET_KEY_CONFIG>() - 81usize]; }
+    const {
+        ["Alignment of QUIC_TICKET_KEY_CONFIG"]
         [::std::mem::align_of::<QUIC_TICKET_KEY_CONFIG>() - 1usize];
-    ["Offset of field: QUIC_TICKET_KEY_CONFIG::Id"]
+    }
+    const {
+        ["Offset of field: QUIC_TICKET_KEY_CONFIG::Id"]
         [::std::mem::offset_of!(QUIC_TICKET_KEY_CONFIG, Id) - 0usize];
-    ["Offset of field: QUIC_TICKET_KEY_CONFIG::Material"]
+    }
+    const {
+        ["Offset of field: QUIC_TICKET_KEY_CONFIG::Material"]
         [::std::mem::offset_of!(QUIC_TICKET_KEY_CONFIG, Material) - 16usize];
-    ["Offset of field: QUIC_TICKET_KEY_CONFIG::MaterialLength"]
+    }
+    const {
+        ["Offset of field: QUIC_TICKET_KEY_CONFIG::MaterialLength"]
         [::std::mem::offset_of!(QUIC_TICKET_KEY_CONFIG, MaterialLength) - 80usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -707,10 +815,10 @@ pub struct QUIC_BUFFER {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_BUFFER"][::std::mem::size_of::<QUIC_BUFFER>() - 16usize];
-    ["Alignment of QUIC_BUFFER"][::std::mem::align_of::<QUIC_BUFFER>() - 8usize];
-    ["Offset of field: QUIC_BUFFER::Length"][::std::mem::offset_of!(QUIC_BUFFER, Length) - 0usize];
-    ["Offset of field: QUIC_BUFFER::Buffer"][::std::mem::offset_of!(QUIC_BUFFER, Buffer) - 8usize];
+    const { ["Size of QUIC_BUFFER"][::std::mem::size_of::<QUIC_BUFFER>() - 16usize]; }
+    const { ["Alignment of QUIC_BUFFER"][::std::mem::align_of::<QUIC_BUFFER>() - 8usize]; }
+    const { ["Offset of field: QUIC_BUFFER::Length"][::std::mem::offset_of!(QUIC_BUFFER, Length) - 0usize]; }
+    const { ["Offset of field: QUIC_BUFFER::Buffer"][::std::mem::offset_of!(QUIC_BUFFER, Buffer) - 8usize]; }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -729,32 +837,58 @@ pub struct QUIC_NEW_CONNECTION_INFO {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_NEW_CONNECTION_INFO"]
+    const {
+        ["Size of QUIC_NEW_CONNECTION_INFO"]
         [::std::mem::size_of::<QUIC_NEW_CONNECTION_INFO>() - 72usize];
-    ["Alignment of QUIC_NEW_CONNECTION_INFO"]
+    }
+    const {
+        ["Alignment of QUIC_NEW_CONNECTION_INFO"]
         [::std::mem::align_of::<QUIC_NEW_CONNECTION_INFO>() - 8usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::QuicVersion"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::QuicVersion"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, QuicVersion) - 0usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::LocalAddress"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::LocalAddress"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, LocalAddress) - 8usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::RemoteAddress"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::RemoteAddress"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, RemoteAddress) - 16usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::CryptoBufferLength"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::CryptoBufferLength"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, CryptoBufferLength) - 24usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::ClientAlpnListLength"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::ClientAlpnListLength"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, ClientAlpnListLength) - 28usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::ServerNameLength"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::ServerNameLength"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, ServerNameLength) - 30usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::NegotiatedAlpnLength"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::NegotiatedAlpnLength"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, NegotiatedAlpnLength) - 32usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::CryptoBuffer"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::CryptoBuffer"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, CryptoBuffer) - 40usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::ClientAlpnList"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::ClientAlpnList"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, ClientAlpnList) - 48usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::NegotiatedAlpn"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::NegotiatedAlpn"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, NegotiatedAlpn) - 56usize];
-    ["Offset of field: QUIC_NEW_CONNECTION_INFO::ServerName"]
+    }
+    const {
+        ["Offset of field: QUIC_NEW_CONNECTION_INFO::ServerName"]
         [::std::mem::offset_of!(QUIC_NEW_CONNECTION_INFO, ServerName) - 64usize];
+    }
 };
 pub const QUIC_TLS_PROTOCOL_VERSION_QUIC_TLS_PROTOCOL_UNKNOWN: QUIC_TLS_PROTOCOL_VERSION = 0;
 pub const QUIC_TLS_PROTOCOL_VERSION_QUIC_TLS_PROTOCOL_1_3: QUIC_TLS_PROTOCOL_VERSION = 12288;
@@ -809,26 +943,44 @@ pub struct QUIC_HANDSHAKE_INFO {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_HANDSHAKE_INFO"][::std::mem::size_of::<QUIC_HANDSHAKE_INFO>() - 36usize];
-    ["Alignment of QUIC_HANDSHAKE_INFO"][::std::mem::align_of::<QUIC_HANDSHAKE_INFO>() - 4usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::TlsProtocolVersion"]
+    const { ["Size of QUIC_HANDSHAKE_INFO"][::std::mem::size_of::<QUIC_HANDSHAKE_INFO>() - 36usize]; }
+    const { ["Alignment of QUIC_HANDSHAKE_INFO"][::std::mem::align_of::<QUIC_HANDSHAKE_INFO>() - 4usize]; }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::TlsProtocolVersion"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, TlsProtocolVersion) - 0usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::CipherAlgorithm"]
+    }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::CipherAlgorithm"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, CipherAlgorithm) - 4usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::CipherStrength"]
+    }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::CipherStrength"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, CipherStrength) - 8usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::Hash"]
+    }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::Hash"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, Hash) - 12usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::HashStrength"]
+    }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::HashStrength"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, HashStrength) - 16usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::KeyExchangeAlgorithm"]
+    }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::KeyExchangeAlgorithm"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, KeyExchangeAlgorithm) - 20usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::KeyExchangeStrength"]
+    }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::KeyExchangeStrength"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, KeyExchangeStrength) - 24usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::CipherSuite"]
+    }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::CipherSuite"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, CipherSuite) - 28usize];
-    ["Offset of field: QUIC_HANDSHAKE_INFO::TlsGroup"]
+    }
+    const {
+        ["Offset of field: QUIC_HANDSHAKE_INFO::TlsGroup"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, TlsGroup) - 32usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -854,16 +1006,26 @@ pub struct QUIC_STATISTICS__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATISTICS__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_STATISTICS__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_STATISTICS__bindgen_ty_1>() - 24usize];
-    ["Alignment of QUIC_STATISTICS__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_STATISTICS__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_STATISTICS__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_1::Start"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_1::Start"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_1, Start) - 0usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_1::InitialFlightEnd"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_1::InitialFlightEnd"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_1, InitialFlightEnd) - 8usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_1::HandshakeFlightEnd"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_1::HandshakeFlightEnd"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_1, HandshakeFlightEnd) - 16usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -874,16 +1036,26 @@ pub struct QUIC_STATISTICS__bindgen_ty_2 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATISTICS__bindgen_ty_2"]
+    const {
+        ["Size of QUIC_STATISTICS__bindgen_ty_2"]
         [::std::mem::size_of::<QUIC_STATISTICS__bindgen_ty_2>() - 12usize];
-    ["Alignment of QUIC_STATISTICS__bindgen_ty_2"]
+    }
+    const {
+        ["Alignment of QUIC_STATISTICS__bindgen_ty_2"]
         [::std::mem::align_of::<QUIC_STATISTICS__bindgen_ty_2>() - 4usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_2::ClientFlight1Bytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_2::ClientFlight1Bytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_2, ClientFlight1Bytes) - 0usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_2::ServerFlight1Bytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_2::ServerFlight1Bytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_2, ServerFlight1Bytes) - 4usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_2::ClientFlight2Bytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_2::ClientFlight2Bytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_2, ClientFlight2Bytes) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -900,30 +1072,52 @@ pub struct QUIC_STATISTICS__bindgen_ty_3 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATISTICS__bindgen_ty_3"]
+    const {
+        ["Size of QUIC_STATISTICS__bindgen_ty_3"]
         [::std::mem::size_of::<QUIC_STATISTICS__bindgen_ty_3>() - 64usize];
-    ["Alignment of QUIC_STATISTICS__bindgen_ty_3"]
+    }
+    const {
+        ["Alignment of QUIC_STATISTICS__bindgen_ty_3"]
         [::std::mem::align_of::<QUIC_STATISTICS__bindgen_ty_3>() - 8usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::PathMtu"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::PathMtu"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_3, PathMtu) - 0usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::TotalPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::TotalPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_3, TotalPackets) - 8usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::RetransmittablePackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::RetransmittablePackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_3, RetransmittablePackets) - 16usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::SuspectedLostPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::SuspectedLostPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_3, SuspectedLostPackets) - 24usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::SpuriousLostPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::SpuriousLostPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_3, SpuriousLostPackets) - 32usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::TotalBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::TotalBytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_3, TotalBytes) - 40usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::TotalStreamBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::TotalStreamBytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_3, TotalStreamBytes) - 48usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::CongestionCount"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::CongestionCount"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_3, CongestionCount) - 56usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::PersistentCongestionCount"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_3::PersistentCongestionCount"][::std::mem::offset_of!(
         QUIC_STATISTICS__bindgen_ty_3,
         PersistentCongestionCount
-    ) - 60usize];
+        ) - 60usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -939,26 +1133,46 @@ pub struct QUIC_STATISTICS__bindgen_ty_4 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATISTICS__bindgen_ty_4"]
+    const {
+        ["Size of QUIC_STATISTICS__bindgen_ty_4"]
         [::std::mem::size_of::<QUIC_STATISTICS__bindgen_ty_4>() - 64usize];
-    ["Alignment of QUIC_STATISTICS__bindgen_ty_4"]
+    }
+    const {
+        ["Alignment of QUIC_STATISTICS__bindgen_ty_4"]
         [::std::mem::align_of::<QUIC_STATISTICS__bindgen_ty_4>() - 8usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::TotalPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::TotalPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_4, TotalPackets) - 0usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::ReorderedPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::ReorderedPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_4, ReorderedPackets) - 8usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::DroppedPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::DroppedPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_4, DroppedPackets) - 16usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::DuplicatePackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::DuplicatePackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_4, DuplicatePackets) - 24usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::TotalBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::TotalBytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_4, TotalBytes) - 32usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::TotalStreamBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::TotalStreamBytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_4, TotalStreamBytes) - 40usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::DecryptionFailures"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::DecryptionFailures"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_4, DecryptionFailures) - 48usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::ValidAckFrames"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_4::ValidAckFrames"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_4, ValidAckFrames) - 56usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -967,35 +1181,59 @@ pub struct QUIC_STATISTICS__bindgen_ty_5 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATISTICS__bindgen_ty_5"]
+    const {
+        ["Size of QUIC_STATISTICS__bindgen_ty_5"]
         [::std::mem::size_of::<QUIC_STATISTICS__bindgen_ty_5>() - 4usize];
-    ["Alignment of QUIC_STATISTICS__bindgen_ty_5"]
+    }
+    const {
+        ["Alignment of QUIC_STATISTICS__bindgen_ty_5"]
         [::std::mem::align_of::<QUIC_STATISTICS__bindgen_ty_5>() - 4usize];
-    ["Offset of field: QUIC_STATISTICS__bindgen_ty_5::KeyUpdateCount"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS__bindgen_ty_5::KeyUpdateCount"]
         [::std::mem::offset_of!(QUIC_STATISTICS__bindgen_ty_5, KeyUpdateCount) - 0usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATISTICS"][::std::mem::size_of::<QUIC_STATISTICS>() - 200usize];
-    ["Alignment of QUIC_STATISTICS"][::std::mem::align_of::<QUIC_STATISTICS>() - 8usize];
-    ["Offset of field: QUIC_STATISTICS::CorrelationId"]
+    const { ["Size of QUIC_STATISTICS"][::std::mem::size_of::<QUIC_STATISTICS>() - 200usize]; }
+    const { ["Alignment of QUIC_STATISTICS"][::std::mem::align_of::<QUIC_STATISTICS>() - 8usize]; }
+    const {
+        ["Offset of field: QUIC_STATISTICS::CorrelationId"]
         [::std::mem::offset_of!(QUIC_STATISTICS, CorrelationId) - 0usize];
-    ["Offset of field: QUIC_STATISTICS::Rtt"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS::Rtt"]
         [::std::mem::offset_of!(QUIC_STATISTICS, Rtt) - 12usize];
-    ["Offset of field: QUIC_STATISTICS::MinRtt"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS::MinRtt"]
         [::std::mem::offset_of!(QUIC_STATISTICS, MinRtt) - 16usize];
-    ["Offset of field: QUIC_STATISTICS::MaxRtt"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS::MaxRtt"]
         [::std::mem::offset_of!(QUIC_STATISTICS, MaxRtt) - 20usize];
-    ["Offset of field: QUIC_STATISTICS::Timing"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS::Timing"]
         [::std::mem::offset_of!(QUIC_STATISTICS, Timing) - 24usize];
-    ["Offset of field: QUIC_STATISTICS::Handshake"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS::Handshake"]
         [::std::mem::offset_of!(QUIC_STATISTICS, Handshake) - 48usize];
-    ["Offset of field: QUIC_STATISTICS::Send"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS::Send"]
         [::std::mem::offset_of!(QUIC_STATISTICS, Send) - 64usize];
-    ["Offset of field: QUIC_STATISTICS::Recv"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS::Recv"]
         [::std::mem::offset_of!(QUIC_STATISTICS, Recv) - 128usize];
-    ["Offset of field: QUIC_STATISTICS::Misc"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS::Misc"]
         [::std::mem::offset_of!(QUIC_STATISTICS, Misc) - 192usize];
+    }
 };
 impl QUIC_STATISTICS {
     #[inline]
@@ -1198,74 +1436,140 @@ pub struct QUIC_STATISTICS_V2 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATISTICS_V2"][::std::mem::size_of::<QUIC_STATISTICS_V2>() - 208usize];
-    ["Alignment of QUIC_STATISTICS_V2"][::std::mem::align_of::<QUIC_STATISTICS_V2>() - 8usize];
-    ["Offset of field: QUIC_STATISTICS_V2::CorrelationId"]
+    const { ["Size of QUIC_STATISTICS_V2"][::std::mem::size_of::<QUIC_STATISTICS_V2>() - 208usize]; }
+    const { ["Alignment of QUIC_STATISTICS_V2"][::std::mem::align_of::<QUIC_STATISTICS_V2>() - 8usize]; }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::CorrelationId"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, CorrelationId) - 0usize];
-    ["Offset of field: QUIC_STATISTICS_V2::Rtt"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::Rtt"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, Rtt) - 12usize];
-    ["Offset of field: QUIC_STATISTICS_V2::MinRtt"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::MinRtt"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, MinRtt) - 16usize];
-    ["Offset of field: QUIC_STATISTICS_V2::MaxRtt"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::MaxRtt"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, MaxRtt) - 20usize];
-    ["Offset of field: QUIC_STATISTICS_V2::TimingStart"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::TimingStart"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, TimingStart) - 24usize];
-    ["Offset of field: QUIC_STATISTICS_V2::TimingInitialFlightEnd"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::TimingInitialFlightEnd"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, TimingInitialFlightEnd) - 32usize];
-    ["Offset of field: QUIC_STATISTICS_V2::TimingHandshakeFlightEnd"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::TimingHandshakeFlightEnd"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, TimingHandshakeFlightEnd) - 40usize];
-    ["Offset of field: QUIC_STATISTICS_V2::HandshakeClientFlight1Bytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::HandshakeClientFlight1Bytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, HandshakeClientFlight1Bytes) - 48usize];
-    ["Offset of field: QUIC_STATISTICS_V2::HandshakeServerFlight1Bytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::HandshakeServerFlight1Bytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, HandshakeServerFlight1Bytes) - 52usize];
-    ["Offset of field: QUIC_STATISTICS_V2::HandshakeClientFlight2Bytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::HandshakeClientFlight2Bytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, HandshakeClientFlight2Bytes) - 56usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendPathMtu"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendPathMtu"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendPathMtu) - 60usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendTotalPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendTotalPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendTotalPackets) - 64usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendRetransmittablePackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendRetransmittablePackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendRetransmittablePackets) - 72usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendSuspectedLostPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendSuspectedLostPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendSuspectedLostPackets) - 80usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendSpuriousLostPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendSpuriousLostPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendSpuriousLostPackets) - 88usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendTotalBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendTotalBytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendTotalBytes) - 96usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendTotalStreamBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendTotalStreamBytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendTotalStreamBytes) - 104usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendCongestionCount"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendCongestionCount"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendCongestionCount) - 112usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendPersistentCongestionCount"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendPersistentCongestionCount"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendPersistentCongestionCount) - 116usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RecvTotalPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RecvTotalPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RecvTotalPackets) - 120usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RecvReorderedPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RecvReorderedPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RecvReorderedPackets) - 128usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RecvDroppedPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RecvDroppedPackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RecvDroppedPackets) - 136usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RecvDuplicatePackets"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RecvDuplicatePackets"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RecvDuplicatePackets) - 144usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RecvTotalBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RecvTotalBytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RecvTotalBytes) - 152usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RecvTotalStreamBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RecvTotalStreamBytes"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RecvTotalStreamBytes) - 160usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RecvDecryptionFailures"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RecvDecryptionFailures"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RecvDecryptionFailures) - 168usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RecvValidAckFrames"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RecvValidAckFrames"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RecvValidAckFrames) - 176usize];
-    ["Offset of field: QUIC_STATISTICS_V2::KeyUpdateCount"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::KeyUpdateCount"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, KeyUpdateCount) - 184usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendCongestionWindow"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendCongestionWindow"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendCongestionWindow) - 188usize];
-    ["Offset of field: QUIC_STATISTICS_V2::DestCidUpdateCount"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::DestCidUpdateCount"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, DestCidUpdateCount) - 192usize];
-    ["Offset of field: QUIC_STATISTICS_V2::SendEcnCongestionCount"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::SendEcnCongestionCount"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendEcnCongestionCount) - 196usize];
-    ["Offset of field: QUIC_STATISTICS_V2::HandshakeHopLimitTTL"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::HandshakeHopLimitTTL"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, HandshakeHopLimitTTL) - 200usize];
-    ["Offset of field: QUIC_STATISTICS_V2::RttVariance"]
+    }
+    const {
+        ["Offset of field: QUIC_STATISTICS_V2::RttVariance"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RttVariance) - 204usize];
+    }
 };
 impl QUIC_STATISTICS_V2 {
     #[inline]
@@ -1591,21 +1895,35 @@ pub struct QUIC_NETWORK_STATISTICS {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_NETWORK_STATISTICS"][::std::mem::size_of::<QUIC_NETWORK_STATISTICS>() - 48usize];
-    ["Alignment of QUIC_NETWORK_STATISTICS"]
+    const { ["Size of QUIC_NETWORK_STATISTICS"][::std::mem::size_of::<QUIC_NETWORK_STATISTICS>() - 48usize]; }
+    const {
+        ["Alignment of QUIC_NETWORK_STATISTICS"]
         [::std::mem::align_of::<QUIC_NETWORK_STATISTICS>() - 8usize];
-    ["Offset of field: QUIC_NETWORK_STATISTICS::BytesInFlight"]
+    }
+    const {
+        ["Offset of field: QUIC_NETWORK_STATISTICS::BytesInFlight"]
         [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, BytesInFlight) - 0usize];
-    ["Offset of field: QUIC_NETWORK_STATISTICS::PostedBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_NETWORK_STATISTICS::PostedBytes"]
         [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, PostedBytes) - 8usize];
-    ["Offset of field: QUIC_NETWORK_STATISTICS::IdealBytes"]
+    }
+    const {
+        ["Offset of field: QUIC_NETWORK_STATISTICS::IdealBytes"]
         [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, IdealBytes) - 16usize];
-    ["Offset of field: QUIC_NETWORK_STATISTICS::SmoothedRTT"]
+    }
+    const {
+        ["Offset of field: QUIC_NETWORK_STATISTICS::SmoothedRTT"]
         [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, SmoothedRTT) - 24usize];
-    ["Offset of field: QUIC_NETWORK_STATISTICS::CongestionWindow"]
+    }
+    const {
+        ["Offset of field: QUIC_NETWORK_STATISTICS::CongestionWindow"]
         [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, CongestionWindow) - 32usize];
-    ["Offset of field: QUIC_NETWORK_STATISTICS::Bandwidth"]
+    }
+    const {
+        ["Offset of field: QUIC_NETWORK_STATISTICS::Bandwidth"]
         [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, Bandwidth) - 40usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1616,16 +1934,26 @@ pub struct QUIC_LISTENER_STATISTICS {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_LISTENER_STATISTICS"]
+    const {
+        ["Size of QUIC_LISTENER_STATISTICS"]
         [::std::mem::size_of::<QUIC_LISTENER_STATISTICS>() - 24usize];
-    ["Alignment of QUIC_LISTENER_STATISTICS"]
+    }
+    const {
+        ["Alignment of QUIC_LISTENER_STATISTICS"]
         [::std::mem::align_of::<QUIC_LISTENER_STATISTICS>() - 8usize];
-    ["Offset of field: QUIC_LISTENER_STATISTICS::TotalAcceptedConnections"]
+    }
+    const {
+        ["Offset of field: QUIC_LISTENER_STATISTICS::TotalAcceptedConnections"]
         [::std::mem::offset_of!(QUIC_LISTENER_STATISTICS, TotalAcceptedConnections) - 0usize];
-    ["Offset of field: QUIC_LISTENER_STATISTICS::TotalRejectedConnections"]
+    }
+    const {
+        ["Offset of field: QUIC_LISTENER_STATISTICS::TotalRejectedConnections"]
         [::std::mem::offset_of!(QUIC_LISTENER_STATISTICS, TotalRejectedConnections) - 8usize];
-    ["Offset of field: QUIC_LISTENER_STATISTICS::BindingRecvDroppedPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_LISTENER_STATISTICS::BindingRecvDroppedPackets"]
         [::std::mem::offset_of!(QUIC_LISTENER_STATISTICS, BindingRecvDroppedPackets) - 16usize];
+    }
 };
 pub const QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_CREATED: QUIC_PERFORMANCE_COUNTERS = 0;
 pub const QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL:
@@ -1697,21 +2025,35 @@ pub struct QUIC_VERSION_SETTINGS {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_VERSION_SETTINGS"][::std::mem::size_of::<QUIC_VERSION_SETTINGS>() - 40usize];
-    ["Alignment of QUIC_VERSION_SETTINGS"]
+    const { ["Size of QUIC_VERSION_SETTINGS"][::std::mem::size_of::<QUIC_VERSION_SETTINGS>() - 40usize]; }
+    const {
+        ["Alignment of QUIC_VERSION_SETTINGS"]
         [::std::mem::align_of::<QUIC_VERSION_SETTINGS>() - 8usize];
-    ["Offset of field: QUIC_VERSION_SETTINGS::AcceptableVersions"]
+    }
+    const {
+        ["Offset of field: QUIC_VERSION_SETTINGS::AcceptableVersions"]
         [::std::mem::offset_of!(QUIC_VERSION_SETTINGS, AcceptableVersions) - 0usize];
-    ["Offset of field: QUIC_VERSION_SETTINGS::OfferedVersions"]
+    }
+    const {
+        ["Offset of field: QUIC_VERSION_SETTINGS::OfferedVersions"]
         [::std::mem::offset_of!(QUIC_VERSION_SETTINGS, OfferedVersions) - 8usize];
-    ["Offset of field: QUIC_VERSION_SETTINGS::FullyDeployedVersions"]
+    }
+    const {
+        ["Offset of field: QUIC_VERSION_SETTINGS::FullyDeployedVersions"]
         [::std::mem::offset_of!(QUIC_VERSION_SETTINGS, FullyDeployedVersions) - 16usize];
-    ["Offset of field: QUIC_VERSION_SETTINGS::AcceptableVersionsLength"]
+    }
+    const {
+        ["Offset of field: QUIC_VERSION_SETTINGS::AcceptableVersionsLength"]
         [::std::mem::offset_of!(QUIC_VERSION_SETTINGS, AcceptableVersionsLength) - 24usize];
-    ["Offset of field: QUIC_VERSION_SETTINGS::OfferedVersionsLength"]
+    }
+    const {
+        ["Offset of field: QUIC_VERSION_SETTINGS::OfferedVersionsLength"]
         [::std::mem::offset_of!(QUIC_VERSION_SETTINGS, OfferedVersionsLength) - 28usize];
-    ["Offset of field: QUIC_VERSION_SETTINGS::FullyDeployedVersionsLength"]
+    }
+    const {
+        ["Offset of field: QUIC_VERSION_SETTINGS::FullyDeployedVersionsLength"]
         [::std::mem::offset_of!(QUIC_VERSION_SETTINGS, FullyDeployedVersionsLength) - 32usize];
+    }
 };
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1735,10 +2077,14 @@ pub struct QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1>() - 8usize];
-    ["Alignment of QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1>() - 8usize];
+    }
 };
 impl QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
     #[inline]
@@ -1902,25 +2248,39 @@ impl QUIC_GLOBAL_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_GLOBAL_SETTINGS__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_GLOBAL_SETTINGS__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_GLOBAL_SETTINGS__bindgen_ty_1>() - 8usize];
-    ["Alignment of QUIC_GLOBAL_SETTINGS__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_GLOBAL_SETTINGS__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_GLOBAL_SETTINGS__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_GLOBAL_SETTINGS__bindgen_ty_1::IsSetFlags"]
+    }
+    const {
+        ["Offset of field: QUIC_GLOBAL_SETTINGS__bindgen_ty_1::IsSetFlags"]
         [::std::mem::offset_of!(QUIC_GLOBAL_SETTINGS__bindgen_ty_1, IsSetFlags) - 0usize];
-    ["Offset of field: QUIC_GLOBAL_SETTINGS__bindgen_ty_1::IsSet"]
+    }
+    const {
+        ["Offset of field: QUIC_GLOBAL_SETTINGS__bindgen_ty_1::IsSet"]
         [::std::mem::offset_of!(QUIC_GLOBAL_SETTINGS__bindgen_ty_1, IsSet) - 0usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_GLOBAL_SETTINGS"][::std::mem::size_of::<QUIC_GLOBAL_SETTINGS>() - 16usize];
-    ["Alignment of QUIC_GLOBAL_SETTINGS"][::std::mem::align_of::<QUIC_GLOBAL_SETTINGS>() - 8usize];
-    ["Offset of field: QUIC_GLOBAL_SETTINGS::RetryMemoryLimit"]
+    const { ["Size of QUIC_GLOBAL_SETTINGS"][::std::mem::size_of::<QUIC_GLOBAL_SETTINGS>() - 16usize]; }
+    const { ["Alignment of QUIC_GLOBAL_SETTINGS"][::std::mem::align_of::<QUIC_GLOBAL_SETTINGS>() - 8usize]; }
+    const {
+        ["Offset of field: QUIC_GLOBAL_SETTINGS::RetryMemoryLimit"]
         [::std::mem::offset_of!(QUIC_GLOBAL_SETTINGS, RetryMemoryLimit) - 8usize];
-    ["Offset of field: QUIC_GLOBAL_SETTINGS::LoadBalancingMode"]
+    }
+    const {
+        ["Offset of field: QUIC_GLOBAL_SETTINGS::LoadBalancingMode"]
         [::std::mem::offset_of!(QUIC_GLOBAL_SETTINGS, LoadBalancingMode) - 10usize];
-    ["Offset of field: QUIC_GLOBAL_SETTINGS::FixedServerID"]
+    }
+    const {
+        ["Offset of field: QUIC_GLOBAL_SETTINGS::FixedServerID"]
         [::std::mem::offset_of!(QUIC_GLOBAL_SETTINGS, FixedServerID) - 12usize];
+    }
 };
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1975,10 +2335,14 @@ pub struct QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1>() - 8usize];
-    ["Alignment of QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1>() - 8usize];
+    }
 };
 impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
     #[inline]
@@ -3798,14 +4162,22 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_SETTINGS__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_SETTINGS__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_SETTINGS__bindgen_ty_1>() - 8usize];
-    ["Alignment of QUIC_SETTINGS__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_SETTINGS__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_SETTINGS__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_SETTINGS__bindgen_ty_1::IsSetFlags"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS__bindgen_ty_1::IsSetFlags"]
         [::std::mem::offset_of!(QUIC_SETTINGS__bindgen_ty_1, IsSetFlags) - 0usize];
-    ["Offset of field: QUIC_SETTINGS__bindgen_ty_1::IsSet"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS__bindgen_ty_1::IsSet"]
         [::std::mem::offset_of!(QUIC_SETTINGS__bindgen_ty_1, IsSet) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -3821,10 +4193,14 @@ pub struct QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1>() - 8usize];
-    ["Alignment of QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1>() - 8usize];
+    }
 };
 impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
     #[inline]
@@ -4218,77 +4594,143 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_SETTINGS__bindgen_ty_2"]
+    const {
+        ["Size of QUIC_SETTINGS__bindgen_ty_2"]
         [::std::mem::size_of::<QUIC_SETTINGS__bindgen_ty_2>() - 8usize];
-    ["Alignment of QUIC_SETTINGS__bindgen_ty_2"]
+    }
+    const {
+        ["Alignment of QUIC_SETTINGS__bindgen_ty_2"]
         [::std::mem::align_of::<QUIC_SETTINGS__bindgen_ty_2>() - 8usize];
-    ["Offset of field: QUIC_SETTINGS__bindgen_ty_2::Flags"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS__bindgen_ty_2::Flags"]
         [::std::mem::offset_of!(QUIC_SETTINGS__bindgen_ty_2, Flags) - 0usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_SETTINGS"][::std::mem::size_of::<QUIC_SETTINGS>() - 144usize];
-    ["Alignment of QUIC_SETTINGS"][::std::mem::align_of::<QUIC_SETTINGS>() - 8usize];
-    ["Offset of field: QUIC_SETTINGS::MaxBytesPerKey"]
+    const { ["Size of QUIC_SETTINGS"][::std::mem::size_of::<QUIC_SETTINGS>() - 144usize]; }
+    const { ["Alignment of QUIC_SETTINGS"][::std::mem::align_of::<QUIC_SETTINGS>() - 8usize]; }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MaxBytesPerKey"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MaxBytesPerKey) - 8usize];
-    ["Offset of field: QUIC_SETTINGS::HandshakeIdleTimeoutMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::HandshakeIdleTimeoutMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, HandshakeIdleTimeoutMs) - 16usize];
-    ["Offset of field: QUIC_SETTINGS::IdleTimeoutMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::IdleTimeoutMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, IdleTimeoutMs) - 24usize];
-    ["Offset of field: QUIC_SETTINGS::MtuDiscoverySearchCompleteTimeoutUs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MtuDiscoverySearchCompleteTimeoutUs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MtuDiscoverySearchCompleteTimeoutUs) - 32usize];
-    ["Offset of field: QUIC_SETTINGS::TlsClientMaxSendBuffer"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::TlsClientMaxSendBuffer"]
         [::std::mem::offset_of!(QUIC_SETTINGS, TlsClientMaxSendBuffer) - 40usize];
-    ["Offset of field: QUIC_SETTINGS::TlsServerMaxSendBuffer"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::TlsServerMaxSendBuffer"]
         [::std::mem::offset_of!(QUIC_SETTINGS, TlsServerMaxSendBuffer) - 44usize];
-    ["Offset of field: QUIC_SETTINGS::StreamRecvWindowDefault"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::StreamRecvWindowDefault"]
         [::std::mem::offset_of!(QUIC_SETTINGS, StreamRecvWindowDefault) - 48usize];
-    ["Offset of field: QUIC_SETTINGS::StreamRecvBufferDefault"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::StreamRecvBufferDefault"]
         [::std::mem::offset_of!(QUIC_SETTINGS, StreamRecvBufferDefault) - 52usize];
-    ["Offset of field: QUIC_SETTINGS::ConnFlowControlWindow"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::ConnFlowControlWindow"]
         [::std::mem::offset_of!(QUIC_SETTINGS, ConnFlowControlWindow) - 56usize];
-    ["Offset of field: QUIC_SETTINGS::MaxWorkerQueueDelayUs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MaxWorkerQueueDelayUs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MaxWorkerQueueDelayUs) - 60usize];
-    ["Offset of field: QUIC_SETTINGS::MaxStatelessOperations"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MaxStatelessOperations"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MaxStatelessOperations) - 64usize];
-    ["Offset of field: QUIC_SETTINGS::InitialWindowPackets"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::InitialWindowPackets"]
         [::std::mem::offset_of!(QUIC_SETTINGS, InitialWindowPackets) - 68usize];
-    ["Offset of field: QUIC_SETTINGS::SendIdleTimeoutMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::SendIdleTimeoutMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, SendIdleTimeoutMs) - 72usize];
-    ["Offset of field: QUIC_SETTINGS::InitialRttMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::InitialRttMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, InitialRttMs) - 76usize];
-    ["Offset of field: QUIC_SETTINGS::MaxAckDelayMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MaxAckDelayMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MaxAckDelayMs) - 80usize];
-    ["Offset of field: QUIC_SETTINGS::DisconnectTimeoutMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::DisconnectTimeoutMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, DisconnectTimeoutMs) - 84usize];
-    ["Offset of field: QUIC_SETTINGS::KeepAliveIntervalMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::KeepAliveIntervalMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, KeepAliveIntervalMs) - 88usize];
-    ["Offset of field: QUIC_SETTINGS::CongestionControlAlgorithm"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::CongestionControlAlgorithm"]
         [::std::mem::offset_of!(QUIC_SETTINGS, CongestionControlAlgorithm) - 92usize];
-    ["Offset of field: QUIC_SETTINGS::PeerBidiStreamCount"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::PeerBidiStreamCount"]
         [::std::mem::offset_of!(QUIC_SETTINGS, PeerBidiStreamCount) - 94usize];
-    ["Offset of field: QUIC_SETTINGS::PeerUnidiStreamCount"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::PeerUnidiStreamCount"]
         [::std::mem::offset_of!(QUIC_SETTINGS, PeerUnidiStreamCount) - 96usize];
-    ["Offset of field: QUIC_SETTINGS::MaxBindingStatelessOperations"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MaxBindingStatelessOperations"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MaxBindingStatelessOperations) - 98usize];
-    ["Offset of field: QUIC_SETTINGS::StatelessOperationExpirationMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::StatelessOperationExpirationMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, StatelessOperationExpirationMs) - 100usize];
-    ["Offset of field: QUIC_SETTINGS::MinimumMtu"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MinimumMtu"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MinimumMtu) - 102usize];
-    ["Offset of field: QUIC_SETTINGS::MaximumMtu"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MaximumMtu"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MaximumMtu) - 104usize];
-    ["Offset of field: QUIC_SETTINGS::MaxOperationsPerDrain"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MaxOperationsPerDrain"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MaxOperationsPerDrain) - 107usize];
-    ["Offset of field: QUIC_SETTINGS::MtuDiscoveryMissingProbeCount"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::MtuDiscoveryMissingProbeCount"]
         [::std::mem::offset_of!(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount) - 108usize];
-    ["Offset of field: QUIC_SETTINGS::DestCidUpdateIdleTimeoutMs"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::DestCidUpdateIdleTimeoutMs"]
         [::std::mem::offset_of!(QUIC_SETTINGS, DestCidUpdateIdleTimeoutMs) - 112usize];
-    ["Offset of field: QUIC_SETTINGS::StreamRecvWindowBidiLocalDefault"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::StreamRecvWindowBidiLocalDefault"]
         [::std::mem::offset_of!(QUIC_SETTINGS, StreamRecvWindowBidiLocalDefault) - 128usize];
-    ["Offset of field: QUIC_SETTINGS::StreamRecvWindowBidiRemoteDefault"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::StreamRecvWindowBidiRemoteDefault"]
         [::std::mem::offset_of!(QUIC_SETTINGS, StreamRecvWindowBidiRemoteDefault) - 132usize];
-    ["Offset of field: QUIC_SETTINGS::StreamRecvWindowUnidiDefault"]
+    }
+    const {
+        ["Offset of field: QUIC_SETTINGS::StreamRecvWindowUnidiDefault"]
         [::std::mem::offset_of!(QUIC_SETTINGS, StreamRecvWindowUnidiDefault) - 136usize];
+    }
 };
 impl QUIC_SETTINGS {
     #[inline]
@@ -4585,10 +5027,14 @@ pub struct QUIC_TLS_SECRETS__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_TLS_SECRETS__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_TLS_SECRETS__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_TLS_SECRETS__bindgen_ty_1>() - 1usize];
-    ["Alignment of QUIC_TLS_SECRETS__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_TLS_SECRETS__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_TLS_SECRETS__bindgen_ty_1>() - 1usize];
+    }
 };
 impl QUIC_TLS_SECRETS__bindgen_ty_1 {
     #[inline]
@@ -4831,24 +5277,40 @@ impl QUIC_TLS_SECRETS__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_TLS_SECRETS"][::std::mem::size_of::<QUIC_TLS_SECRETS>() - 354usize];
-    ["Alignment of QUIC_TLS_SECRETS"][::std::mem::align_of::<QUIC_TLS_SECRETS>() - 1usize];
-    ["Offset of field: QUIC_TLS_SECRETS::SecretLength"]
+    const { ["Size of QUIC_TLS_SECRETS"][::std::mem::size_of::<QUIC_TLS_SECRETS>() - 354usize]; }
+    const { ["Alignment of QUIC_TLS_SECRETS"][::std::mem::align_of::<QUIC_TLS_SECRETS>() - 1usize]; }
+    const {
+        ["Offset of field: QUIC_TLS_SECRETS::SecretLength"]
         [::std::mem::offset_of!(QUIC_TLS_SECRETS, SecretLength) - 0usize];
-    ["Offset of field: QUIC_TLS_SECRETS::IsSet"]
+    }
+    const {
+        ["Offset of field: QUIC_TLS_SECRETS::IsSet"]
         [::std::mem::offset_of!(QUIC_TLS_SECRETS, IsSet) - 1usize];
-    ["Offset of field: QUIC_TLS_SECRETS::ClientRandom"]
+    }
+    const {
+        ["Offset of field: QUIC_TLS_SECRETS::ClientRandom"]
         [::std::mem::offset_of!(QUIC_TLS_SECRETS, ClientRandom) - 2usize];
-    ["Offset of field: QUIC_TLS_SECRETS::ClientEarlyTrafficSecret"]
+    }
+    const {
+        ["Offset of field: QUIC_TLS_SECRETS::ClientEarlyTrafficSecret"]
         [::std::mem::offset_of!(QUIC_TLS_SECRETS, ClientEarlyTrafficSecret) - 34usize];
-    ["Offset of field: QUIC_TLS_SECRETS::ClientHandshakeTrafficSecret"]
+    }
+    const {
+        ["Offset of field: QUIC_TLS_SECRETS::ClientHandshakeTrafficSecret"]
         [::std::mem::offset_of!(QUIC_TLS_SECRETS, ClientHandshakeTrafficSecret) - 98usize];
-    ["Offset of field: QUIC_TLS_SECRETS::ServerHandshakeTrafficSecret"]
+    }
+    const {
+        ["Offset of field: QUIC_TLS_SECRETS::ServerHandshakeTrafficSecret"]
         [::std::mem::offset_of!(QUIC_TLS_SECRETS, ServerHandshakeTrafficSecret) - 162usize];
-    ["Offset of field: QUIC_TLS_SECRETS::ClientTrafficSecret0"]
+    }
+    const {
+        ["Offset of field: QUIC_TLS_SECRETS::ClientTrafficSecret0"]
         [::std::mem::offset_of!(QUIC_TLS_SECRETS, ClientTrafficSecret0) - 226usize];
-    ["Offset of field: QUIC_TLS_SECRETS::ServerTrafficSecret0"]
+    }
+    const {
+        ["Offset of field: QUIC_TLS_SECRETS::ServerTrafficSecret0"]
         [::std::mem::offset_of!(QUIC_TLS_SECRETS, ServerTrafficSecret0) - 290usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -4864,29 +5326,47 @@ pub struct QUIC_STREAM_STATISTICS {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_STATISTICS"][::std::mem::size_of::<QUIC_STREAM_STATISTICS>() - 64usize];
-    ["Alignment of QUIC_STREAM_STATISTICS"]
+    const { ["Size of QUIC_STREAM_STATISTICS"][::std::mem::size_of::<QUIC_STREAM_STATISTICS>() - 64usize]; }
+    const {
+        ["Alignment of QUIC_STREAM_STATISTICS"]
         [::std::mem::align_of::<QUIC_STREAM_STATISTICS>() - 8usize];
-    ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedBySchedulingUs"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedBySchedulingUs"]
         [::std::mem::offset_of!(QUIC_STREAM_STATISTICS, ConnBlockedBySchedulingUs) - 0usize];
-    ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedByPacingUs"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedByPacingUs"]
         [::std::mem::offset_of!(QUIC_STREAM_STATISTICS, ConnBlockedByPacingUs) - 8usize];
-    ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedByAmplificationProtUs"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedByAmplificationProtUs"][::std::mem::offset_of!(
         QUIC_STREAM_STATISTICS,
         ConnBlockedByAmplificationProtUs
-    ) - 16usize];
-    ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedByCongestionControlUs"][::std::mem::offset_of!(
+        ) - 16usize];
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedByCongestionControlUs"][::std::mem::offset_of!(
         QUIC_STREAM_STATISTICS,
         ConnBlockedByCongestionControlUs
-    ) - 24usize];
-    ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedByFlowControlUs"]
+        ) - 24usize];
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_STATISTICS::ConnBlockedByFlowControlUs"]
         [::std::mem::offset_of!(QUIC_STREAM_STATISTICS, ConnBlockedByFlowControlUs) - 32usize];
-    ["Offset of field: QUIC_STREAM_STATISTICS::StreamBlockedByIdFlowControlUs"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_STATISTICS::StreamBlockedByIdFlowControlUs"]
         [::std::mem::offset_of!(QUIC_STREAM_STATISTICS, StreamBlockedByIdFlowControlUs) - 40usize];
-    ["Offset of field: QUIC_STREAM_STATISTICS::StreamBlockedByFlowControlUs"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_STATISTICS::StreamBlockedByFlowControlUs"]
         [::std::mem::offset_of!(QUIC_STREAM_STATISTICS, StreamBlockedByFlowControlUs) - 48usize];
-    ["Offset of field: QUIC_STREAM_STATISTICS::StreamBlockedByAppUs"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_STATISTICS::StreamBlockedByAppUs"]
         [::std::mem::offset_of!(QUIC_STREAM_STATISTICS, StreamBlockedByAppUs) - 56usize];
+    }
 };
 pub const QUIC_AEAD_ALGORITHM_TYPE_QUIC_AEAD_ALGORITHM_AES_128_GCM: QUIC_AEAD_ALGORITHM_TYPE = 0;
 pub const QUIC_AEAD_ALGORITHM_TYPE_QUIC_AEAD_ALGORITHM_AES_256_GCM: QUIC_AEAD_ALGORITHM_TYPE = 1;
@@ -4901,18 +5381,30 @@ pub struct QUIC_STATELESS_RETRY_CONFIG {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATELESS_RETRY_CONFIG"]
+    const {
+        ["Size of QUIC_STATELESS_RETRY_CONFIG"]
         [::std::mem::size_of::<QUIC_STATELESS_RETRY_CONFIG>() - 24usize];
-    ["Alignment of QUIC_STATELESS_RETRY_CONFIG"]
+    }
+    const {
+        ["Alignment of QUIC_STATELESS_RETRY_CONFIG"]
         [::std::mem::align_of::<QUIC_STATELESS_RETRY_CONFIG>() - 8usize];
-    ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::Algorithm"]
+    }
+    const {
+        ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::Algorithm"]
         [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, Algorithm) - 0usize];
-    ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::RotationMs"]
+    }
+    const {
+        ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::RotationMs"]
         [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, RotationMs) - 4usize];
-    ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::SecretLength"]
+    }
+    const {
+        ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::SecretLength"]
         [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, SecretLength) - 8usize];
-    ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::Secret"]
+    }
+    const {
+        ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::Secret"]
         [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, Secret) - 16usize];
+    }
 };
 pub type QUIC_SET_CONTEXT_FN = ::std::option::Option<
     unsafe extern "C" fn(Handle: HQUIC, Context: *mut ::std::os::raw::c_void),
@@ -4935,16 +5427,26 @@ pub struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W"]
+    const {
+        ["Size of QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W"]
         [::std::mem::size_of::<QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W>() - 24usize];
-    ["Alignment of QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W"]
+    }
+    const {
+        ["Alignment of QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W"]
         [::std::mem::align_of::<QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W>() - 8usize];
-    ["Offset of field: QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W::Attribute"]
+    }
+    const {
+        ["Offset of field: QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W::Attribute"]
         [::std::mem::offset_of!(QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W, Attribute) - 0usize];
-    ["Offset of field: QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W::BufferLength"]
+    }
+    const {
+        ["Offset of field: QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W::BufferLength"]
         [::std::mem::offset_of!(QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W, BufferLength) - 8usize];
-    ["Offset of field: QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W::Buffer"]
+    }
+    const {
+        ["Offset of field: QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W::Buffer"]
         [::std::mem::offset_of!(QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W, Buffer) - 16usize];
+    }
 };
 pub type QUIC_SET_PARAM_FN = ::std::option::Option<
     unsafe extern "C" fn(
@@ -5032,16 +5534,24 @@ pub struct QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1>() - 16usize];
-    ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1::Info"]
+    }
+    const {
+        ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1::Info"]
         [::std::mem::offset_of!(QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1, Info) - 0usize];
-    ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1::Connection"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1::Connection"][::std::mem::offset_of!(
         QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1,
         Connection
-    ) - 8usize];
+        ) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5051,10 +5561,14 @@ pub struct QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2"]
+    const {
+        ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2"]
         [::std::mem::size_of::<QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2>() - 1usize];
-    ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2"]
+    }
+    const {
+        ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2"]
         [::std::mem::align_of::<QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2>() - 1usize];
+    }
 };
 impl QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2 {
     #[inline]
@@ -5148,10 +5662,14 @@ pub struct QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3"]
+    const {
+        ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3"]
         [::std::mem::size_of::<QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3>() - 1usize];
-    ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3"]
+    }
+    const {
+        ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3"]
         [::std::mem::align_of::<QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3>() - 1usize];
+    }
 };
 impl QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3 {
     #[inline]
@@ -5239,23 +5757,35 @@ impl QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_LISTENER_EVENT__bindgen_ty_1>() - 16usize];
-    ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_LISTENER_EVENT__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1::NEW_CONNECTION"]
+    }
+    const {
+        ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1::NEW_CONNECTION"]
         [::std::mem::offset_of!(QUIC_LISTENER_EVENT__bindgen_ty_1, NEW_CONNECTION) - 0usize];
-    ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1::STOP_COMPLETE"]
+    }
+    const {
+        ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1::STOP_COMPLETE"]
         [::std::mem::offset_of!(QUIC_LISTENER_EVENT__bindgen_ty_1, STOP_COMPLETE) - 0usize];
-    ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1::DOS_MODE_CHANGED"]
+    }
+    const {
+        ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1::DOS_MODE_CHANGED"]
         [::std::mem::offset_of!(QUIC_LISTENER_EVENT__bindgen_ty_1, DOS_MODE_CHANGED) - 0usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_LISTENER_EVENT"][::std::mem::size_of::<QUIC_LISTENER_EVENT>() - 24usize];
-    ["Alignment of QUIC_LISTENER_EVENT"][::std::mem::align_of::<QUIC_LISTENER_EVENT>() - 8usize];
-    ["Offset of field: QUIC_LISTENER_EVENT::Type"]
+    const { ["Size of QUIC_LISTENER_EVENT"][::std::mem::size_of::<QUIC_LISTENER_EVENT>() - 24usize]; }
+    const { ["Alignment of QUIC_LISTENER_EVENT"][::std::mem::align_of::<QUIC_LISTENER_EVENT>() - 8usize]; }
+    const {
+        ["Offset of field: QUIC_LISTENER_EVENT::Type"]
         [::std::mem::offset_of!(QUIC_LISTENER_EVENT, Type) - 0usize];
+    }
 };
 pub type QUIC_LISTENER_CALLBACK = ::std::option::Option<
     unsafe extern "C" fn(
@@ -5359,25 +5889,35 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1>() - 16usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1::SessionResumed"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1::SessionResumed"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1,
         SessionResumed
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1::NegotiatedAlpnLength"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1::NegotiatedAlpnLength"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1,
         NegotiatedAlpnLength
-    )
+        )
         - 1usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1::NegotiatedAlpn"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1::NegotiatedAlpn"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_1,
         NegotiatedAlpn
-    )
+        )
         - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5387,18 +5927,26 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2>() - 16usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2::Status"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2::Status"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2,
         Status
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2::ErrorCode"][::std::mem::offset_of!(
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2::ErrorCode"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_2,
         ErrorCode
-    ) - 8usize];
+        ) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5407,14 +5955,20 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3>() - 8usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3::ErrorCode"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3::ErrorCode"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_3,
         ErrorCode
-    ) - 0usize];
+        ) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5424,10 +5978,14 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_4 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_4"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_4"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_4>() - 1usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_4"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_4"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_4>() - 1usize];
+    }
 };
 impl QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_4 {
     #[inline]
@@ -5559,14 +6117,20 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5>() - 8usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5::Address"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5::Address"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_5,
         Address
-    ) - 0usize];
+        ) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5575,14 +6139,20 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6>() - 8usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6::Address"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6::Address"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_6,
         Address
-    ) - 0usize];
+        ) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5592,16 +6162,24 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7>() - 16usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7::Stream"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7::Stream"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7,
         Stream
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7::Flags"]
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7::Flags"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_7, Flags) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5611,20 +6189,28 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8>() - 4usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8>() - 2usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8::BidirectionalCount"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8::BidirectionalCount"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8,
         BidirectionalCount
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8::UnidirectionalCount"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8::UnidirectionalCount"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_8,
         UnidirectionalCount
-    )
+        )
         - 2usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5633,15 +6219,21 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9>() - 1usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9>() - 1usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9::Bidirectional"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9::Bidirectional"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_9,
         Bidirectional
-    )
+        )
         - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5651,20 +6243,28 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10>() - 4usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10>() - 2usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10::IdealProcessor"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10::IdealProcessor"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10,
         IdealProcessor
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10::PartitionIndex"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10::PartitionIndex"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_10,
         PartitionIndex
-    )
+        )
         - 2usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5674,20 +6274,28 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11>() - 4usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11>() - 2usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11::SendEnabled"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11::SendEnabled"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11,
         SendEnabled
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11::MaxSendLength"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11::MaxSendLength"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_11,
         MaxSendLength
-    )
+        )
         - 2usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5697,18 +6305,26 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12>() - 16usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12::Buffer"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12::Buffer"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12,
         Buffer
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12::Flags"][::std::mem::offset_of!(
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12::Flags"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_12,
         Flags
-    ) - 8usize];
+        ) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5718,19 +6334,27 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13>() - 16usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13::ClientContext"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13::ClientContext"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13,
         ClientContext
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13::State"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13::State"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_13,
         State
-    ) - 8usize];
+        ) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5740,20 +6364,28 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14>() - 16usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14::ResumptionStateLength"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14::ResumptionStateLength"]
         [::std::mem::offset_of!(
-            QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14,
-            ResumptionStateLength
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14,
+        ResumptionStateLength
         ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14::ResumptionState"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14::ResumptionState"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_14,
         ResumptionState
-    )
+        )
         - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5763,20 +6395,28 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15>() - 16usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15::ResumptionTicketLength"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15::ResumptionTicketLength"]
         [::std::mem::offset_of!(
-            QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15,
-            ResumptionTicketLength
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15,
+        ResumptionTicketLength
         ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15::ResumptionTicket"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15::ResumptionTicket"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_15,
         ResumptionTicket
-    )
+        )
         - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5788,29 +6428,41 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16>() - 24usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16::Certificate"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16::Certificate"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16,
         Certificate
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16::DeferredErrorFlags"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16::DeferredErrorFlags"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16,
         DeferredErrorFlags
-    )
+        )
         - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16::DeferredStatus"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16::DeferredStatus"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16,
         DeferredStatus
-    )
+        )
         - 12usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16::Chain"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16::Chain"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16,
         Chain
-    ) - 16usize];
+        ) - 16usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5819,15 +6471,21 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17>() - 1usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17>() - 1usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17::IsNegotiated"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17::IsNegotiated"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17,
         IsNegotiated
-    )
+        )
         - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5837,99 +6495,153 @@ pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18>() - 2usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18>() - 1usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18::SendNegotiated"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18::SendNegotiated"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18,
         SendNegotiated
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18::ReceiveNegotiated"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18::ReceiveNegotiated"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18,
         ReceiveNegotiated
-    )
+        )
         - 1usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1>() - 48usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::CONNECTED"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::CONNECTED"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, CONNECTED) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::SHUTDOWN_INITIATED_BY_TRANSPORT"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::SHUTDOWN_INITIATED_BY_TRANSPORT"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         SHUTDOWN_INITIATED_BY_TRANSPORT
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::SHUTDOWN_INITIATED_BY_PEER"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::SHUTDOWN_INITIATED_BY_PEER"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         SHUTDOWN_INITIATED_BY_PEER
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::SHUTDOWN_COMPLETE"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::SHUTDOWN_COMPLETE"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, SHUTDOWN_COMPLETE) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::LOCAL_ADDRESS_CHANGED"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::LOCAL_ADDRESS_CHANGED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         LOCAL_ADDRESS_CHANGED
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PEER_ADDRESS_CHANGED"][::std::mem::offset_of!(
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PEER_ADDRESS_CHANGED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         PEER_ADDRESS_CHANGED
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PEER_STREAM_STARTED"]
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PEER_STREAM_STARTED"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, PEER_STREAM_STARTED) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::STREAMS_AVAILABLE"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::STREAMS_AVAILABLE"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, STREAMS_AVAILABLE) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PEER_NEEDS_STREAMS"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PEER_NEEDS_STREAMS"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, PEER_NEEDS_STREAMS) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::IDEAL_PROCESSOR_CHANGED"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::IDEAL_PROCESSOR_CHANGED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         IDEAL_PROCESSOR_CHANGED
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::DATAGRAM_STATE_CHANGED"][::std::mem::offset_of!(
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::DATAGRAM_STATE_CHANGED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         DATAGRAM_STATE_CHANGED
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::DATAGRAM_RECEIVED"]
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::DATAGRAM_RECEIVED"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, DATAGRAM_RECEIVED) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::DATAGRAM_SEND_STATE_CHANGED"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::DATAGRAM_SEND_STATE_CHANGED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         DATAGRAM_SEND_STATE_CHANGED
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::RESUMED"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::RESUMED"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, RESUMED) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::RESUMPTION_TICKET_RECEIVED"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::RESUMPTION_TICKET_RECEIVED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         RESUMPTION_TICKET_RECEIVED
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PEER_CERTIFICATE_RECEIVED"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PEER_CERTIFICATE_RECEIVED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         PEER_CERTIFICATE_RECEIVED
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::RELIABLE_RESET_NEGOTIATED"][::std::mem::offset_of!(
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::RELIABLE_RESET_NEGOTIATED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         RELIABLE_RESET_NEGOTIATED
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::ONE_WAY_DELAY_NEGOTIATED"][::std::mem::offset_of!(
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::ONE_WAY_DELAY_NEGOTIATED"][::std::mem::offset_of!(
         QUIC_CONNECTION_EVENT__bindgen_ty_1,
         ONE_WAY_DELAY_NEGOTIATED
-    ) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::NETWORK_STATISTICS"]
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::NETWORK_STATISTICS"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, NETWORK_STATISTICS) - 0usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT"][::std::mem::size_of::<QUIC_CONNECTION_EVENT>() - 56usize];
-    ["Alignment of QUIC_CONNECTION_EVENT"]
+    const { ["Size of QUIC_CONNECTION_EVENT"][::std::mem::size_of::<QUIC_CONNECTION_EVENT>() - 56usize]; }
+    const {
+        ["Alignment of QUIC_CONNECTION_EVENT"]
         [::std::mem::align_of::<QUIC_CONNECTION_EVENT>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT::Type"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_EVENT::Type"]
         [::std::mem::offset_of!(QUIC_CONNECTION_EVENT, Type) - 0usize];
+    }
 };
 pub type QUIC_CONNECTION_CALLBACK = ::std::option::Option<
     unsafe extern "C" fn(
@@ -6041,14 +6753,22 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1>() - 24usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1::Status"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1::Status"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1, Status) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1::ID"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1::ID"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1, ID) - 8usize];
+    }
 };
 impl QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_1 {
     #[inline]
@@ -6145,27 +6865,41 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2>() - 32usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::AbsoluteOffset"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::AbsoluteOffset"][::std::mem::offset_of!(
         QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2,
         AbsoluteOffset
-    ) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::TotalBufferLength"][::std::mem::offset_of!(
+        ) - 0usize];
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::TotalBufferLength"][::std::mem::offset_of!(
         QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2,
         TotalBufferLength
-    )
+        )
         - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::Buffers"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::Buffers"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2, Buffers) - 16usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::BufferCount"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::BufferCount"][::std::mem::offset_of!(
         QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2,
         BufferCount
-    ) - 24usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::Flags"]
+        ) - 24usize];
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2::Flags"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_2, Flags) - 28usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6175,16 +6909,24 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3>() - 16usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3::Canceled"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3::Canceled"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3, Canceled) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3::ClientContext"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3::ClientContext"][::std::mem::offset_of!(
         QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_3,
         ClientContext
-    ) - 8usize];
+        ) - 8usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6193,12 +6935,18 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4>() - 8usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4::ErrorCode"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4::ErrorCode"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_4, ErrorCode) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6207,12 +6955,18 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5>() - 8usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5::ErrorCode"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5::ErrorCode"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_5, ErrorCode) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6221,12 +6975,18 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6>() - 1usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6>() - 1usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6::Graceful"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6::Graceful"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_6, Graceful) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6239,25 +6999,35 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7>() - 24usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7::ConnectionShutdown"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7::ConnectionShutdown"][::std::mem::offset_of!(
         QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7,
         ConnectionShutdown
-    )
+        )
         - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7::ConnectionErrorCode"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7::ConnectionErrorCode"][::std::mem::offset_of!(
         QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7,
         ConnectionErrorCode
-    )
+        )
         - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7::ConnectionCloseStatus"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7::ConnectionCloseStatus"][::std::mem::offset_of!(
         QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7,
         ConnectionCloseStatus
-    )
+        )
         - 16usize];
+    }
 };
 impl QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7 {
     #[inline]
@@ -6428,12 +7198,18 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8>() - 8usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8::ByteCount"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8::ByteCount"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8, ByteCount) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6442,12 +7218,18 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9>() - 8usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9::ErrorCode"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9::ErrorCode"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9, ErrorCode) - 0usize];
+    }
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6456,49 +7238,81 @@ pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10 {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10>() - 8usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10::BufferLengthNeeded"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10::BufferLengthNeeded"][::std::mem::offset_of!(
         QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10,
         BufferLengthNeeded
-    )
+        )
         - 0usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1"]
+    const {
+        ["Size of QUIC_STREAM_EVENT__bindgen_ty_1"]
         [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1>() - 32usize];
-    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1"]
+    }
+    const {
+        ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1"]
         [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::START_COMPLETE"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::START_COMPLETE"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, START_COMPLETE) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::RECEIVE"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::RECEIVE"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, RECEIVE) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::SEND_COMPLETE"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::SEND_COMPLETE"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, SEND_COMPLETE) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::PEER_SEND_ABORTED"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::PEER_SEND_ABORTED"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, PEER_SEND_ABORTED) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::PEER_RECEIVE_ABORTED"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::PEER_RECEIVE_ABORTED"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, PEER_RECEIVE_ABORTED) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::SEND_SHUTDOWN_COMPLETE"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::SEND_SHUTDOWN_COMPLETE"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, SEND_SHUTDOWN_COMPLETE) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::SHUTDOWN_COMPLETE"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::SHUTDOWN_COMPLETE"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, SHUTDOWN_COMPLETE) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::IDEAL_SEND_BUFFER_SIZE"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::IDEAL_SEND_BUFFER_SIZE"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, IDEAL_SEND_BUFFER_SIZE) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::CANCEL_ON_LOSS"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::CANCEL_ON_LOSS"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, CANCEL_ON_LOSS) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::RECEIVE_BUFFER_NEEDED"]
+    }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::RECEIVE_BUFFER_NEEDED"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, RECEIVE_BUFFER_NEEDED) - 0usize];
+    }
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STREAM_EVENT"][::std::mem::size_of::<QUIC_STREAM_EVENT>() - 40usize];
-    ["Alignment of QUIC_STREAM_EVENT"][::std::mem::align_of::<QUIC_STREAM_EVENT>() - 8usize];
-    ["Offset of field: QUIC_STREAM_EVENT::Type"]
+    const { ["Size of QUIC_STREAM_EVENT"][::std::mem::size_of::<QUIC_STREAM_EVENT>() - 40usize]; }
+    const { ["Alignment of QUIC_STREAM_EVENT"][::std::mem::align_of::<QUIC_STREAM_EVENT>() - 8usize]; }
+    const {
+        ["Offset of field: QUIC_STREAM_EVENT::Type"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT, Type) - 0usize];
+    }
 };
 pub type QUIC_STREAM_CALLBACK = ::std::option::Option<
     unsafe extern "C" fn(
@@ -6579,34 +7393,62 @@ pub struct QUIC_CONNECTION_POOL_CONFIG {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CONNECTION_POOL_CONFIG"]
+    const {
+        ["Size of QUIC_CONNECTION_POOL_CONFIG"]
         [::std::mem::size_of::<QUIC_CONNECTION_POOL_CONFIG>() - 72usize];
-    ["Alignment of QUIC_CONNECTION_POOL_CONFIG"]
+    }
+    const {
+        ["Alignment of QUIC_CONNECTION_POOL_CONFIG"]
         [::std::mem::align_of::<QUIC_CONNECTION_POOL_CONFIG>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Registration"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Registration"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Registration) - 0usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Configuration"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Configuration"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Configuration) - 8usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Handler"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Handler"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Handler) - 16usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Context"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Context"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Context) - 24usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerName"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerName"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, ServerName) - 32usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerAddress"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerAddress"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, ServerAddress) - 40usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Family"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Family"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Family) - 48usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerPort"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerPort"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, ServerPort) - 50usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::NumberOfConnections"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::NumberOfConnections"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, NumberOfConnections) - 52usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::CibirIds"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::CibirIds"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, CibirIds) - 56usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::CibirIdLength"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::CibirIdLength"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, CibirIdLength) - 64usize];
-    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Flags"]
+    }
+    const {
+        ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Flags"]
         [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Flags) - 68usize];
+    }
 };
 pub type QUIC_CONN_POOL_CREATE_FN = ::std::option::Option<
     unsafe extern "C" fn(
@@ -6658,88 +7500,164 @@ pub struct QUIC_API_TABLE {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 304usize];
-    ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
-    ["Offset of field: QUIC_API_TABLE::SetContext"]
+    const { ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 304usize]; }
+    const { ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize]; }
+    const {
+        ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
-    ["Offset of field: QUIC_API_TABLE::GetContext"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::GetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, GetContext) - 8usize];
-    ["Offset of field: QUIC_API_TABLE::SetCallbackHandler"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::SetCallbackHandler"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetCallbackHandler) - 16usize];
-    ["Offset of field: QUIC_API_TABLE::SetParam"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::SetParam"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetParam) - 24usize];
-    ["Offset of field: QUIC_API_TABLE::GetParam"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::GetParam"]
         [::std::mem::offset_of!(QUIC_API_TABLE, GetParam) - 32usize];
-    ["Offset of field: QUIC_API_TABLE::RegistrationOpen"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::RegistrationOpen"]
         [::std::mem::offset_of!(QUIC_API_TABLE, RegistrationOpen) - 40usize];
-    ["Offset of field: QUIC_API_TABLE::RegistrationClose"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::RegistrationClose"]
         [::std::mem::offset_of!(QUIC_API_TABLE, RegistrationClose) - 48usize];
-    ["Offset of field: QUIC_API_TABLE::RegistrationShutdown"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::RegistrationShutdown"]
         [::std::mem::offset_of!(QUIC_API_TABLE, RegistrationShutdown) - 56usize];
-    ["Offset of field: QUIC_API_TABLE::ConfigurationOpen"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConfigurationOpen"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConfigurationOpen) - 64usize];
-    ["Offset of field: QUIC_API_TABLE::ConfigurationClose"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConfigurationClose"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConfigurationClose) - 72usize];
-    ["Offset of field: QUIC_API_TABLE::ConfigurationLoadCredential"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConfigurationLoadCredential"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConfigurationLoadCredential) - 80usize];
-    ["Offset of field: QUIC_API_TABLE::ListenerOpen"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ListenerOpen"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ListenerOpen) - 88usize];
-    ["Offset of field: QUIC_API_TABLE::ListenerClose"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ListenerClose"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ListenerClose) - 96usize];
-    ["Offset of field: QUIC_API_TABLE::ListenerStart"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ListenerStart"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ListenerStart) - 104usize];
-    ["Offset of field: QUIC_API_TABLE::ListenerStop"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ListenerStop"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ListenerStop) - 112usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionOpen"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionOpen"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionOpen) - 120usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionClose"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionClose"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionClose) - 128usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionShutdown"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionShutdown"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionShutdown) - 136usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionStart"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionStart"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionStart) - 144usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionSetConfiguration"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionSetConfiguration"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionSetConfiguration) - 152usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionSendResumptionTicket"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionSendResumptionTicket"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionSendResumptionTicket) - 160usize];
-    ["Offset of field: QUIC_API_TABLE::StreamOpen"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::StreamOpen"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamOpen) - 168usize];
-    ["Offset of field: QUIC_API_TABLE::StreamClose"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::StreamClose"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamClose) - 176usize];
-    ["Offset of field: QUIC_API_TABLE::StreamStart"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::StreamStart"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamStart) - 184usize];
-    ["Offset of field: QUIC_API_TABLE::StreamShutdown"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::StreamShutdown"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamShutdown) - 192usize];
-    ["Offset of field: QUIC_API_TABLE::StreamSend"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::StreamSend"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamSend) - 200usize];
-    ["Offset of field: QUIC_API_TABLE::StreamReceiveComplete"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::StreamReceiveComplete"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamReceiveComplete) - 208usize];
-    ["Offset of field: QUIC_API_TABLE::StreamReceiveSetEnabled"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::StreamReceiveSetEnabled"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamReceiveSetEnabled) - 216usize];
-    ["Offset of field: QUIC_API_TABLE::DatagramSend"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::DatagramSend"]
         [::std::mem::offset_of!(QUIC_API_TABLE, DatagramSend) - 224usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionResumptionTicketValidationComplete"][::std::mem::offset_of!(
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionResumptionTicketValidationComplete"][::std::mem::offset_of!(
         QUIC_API_TABLE,
         ConnectionResumptionTicketValidationComplete
-    ) - 232usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionCertificateValidationComplete"][::std::mem::offset_of!(
+        ) - 232usize];
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionCertificateValidationComplete"][::std::mem::offset_of!(
         QUIC_API_TABLE,
         ConnectionCertificateValidationComplete
-    ) - 240usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionOpenInPartition"]
+        ) - 240usize];
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionOpenInPartition"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionOpenInPartition) - 248usize];
-    ["Offset of field: QUIC_API_TABLE::StreamProvideReceiveBuffers"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::StreamProvideReceiveBuffers"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 256usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionPoolCreate"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ConnectionPoolCreate"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionPoolCreate) - 264usize];
-    ["Offset of field: QUIC_API_TABLE::ExecutionCreate"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ExecutionCreate"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionCreate) - 272usize];
-    ["Offset of field: QUIC_API_TABLE::ExecutionDelete"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ExecutionDelete"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionDelete) - 280usize];
-    ["Offset of field: QUIC_API_TABLE::ExecutionPoll"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::ExecutionPoll"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionPoll) - 288usize];
-    ["Offset of field: QUIC_API_TABLE::RegistrationClose2"]
+    }
+    const {
+        ["Offset of field: QUIC_API_TABLE::RegistrationClose2"]
         [::std::mem::offset_of!(QUIC_API_TABLE, RegistrationClose2) - 296usize];
+    }
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 4294967294;
