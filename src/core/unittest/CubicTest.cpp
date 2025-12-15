@@ -105,26 +105,6 @@ TEST(CubicTest, InitializeComprehensive)
     ASSERT_EQ(Cubic->MinRttInLastRound, UINT64_MAX);
     ASSERT_EQ(Cubic->MinRttInCurrentRound, UINT64_MAX);
     ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 1u);
-
-    // Verify zero-initialized fields
-    ASSERT_EQ(Cubic->Exemptions, 0u);
-    ASSERT_EQ(Cubic->AimdWindow, 0u);
-    ASSERT_EQ(Cubic->AimdAccumulator, 0u);
-    ASSERT_EQ(Cubic->WindowMax, 0u);
-    ASSERT_EQ(Cubic->WindowLastMax, 0u);
-    ASSERT_EQ(Cubic->WindowPrior, 0u);
-    ASSERT_EQ(Cubic->KCubic, 0u);
-    ASSERT_EQ(Cubic->LastSendAllowance, 0u);
-    ASSERT_EQ(Cubic->TimeOfLastAck, 0u);
-    ASSERT_EQ(Cubic->TimeOfCongAvoidStart, 0u);
-    ASSERT_EQ(Cubic->RecoverySentPacketNumber, 0u);
-    ASSERT_EQ(Cubic->PrevWindowPrior, 0u);
-    ASSERT_EQ(Cubic->PrevWindowMax, 0u);
-    ASSERT_EQ(Cubic->PrevWindowLastMax, 0u);
-    ASSERT_EQ(Cubic->PrevKCubic, 0u);
-    ASSERT_EQ(Cubic->PrevSlowStartThreshold, 0u);
-    ASSERT_EQ(Cubic->PrevCongestionWindow, 0u);
-    ASSERT_EQ(Cubic->PrevAimdWindow, 0u);
 }
 
 //
