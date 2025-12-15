@@ -697,41 +697,21 @@ macro_rules! define_quic_handle_ctx_fn {
             // This is used by Connection and Stream, but not Listener.
             #[allow(dead_code)]
             fn consume_callback_ctx(&self) {
-                if let Some(ctx) = unsafe { self.take_callback_ctx() } {
-                    std::mem::drop(ctx);
-                }
-            }
-
-            /// Gets the callback context without clearing it from the handle.
-            ///
-            /// # Safety
-            /// Only call while closing the handle. The return value must be kept
-            /// alive until the handle is fully closed and no more callbacks can
-            /// be emitted. Dropping it earlier can cause use-after-free.
-            unsafe fn peek_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
-                let ctx = self.get_context();
-                if ctx.is_null() {
-                    None
-                } else {
-                    Some(Box::from_raw(ctx as *mut Box<$callback_type>))
-                }
-            }
-
-            /// Removes the callback context from the handle and returns it.
-            ///
-            /// # Safety
-            /// Caller must ensure the handle is valid and that the stored context
-            /// was set using our boxing convention so reclaiming it is sound.
-            /// Do not call after the handle has been closed or with a foreign
-            /// context pointer, otherwise this can double free or touch
-            /// invalid memory.
-            unsafe fn take_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
-                let ctx = self.get_context();
-                if ctx.is_null() {
-                    None
-                } else {
+                let res = unsafe { self.get_callback_ctx() };
+                if res.is_some() {
                     unsafe { self.set_context(std::ptr::null_mut()) };
+                }
+            }
+
+            /// # Safety
+            /// Caller is responsible for clearing the context if needed.
+            /// This does not clear the ctx.
+            unsafe fn get_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
+                let ctx = self.get_context();
+                if !ctx.is_null() {
                     Some(unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) })
+                } else {
+                    None
                 }
             }
         }
@@ -881,19 +861,16 @@ extern "C" fn raw_conn_callback(
     context: *mut c_void,
     event: *mut ffi::QUIC_CONNECTION_EVENT,
 ) -> QUIC_STATUS {
-    let event_ref = unsafe { event.as_ref().expect("cannot get connection event") };
-    // Context may be null if ConnectionClose triggers ShutdownComplete synchronously
-    // after we've already taken the context in close_inner(). This is expected.
-    match unsafe { (context as *mut Box<ConnectionCallback>).as_mut() } {
-        Some(f) => {
-            let event = ConnectionEvent::from(event_ref);
-            let conn = unsafe { ConnectionRef::from_raw(connection) };
-            match f(conn, event) {
-                Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
-                Err(e) => e.0,
-            }
-        }
-        None => StatusCode::QUIC_STATUS_SUCCESS.into(),
+    let conn = unsafe { ConnectionRef::from_raw(connection) };
+    let f = unsafe {
+        (context as *mut Box<ConnectionCallback>)
+            .as_mut() // allow mutation
+            .expect("cannot get ConnectionCallback from ctx")
+    };
+    let event = ConnectionEvent::from(unsafe { event.as_ref().unwrap() });
+    match f(conn, event) {
+        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+        Err(e) => e.0,
     }
 }
 
@@ -942,8 +919,8 @@ impl Connection {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
-            // Keep the context alive until ConnectionClose completes, then drop it.
-            let ctx = unsafe { self.peek_callback_ctx() };
+            // get the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
             }
@@ -1064,12 +1041,14 @@ extern "C" fn raw_listener_callback(
 ) -> QUIC_STATUS {
     let listner_ref = unsafe { ListenerRef::from_raw(listener) };
     let event = ListenerEvent::from(unsafe { event.as_ref().expect("fail to get listener event") });
-    match unsafe { (context as *mut Box<ListenerCallback>).as_ref() } {
-        Some(f) => match f(listner_ref, event) {
-            Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
-            Err(e) => e.0,
-        },
-        None => StatusCode::QUIC_STATUS_SUCCESS.into(),
+    let f = unsafe {
+        (context as *mut Box<ListenerCallback>)
+            .as_ref() // allow mutation
+            .expect("cannot get ListenerCallback from ctx")
+    };
+    match f(listner_ref, event) {
+        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+        Err(e) => e.0,
     }
 }
 
@@ -1122,8 +1101,8 @@ impl Listener {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
-            // Keep the context alive until ListenerClose completes, then drop it.
-            let ctx = unsafe { self.peek_callback_ctx() };
+            // consume the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
             }
@@ -1199,8 +1178,8 @@ impl Stream {
 
     pub fn close_inner(&self) {
         if !self.handle.is_null() {
-            // Keep the context alive until StreamClose completes, then drop it.
-            let ctx = unsafe { self.peek_callback_ctx() };
+            // consume the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
             }

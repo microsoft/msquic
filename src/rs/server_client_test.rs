@@ -1,18 +1,13 @@
 use std::{
     ffi::c_void,
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        mpsc, Arc,
-    },
-    time::Duration,
+    sync::Arc,
 };
 
 use crate::{
     config::{Credential, CredentialFlags},
-    Addr, BufferRef, Configuration, Connection, ConnectionEvent, ConnectionRef,
-    ConnectionShutdownFlags, CredentialConfig, Listener, Registration, RegistrationConfig,
-    Settings, Status, Stream, StreamEvent, StreamRef,
+    Addr, BufferRef, Configuration, Connection, ConnectionEvent, ConnectionRef, CredentialConfig,
+    Listener, Registration, RegistrationConfig, Settings, Status, Stream, StreamEvent, StreamRef,
 };
 
 fn buffers_to_string(buffers: &[BufferRef]) -> String {
@@ -180,8 +175,6 @@ fn test_server_client() {
             } => {
                 connection.set_callback_handler(conn_handler.clone());
                 connection.set_configuration(&config_cp)?;
-                // Keep the connection alive; will be closed on ShutdownComplete.
-                let _ = unsafe { connection.into_raw() };
             }
             crate::ListenerEvent::StopComplete {
                 app_close_in_progress: _,
@@ -292,118 +285,4 @@ fn test_server_client() {
         assert_eq!(client_s, "hello from server");
     }
     l.stop();
-}
-
-#[test]
-fn connection_ref_callback_cleanup() {
-    struct DropGuard {
-        counter: Arc<AtomicUsize>,
-    }
-
-    impl Drop for DropGuard {
-        fn drop(&mut self) {
-            self.counter.fetch_add(1, Ordering::SeqCst);
-        }
-    }
-
-    let cred = get_test_cred();
-
-    let reg = Registration::new(&RegistrationConfig::default()).unwrap();
-    let alpn = [BufferRef::from("qcleanup")];
-    let settings = Settings::new()
-        .set_ServerResumptionLevel(crate::ServerResumptionLevel::ResumeAndZerortt)
-        .set_PeerBidiStreamCount(1);
-
-    let server_config = Configuration::open(&reg, &alpn, Some(&settings)).unwrap();
-
-    let cred_config = CredentialConfig::new()
-        .set_credential_flags(CredentialFlags::NO_CERTIFICATE_VALIDATION)
-        .set_credential(cred);
-    server_config.load_credential(&cred_config).unwrap();
-    let server_config = Arc::new(server_config);
-
-    let drop_counter = Arc::new(AtomicUsize::new(0));
-
-    let (conn_tx, conn_rx) = mpsc::channel::<Connection>();
-    let listener = Listener::open(&reg, {
-        let server_config = server_config.clone();
-        let drop_counter = drop_counter.clone();
-        let conn_tx = conn_tx.clone();
-        move |_, ev| {
-            if let crate::ListenerEvent::NewConnection { connection, .. } = ev {
-                let callback_guard = DropGuard {
-                    counter: drop_counter.clone(),
-                };
-                let conn_tx = conn_tx.clone();
-                connection.set_callback_handler(
-                    move |_conn: ConnectionRef, _ev: ConnectionEvent| {
-                        // Reference the guard so it lives as long as the callback.
-                        let _guard_ref = &callback_guard;
-                        Ok(())
-                    },
-                );
-                connection.set_configuration(&server_config)?;
-                // Transfer ownership to the test so it can close the connection.
-                let _ = conn_tx.send(connection);
-            }
-            Ok(())
-        }
-    })
-    .unwrap();
-
-    let local_address = Addr::from(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0));
-    listener.start(&alpn, Some(&local_address)).unwrap();
-    let port = listener
-        .get_local_addr()
-        .unwrap()
-        .as_socket()
-        .unwrap()
-        .port();
-
-    let client_settings = Settings::new().set_IdleTimeoutMs(500);
-    let client_config = Configuration::open(&reg, &alpn, Some(&client_settings)).unwrap();
-    let cred_config = CredentialConfig::new_client()
-        .set_credential_flags(CredentialFlags::NO_CERTIFICATE_VALIDATION);
-    client_config.load_credential(&cred_config).unwrap();
-
-    let (client_done_tx, client_done_rx) = mpsc::channel();
-    let client_conn = Connection::open(&reg, {
-        let client_done_tx = client_done_tx.clone();
-        move |conn: ConnectionRef, ev: ConnectionEvent| {
-            match ev {
-                ConnectionEvent::Connected { .. } => {
-                    conn.shutdown(ConnectionShutdownFlags::NONE, 0);
-                }
-                ConnectionEvent::ShutdownComplete { .. } => {
-                    let _ = client_done_tx.send(());
-                }
-                _ => {}
-            }
-            Ok(())
-        }
-    })
-    .unwrap();
-
-    client_conn
-        .start(&client_config, "127.0.0.1", port)
-        .unwrap();
-
-    // Receive the owned connection from the listener callback.
-    let server_conn = conn_rx
-        .recv_timeout(Duration::from_secs(5))
-        .expect("Server did not receive connection");
-    client_done_rx
-        .recv_timeout(Duration::from_secs(5))
-        .expect("Client did not complete shutdown");
-
-    // Drop the server connection to trigger cleanup of the callback context.
-    // close_inner drops the context synchronously after ConnectionClose returns.
-    drop(server_conn);
-
-    assert_eq!(
-        drop_counter.load(Ordering::SeqCst),
-        1,
-        "ConnectionRef callback context was not cleaned up"
-    );
-    listener.stop();
 }

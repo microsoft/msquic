@@ -12,7 +12,8 @@ pub enum ListenerEvent<'a> {
         /// User app needs to take ownership of this new connection.
         /// User app needs to set configuration for this connection
         /// before returning from the callback.
-        connection: crate::Connection,
+        /// TODO: Make this Connection type.
+        connection: crate::ConnectionRef,
     },
     StopComplete {
         app_close_in_progress: bool,
@@ -66,7 +67,7 @@ impl<'a> From<&'a crate::ffi::QUIC_LISTENER_EVENT> for ListenerEvent<'a> {
                 let ev = unsafe { &value.__bindgen_anon_1.NEW_CONNECTION };
                 Self::NewConnection {
                     info: NewConnectionInfo::from(unsafe { ev.Info.as_ref().unwrap() }),
-                    connection: unsafe { crate::Connection::from_raw(ev.Connection) },
+                    connection: unsafe { crate::ConnectionRef::from_raw(ev.Connection) },
                 }
             }
             crate::ffi::QUIC_LISTENER_EVENT_TYPE_QUIC_LISTENER_EVENT_STOP_COMPLETE => {
