@@ -131,34 +131,11 @@ function Get-ProcDumpPath {
     $cmd = Get-Command "procdump.exe" -ErrorAction SilentlyContinue
     if ($cmd) { return $cmd.Source }
 
-    $candidate = Join-Path $RootDir "artifacts" "tools" "procdump" "procdump.exe"
+    $toolDir = Join-Path $RootDir "artifacts" "tools" "procdump"
+    $candidate = Join-Path $toolDir "procdump.exe"
     if (Test-Path $candidate) { return $candidate }
 
     return $null
-}
-
-function Ensure-ProcDump {
-    $pd = Get-ProcDumpPath
-    if ($pd) { return $pd }
-
-    if (!$IsWindows) { throw "ProcDump is Windows-only." }
-
-    $toolDir = Join-Path $RootDir "artifacts" "tools" "procdump"
-    New-Item -ItemType Directory -Force -Path $toolDir | Out-Null
-
-    $zipPath = Join-Path $toolDir "procdump.zip"
-    $url = "https://download.sysinternals.com/files/Procdump.zip"  # official Sysinternals download
-    Log "Downloading ProcDump from $url"
-    Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
-
-    Expand-Archive -Path $zipPath -DestinationPath $toolDir -Force
-
-    $pd = Join-Path $toolDir "procdump.exe"
-    if (!(Test-Path $pd)) {
-        throw "ProcDump download/extract succeeded but procdump.exe not found at expected path: $pd"
-    }
-
-    return $pd
 }
 
 # Make sure the executable is present.
@@ -266,11 +243,14 @@ function Start-Executable {
         } else {
             Write-Host "Configuring process to collect crash dumps to $LogDir"
 
-            if ($UseProcDump) {
+            if ($UseProcDump -and $IsWindows) {
                 # Use ProcDump to launch and monitor the process
                 try {
-                    $pd = Ensure-ProcDump
-                    Write-Host "Using ProcDump to launch and monitor process"
+                    $pd = Get-ProcDumpPath
+                    if (-not $pd) {
+                        throw "ProcDump not found!"
+                    }
+                    Write-Host "Using ProcDump $pd to launch and monitor process"
 
                     # ProcDump will launch the target process and monitor it
                     # -accepteula: auto-accept EULA
@@ -443,9 +423,31 @@ function Wait-Executable($Exe) {
             }
         }
         $Exe.Process.WaitForExit()
-        if ($Exe.Process.ExitCode -ne 0) {
-            LogErr "Process had nonzero exit code: $($Exe.Process.ExitCode)"
-            $KeepOutput = $true
+        $exitCode = $Exe.Process.ExitCode
+
+        # When using ProcDump, the process is ProcDump itself, not the target
+        # ProcDump exit codes:
+        #   0  = success (dump captured)
+        #   -2 = no exception occurred (target exited normally)
+        #   -1 = error
+        if ($UseProcDump -and $IsWindows) {
+            if ($exitCode -eq -2) {
+                Write-Host "ProcDump: Target process exited normally (no crash/exception)"
+                # Don't treat this as an error
+            } elseif ($exitCode -eq 0) {
+                Write-Host "ProcDump: Exception dump captured successfully"
+                LogErr "Process crashed - dump file captured"
+                $KeepOutput = $true
+            } elseif ($exitCode -ne 0) {
+                LogErr "ProcDump had nonzero exit code: $exitCode"
+                $KeepOutput = $true
+            }
+        } else {
+            # Normal process (not wrapped by ProcDump)
+            if ($exitCode -ne 0) {
+                LogErr "Process had nonzero exit code: $exitCode"
+                $KeepOutput = $true
+            }
         }
 
         # When using ProcDump, give it a moment to finish writing dumps

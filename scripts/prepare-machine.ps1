@@ -488,6 +488,25 @@ function Install-Clog2Text {
     Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
 }
 
+function Install-ProcDump {
+    if (!$IsWindows) { throw "ProcDump is Windows-only." }
+
+    $toolDir = Join-Path $RootDir "artifacts" "tools" "procdump"
+    New-Item -ItemType Directory -Force -Path $toolDir | Out-Null
+
+    $zipPath = Join-Path $toolDir "procdump.zip"
+    $url = "https://download.sysinternals.com/files/Procdump.zip"  # official Sysinternals download
+    Log "Downloading ProcDump from $url"
+    Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
+
+    Expand-Archive -Path $zipPath -DestinationPath $toolDir -Force
+
+    $pd = Join-Path $toolDir "procdump.exe"
+    if (!(Test-Path $pd)) {
+        throw "ProcDump download/extract succeeded but procdump.exe not found at expected path: $pd"
+    }
+}
+
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) {
     git rm $RootDir/submodules/quictls
@@ -519,6 +538,11 @@ if ($ForBuild -or $ForContainerBuild) {
     }
 
     git submodule update --jobs=8
+}
+
+if ($IsWindows) {
+    # Install Procdump for crash dump collection.
+    Install-ProcDump
 }
 
 if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
