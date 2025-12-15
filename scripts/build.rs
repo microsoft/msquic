@@ -2,9 +2,6 @@
 // Licensed under the MIT License.
 
 fn main() {
-    #[cfg(all(feature = "static", not(feature = "src")))]
-    panic!("feature static requires feature src");
-
     #[cfg(all(feature = "src", feature = "find"))]
     panic!("feature src and find are mutually exclusive");
 
