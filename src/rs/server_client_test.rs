@@ -54,6 +54,11 @@ pub fn get_test_cred() -> Credential {
     let cert_path = cert_dir.join(cert);
 
     CREATE_TEST_CERTS.call_once(|| {
+        // Nothing to do if certs are already present
+        if key_path.exists() && cert_path.exists() {
+            return;
+        }
+
         // Remove any pre-existing files
         let _ = std::fs::remove_dir_all(&cert_dir);
 
