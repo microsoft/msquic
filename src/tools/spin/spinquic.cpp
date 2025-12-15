@@ -1514,11 +1514,6 @@ void start() {
     {
         SpinQuicWatchdog Watchdog((uint32_t)SpinSettings.RunTimeMs + SpinSettings.RepeatCount*WATCHDOG_WIGGLE_ROOM);
 
-        // <SIMULATE CRASH>
-        int *pointer = nullptr;
-        *pointer = 0;
-        // </SIMULATE CRASH>
-
         //
         // Initial MsQuicOpen2 and initialization.
         //
