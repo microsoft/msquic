@@ -3,7 +3,7 @@
 
 fn main() {
     if cfg!(feature = "static") {
-        assert!(cfg!(feature = "src"), "static requires build for src");
+        const { assert!(cfg!(feature = "src"), "static requires build for src") };
     }
 
     #[cfg(all(feature = "src", feature = "find"))]
