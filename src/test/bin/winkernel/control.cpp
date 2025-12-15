@@ -1001,10 +1001,6 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestKeyUpdate(Params->Family));
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_API:
-        QuicTestCtlRun(QuicTestValidateApi());
-        break;
-
     case IOCTL_QUIC_RUN_CONNECT_SERVER_REJECTED:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestConnectServerRejected(Params->Family));
@@ -1128,12 +1124,6 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS:
         QuicTestCtlRun(QuicTestGetPerfCounters());
-        break;
-
-    case IOCTL_QUIC_RUN_ACK_SEND_DELAY:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestAckSendDelay(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION:
@@ -1637,13 +1627,6 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS:
-        QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE:
-        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersOutOfSpace());
-        break;
 
     case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
