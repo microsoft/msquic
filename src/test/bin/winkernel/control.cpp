@@ -649,10 +649,17 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace);
 
     // Fail if no function matched
-    QuicTraceEvent(
-        LibraryError,
-        "[ lib] ERROR, %s.",
-        "Unknown function name in test RPC call");
+
+    {
+        char Buffer[256];
+        (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, "Unknown function name in test RPC call: %s", RpcRequest->FunctionName);
+
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            Buffer);
+
+    }
 
     return QUIC_STATUS_NOT_SUPPORTED;
 }

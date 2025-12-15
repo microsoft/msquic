@@ -231,28 +231,27 @@ struct TestLoggerT {
 
 // Helpers to invoke a test in kernel mode through the test driver.
 
-bool InvokeTestInKernel(const std::string& name) {
-    std::array<uint8_t, sizeof(QUIC_RUN_TEST_REQUEST)> Buffer{};
-    QUIC_RUN_TEST_REQUEST req{};
-    name.copy(req.FunctionName, sizeof(req.FunctionName));
+bool InvokeTestInKernel(const std::string& Name) {
+    QUIC_RUN_TEST_REQUEST Request{};
+    Name.copy(Request.FunctionName, sizeof(Request.FunctionName));
 
-    return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)&req, (uint32_t)sizeof(req));
+    return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)&Request, (uint32_t)sizeof(Request));
 }
 
 template <class ParamType>
-bool InvokeTestInKernel(const std::string& name, const ParamType& Params) {
-        static_assert(std::is_pod_v<ParamType>, "ParamType must be POD");
+bool InvokeTestInKernel(const std::string& Name, const ParamType& Params) {
+    static_assert(std::is_pod_v<ParamType>, "ParamType must be POD");
 
-        // Serialize the request header and arguments
-        std::array<uint8_t, sizeof(QUIC_RUN_TEST_REQUEST) + sizeof(ParamType)> Buffer;
-        auto& req = *reinterpret_cast<QUIC_RUN_TEST_REQUEST*>(Buffer.data());
-        name.copy(req.FunctionName, sizeof(req.FunctionName));
-        req.ParameterSize = sizeof(ParamType);
-        std::copy_n(
-            reinterpret_cast<const uint8_t*>(&Params),
-            sizeof(ParamType), Buffer.data() + sizeof(QUIC_RUN_TEST_REQUEST));
+    // Serialize the request header and arguments
+    std::array<uint8_t, sizeof(QUIC_RUN_TEST_REQUEST) + sizeof(ParamType)> Buffer{};
+    auto& Request = *reinterpret_cast<QUIC_RUN_TEST_REQUEST*>(Buffer.data());
+    Name.copy(Request.FunctionName, sizeof(Request.FunctionName));
+    Request.ParameterSize = sizeof(ParamType);
+    std::copy_n(
+        reinterpret_cast<const uint8_t*>(&Params),
+        sizeof(ParamType), Buffer.data() + sizeof(QUIC_RUN_TEST_REQUEST));
 
-        return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)Buffer.data(), (uint32_t)Buffer.size());
+    return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)Buffer.data(), (uint32_t)Buffer.size());
 }
 
 TEST(ParameterValidation, ValidateApi) {
