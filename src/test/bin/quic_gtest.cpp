@@ -264,7 +264,6 @@ TEST(ParameterValidation, ValidateGlobalParam) {
     TestLogger Logger("QuicTestValidateGlobalParam");
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGlobalParam)));
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM));
     } else {
         QuicTestGlobalParam();
     }
@@ -273,7 +272,7 @@ TEST(ParameterValidation, ValidateGlobalParam) {
 TEST(ParameterValidation, ValidateCommonParam) {
     TestLogger Logger("QuicTestValidateCommonParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCommonParam)));
     } else {
         QuicTestCommonParam();
     }
@@ -282,7 +281,7 @@ TEST(ParameterValidation, ValidateCommonParam) {
 TEST(ParameterValidation, ValidateRegistrationParam) {
     TestLogger Logger("QuicTestValidateRegistrationParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationParam)));
     } else {
         QuicTestRegistrationParam();
     }
@@ -291,7 +290,7 @@ TEST(ParameterValidation, ValidateRegistrationParam) {
 TEST(ParameterValidation, ValidateConfigurationParam) {
     TestLogger Logger("QuicTestValidateConfigurationParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConfigurationParam)));
     } else {
         QuicTestConfigurationParam();
     }
@@ -300,7 +299,7 @@ TEST(ParameterValidation, ValidateConfigurationParam) {
 TEST(ParameterValidation, ValidateListenerParam) {
     TestLogger Logger("QuicTestValidateListenerParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_LISTENER_PARAM));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestListenerParam)));
     } else {
         QuicTestListenerParam();
     }
@@ -309,7 +308,7 @@ TEST(ParameterValidation, ValidateListenerParam) {
 TEST(ParameterValidation, ValidateConnectionParam) {
     TestLogger Logger("QuicTestValidateConnectionParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_PARAM));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionParam)));
     } else {
         QuicTestConnectionParam();
     }
@@ -318,7 +317,7 @@ TEST(ParameterValidation, ValidateConnectionParam) {
 TEST(ParameterValidation, ValidateTlsParam) {
     TestLogger Logger("QuicTestValidateTlsParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestTlsParam)));
     } else {
         QuicTestTlsParam();
     }
@@ -338,7 +337,7 @@ TEST_P(WithBool, ValidateTlsHandshakeInfo) {
 TEST(ParameterValidation, ValidateStreamParam) {
     TestLogger Logger("QuicTestValidateStreamParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamParam)));
     } else {
         QuicTestStreamParam();
     }
@@ -347,7 +346,7 @@ TEST(ParameterValidation, ValidateStreamParam) {
 TEST(ParameterValidation, ValidateGetPerfCounters) {
     TestLogger Logger("QuicTestGetPerfCounters");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGetPerfCounters)));
     } else {
         QuicTestGetPerfCounters();
     }
@@ -359,7 +358,7 @@ TEST(ParameterValidation, ValidateConfiguration) {
 #endif
     TestLogger Logger("QuicTestValidateConfiguration");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateConfiguration)));
     } else {
         QuicTestValidateConfiguration();
     }
@@ -368,7 +367,7 @@ TEST(ParameterValidation, ValidateConfiguration) {
 TEST(ParameterValidation, ValidateListener) {
     TestLogger Logger("QuicTestValidateListener");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_LISTENER));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateListener)));
     } else {
         QuicTestValidateListener();
     }
@@ -377,7 +376,7 @@ TEST(ParameterValidation, ValidateListener) {
 TEST(ParameterValidation, ValidateConnection) {
     TestLogger Logger("QuicTestValidateConnection");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateConnection)));
     } else {
         QuicTestValidateConnection();
     }
@@ -387,7 +386,7 @@ TEST(ParameterValidation, ValidateConnection) {
 TEST(ParameterValidation, ValidateConnectionPoolCreate) {
     TestLogger Logger("QuicTestValidateConnectionPoolCreate");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateConnectionPoolCreate)));
     } else {
         QuicTestValidateConnectionPoolCreate();
     }
@@ -396,7 +395,7 @@ TEST(ParameterValidation, ValidateConnectionPoolCreate) {
 TEST(ParameterValidation, ValidateExecutionContext) {
     TestLogger Logger("QuicTestValidateExecutionContext");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateExecutionContext)));
     } else {
         QuicTestValidateExecutionContext();
     }
@@ -404,7 +403,7 @@ TEST(ParameterValidation, ValidateExecutionContext) {
 TEST(ParameterValidation, ValidatePartition) {
     TestLogger Logger("QuicTestValidatePartition");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_PARTITION));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidatePartition)));
     } else {
         QuicTestValidatePartition();
     }
@@ -414,7 +413,7 @@ TEST(ParameterValidation, ValidatePartition) {
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationShutdownBeforeConnOpen)));
     } else {
         QuicTestRegistrationShutdownBeforeConnOpen();
     }
@@ -423,7 +422,7 @@ TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
 TEST(OwnershipValidation, RegistrationShutdownAfterConnOpen) {
     TestLogger Logger("RegistrationShutdownAfterConnOpen");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationShutdownAfterConnOpen)));
     } else {
         QuicTestRegistrationShutdownAfterConnOpen();
     }
@@ -432,7 +431,7 @@ TEST(OwnershipValidation, RegistrationShutdownAfterConnOpen) {
 TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenBeforeStart) {
     TestLogger Logger("RegistrationShutdownAfterConnOpenBeforeStart");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_BEFORE_START));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationShutdownAfterConnOpenBeforeStart)));
     } else {
         QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
     }
@@ -441,7 +440,7 @@ TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenBeforeStart) {
 TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
     TestLogger Logger("RegistrationShutdownAfterConnOpenAndStart");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationShutdownAfterConnOpenAndStart)));
     } else {
         QuicTestRegistrationShutdownAfterConnOpenAndStart();
     }
@@ -450,7 +449,7 @@ TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
 TEST(OwnershipValidation, ConnectionCloseBeforeStreamClose) {
     TestLogger Logger("ConnectionCloseBeforeStreamClose");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionCloseBeforeStreamClose)));
     } else {
         QuicTestConnectionCloseBeforeStreamClose();
     }
@@ -469,7 +468,7 @@ TEST_P(WithBool, ValidateStream) {
 TEST(ParameterValidation, CloseConnBeforeStreamFlush) {
     TestLogger Logger("QuicTestCloseConnBeforeStreamFlush");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCloseConnBeforeStreamFlush)));
     } else {
         QuicTestCloseConnBeforeStreamFlush();
     }
@@ -508,7 +507,7 @@ TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
 TEST(ParameterValidation, ValidateVersionSettings) {
     TestLogger Logger("QuicTestVersionSettings");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVersionSettings)));
     } else {
         QuicTestVersionSettings();
     }
@@ -518,7 +517,7 @@ TEST(ParameterValidation, ValidateVersionSettings) {
 TEST(ParameterValidation, ValidateParamApi) {
     TestLogger Logger("QuicTestValidateParamApi");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_PARAM_API));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateParamApi)));
     } else {
         QuicTestValidateParamApi();
     }
@@ -564,7 +563,7 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
 TEST(Basic, RegistrationOpenClose) {
     TestLogger Logger("QuicTestRegistrationOpenClose");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REGISTRATION_OPEN_CLOSE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationOpenClose)));
     } else {
         QuicTestRegistrationOpenClose();
     }
@@ -574,7 +573,7 @@ TEST(Basic, RegistrationOpenClose) {
 TEST(Basic, CreateListener) {
     TestLogger Logger("QuicTestCreateListener");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CREATE_LISTENER));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCreateListener)));
     } else {
         QuicTestCreateListener();
     }
@@ -583,7 +582,7 @@ TEST(Basic, CreateListener) {
 TEST(Basic, StartListener) {
     TestLogger Logger("QuicTestStartListener");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_START_LISTENER));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartListener)));
     } else {
         QuicTestStartListener();
     }
@@ -592,7 +591,7 @@ TEST(Basic, StartListener) {
 TEST(Basic, StartListenerMultiAlpns) {
     TestLogger Logger("QuicTestStartListenerMultiAlpns");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartListenerMultiAlpns)));
     } else {
         QuicTestStartListenerMultiAlpns();
     }
@@ -610,7 +609,7 @@ TEST_P(WithFamilyArgs, StartListenerImplicit) {
 TEST(Basic, StartTwoListeners) {
     TestLogger Logger("QuicTestStartTwoListeners");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_START_TWO_LISTENERS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartTwoListeners)));
     } else {
         QuicTestStartTwoListeners();
     }
@@ -619,7 +618,7 @@ TEST(Basic, StartTwoListeners) {
 TEST(Basic, StartTwoListenersSameALPN) {
     TestLogger Logger("QuicTestStartTwoListenersSameALPN");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_START_TWO_LISTENERS_SAME_ALPN));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartTwoListenersSameALPN)));
     } else {
         QuicTestStartTwoListenersSameALPN();
     }
@@ -637,7 +636,7 @@ TEST_P(WithFamilyArgs, StartListenerExplicit) {
 TEST(Basic, CreateConnection) {
     TestLogger Logger("QuicTestCreateConnection");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CREATE_CONNECTION));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCreateConnection)));
     } else {
         QuicTestCreateConnection();
     }
@@ -646,7 +645,7 @@ TEST(Basic, CreateConnection) {
 TEST(Basic, ConnectionCloseFromCallback) {
     TestLogger Logger("QuicTestConnectionCloseFromCallback");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionCloseFromCallback)));
     } else {
         QuicTestConnectionCloseFromCallback();
     }
@@ -684,7 +683,7 @@ TEST_P(WithFamilyArgs, LocalPathChanges) {
 TEST(Mtu, Settings) {
     TestLogger Logger("QuicTestMtuSettings");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_SETTINGS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestMtuSettings)));
     } else {
         QuicTestMtuSettings();
     }
@@ -718,7 +717,7 @@ TEST(Alpn, ValidAlpnLengths) {
 #endif
     TestLogger Logger("QuicTestValidAlpnLengths");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidAlpnLengths)));
     } else {
         QuicTestValidAlpnLengths();
     }
@@ -727,7 +726,7 @@ TEST(Alpn, ValidAlpnLengths) {
 TEST(Alpn, InvalidAlpnLengths) {
     TestLogger Logger("QuicTestInvalidAlpnLengths");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestInvalidAlpnLengths)));
     } else {
         QuicTestInvalidAlpnLengths();
     }
@@ -736,7 +735,7 @@ TEST(Alpn, InvalidAlpnLengths) {
 TEST(Alpn, ChangeAlpn) {
     TestLogger Logger("QuicTestChangeAlpn");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CHANGE_ALPN));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestChangeAlpn)));
     } else {
         QuicTestChangeAlpn();
     }
@@ -1596,7 +1595,7 @@ TEST_P(WithFamilyArgs, Unreachable) {
 TEST(HandshakeTest, InvalidAddress) {
     TestLogger Logger("QuicTestConnectInvalidAddress");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_INVALID_ADDRESS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectInvalidAddress)));
     } else {
         QuicTestConnectInvalidAddress();
     }
@@ -2079,7 +2078,7 @@ TEST_P(WithBool, IdleTimeout) {
 TEST(Misc, IdleDestCidChange) {
     TestLogger Logger("QuicTestConnectAndIdleDestCidChange");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndIdleForDestCidChange)));
     } else {
         QuicTestConnectAndIdleForDestCidChange();
     }
@@ -2088,7 +2087,7 @@ TEST(Misc, IdleDestCidChange) {
 TEST(Misc, ServerDisconnect) {
     TestLogger Logger("QuicTestServerDisconnect");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SERVER_DISCONNECT));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestServerDisconnect)));
     } else {
         QuicTestServerDisconnect();
     }
@@ -2107,7 +2106,7 @@ TEST(Misc, ClientDisconnect) {
 TEST(Misc, StatelessResetKey) {
     TestLogger Logger("QuicTestStatelessResetKey");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STATELESS_RESET_KEY));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStatelessResetKey)));
     } else {
         QuicTestStatelessResetKey();
     }
@@ -2270,7 +2269,7 @@ TEST(Misc, AbortIncompleteReceive) {
 TEST(Misc, SlowReceive) {
     TestLogger Logger("SlowReceive");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SLOW_RECEIVE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestSlowReceive)));
     } else {
         QuicTestSlowReceive();
     }
@@ -2281,7 +2280,7 @@ TEST(Misc, SlowReceive) {
 TEST(Misc, NthAllocFail) {
     TestLogger Logger("NthAllocFail");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_ALLOC_FAIL));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNthAllocFail)));
     } else {
         QuicTestNthAllocFail();
     }
@@ -2293,7 +2292,7 @@ TEST(Misc, NthAllocFail) {
 TEST(Misc, NthPacketDrop) {
     TestLogger Logger("NthPacketDrop");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_PACKET_DROP));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNthPacketDrop)));
     } else {
         QuicTestNthPacketDrop();
     }
@@ -2303,7 +2302,7 @@ TEST(Misc, NthPacketDrop) {
 TEST(Misc, StreamPriority) {
     TestLogger Logger("StreamPriority");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamPriority)));
     } else {
         QuicTestStreamPriority();
     }
@@ -2312,7 +2311,7 @@ TEST(Misc, StreamPriority) {
 TEST(Misc, StreamPriorityInfiniteLoop) {
     TestLogger Logger("StreamPriorityInfiniteLoop");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamPriorityInfiniteLoop)));
     } else {
         QuicTestStreamPriorityInfiniteLoop();
     }
@@ -2321,7 +2320,7 @@ TEST(Misc, StreamPriorityInfiniteLoop) {
 TEST(Misc, StreamDifferentAbortErrors) {
     TestLogger Logger("StreamDifferentAbortErrors");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamDifferentAbortErrors)));
     } else {
         QuicTestStreamDifferentAbortErrors();
     }
@@ -2330,7 +2329,7 @@ TEST(Misc, StreamDifferentAbortErrors) {
 TEST(Misc, StreamAbortRecvFinRace) {
     TestLogger Logger("StreamAbortRecvFinRace");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_ABORT_RECV_FIN_RACE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAbortRecvFinRace)));
     } else {
         QuicTestStreamAbortRecvFinRace();
     }
@@ -2349,7 +2348,7 @@ TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
 TEST(Misc, StreamReliableReset) {
     TestLogger Logger("StreamReliableReset");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamReliableReset)));
     } else {
         QuicTestStreamReliableReset();
     }
@@ -2358,7 +2357,7 @@ TEST(Misc, StreamReliableReset) {
 TEST(Misc, StreamReliableResetMultipleSends) {
     TestLogger Logger("StreamReliableResetMultipleSends");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamReliableResetMultipleSends)));
     } else {
         QuicTestStreamReliableResetMultipleSends();
     }
@@ -2407,7 +2406,7 @@ TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
 TEST(Misc, StreamAbortConnFlowControl) {
     TestLogger Logger("StreamAbortConnFlowControl");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAbortConnFlowControl)));
     } else {
         QuicTestStreamAbortConnFlowControl();
     }
@@ -2416,7 +2415,7 @@ TEST(Misc, StreamAbortConnFlowControl) {
 TEST(Basic, OperationPriority) {
     TestLogger Logger("OperationPriority");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_OPERATION_PRIORITY));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestOperationPriority)));
     } else {
         QuicTestOperationPriority();
     }
@@ -2425,7 +2424,7 @@ TEST(Basic, OperationPriority) {
 TEST(Basic, ConnectionPriority) {
     TestLogger Logger("ConnectionPriority");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_PRIORITY));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionPriority)));
     } else {
         QuicTestConnectionPriority();
     }
@@ -2434,7 +2433,7 @@ TEST(Basic, ConnectionPriority) {
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_ENCODE_VAR_INT));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestVarIntEncoder)));
     } else {
         QuicDrillTestVarIntEncoder();
     }
@@ -2530,7 +2529,7 @@ TEST(Basic, TestStorage) {
 
     TestLogger Logger("QuicTestStorage");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STORAGE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStorage)));
     } else {
         QuicTestStorage();
     }
@@ -2544,7 +2543,7 @@ TEST(Basic, TestVersionStorage) {
 
     TestLogger Logger("QuicTestVersionStorage");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STORAGE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVersionStorage)));
     } else {
         QuicTestVersionStorage();
     }
@@ -2560,7 +2559,7 @@ TEST(ParameterValidation, RetryConfigSetting)
 
     TestLogger Logger("QuicTestRetryConfigSetting");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRetryConfigSetting)));
     } else {
         QuicTestRetryConfigSetting();
     }
