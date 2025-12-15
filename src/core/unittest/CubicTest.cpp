@@ -351,12 +351,10 @@ TEST(CubicTest, GetSendAllowanceWithActivePacing)
     ASSERT_GT(Allowance, 0u); // Should allow some sending
     ASSERT_LT(Allowance, AvailableWindow); // But less than full window due to pacing
 
-    // Verify it's approximately the expected pacing calculation
-    uint32_t ExpectedPacedAllowance = (uint32_t)(((uint64_t)Cubic->CongestionWindow * TimeSinceLastSend) / Connection.Paths[0].SmoothedRtt);
-
-    // Allow some margin due to integer arithmetic and min/max clamping
-    ASSERT_GE(Allowance, ExpectedPacedAllowance / 2);
-    ASSERT_LE(Allowance, ExpectedPacedAllowance * 2);
+    // Exact value is caldulated considering the current implementation is right and this test is meant to
+    // prevent future regressions
+    uint32_t ExpectedPacedAllowance = 4928; // Pre-calculated expected value
+    ASSERT_EQ(Allowance, ExpectedPacedAllowance);
 }
 
 //
