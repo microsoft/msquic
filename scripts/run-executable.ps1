@@ -86,7 +86,10 @@ param (
     [switch]$GHA = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseProcDump = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -122,6 +125,40 @@ function Test-Administrator
 {
     $user = [Security.Principal.WindowsIdentity]::GetCurrent();
     (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
+function Get-ProcDumpPath {
+    $cmd = Get-Command "procdump.exe" -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+
+    $candidate = Join-Path $RootDir "artifacts" "tools" "procdump" "procdump.exe"
+    if (Test-Path $candidate) { return $candidate }
+
+    return $null
+}
+
+function Ensure-ProcDump {
+    $pd = Get-ProcDumpPath
+    if ($pd) { return $pd }
+
+    if (!$IsWindows) { throw "ProcDump is Windows-only." }
+
+    $toolDir = Join-Path $RootDir "artifacts" "tools" "procdump"
+    New-Item -ItemType Directory -Force -Path $toolDir | Out-Null
+
+    $zipPath = Join-Path $toolDir "procdump.zip"
+    $url = "https://download.sysinternals.com/files/Procdump.zip"  # official Sysinternals download
+    Log "Downloading ProcDump from $url"
+    Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
+
+    Expand-Archive -Path $zipPath -DestinationPath $toolDir -Force
+
+    $pd = Join-Path $toolDir "procdump.exe"
+    if (!(Test-Path $pd)) {
+        throw "ProcDump download/extract succeeded but procdump.exe not found at expected path: $pd"
+    }
+
+    return $pd
 }
 
 # Make sure the executable is present.
@@ -228,12 +265,38 @@ function Start-Executable {
             $pinfo.WorkingDirectory = $LogDir
         } else {
             Write-Host "Configuring process to collect crash dumps to $LogDir"
-            $pinfo.FileName = $Path
-            $pinfo.Arguments = $Arguments
-            # Enable WER dump collection.
-            New-Item -Path $WerDumpRegPath -Force | Out-Null
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
+
+            if ($UseProcDump) {
+                # Use ProcDump to launch and monitor the process
+                try {
+                    $pd = Ensure-ProcDump
+                    Write-Host "Using ProcDump to launch and monitor process"
+
+                    # ProcDump will launch the target process and monitor it
+                    # -accepteula: auto-accept EULA
+                    # -ma: full memory dump
+                    # -e: dump on unhandled exception
+                    # -x <dir>: write dumps to directory
+                    # Then: executable path and arguments
+                    $pinfo.FileName = $pd
+                    $pinfo.Arguments = "-accepteula -ma -e -x `"$LogDir`" `"$Path`" $Arguments"
+                    Write-Host "ProcDump command: $($pinfo.FileName) $($pinfo.Arguments)"
+                } catch {
+                    Write-Warning "Failed to setup ProcDump: $_"
+                    Write-Warning "Falling back to direct execution without crash dumps"
+                    $pinfo.FileName = $Path
+                    $pinfo.Arguments = $Arguments
+                }
+            } else {
+                # Direct execution with WER
+                $pinfo.FileName = $Path
+                $pinfo.Arguments = $Arguments
+
+                # Enable WER dump collection.
+                New-Item -Path $WerDumpRegPath -Force | Out-Null
+                New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+                New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
+            }
         }
     } else {
         if ($Debugger) {
@@ -384,6 +447,23 @@ function Wait-Executable($Exe) {
             LogErr "Process had nonzero exit code: $($Exe.Process.ExitCode)"
             $KeepOutput = $true
         }
+
+        # When using ProcDump, give it a moment to finish writing dumps
+        if ($UseProcDump -and $IsWindows) {
+            Write-Host "Waiting for dump files to be written..."
+            Start-Sleep -Seconds 2
+        }
+
+        # List files in log directory
+        Write-Host "Checking for dump files in $LogDir..."
+        $allFiles = Get-ChildItem -Path $LogDir -ErrorAction SilentlyContinue
+        if ($allFiles) {
+            Write-Host "Files in log directory:"
+            $allFiles | ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
+        } else {
+            Write-Host "No files found in log directory"
+        }
+
         # Wait up to 30 seconds for files to appear in $LogDir if $AZP is set.
         if ($AZP) {
             $Elapsed = 0
@@ -393,7 +473,7 @@ function Wait-Executable($Exe) {
                 $Elapsed++
             }
         }
-        $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
+        $DumpFiles = (Get-ChildItem $LogDir -ErrorAction SilentlyContinue) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
             LogErr "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
@@ -493,7 +573,7 @@ if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
 # Start the executable, wait for it to complete and then generate any output.
 Wait-Executable (Start-Executable)
 
-if ($IsWindows) {
+if ($IsWindows -and !$UseProcDump) {
     # Cleanup the WER registry.
     Remove-Item -Path $WerDumpRegPath -Force | Out-Null
 }
