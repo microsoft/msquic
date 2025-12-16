@@ -539,7 +539,7 @@ if ($ForBuild -or $ForContainerBuild) {
     git submodule update --jobs=8
 }
 
-if ($IsWindows) {
+if ($IsWindows -and $ForTest) {
     # Install Procdump for crash dump collection.
     Install-ProcDump
 }
