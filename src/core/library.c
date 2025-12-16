@@ -485,6 +485,7 @@ MsQuicLibraryInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
+    BOOLEAN RegistrationCloseCleanupInitialized = FALSE;
 
     Status = CxPlatInitialize();
     if (QUIC_FAILED(Status)) {
@@ -527,6 +528,8 @@ MsQuicLibraryInitialize(
     MsQuicLib.RegistrationCloseCleanupShutdown = FALSE;
     CxPlatListInitializeHead(&MsQuicLib.RegistrationCloseCleanupList);
     CxPlatRundownInitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
+
+    RegistrationCloseCleanupInitialized = TRUE;
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         0,
@@ -606,9 +609,11 @@ Error:
             CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
             MsQuicLib.RegistrationCloseCleanupWorker = 0;
         }
-        CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
-        CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
-        CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
+        if (RegistrationCloseCleanupInitialized) {
+            CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
+            CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
+            CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
+        }
         if (MsQuicLib.Storage != NULL) {
             CxPlatStorageClose(MsQuicLib.Storage);
             MsQuicLib.Storage = NULL;
