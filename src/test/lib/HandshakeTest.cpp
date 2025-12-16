@@ -227,222 +227,219 @@ QuicTestConnect(
     PrivateTransportHelper TpHelper(MultiPacketClientInitial, !!ResumptionTicket);
     RandomLossHelper LossHelper(RandomLossPercentage);
 
+    if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&BadKey));
+    }
+    TestListener Listener(
+        Registration,
+        ListenerAcceptConnection,
+        (AsyncConfiguration ? (HQUIC)nullptr : (HQUIC)ServerConfiguration));
+    TEST_TRUE(Listener.IsValid());
+    Listener.SetHasRandomLoss(RandomLossPercentage != 0);
+
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start(MultipleALPNs ? Alpn2 : Alpn1, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    UniquePtr<TestConnection> Server;
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    if (AsyncTicketValidation) {
+        ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_PENDING;
+    } else {
+        if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
+            ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_SUCCESS;
+        } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP) {
+            ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_INTERNAL_ERROR;
+        }
+    }
+
+    Listener.Context = &ServerAcceptCtx;
+
     {
-        if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
-            TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&BadKey));
+        TestConnection Client(Registration);
+        TEST_TRUE(Client.IsValid());
+        Client.SetSslKeyLogFilePath();
+        Client.SetHasRandomLoss(RandomLossPercentage != 0);
+
+        if (ClientUsesOldVersion) {
+            TEST_QUIC_SUCCEEDED(
+                Client.SetQuicVersion(OLD_SUPPORTED_VERSION));
         }
-        TestListener Listener(
-            Registration,
-            ListenerAcceptConnection,
-            (AsyncConfiguration ? (HQUIC)nullptr : (HQUIC)ServerConfiguration));
-        TEST_TRUE(Listener.IsValid());
-        Listener.SetHasRandomLoss(RandomLossPercentage != 0);
 
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(MultipleALPNs ? Alpn2 : Alpn1, &ServerLocalAddr.SockAddr));
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        if (MultiPacketClientInitial) {
+            TEST_QUIC_SUCCEEDED(
+                Client.SetTestTransportParameter(&TpHelper));
+        }
 
-        {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            if (AsyncTicketValidation) {
-                ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_PENDING;
+        if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
+            Client.SetResumptionTicket(ResumptionTicket);
+            CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
+            Client.SetExpectedResumed(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED ||
+                                      SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC);
+        }
+
+        if (UseDuoNic) {
+            QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+            QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+            TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+        }
+
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                ClientConfiguration,
+                QuicAddrFamily,
+                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                ServerLocalAddr.GetPort()));
+
+        if (AsyncConfiguration || AsyncTicketValidation) {
+            if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
+                TEST_FAILURE("Timed out waiting for server accept.");
+            } else if (Server == nullptr) {
+                TEST_FAILURE("Failed to accept server connection.");
             } else {
-                if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
-                    ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_SUCCESS;
-                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP) {
-                    ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_INTERNAL_ERROR;
-                }
-            }
-
-            Listener.Context = &ServerAcceptCtx;
-
-            {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
-                Client.SetSslKeyLogFilePath();
-                Client.SetHasRandomLoss(RandomLossPercentage != 0);
-
-                if (ClientUsesOldVersion) {
-                    TEST_QUIC_SUCCEEDED(
-                        Client.SetQuicVersion(OLD_SUPPORTED_VERSION));
-                }
-
-                if (MultiPacketClientInitial) {
-                    TEST_QUIC_SUCCEEDED(
-                        Client.SetTestTransportParameter(&TpHelper));
-                }
-
-                if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
-                    Client.SetResumptionTicket(ResumptionTicket);
-                    CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
-                    Client.SetExpectedResumed(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED ||
-                                              SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC);
-                }
-
-                if (UseDuoNic) {
-                    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
-                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
-                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
-                }
-
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        ServerLocalAddr.GetPort()));
-
-                if (AsyncConfiguration || AsyncTicketValidation) {
-                    if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
-                        TEST_FAILURE("Timed out waiting for server accept.");
-                    } else if (Server == nullptr) {
-                        TEST_FAILURE("Failed to accept server connection.");
-                    } else {
-                        if (AsyncConfiguration) {
-                            if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
-                                CxPlatSleep(1000);
-                            }
-                            TEST_QUIC_SUCCEEDED(
-                                Server->SetConfiguration(ServerConfiguration));
-                        }
-                        if (AsyncTicketValidation) {
-                            CxPlatSleep(1000);
-                            TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC));
-                        }
+                if (AsyncConfiguration) {
+                    if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
+                        CxPlatSleep(1000);
                     }
+                    TEST_QUIC_SUCCEEDED(
+                        Server->SetConfiguration(ServerConfiguration));
                 }
-
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
+                if (AsyncTicketValidation) {
+                    CxPlatSleep(1000);
+                    TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC));
                 }
-                TEST_TRUE(Client.GetIsConnected());
-
-                // After handshake, check and see if we have cached the TTL of the handshake packet.
-                if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_TTL)) {
-                    TEST_TRUE(Client.GetStatistics().HandshakeHopLimitTTL > 0);
-                } else {
-                    TEST_EQUAL(Client.GetStatistics().HandshakeHopLimitTTL, 0);
-                }
-
-                TEST_NOT_EQUAL(nullptr, Server);
-                Server->SetSslKeyLogFilePath();
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
-
-                ClientSecrets = Client.GetTlsSecrets();
-                ServerSecrets = Server->GetTlsSecrets();
-
-                TEST_EQUAL(
-                    ServerSecrets.IsSet.ClientRandom,
-                    ClientSecrets.IsSet.ClientRandom);
-                TEST_TRUE(
-                    !memcmp(
-                        ServerSecrets.ClientRandom,
-                        ClientSecrets.ClientRandom,
-                        sizeof(ServerSecrets.ClientRandom)));
-
-                TEST_EQUAL(ServerSecrets.SecretLength, ClientSecrets.SecretLength);
-                TEST_TRUE(ServerSecrets.SecretLength <= QUIC_TLS_SECRETS_MAX_SECRET_LEN);
-
-                TEST_EQUAL(
-                    ServerSecrets.IsSet.ClientHandshakeTrafficSecret,
-                    ClientSecrets.IsSet.ClientHandshakeTrafficSecret);
-                TEST_TRUE(
-                    !memcmp(
-                        ServerSecrets.ClientHandshakeTrafficSecret,
-                        ClientSecrets.ClientHandshakeTrafficSecret,
-                        ServerSecrets.SecretLength));
-
-                TEST_EQUAL(
-                    ServerSecrets.IsSet.ServerHandshakeTrafficSecret,
-                    ClientSecrets.IsSet.ServerHandshakeTrafficSecret);
-                TEST_TRUE(
-                    !memcmp(
-                        ServerSecrets.ServerHandshakeTrafficSecret,
-                        ClientSecrets.ServerHandshakeTrafficSecret,
-                        ServerSecrets.SecretLength));
-
-                TEST_EQUAL(
-                    ServerSecrets.IsSet.ClientTrafficSecret0,
-                    ClientSecrets.IsSet.ClientTrafficSecret0);
-                TEST_TRUE(
-                    !memcmp(
-                        ServerSecrets.ClientTrafficSecret0,
-                        ClientSecrets.ClientTrafficSecret0,
-                        ServerSecrets.SecretLength));
-
-                TEST_EQUAL(
-                    ServerSecrets.IsSet.ServerTrafficSecret0,
-                    ClientSecrets.IsSet.ServerTrafficSecret0);
-                TEST_TRUE(
-                    !memcmp(
-                        ServerSecrets.ServerTrafficSecret0,
-                        ClientSecrets.ServerTrafficSecret0,
-                        ServerSecrets.SecretLength));
-
-                uint8_t ClientOrigCid[32], ServerOrigCid[32];
-                uint32_t ClientOrigCidLen, ServerOrigCidLen;
-                TEST_QUIC_SUCCEEDED(Client.GetOrigDestCid(ClientOrigCid, ClientOrigCidLen));
-                TEST_QUIC_SUCCEEDED(Server->GetOrigDestCid(ServerOrigCid, ServerOrigCidLen));
-                TEST_EQUAL(ClientOrigCidLen, ServerOrigCidLen);
-                TEST_TRUE(!memcmp(ClientOrigCid, ServerOrigCid, ClientOrigCidLen));
-
-                if (ClientUsesOldVersion) {
-                    TEST_EQUAL(Server->GetQuicVersion(), OLD_SUPPORTED_VERSION);
-                } else {
-                    TEST_EQUAL(Server->GetQuicVersion(), LATEST_SUPPORTED_VERSION);
-                }
-
-                if (ServerStatelessRetry) {
-                    TEST_TRUE(Client.GetStatistics().StatelessRetry);
-                }
-
-                if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED ||
-                    SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC) {
-                    TEST_TRUE(Client.GetResumed());
-                    TEST_TRUE(Server->GetResumed());
-                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED ||
-                           SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP ||
-                           SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC) {
-                    TEST_FALSE(Client.GetResumed());
-                    TEST_FALSE(Server->GetResumed());
-                }
-
-                TEST_EQUAL(
-                    Server->GetPeerBidiStreamCount(),
-                    Client.GetLocalBidiStreamCount());
-
-                if (GreaseQuicBitEnabled) {
-                    TEST_TRUE(Client.GetStatistics().GreaseBitNegotiated);
-                    TEST_TRUE(Server->GetStatistics().GreaseBitNegotiated);
-                }
-
-                if (RandomLossPercentage == 0) {
-                    //
-                    // Don't worry about graceful shutdown if we have random
-                    // loss. It will likely just result in the maximum wait
-                    // timeout, causing the test to run longer.
-                    //
-                    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                    if (!Client.WaitForShutdownComplete()) {
-                        return;
-                    }
-
-                    TEST_FALSE(Client.GetPeerClosed());
-                    TEST_FALSE(Client.GetTransportClosed());
-                }
-            }
-
-            if (RandomLossPercentage == 0) {
-                TEST_TRUE(Server->GetPeerClosed());
-                TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-            } else {
-                Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
             }
         }
+
+        if (!Client.WaitForConnectionComplete()) {
+            return;
+        }
+        TEST_TRUE(Client.GetIsConnected());
+
+        // After handshake, check and see if we have cached the TTL of the handshake packet.
+        if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_TTL)) {
+            TEST_TRUE(Client.GetStatistics().HandshakeHopLimitTTL > 0);
+        } else {
+            TEST_EQUAL(Client.GetStatistics().HandshakeHopLimitTTL, 0);
+        }
+
+        TEST_NOT_EQUAL(nullptr, Server);
+        Server->SetSslKeyLogFilePath();
+        if (!Server->WaitForConnectionComplete()) {
+            return;
+        }
+        TEST_TRUE(Server->GetIsConnected());
+
+        ClientSecrets = Client.GetTlsSecrets();
+        ServerSecrets = Server->GetTlsSecrets();
+
+        TEST_EQUAL(
+            ServerSecrets.IsSet.ClientRandom,
+            ClientSecrets.IsSet.ClientRandom);
+        TEST_TRUE(
+            !memcmp(
+                ServerSecrets.ClientRandom,
+                ClientSecrets.ClientRandom,
+                sizeof(ServerSecrets.ClientRandom)));
+
+        TEST_EQUAL(ServerSecrets.SecretLength, ClientSecrets.SecretLength);
+        TEST_TRUE(ServerSecrets.SecretLength <= QUIC_TLS_SECRETS_MAX_SECRET_LEN);
+
+        TEST_EQUAL(
+            ServerSecrets.IsSet.ClientHandshakeTrafficSecret,
+            ClientSecrets.IsSet.ClientHandshakeTrafficSecret);
+        TEST_TRUE(
+            !memcmp(
+                ServerSecrets.ClientHandshakeTrafficSecret,
+                ClientSecrets.ClientHandshakeTrafficSecret,
+                ServerSecrets.SecretLength));
+
+        TEST_EQUAL(
+            ServerSecrets.IsSet.ServerHandshakeTrafficSecret,
+            ClientSecrets.IsSet.ServerHandshakeTrafficSecret);
+        TEST_TRUE(
+            !memcmp(
+                ServerSecrets.ServerHandshakeTrafficSecret,
+                ClientSecrets.ServerHandshakeTrafficSecret,
+                ServerSecrets.SecretLength));
+
+        TEST_EQUAL(
+            ServerSecrets.IsSet.ClientTrafficSecret0,
+            ClientSecrets.IsSet.ClientTrafficSecret0);
+        TEST_TRUE(
+            !memcmp(
+                ServerSecrets.ClientTrafficSecret0,
+                ClientSecrets.ClientTrafficSecret0,
+                ServerSecrets.SecretLength));
+
+        TEST_EQUAL(
+            ServerSecrets.IsSet.ServerTrafficSecret0,
+            ClientSecrets.IsSet.ServerTrafficSecret0);
+        TEST_TRUE(
+            !memcmp(
+                ServerSecrets.ServerTrafficSecret0,
+                ClientSecrets.ServerTrafficSecret0,
+                ServerSecrets.SecretLength));
+
+        uint8_t ClientOrigCid[32], ServerOrigCid[32];
+        uint32_t ClientOrigCidLen, ServerOrigCidLen;
+        TEST_QUIC_SUCCEEDED(Client.GetOrigDestCid(ClientOrigCid, ClientOrigCidLen));
+        TEST_QUIC_SUCCEEDED(Server->GetOrigDestCid(ServerOrigCid, ServerOrigCidLen));
+        TEST_EQUAL(ClientOrigCidLen, ServerOrigCidLen);
+        TEST_TRUE(!memcmp(ClientOrigCid, ServerOrigCid, ClientOrigCidLen));
+
+        if (ClientUsesOldVersion) {
+            TEST_EQUAL(Server->GetQuicVersion(), OLD_SUPPORTED_VERSION);
+        } else {
+            TEST_EQUAL(Server->GetQuicVersion(), LATEST_SUPPORTED_VERSION);
+        }
+
+        if (ServerStatelessRetry) {
+            TEST_TRUE(Client.GetStatistics().StatelessRetry);
+        }
+
+        if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED ||
+            SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC) {
+            TEST_TRUE(Client.GetResumed());
+            TEST_TRUE(Server->GetResumed());
+        } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED ||
+                   SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP ||
+                   SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC) {
+            TEST_FALSE(Client.GetResumed());
+            TEST_FALSE(Server->GetResumed());
+        }
+
+        TEST_EQUAL(
+            Server->GetPeerBidiStreamCount(),
+            Client.GetLocalBidiStreamCount());
+
+        if (GreaseQuicBitEnabled) {
+            TEST_TRUE(Client.GetStatistics().GreaseBitNegotiated);
+            TEST_TRUE(Server->GetStatistics().GreaseBitNegotiated);
+        }
+
+        if (RandomLossPercentage == 0) {
+            //
+            // Don't worry about graceful shutdown if we have random
+            // loss. It will likely just result in the maximum wait
+            // timeout, causing the test to run longer.
+            //
+            Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+            if (!Client.WaitForShutdownComplete()) {
+                return;
+            }
+
+            TEST_FALSE(Client.GetPeerClosed());
+            TEST_FALSE(Client.GetTransportClosed());
+        }
+    }
+
+    if (RandomLossPercentage == 0) {
+        Server->WaitForPeerClose();
+        TEST_TRUE(Server->GetPeerClosed());
+        TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+    } else {
+        Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 }
 
