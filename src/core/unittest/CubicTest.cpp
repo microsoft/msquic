@@ -827,7 +827,7 @@ TEST(CubicTest, CongestionAvoidance_IdleTimeDetection)
     Settings.SendIdleTimeoutMs = 100; // 100ms idle timeout
     Settings.HyStartEnabled = FALSE;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000; // 50ms
     Connection.Paths[0].RttVariance = 5000;
@@ -847,7 +847,7 @@ TEST(CubicTest, CongestionAvoidance_IdleTimeDetection)
     Cubic->BytesInFlightMax = 30000;
     Cubic->WindowPrior = 40000;
 
-    uint64_t Now = CxPlatTimeUs64();
+    uint64_t Now = 1000000; //CxPlatTimeUs64();
     Cubic->TimeOfCongAvoidStart = Now - 500000; // Started 500ms ago
     Cubic->TimeOfLastAck = Now - 200000; // Last ACK was 200ms ago (idle gap)
     Cubic->TimeOfLastAckValid = TRUE;
@@ -894,7 +894,7 @@ TEST(CubicTest, GetSendAllowance_EstimatedWndClamping)
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
@@ -943,7 +943,7 @@ TEST(CubicTest, GetSendAllowance_CongestionAvoidancePacing)
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
@@ -992,7 +992,7 @@ TEST(CubicTest, GetSendAllowance_ClampToAvailableWindow)
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
@@ -1039,7 +1039,7 @@ TEST(CubicTest, BlockingBehavior_WindowFull_CannotSend)
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
@@ -1079,7 +1079,7 @@ TEST(CubicTest, BlockingBehavior_Unblock_AfterAck)
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
@@ -1119,7 +1119,7 @@ TEST(CubicTest, BlockingBehavior_Exemptions_AllowSendWhenBlocked)
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
@@ -1149,24 +1149,24 @@ TEST(CubicTest, BlockingBehavior_Exemptions_AllowSendWhenBlocked)
 // Reduces repetitive setup code across multiple test cases.
 //
 static void SetupCongestionEventTest(
-    QUIC_CONNECTION* Connection,
-    QUIC_SETTINGS_INTERNAL* Settings,
+    QUIC_CONNECTION& Connection,
+    QUIC_SETTINGS_INTERNAL& Settings,
     bool EnableHyStart = true)
 {
-    CxPlatZeroMemory(Settings, sizeof(*Settings));
-    Settings->InitialWindowPackets = 20;
-    Settings->SendIdleTimeoutMs = 1000;
-    Settings->HyStartEnabled = EnableHyStart;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = EnableHyStart;
 
     InitializeMockConnection(Connection, 1280);
-    Connection->Paths[0].GotFirstRttSample = TRUE;
-    Connection->Paths[0].SmoothedRtt = 50000;
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
 
     if (EnableHyStart) {
-        Connection->Settings.HyStartEnabled = TRUE;
+        Connection.Settings.HyStartEnabled = TRUE;
     }
 
-    CubicCongestionControlInitialize(&Connection->CongestionControl, Settings);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 }
 
 //
@@ -1179,7 +1179,7 @@ TEST(CubicTest, OnCongestionEvent_PersistentAndNormal)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings;
-    SetupCongestionEventTest(&Connection, &Settings, true);
+    SetupCongestionEventTest(Connection, Settings, true);
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
     uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
@@ -1237,7 +1237,7 @@ TEST(CubicTest, OnCongestionEvent_FastConvergence)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings;
-    SetupCongestionEventTest(&Connection, &Settings, true);
+    SetupCongestionEventTest(Connection, Settings, true);
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
 
