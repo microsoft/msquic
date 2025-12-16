@@ -41,6 +41,9 @@ pub fn get_test_cred() -> Credential {
     Credential::CertificateHash(CertificateHash::from_str(&s).unwrap())
 }
 
+#[cfg(not(target_os = "windows"))]
+static CREATE_TEST_CERTS: std::sync::Once = std::sync::Once::new();
+
 /// Generate a test cert if not present using openssl cli.
 #[cfg(not(target_os = "windows"))]
 pub fn get_test_cred() -> Credential {
@@ -49,11 +52,18 @@ pub fn get_test_cred() -> Credential {
     let cert = "cert.pem";
     let key_path = cert_dir.join(key);
     let cert_path = cert_dir.join(cert);
-    if !key_path.exists() || !cert_path.exists() {
-        // remove the dir
+
+    CREATE_TEST_CERTS.call_once(|| {
+        // Nothing to do if certs are already present
+        if key_path.exists() && cert_path.exists() {
+            return;
+        }
+
+        // Remove any pre-existing files
         let _ = std::fs::remove_dir_all(&cert_dir);
+
         std::fs::create_dir_all(&cert_dir).expect("cannot create cert dir");
-        // generate test cert using openssl cli
+        // Generate test cert using openssl cli
         let output = std::process::Command::new("openssl")
             .args([
                 "req",
@@ -79,7 +89,10 @@ pub fn get_test_cred() -> Credential {
         if !output.status.success() {
             panic!("generate cert failed");
         }
-    }
+    });
+
+    assert!(key_path.exists() && cert_path.exists());
+
     use crate::CertificateFile;
     Credential::CertificateFile(CertificateFile::new(
         key_path.display().to_string(),
