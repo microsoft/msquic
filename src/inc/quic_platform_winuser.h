@@ -740,7 +740,43 @@ typedef struct CXPLAT_SQE {
 #if DEBUG
     BOOLEAN IsQueued; // Debug flag to catch double queueing.
 #endif
+    HANDLE WcpEvent;      // Manual-reset event for wake packets
+    HANDLE WaitCompletionPacket;    // Wait completion packet bound to Event
 } CXPLAT_SQE;
+
+#define IO_WAIT_COMPLETION_PACKET_MODIFY_STATE 0x0001
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateWaitCompletionPacket (
+    _Out_ PHANDLE WaitCompletionPacketHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAssociateWaitCompletionPacket (
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TargetObjectHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _Out_opt_ PBOOLEAN TargetApcInvoked
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCancelWaitCompletionPacket (
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ BOOLEAN RemoveSignaledPacket
+    );
+
 
 QUIC_INLINE
 BOOLEAN
@@ -782,7 +818,16 @@ CxPlatEventQEnqueue(
     sqe->IsQueued;
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
-    return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
+    if (!PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped)){
+        if (sqe->WcpEvent){
+            SetEvent(sqe->WcpEvent);
+            return TRUE;
+        }
+        else {
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 QUIC_INLINE
@@ -821,7 +866,7 @@ CxPlatEventQDequeue(
         }
     }
 #endif
-    return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
+    return (uint32_t)out_count;
 }
 
 QUIC_INLINE
@@ -846,6 +891,39 @@ CxPlatSqeInitialize(
     UNREFERENCED_PARAMETER(queue);
     CxPlatZeroMemory(sqe, sizeof(*sqe));
     sqe->Completion = completion;
+
+    if (sqe->WcpEvent == NULL) {
+        sqe->WcpEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+        CXPLAT_DBG_ASSERT(sqe->WcpEvent != NULL);
+    }
+
+    NTSTATUS status = NtCreateWaitCompletionPacket(&sqe->WaitCompletionPacket,
+                                                  IO_WAIT_COMPLETION_PACKET_MODIFY_STATE,
+                                                  NULL);
+    if (!NT_SUCCESS(status)) {
+        CloseHandle(sqe->WcpEvent);
+        return FALSE;
+    }
+
+    status = NtAssociateWaitCompletionPacket(
+        sqe->WaitCompletionPacket,
+        *queue,
+        sqe->WcpEvent,
+        sqe,
+        NULL,
+        0,          // IoStatus STATUS_SUCCESS
+        0,
+        NULL);
+
+    if (!NT_SUCCESS(status)) {
+        NtCancelWaitCompletionPacket(
+                sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
+                TRUE);              // RemoveSignaledPacket
+        CloseHandle(sqe->WaitCompletionPacket);
+        CloseHandle(sqe->WcpEvent);
+        return FALSE;
+    }
+
     return TRUE;
 }
 
@@ -870,6 +948,14 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     )
 {
+    if (sqe->WcpEvent)
+    {
+        NtCancelWaitCompletionPacket(
+            sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
+            TRUE);              // RemoveSignaledPacket
+        CloseHandle(sqe->WaitCompletionPacket);
+        CloseHandle(sqe->WcpEvent);
+    }
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(sqe);
 }
@@ -880,6 +966,9 @@ CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
+    if (cqe->lpOverlapped == NULL) {
+        return (CXPLAT_SQE*)cqe->lpCompletionKey;
+    }
     return CONTAINING_RECORD(cqe->lpOverlapped, CXPLAT_SQE, Overlapped);
 }
 
