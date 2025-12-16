@@ -1039,20 +1039,10 @@ CxPlatSocketContextUninitialize(
             "[data][%p] Processor Context queueing for destruction",
             SocketContext->DatapathPartition);
 
-        if (!CxPlatEventQEnqueue(
+        CXPLAT_FRE_ASSERT(
+            CxPlatEventQEnqueue(
                 SocketContext->DatapathPartition->EventQ,
-                &SocketContext->ShutdownSqe)) {
-            int Errno = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                Errno,
-                "CxPlatEventQEnqueue failed (Shutdown)");
-
-            // Queue can’t run the completion, so do it inline to finish teardown.
-            CxPlatSocketContextUninitializeEventComplete(&SocketContext->ShutdownSqe.Cqe);
-        }
+                &SocketContext->ShutdownSqe));
     }
 }
 
@@ -2211,20 +2201,10 @@ SocketSend(
     CxPlatLockRelease(&SocketContext->TxQueueLock);
     if (SendPending) {
         if (FlushTxQueue) {
-            if (!CxPlatEventQEnqueue(
+            CXPLAT_FRE_ASSERT(
+                CxPlatEventQEnqueue(
                     SocketContext->DatapathPartition->EventQ,
-                    &SocketContext->FlushTxSqe)) {
-                int Errno = errno;
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    SocketContext->Binding,
-                    Errno,
-                    "CxPlatEventQEnqueue failed (FlushTx)");
-
-                // Run the completion inline to keep draining sends.
-                CxPlatSocketContextFlushTxEventComplete(&SocketContext->FlushTxSqe.Cqe);
-            }
+                    &SocketContext->FlushTxSqe));
         }
         return;
     }
