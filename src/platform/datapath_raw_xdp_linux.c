@@ -1231,18 +1231,7 @@ CxPlatXdpExecute(
             XdpPartitionShutdown,
             "[ xdp][%p] XDP partition shutdown",
             Partition);
-        if (!CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[xdp] ERROR, %u, %s.",
-                errno,
-                "CxPlatEventQEnqueue failed (Shutdown)");
-            //
-            // The event queue can’t deliver the shutdown SQE, so run the completion
-            // inline to drop the reference.
-            //
-            CxPlatPartitionShutdownEventComplete(&Partition->ShutdownSqe.Cqe);
-        }
+        CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe);
         return FALSE;
     }
 

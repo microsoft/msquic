@@ -92,7 +92,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     BOOLEAN StoppingThread : 1;
     BOOLEAN StoppedThread : 1;
     BOOLEAN DestroyedThread : 1;
-    BOOLEAN EventQClosed : 1;
 #if DEBUG // Debug flags - Must not be in the bitfield.
     BOOLEAN ThreadStarted;
     BOOLEAN ThreadFinished;
@@ -220,46 +219,13 @@ CxPlatWorkerPoolInitWorker(
 }
 
 void
-CxPlatWorkerCleanupEventQueue(
-    _In_ CXPLAT_WORKER* Worker
-    )
-{
-    if (!Worker->InitializedEventQ) {
-        return;
-    }
-
-    if (Worker->InitializedUpdatePollSqe) {
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
-        Worker->InitializedUpdatePollSqe = FALSE;
-    }
-    if (Worker->InitializedWakeSqe) {
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
-        Worker->InitializedWakeSqe = FALSE;
-    }
-    if (Worker->InitializedShutdownSqe) {
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
-        Worker->InitializedShutdownSqe = FALSE;
-    }
-
-    Worker->EventQClosed = TRUE;
-    CxPlatEventQCleanup(&Worker->EventQ);
-    Worker->InitializedEventQ = FALSE;
-}
-
-void
 CxPlatWorkerPoolDestroyWorker(
     _In_ CXPLAT_WORKER* Worker
     )
 {
     if (Worker->InitializedThread) {
         Worker->StoppingThread = TRUE;
-        if (!CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe)) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "CxPlatEventQEnqueue(shutdown) Manually closing the event queue.");
-            CxPlatWorkerCleanupEventQueue(Worker);
-        }
+        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe);
         CxPlatThreadWait(&Worker->Thread);
         CxPlatThreadDelete(&Worker->Thread);
 #if DEBUG
@@ -270,9 +236,18 @@ CxPlatWorkerPoolDestroyWorker(
     } else {
         // TODO - Handle synchronized cleanup for external event queues?
     }
-
-    CxPlatWorkerCleanupEventQueue(Worker);
-
+    if (Worker->InitializedUpdatePollSqe) {
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
+    }
+    if (Worker->InitializedWakeSqe) {
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
+    }
+    if (Worker->InitializedShutdownSqe) {
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
+    }
+    if (Worker->InitializedEventQ) {
+        CxPlatEventQCleanup(&Worker->EventQ);
+    }
     if (Worker->InitializedECLock) {
         CxPlatLockUninitialize(&Worker->ECLock);
     }
@@ -523,19 +498,7 @@ CxPlatWorkerPoolAddExecutionContext(
     CxPlatLockRelease(&Worker->ECLock);
 
     if (QueueEvent) {
-        if (!CxPlatEventQEnqueue(&Worker->EventQ, &Worker->UpdatePollSqe)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                GetLastError(),
-                "CxPlatEventQEnqueue failed (updatepoll)");
-
-            //
-            // The event queue isn’t able to deliver the SQE, so execute the
-            // completion inline to move the pending contexts into the active list.
-            //
-            CxPlatUpdateExecutionContexts(Worker);
-        }
+        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->UpdatePollSqe);
     }
 }
 
@@ -546,19 +509,7 @@ CxPlatWakeExecutionContext(
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
     if (!InterlockedFetchAndSetBoolean(&Worker->Running)) {
-        if (!CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                GetLastError(),
-                "CxPlatEventQEnqueue failed (wake)");
-
-            //
-            // Failed to wake the worker, so clear the flag so a future attempt
-            // can retry once the caller observes the failure.
-            //
-            InterlockedFetchAndClearBoolean(&Worker->Running);
-        }
+        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe);
     }
 }
 
@@ -740,27 +691,6 @@ CxPlatProcessEvents(
             Cqes,
             ARRAYSIZE(Cqes),
             Worker->State.WaitTime);
-
-    if (CqeCount == 0) {
-        if (Worker->EventQClosed) {
-            Worker->StoppedThread = TRUE;
-            return;
-        }
-    }
-#if _WIN32
-        DWORD Err = GetLastError();
-        if (Err == ERROR_ABANDONED_WAIT_0 || Err == ERROR_INVALID_HANDLE) {
-            Worker->EventQClosed = TRUE;
-            Worker->StoppedThread = TRUE;
-            return;
-        }
-#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
-        if (errno == EBADF || errno == EINVAL) {
-            Worker->EventQClosed = TRUE;
-            Worker->StoppedThread = TRUE;
-            return;
-        }
-#endif
     uint32_t CurrentCqeCount = CqeCount;
     CXPLAT_CQE* CurrentCqe = Cqes;
 
@@ -833,10 +763,6 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         }
 
         CxPlatProcessEvents(Worker);
-
-        if (Worker->EventQClosed && Worker->StoppedThread) {
-            break;
-        }
 
         if (Worker->State.NoWorkCount == 0) {
             Worker->State.LastWorkTime = Worker->State.TimeNow;

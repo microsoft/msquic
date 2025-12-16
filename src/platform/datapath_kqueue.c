@@ -1012,20 +1012,9 @@ CxPlatSocketContextUninitialize(
             &SocketContext->IoSqe,
             EVFILT_READ,
             EV_DELETE);
-        if (!CxPlatEventQEnqueue(
-                SocketContext->DatapathPartition->EventQ,
-                &SocketContext->ShutdownSqe)) {
-            int Errno = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                Errno,
-                "CxPlatEventQEnqueue failed (Shutdown)");
-
-            // Queue can’t run the completion, so run it inline.
-            CxPlatSocketContextUninitializeEventComplete(&SocketContext->ShutdownSqe.Cqe);
-        }
+        CxPlatEventQEnqueue(
+            SocketContext->DatapathPartition->EventQ,
+            &SocketContext->ShutdownSqe);
     }
 }
 
