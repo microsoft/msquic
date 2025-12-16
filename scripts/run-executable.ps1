@@ -128,8 +128,6 @@ function Test-Administrator
 }
 
 function Get-ProcDumpPath {
-    $cmd = Get-Command "procdump.exe" -ErrorAction SilentlyContinue
-    if ($cmd) { return $cmd.Source }
 
     $toolDir = Join-Path $RootDir "artifacts" "tools" "procdump"
     $candidate = Join-Path $toolDir "procdump.exe"
@@ -267,15 +265,6 @@ function Start-Executable {
                     $pinfo.FileName = $Path
                     $pinfo.Arguments = $Arguments
                 }
-            } else {
-                # Direct execution with WER
-                $pinfo.FileName = $Path
-                $pinfo.Arguments = $Arguments
-
-                # Enable WER dump collection.
-                New-Item -Path $WerDumpRegPath -Force | Out-Null
-                New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
-                New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
             }
         }
     } else {
@@ -548,18 +537,8 @@ function Wait-Executable($Exe) {
     }
 }
 
-# Initialize WER dump registry key if necessary.
-if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
-    New-Item -Path $WerDumpRegPath -Force | Out-Null
-}
-
 # Start the executable, wait for it to complete and then generate any output.
 Wait-Executable (Start-Executable)
-
-if ($IsWindows -and !$UseProcDump) {
-    # Cleanup the WER registry.
-    Remove-Item -Path $WerDumpRegPath -Force | Out-Null
-}
 
 # Fail execution as necessary.
 if ($global:ExeFailed -and $AZP) {
