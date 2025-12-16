@@ -496,7 +496,6 @@ function Install-ProcDump {
 
     $zipPath = Join-Path $toolDir "procdump.zip"
     $url = "https://download.sysinternals.com/files/Procdump.zip"  # official Sysinternals download
-    Log "Downloading ProcDump from $url"
     Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
 
     Expand-Archive -Path $zipPath -DestinationPath $toolDir -Force
