@@ -425,35 +425,16 @@ function Wait-Executable($Exe) {
         $Exe.Process.WaitForExit()
         $exitCode = $Exe.Process.ExitCode
 
-        # When using ProcDump, the process is ProcDump itself, not the target
-        # ProcDump exit codes:
-        #   0  = success (dump captured)
-        #   -2 = no exception occurred (target exited normally)
-        #   -1 = error
-        if ($UseProcDump -and $IsWindows) {
-            if ($exitCode -eq -2) {
-                Write-Host "ProcDump: Target process exited normally (no crash/exception)"
-                # Don't treat this as an error
-            } elseif ($exitCode -eq 0) {
-                Write-Host "ProcDump: Exception dump captured successfully"
-                LogErr "Process crashed - dump file captured"
-                $KeepOutput = $true
-            } elseif ($exitCode -ne 0) {
-                LogErr "ProcDump had nonzero exit code: $exitCode"
-                $KeepOutput = $true
-            }
-        } else {
+        # When using ProcDump, the process is ProcDump itself, not the target.
+        # The ProcDump exit codes does not map cleanly to the status of the target process, so we will just log it.
+        if (!$UseProcDump -or !$IsWindows) {
             # Normal process (not wrapped by ProcDump)
             if ($exitCode -ne 0) {
                 LogErr "Process had nonzero exit code: $exitCode"
                 $KeepOutput = $true
             }
-        }
-
-        # When using ProcDump, give it a moment to finish writing dumps
-        if ($UseProcDump -and $IsWindows) {
-            Write-Host "Waiting for dump files to be written..."
-            Start-Sleep -Seconds 2
+        } else {
+            Log "ProcDump exit code: $exitCode"
         }
 
         # List files in log directory
