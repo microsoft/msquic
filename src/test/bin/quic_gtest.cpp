@@ -231,15 +231,18 @@ struct TestLoggerT {
 
 // Helpers to invoke a test in kernel mode through the test driver.
 
-bool InvokeTestInKernel(const std::string& Name) {
+template<class FunType>
+bool InvokeKernelTest(const std::string& Name, FunType) {
+    static_assert(std::is_invocable_v<FunType>, "Invalid parameters for test function");
     QUIC_RUN_TEST_REQUEST Request{};
     Name.copy(Request.FunctionName, sizeof(Request.FunctionName));
 
     return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)&Request, (uint32_t)sizeof(Request));
 }
 
-template <class ParamType>
-bool InvokeTestInKernel(const std::string& Name, const ParamType& Params) {
+template<class FunType, class ParamType>
+bool InvokeKernelTest(const std::string& Name, FunType, const ParamType& Params) {
+    static_assert(std::is_invocable_v<FunType, const ParamType&>, "Invalid parameters for test function");
     static_assert(std::is_pod_v<ParamType>, "ParamType must be POD");
 
     // Serialize the request header and arguments
@@ -254,27 +257,13 @@ bool InvokeTestInKernel(const std::string& Name, const ParamType& Params) {
     return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)Buffer.data(), (uint32_t)Buffer.size());
 }
 
-TEST(ParameterValidation, ValidateApi) {
-    TestLogger Logger("QuicTestValidateApi");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeTestInKernel("QuicTestValidateApi"));
-    } else {
-        QuicTestValidateApi();
-    }
-}
-
-TEST(ParameterValidation, ValidateRegistration) {
-    TestLogger Logger("QuicTestValidateRegistration");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_REGISTRATION));
-    } else {
-        QuicTestValidateRegistration();
-    }
-}
+#define FUNC(TestFunction) \
+    #TestFunction, TestFunction
 
 TEST(ParameterValidation, ValidateGlobalParam) {
     TestLogger Logger("QuicTestValidateGlobalParam");
     if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGlobalParam)));
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM));
     } else {
         QuicTestGlobalParam();
@@ -2242,7 +2231,7 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
 TEST_P(WithFamilyArgs2, AckSendDelay) {
     TestLogger Logger("QuicTestAckSendDelay");
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeTestInKernel("QuicTestAckSendDelay", GetParam()));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestAckSendDelay), GetParam()));
     } else {
         QuicTestAckSendDelay(GetParam());
     }
@@ -2390,7 +2379,7 @@ TEST(Misc, StreamMultiReceive) {
 TEST(Misc, StreamAppProvidedBuffers) {
     TestLogger Logger("StreamAppProvidedBuffers");
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeTestInKernel("QuicTestStreamAppProvidedBuffers"));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers)));
     } else {
         QuicTestStreamAppProvidedBuffers();
     }
@@ -2399,7 +2388,7 @@ TEST(Misc, StreamAppProvidedBuffers) {
 TEST(Misc, StreamAppProvidedBuffersOutOfSpace) {
     TestLogger Logger("QuicTestStreamAppProvidedBuffersOutOfSpace");
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeTestInKernel("QuicTestStreamAppProvidedBuffersOutOfSpace"));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace)));
     } else {
         QuicTestStreamAppProvidedBuffersOutOfSpace();
     }

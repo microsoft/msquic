@@ -538,7 +538,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
-    sizeof(INT32)
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -640,7 +640,7 @@ ExecuteTestRequest(
     )
 {
     // Ensure null termination
-    RpcRequest->FunctionName[255] = '\0';
+    RpcRequest->FunctionName[sizeof(RpcRequest->FunctionName) - 1] = '\0';
 
     // Register any test functions here
     RegisterTestFunction(QuicTestAckSendDelay);
@@ -724,7 +724,7 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "RPC request buffer too small for parameters");
+                "IOCTL buffer too small for test parameters");
             goto Error;
         }
 
