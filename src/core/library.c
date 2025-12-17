@@ -485,7 +485,6 @@ MsQuicLibraryInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
-    BOOLEAN RegistrationCloseCleanupInitialized = FALSE;
 
     Status = CxPlatInitialize();
     if (QUIC_FAILED(Status)) {
@@ -503,6 +502,14 @@ MsQuicLibraryInitialize(
     CxPlatToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
 
     CxPlatDispatchRwLockInitialize(&MsQuicLib.StatelessRetry.Lock);
+
+    MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
+    CxPlatLockInitialize(&MsQuicLib.RegistrationCloseCleanupLock);
+    CxPlatEventInitialize(&MsQuicLib.RegistrationCloseCleanupEvent, FALSE, FALSE);
+    MsQuicLib.RegistrationCloseCleanupShutdown = FALSE;
+    CxPlatListInitializeHead(&MsQuicLib.RegistrationCloseCleanupList);
+    CxPlatRundownInitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
+
     PlatformInitialized = TRUE;
 
     CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
@@ -520,16 +527,6 @@ MsQuicLibraryInitialize(
             Status);
         // Non-fatal, as the process may not have access
     }
-
-    MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
-
-    CxPlatLockInitialize(&MsQuicLib.RegistrationCloseCleanupLock);
-    CxPlatEventInitialize(&MsQuicLib.RegistrationCloseCleanupEvent, FALSE, FALSE);
-    MsQuicLib.RegistrationCloseCleanupShutdown = FALSE;
-    CxPlatListInitializeHead(&MsQuicLib.RegistrationCloseCleanupList);
-    CxPlatRundownInitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
-
-    RegistrationCloseCleanupInitialized = TRUE;
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         0,
@@ -609,7 +606,7 @@ Error:
             CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
             MsQuicLib.RegistrationCloseCleanupWorker = 0;
         }
-        if (RegistrationCloseCleanupInitialized) {
+        if (PlatformInitialized) {
             CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
             CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
             CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
