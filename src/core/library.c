@@ -503,6 +503,7 @@ MsQuicLibraryInitialize(
 
     CxPlatDispatchRwLockInitialize(&MsQuicLib.StatelessRetry.Lock);
 
+    CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
     CxPlatLockInitialize(&MsQuicLib.RegistrationCloseCleanupLock);
     CxPlatEventInitialize(&MsQuicLib.RegistrationCloseCleanupEvent, FALSE, FALSE);
@@ -512,7 +513,6 @@ MsQuicLibraryInitialize(
 
     PlatformInitialized = TRUE;
 
-    CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
         CxPlatStorageOpen(
             NULL,
