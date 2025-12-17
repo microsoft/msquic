@@ -416,16 +416,27 @@ function Wait-Executable($Exe) {
         $Exe.Process.WaitForExit()
         $exitCode = $Exe.Process.ExitCode
 
-        # When using ProcDump, the process is ProcDump itself, not the target.
-        # The ProcDump exit codes does not map cleanly to the status of the target process, so we will just log it.
-        if (!$UseProcDump -or !$IsWindows) {
+        # Extract target process exit code when using ProcDump
+        if ($UseProcDump -and $IsWindows) {
+            # ProcDump writes the target process exit code in its output
+            # Look for pattern like "[13:17:55]Process Exit: PID 39412, Exit Code 0x00000000"
+            if ($stdout -match "Process Exit:.*Exit Code 0x([0-9a-fA-F]+)") {
+                $targetExitCodeHex = $Matches[1]
+                $targetExitCode = [Convert]::ToInt32($targetExitCodeHex, 16)
+                Log "Target process exit code: $targetExitCode (0x$targetExitCodeHex) (ProcDump wrapper exit code: $exitCode)"
+                if ($targetExitCode -ne 0) {
+                    LogErr "Target process had nonzero exit code: $targetExitCode"
+                    $KeepOutput = $true
+                }
+            } else {
+                LogWrn "Could not parse target exit code from ProcDump output. ProcDump exit code: $exitCode"
+            }
+        } else {
             # Normal process (not wrapped by ProcDump)
             if ($exitCode -ne 0) {
                 LogErr "Process had nonzero exit code: $exitCode"
                 $KeepOutput = $true
             }
-        } else {
-            Log "ProcDump exit code: $exitCode"
         }
 
         # List files in log directory
