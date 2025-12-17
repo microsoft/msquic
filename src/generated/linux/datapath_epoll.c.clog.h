@@ -18,6 +18,10 @@
 #define _clog_MACRO_QuicTraceLogWarning  1
 #define QuicTraceLogWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceLogInfo
+#define _clog_MACRO_QuicTraceLogInfo  1
+#define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -37,6 +41,78 @@ extern "C" {
 #ifndef _clog_3_ARGS_TRACE_DatapathRecvEmpty
 #define _clog_3_ARGS_TRACE_DatapathRecvEmpty(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CxPlatDataPathRelease
+// [data][%p] Datapath Freed
+// QuicTraceLogInfo(
+            CxPlatDataPathRelease,
+            "[data][%p] Datapath Freed",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CxPlatDataPathRelease
+#define _clog_3_ARGS_TRACE_CxPlatDataPathRelease(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, CxPlatDataPathRelease , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CxPlatProcessorContextRelease
+// [data][%p] Processor Context Destroyed
+// QuicTraceLogInfo(
+            CxPlatProcessorContextRelease,
+            "[data][%p] Processor Context Destroyed",
+            DatapathPartition);
+// arg2 = arg2 = DatapathPartition = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CxPlatProcessorContextRelease
+#define _clog_3_ARGS_TRACE_CxPlatProcessorContextRelease(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, CxPlatProcessorContextRelease , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CxPlatSocketRelease
+// [data][%p] Socket Freed
+// QuicTraceLogInfo(
+            CxPlatSocketRelease,
+            "[data][%p] Socket Freed",
+            Socket);
+// arg2 = arg2 = Socket = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CxPlatSocketRelease
+#define _clog_3_ARGS_TRACE_CxPlatSocketRelease(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, CxPlatSocketRelease , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CxPlatProcessorContextQueuedForDestruction
+// [data][%p] Processor Context queueing for destruction
+// QuicTraceLogInfo(
+            CxPlatProcessorContextQueuedForDestruction,
+            "[data][%p] Processor Context queueing for destruction",
+            SocketContext->DatapathPartition);
+// arg2 = arg2 = SocketContext->DatapathPartition = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CxPlatProcessorContextQueuedForDestruction
+#define _clog_3_ARGS_TRACE_CxPlatProcessorContextQueuedForDestruction(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, CxPlatProcessorContextQueuedForDestruction , arg2);\
 
 #endif
 
