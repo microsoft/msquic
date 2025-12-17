@@ -5,7 +5,7 @@
 
 Abstract:
 
-    QUIC Raw (i.e. DPDK or XDP) Datapath Implementation (User Mode)
+    QUIC Raw (e.g., XDP) Datapath Implementation (User Mode)
 
 --*/
 
