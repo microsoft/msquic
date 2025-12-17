@@ -129,8 +129,7 @@ function Test-Administrator
 
 function Get-ProcDumpPath {
 
-    $toolDir = Join-Path $RootDir "artifacts" "tools" "procdump"
-    $candidate = Join-Path $toolDir "procdump.exe"
+    $candidate = Join-Path $RootDir "artifacts" "tools" "procdump" "procdump.exe"
     if (Test-Path $candidate) { return $candidate }
 
     return $null
