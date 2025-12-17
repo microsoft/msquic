@@ -504,7 +504,6 @@ MsQuicLibraryInitialize(
     CxPlatDispatchRwLockInitialize(&MsQuicLib.StatelessRetry.Lock);
 
     CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
-    MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
     CxPlatLockInitialize(&MsQuicLib.RegistrationCloseCleanupLock);
     CxPlatEventInitialize(&MsQuicLib.RegistrationCloseCleanupEvent, FALSE, FALSE);
     MsQuicLib.RegistrationCloseCleanupShutdown = FALSE;
@@ -527,6 +526,8 @@ MsQuicLibraryInitialize(
             Status);
         // Non-fatal, as the process may not have access
     }
+
+    MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         0,
