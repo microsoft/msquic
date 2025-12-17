@@ -614,7 +614,7 @@ BbrCongestionControlGetTargetCwnd(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+uint64_t
 BbrCongestionControlGetSendAllowance(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeSinceLastSend, // microsec
@@ -627,7 +627,7 @@ BbrCongestionControlGetSendAllowance(
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
     uint32_t CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
 
-    uint32_t SendAllowance = 0;
+    uint64_t SendAllowance = 0;
 
     if (Bbr->BytesInFlight >= CongestionWindow) {
         //
@@ -652,11 +652,11 @@ BbrCongestionControlGetSendAllowance(
         // size) as the time since the last send times the pacing rate (CWND / RTT).
         //
         if (Bbr->BbrState == BBR_STATE_STARTUP) {
-            SendAllowance = (uint32_t)CXPLAT_MAX(
-                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT,
+            SendAllowance = CXPLAT_MAX(
+                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT / kMicroSecsInSec / BW_UNIT,
                 CongestionWindow * Bbr->PacingGain / GAIN_UNIT - Bbr->BytesInFlight);
         } else {
-            SendAllowance = (uint32_t)(BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT);
+            SendAllowance = BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT / kMicroSecsInSec / BW_UNIT;
         }
 
         if (SendAllowance > CongestionWindow - Bbr->BytesInFlight) {
@@ -667,6 +667,7 @@ BbrCongestionControlGetSendAllowance(
             SendAllowance = CongestionWindow >> 2; // Don't send more than a quarter of the current window.
         }
     }
+    
     return SendAllowance;
 }
 

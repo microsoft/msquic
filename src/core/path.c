@@ -90,7 +90,7 @@ void
 QuicPathSetAllowance(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ uint32_t NewAllowance
+    _In_ uint64_t NewAllowance
     )
 {
     Path->Allowance = NewAllowance;
@@ -151,7 +151,7 @@ QuicPathSetValid(
         ReasonStrings[Reason]);
 
     Path->IsPeerValidated = TRUE;
-    QuicPathSetAllowance(Connection, Path, UINT32_MAX);
+    QuicPathSetAllowance(Connection, Path, UINT64_MAX);
 
     if (Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
         //

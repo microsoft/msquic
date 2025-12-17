@@ -144,7 +144,7 @@ typedef struct QUIC_PACKET_BUILDER {
     //
     // The number of bytes currently allowed to be sent out.
     //
-    uint32_t SendAllowance;
+    uint64_t SendAllowance;
 
     uint64_t BatchId;
 
