@@ -607,11 +607,6 @@ Error:
             CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
             MsQuicLib.RegistrationCloseCleanupWorker = 0;
         }
-        if (PlatformInitialized) {
-            CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
-            CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
-            CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
-        }
         if (MsQuicLib.Storage != NULL) {
             CxPlatStorageClose(MsQuicLib.Storage);
             MsQuicLib.Storage = NULL;
@@ -621,6 +616,9 @@ Error:
             MsQuicLib.DefaultCompatibilityList = NULL;
         }
         if (PlatformInitialized) {
+            CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
+            CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
+            CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
             CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetry.Lock);
             CxPlatUninitialize();
         }
