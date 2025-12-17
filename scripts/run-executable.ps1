@@ -239,9 +239,8 @@ function Start-Executable {
             $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --excluded_sources unittest --working_dir $($LogDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
             $pinfo.WorkingDirectory = $LogDir
         } else {
-            Write-Host "Configuring process to collect crash dumps to $LogDir"
-
             if ($UseProcDump -and $IsWindows) {
+                Write-Host "Configuring process to collect crash dumps to $LogDir"
                 # Use ProcDump to launch and monitor the process
                 try {
                     $pd = Get-ProcDumpPath
@@ -265,6 +264,10 @@ function Start-Executable {
                     $pinfo.FileName = $Path
                     $pinfo.Arguments = $Arguments
                 }
+            } else {
+                # Direct execution
+                $pinfo.FileName = $Path
+                $pinfo.Arguments = $Arguments
             }
         }
     } else {
