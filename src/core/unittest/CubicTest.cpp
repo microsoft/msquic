@@ -1259,7 +1259,6 @@ TEST(CubicTest, AppLimitedFlowDetection)
     // Setup: Large window but low actual usage
     Cubic->BytesInFlightMax = 5000; // App only using 5KB
     Cubic->CongestionWindow = 50000; // But window is 50KB
-    uint32_t InitialWindow = Cubic->CongestionWindow;
 
     // Simulate ACKs for app-limited sending
     for (int i = 0; i < 5; i++) {
@@ -1346,8 +1345,6 @@ TEST(CubicTest, SpuriousRetransmissionRecovery)
     Cubic->WindowPrior = 30000; // Window before congestion
     Cubic->IsInRecovery = TRUE;
     Cubic->RecoverySentPacketNumber = 10;
-
-    uint32_t WindowBeforeSpurious = Cubic->CongestionWindow;
 
     // Spurious retransmission detected
     Connection.CongestionControl.QuicCongestionControlOnSpuriousCongestionEvent(
@@ -1730,7 +1727,7 @@ TEST(CubicTest, LastSendAllowanceExactDecrementPath)
     Cubic->LastSendAllowance = 0;
 
     // Call GetSendAllowance to set LastSendAllowance via pacing calculation
-    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+    Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
         &Connection.CongestionControl, 10000, TRUE);
 
     // LastSendAllowance should now be set by pacing logic
