@@ -442,7 +442,7 @@ CxPlatWorkerPoolDelete(
 {
     if (WorkerPool != NULL) {
 // #if DEBUG
-        CXPLAT_FRE_ASSERT(!CxPlatRefDecrement(&WorkerPool->RefTypeBiasedCount[RefType]));
+        CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&WorkerPool->RefTypeBiasedCount[RefType]));
 // #else
         // UNREFERENCED_PARAMETER(RefType);
 // #endif
@@ -496,7 +496,7 @@ CxPlatWorkerPoolRelease(
     )
 {
 // #if DEBUG
-    CXPLAT_FRE_ASSERT(!CxPlatRefDecrement(&WorkerPool->RefTypeBiasedCount[RefType]));
+    CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&WorkerPool->RefTypeBiasedCount[RefType]));
 // #else
 //     UNREFERENCED_PARAMETER(RefType);
 // #endif
