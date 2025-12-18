@@ -84,25 +84,55 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          # Ubuntu 24.04
-          { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-amd64", xdp: "-UseXdp", dotnetVersion: "9.0" },
-          { friendlyName: "Ubuntu 24.04 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm32v7", dotnetVersion: "9.0" },
-          { friendlyName: "Ubuntu 24.04 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm64v8", dotnetVersion: "9.0" },
-          # Debian 12
-          { friendlyName: "Debian 12 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-amd64", dotnetVersion: "9.0" },
-          { friendlyName: "Debian 12 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm32v7", dotnetVersion: "9.0" },
-          { friendlyName: "Debian 12 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm64v8", dotnetVersion: "9.0" },
-          # Azure Linux 3.0
-          { friendlyName: "AzureLinux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-amd64", dotnetVersion: "9.0", xdp: "-UseXdp" },
-          { friendlyName: "AzureLinux 3.0 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-arm64v8", dotnetVersion: "9.0" },
-          # Centos Stream 9
-          { friendlyName: "CentOS Stream 9 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:centos-stream9-helix", dotnetVersion: "9.0" },
-          # Fedora 39 - 40
-          { friendlyName: "Fedora 39 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-39", dotnetVersion: "9.0" },
-          { friendlyName: "Fedora 40 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-40", dotnetVersion: "9.0" },
-          # RHEL 8 - 9
-          # { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "redhat/ubi8-minimal:latest" },
-          # { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "redhat/ubi9-minimal:latest" },
+          # Ubuntu 22.04 - DEB
+          { friendlyName: "Ubuntu 22.04 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "ubuntu:22.04" },
+          { friendlyName: "Ubuntu 22.04 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "quictls", image: "ubuntu:22.04" },
+          { friendlyName: "Ubuntu 22.04 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "ubuntu:22.04" },
+          # Ubuntu 24.04 - DEB
+          { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "ubuntu:24.04", xdp: "-UseXdp" },
+          { friendlyName: "Ubuntu 24.04 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", image: "ubuntu:24.04" },
+          { friendlyName: "Ubuntu 24.04 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", image: "ubuntu:24.04" },
+          # Debian 12 - DEB
+          { friendlyName: "Debian 12 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "debian:12" },
+          { friendlyName: "Debian 12 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "quictls", image: "debian:12" },
+          { friendlyName: "Debian 12 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "debian:12" },
+          # Debian 13 - DEB
+          { friendlyName: "Debian 13 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "debian:trixie" },
+          { friendlyName: "Debian 13 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", image: "debian:trixie" },
+          { friendlyName: "Debian 13 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "debian:trixie" },
+          # Azure Linux 3.0 - RPM (no arm32)
+          { friendlyName: "Azure Linux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "mcr.microsoft.com/azurelinux/base/core:3.0", xdp: "-UseXdp" },
+          { friendlyName: "Azure Linux 3.0 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", image: "mcr.microsoft.com/azurelinux/base/core:3.0" },
+          # CentOS Stream 9 - RPM (no arm32)
+          { friendlyName: "CentOS Stream 9 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "quay.io/centos/centos:stream9" },
+          { friendlyName: "CentOS Stream 9 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "quay.io/centos/centos:stream9" },
+          # CentOS Stream 10 - RPM (no arm32)
+          { friendlyName: "CentOS Stream 10 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "quay.io/centos/centos:stream10" },
+          { friendlyName: "CentOS Stream 10 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "quay.io/centos/centos:stream10" },
+          # RHEL 9 - RPM (no arm32)
+          { friendlyName: "RHEL 9 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "registry.access.redhat.com/ubi9/ubi:latest" },
+          { friendlyName: "RHEL 9 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "registry.access.redhat.com/ubi9/ubi:latest" },
+          # Fedora 42 - RPM (no arm32)
+          { friendlyName: "Fedora 42 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "fedora:42" },
+          { friendlyName: "Fedora 42 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "fedora:42" },
+          # Fedora 43 - RPM (no arm32)
+          { friendlyName: "Fedora 43 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "fedora:43" },
+          { friendlyName: "Fedora 43 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "fedora:43" },
+          # openSUSE 15.6 - RPM (no arm32)
+          { friendlyName: "openSUSE 15.6 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "opensuse/leap:15.6" },
+          { friendlyName: "openSUSE 15.6 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "opensuse/leap:15.6" },
+          # openSUSE 16.0 - RPM (no arm32)
+          { friendlyName: "openSUSE 16.0 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "opensuse/leap:16.0" },
+          { friendlyName: "openSUSE 16.0 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "opensuse/leap:16.0" },
+          # SLES 15.6 - RPM (no arm32)
+          { friendlyName: "SLES 15.6 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "registry.suse.com/suse/sle15:15.6" },
+          { friendlyName: "SLES 15.6 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "registry.suse.com/suse/sle15:15.6" },
+          # SLES 15.7 - RPM (no arm32)
+          { friendlyName: "SLES 15.7 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "registry.suse.com/suse/sle15:15.7" },
+          { friendlyName: "SLES 15.7 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "registry.suse.com/suse/sle15:15.7" },
+          # SLES 16 - RPM (no arm32)
+          { friendlyName: "SLES 16 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "registry.suse.com/bci/bci-base:16.0" },
+          { friendlyName: "SLES 16 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "registry.suse.com/bci/bci-base:16.0" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
@@ -120,16 +150,39 @@ jobs:
         path: artifacts
     - name: Set up QEMU
       uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
-    - name: Set up .NET 9.0
+    - name: Set up .NET
       uses: actions/setup-dotnet@2016bd2012dba4e32de620c46fe006a3ac9f0602
       with:
-        dotnet-version: ${{ matrix.vec.dotnetVersion }}
-    - name: Build .NET QUIC Test Project
+        dotnet-version: |
+          10.0.x
+          9.0.x
+    - name: Build .NET QUIC Test Projects (Self-Contained)
       run: |
-        pushd src/cs/QuicSimpleTest && dotnet build QuicHello.net${{ matrix.vec.dotnetVersion }}.csproj -a ${{ matrix.vec.arch }} -c ${{ matrix.vec.config }} -o artifacts/net${{ matrix.vec.dotnetVersion }} -f net${{ matrix.vec.dotnetVersion }} && popd
+        # Map arch to runtime identifier
+        case "${{ matrix.vec.arch }}" in
+          x64) RID="linux-x64" ;;
+          arm64) RID="linux-arm64" ;;
+          arm) RID="linux-arm" ;;
+        esac
+
+        # Build .NET 10 self-contained executable
+        pushd src/cs/QuicSimpleTest
+        dotnet publish QuicHello.net10.0.csproj -r $RID -c ${{ matrix.vec.config }} -o artifacts/net10.0 --self-contained true /p:PublishSingleFile=true
+        popd
+
+        # Build .NET 9 self-contained executable
+        pushd src/cs/QuicSimpleTest
+        dotnet publish QuicHello.net9.0.csproj -r $RID -c ${{ matrix.vec.config }} -o artifacts/net9.0 --self-contained true /p:PublishSingleFile=true
+        popd
     - name: Docker Run
       run: |
-        docker run -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }} ${{ matrix.vec.dotnetVersion }}
+        # Map arch to Docker platform
+        case "${{ matrix.vec.arch }}" in
+          x64) PLATFORM="linux/amd64" ;;
+          arm64) PLATFORM="linux/arm64" ;;
+          arm) PLATFORM="linux/arm/v7" ;;
+        esac
+        docker run --platform $PLATFORM -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }}
 
   Complete:
     name: Package Linux Complete
