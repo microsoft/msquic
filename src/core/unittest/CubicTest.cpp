@@ -1466,49 +1466,7 @@ TEST(CubicTest, MinimumWindowEnforcement)
 }
 
 //
-// Test 33: CUBIC Window Calculation with Large Time
-// Scenario: Tests CUBIC window calculation with large elapsed time,
-// covering the DeltaT clamping logic to prevent integer overflow.
-//
-TEST(CubicTest, CUBICWindowCalculationLargeTime)
-{
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings{};
-    SetupCubicTest(Connection, Settings, 20, 1000, false, false, true, 50000);
-
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-
-    // Setup: In CA mode with very old TimeOfCongAvoidStart (tests DeltaT > 2500000 path)
-    Cubic->CongestionWindow = 30000;
-    Cubic->SlowStartThreshold = 25000; // In CA
-    Cubic->TimeOfCongAvoidStart = 100000; // Very old
-    Cubic->TimeOfLastAck = 100000;
-    Cubic->TimeOfLastAckValid = TRUE;
-    Cubic->BytesInFlight = 15000;
-    Cubic->WindowMax = 35000;
-    Cubic->WindowPrior = 35000;
-    Cubic->KCubic = 100;
-    Cubic->AimdWindow = 30000;
-
-    // ACK after extremely long time (triggers DeltaT clamping at line 617)
-    QUIC_ACK_EVENT AckEvent;
-    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
-    AckEvent.TimeNow = 10000000000ULL; // Billions of microseconds later
-    AckEvent.LargestAck = 10;
-    AckEvent.LargestSentPacketNumber = 15;
-    AckEvent.NumRetransmittableBytes = 1200;
-    AckEvent.SmoothedRtt = 50000;
-    AckEvent.MinRttValid = FALSE;
-
-    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
-        &Connection.CongestionControl, &AckEvent);
-
-    // Should not crash from overflow, window should be clamped
-    ASSERT_LE(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
-}
-
-//
-// Test 34: CUBIC Window Negative Overflow Protection
+// Test 33: CUBIC Window Negative Overflow Protection
 // Scenario: Tests protection against CUBIC window calculation producing
 // a negative value due to overflow, which should be clamped to BytesInFlightMax.
 //
@@ -1551,7 +1509,7 @@ TEST(CubicTest, CUBICWindowNegativeOverflow)
 }
 
 //
-// Test 35: Network Statistics Event Generation
+// Test 34: Network Statistics Event Generation
 // Scenario: Tests that CUBIC generates network statistics events when
 // NetStatsEventEnabled is true, providing visibility into CC state.
 //
@@ -1587,7 +1545,7 @@ TEST(CubicTest, NetworkStatisticsEventGeneration)
 }
 
 //
-// Test 36: App Limited Getter and Setter
+// Test 35: App Limited Getter and Setter
 // Scenario: Tests the IsAppLimited and SetAppLimited interface methods,
 // even though CUBIC doesn't currently track app-limited state.
 //
@@ -1612,7 +1570,7 @@ TEST(CubicTest, AppLimitedInterface)
 }
 
 //
-// Test 37: LastSendAllowance Decrement Path
+// Test 36: LastSendAllowance Decrement Path
 // Scenario: Tests the path where LastSendAllowance is decremented when
 // not greater than bytes sent, covering pacing state update.
 //
@@ -1638,7 +1596,7 @@ TEST(CubicTest, LastSendAllowanceDecrement)
 }
 
 //
-// Test 38: CUBIC Window DeltaT Clamping at Extreme Values
+// Test 37: CUBIC Window DeltaT Clamping at Extreme Values
 // Scenario: Tests the DeltaT > 2500000 clamping path in CUBIC formula
 //
 TEST(CubicTest, CUBICWindowDeltaTClamping)
@@ -1688,33 +1646,7 @@ TEST(CubicTest, CUBICWindowDeltaTClamping)
 }
 
 //
-// Test 39: LastSendAllowance Exact Decrement Path
-// Scenario: Tests the exact else branch where LastSendAllowance is
-// decremented when not exceeding bytes sent. Covers line 390.
-//
-TEST(CubicTest, LastSendAllowanceExactDecrement)
-{
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings{};
-    SetupCubicTest(Connection, Settings, 10, 1000, true, false, true, 50000);
-
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-
-    // Setup: LastSendAllowance < bytes to send
-    Cubic->LastSendAllowance = 800;
-    Cubic->BytesInFlight = 5000;
-
-    // Send exactly more than LastSendAllowance
-    uint32_t BytesToSend = 1200;
-    Connection.CongestionControl.QuicCongestionControlOnDataSent(
-        &Connection.CongestionControl, BytesToSend);
-
-    // BytesInFlight should increase
-    ASSERT_EQ(Cubic->BytesInFlight, 5000u + BytesToSend);
-}
-
-//
-// Test 40: HyStart State Machine Coverage
+// Test 38: HyStart State Machine Coverage
 // Scenario: Tests that HyStart state transitions work correctly and
 // cover the switch statement branches including HYSTART_DONE state.
 //
@@ -1753,9 +1685,8 @@ TEST(CubicTest, HyStartStateMachineCoverage)
     ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 1u);
 }
 
-
 //
-// Test 41: Slow Start Threshold Crossing with BytesAcked Overflow
+// Test 39: Slow Start Threshold Crossing with BytesAcked Overflow
 // Scenario: Tests the exact scenario where window growth crosses threshold
 // and overflow bytes are handled in CA.
 //
