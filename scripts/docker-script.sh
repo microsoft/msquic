@@ -60,7 +60,7 @@ if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
     install_dependencies_apt
 elif [ "$OS" = "centos" ] || [ "$OS" = "almalinux" ] || [ "$OS" = "rhel" ] || [ "$OS" = "fedora" ]; then
     install_dependencies_rpm
-elif [ "$OS" = 'opensuse-leap' ]; then
+elif [ "$OS" = 'opensuse-leap' ] || [ "$OS" = 'opensuse-tumbleweed' ] || [ "$OS" = 'sles' ]; then
     install_dependencies_opensuse
 elif [ "$OS" = 'azurelinux' ] || [ "$OS" = 'mariner' ]; then
     install_libmsquic_azure_linux

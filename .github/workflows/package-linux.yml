@@ -98,7 +98,7 @@ jobs:
           { friendlyName: "Debian 12 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "debian:12" },
           # Debian 13 - DEB
           { friendlyName: "Debian 13 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "debian:trixie" },
-          { friendlyName: "Debian 13 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "quictls", image: "debian:trixie" },
+          { friendlyName: "Debian 13 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", image: "debian:trixie" },
           { friendlyName: "Debian 13 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "debian:trixie" },
           # Azure Linux 3.0 - RPM (no arm32)
           { friendlyName: "Azure Linux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "mcr.microsoft.com/azurelinux/base/core:3.0", xdp: "-UseXdp" },
