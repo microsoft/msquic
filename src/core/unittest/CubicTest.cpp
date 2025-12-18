@@ -331,7 +331,7 @@ TEST(CubicTest, GetSendAllowanceWithActivePacing)
     ASSERT_GT(Allowance, 0u); // Should allow some sending
     ASSERT_LT(Allowance, AvailableWindow); // But less than full window due to pacing
 
-    // Exact value is caldulated considering the current implementation is right and this test is meant to
+    // Exact value is calculated considering the current implementation is right and this test is meant to
     // prevent future regressions
     uint32_t ExpectedPacedAllowance = 4928; // Pre-calculated expected value
     ASSERT_EQ(Allowance, ExpectedPacedAllowance);
@@ -745,7 +745,7 @@ TEST(CubicTest, HyStart_StateTransitions)
 
     QUIC_ACK_EVENT AckEvent;
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
-    AckEvent.TimeNow = 1000000; //CxPlatTimeUs64();
+    AckEvent.TimeNow = 1000000;
     AckEvent.LargestAck = 5;
     AckEvent.LargestSentPacketNumber = 10;
     AckEvent.NumRetransmittableBytes = 5000;
