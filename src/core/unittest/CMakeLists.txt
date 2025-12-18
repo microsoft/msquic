@@ -3,6 +3,7 @@
 
 set(SOURCES
     main.cpp
+    CubicTest.cpp
     FrameTest.cpp
     PacketNumberTest.cpp
     PartitionTest.cpp
