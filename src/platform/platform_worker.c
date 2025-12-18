@@ -347,6 +347,8 @@ CxPlatWorkerPoolCreate(
 #if DEBUG
     CxPlatRefInitializeMultiple(WorkerPool->RefTypeBiasedCount, CXPLAT_WORKER_POOL_REF_COUNT);
     CxPlatRefIncrement(&WorkerPool->RefTypeBiasedCount[RefType]);
+#else
+    UNREFERENCED_PARAMETER(RefType);
 #endif
 
     return WorkerPool;
