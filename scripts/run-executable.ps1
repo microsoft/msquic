@@ -86,7 +86,10 @@ param (
     [switch]$GHA = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseProcDump = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -122,6 +125,14 @@ function Test-Administrator
 {
     $user = [Security.Principal.WindowsIdentity]::GetCurrent();
     (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
+function Get-ProcDumpPath {
+
+    $candidate = Join-Path $RootDir "artifacts" "tools" "procdump" "procdump.exe"
+    if (Test-Path $candidate) { return $candidate }
+
+    return $null
 }
 
 # Make sure the executable is present.
@@ -227,11 +238,36 @@ function Start-Executable {
             $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --excluded_sources unittest --working_dir $($LogDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
             $pinfo.WorkingDirectory = $LogDir
         } else {
-            $pinfo.FileName = $Path
-            $pinfo.Arguments = $Arguments
-            # Enable WER dump collection.
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
+            if ($UseProcDump -and $IsWindows) {
+                Write-Host "Configuring process to collect crash dumps to $LogDir"
+                # Use ProcDump to launch and monitor the process
+                try {
+                    $pd = Get-ProcDumpPath
+                    if (-not $pd) {
+                        throw "ProcDump not found!"
+                    }
+                    Write-Host "Using ProcDump $pd to launch and monitor process"
+
+                    # ProcDump will launch the target process and monitor it
+                    # -accepteula: auto-accept EULA
+                    # -ma: full memory dump
+                    # -e: dump on unhandled exception
+                    # -x <dir>: write dumps to directory
+                    # Then: executable path and arguments
+                    $pinfo.FileName = $pd
+                    $pinfo.Arguments = "-accepteula -ma -e -x `"$LogDir`" `"$Path`" $Arguments"
+                    Write-Host "ProcDump command: $($pinfo.FileName) $($pinfo.Arguments)"
+                } catch {
+                    Write-Warning "Failed to setup ProcDump: $_"
+                    Write-Warning "Falling back to direct execution without crash dumps"
+                    $pinfo.FileName = $Path
+                    $pinfo.Arguments = $Arguments
+                }
+            } else {
+                # Direct execution
+                $pinfo.FileName = $Path
+                $pinfo.Arguments = $Arguments
+            }
         }
     } else {
         if ($Debugger) {
@@ -378,10 +414,41 @@ function Wait-Executable($Exe) {
             }
         }
         $Exe.Process.WaitForExit()
-        if ($Exe.Process.ExitCode -ne 0) {
-            LogErr "Process had nonzero exit code: $($Exe.Process.ExitCode)"
-            $KeepOutput = $true
+        $exitCode = $Exe.Process.ExitCode
+
+        # Extract target process exit code when using ProcDump
+        if ($UseProcDump -and $IsWindows) {
+            # ProcDump writes the target process exit code in its output
+            # Look for pattern like "[13:17:55]Process Exit: PID 39412, Exit Code 0x00000000"
+            if ($stdout -match "Process Exit:.*Exit Code 0x([0-9a-fA-F]+)") {
+                $targetExitCodeHex = $Matches[1]
+                $targetExitCode = [Convert]::ToInt32($targetExitCodeHex, 16)
+                Log "Target process exit code: $targetExitCode (0x$targetExitCodeHex) (ProcDump wrapper exit code: $exitCode)"
+                if ($targetExitCode -ne 0) {
+                    LogErr "Target process had nonzero exit code: $targetExitCode"
+                    $KeepOutput = $true
+                }
+            } else {
+                LogWrn "Could not parse target exit code from ProcDump output. ProcDump exit code: $exitCode"
+            }
+        } else {
+            # Normal process (not wrapped by ProcDump)
+            if ($exitCode -ne 0) {
+                LogErr "Process had nonzero exit code: $exitCode"
+                $KeepOutput = $true
+            }
         }
+
+        # List files in log directory
+        Write-Host "Checking for dump files in $LogDir..."
+        $allFiles = Get-ChildItem -Path $LogDir -ErrorAction SilentlyContinue
+        if ($allFiles) {
+            Write-Host "Files in log directory:"
+            $allFiles | ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
+        } else {
+            Write-Host "No files found in log directory"
+        }
+
         # Wait up to 30 seconds for files to appear in $LogDir if $AZP is set.
         if ($AZP) {
             $Elapsed = 0
@@ -391,7 +458,7 @@ function Wait-Executable($Exe) {
                 $Elapsed++
             }
         }
-        $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
+        $DumpFiles = (Get-ChildItem $LogDir -ErrorAction SilentlyContinue) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
             LogErr "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
@@ -483,18 +550,8 @@ function Wait-Executable($Exe) {
     }
 }
 
-# Initialize WER dump registry key if necessary.
-if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
-    New-Item -Path $WerDumpRegPath -Force | Out-Null
-}
-
 # Start the executable, wait for it to complete and then generate any output.
 Wait-Executable (Start-Executable)
-
-if ($IsWindows) {
-    # Cleanup the WER registry.
-    Remove-Item -Path $WerDumpRegPath -Force | Out-Null
-}
 
 # Fail execution as necessary.
 if ($global:ExeFailed -and $AZP) {
