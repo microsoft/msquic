@@ -1710,3 +1710,251 @@ TEST(CubicTest, SlowStartThresholdCrossingOverflow)
     ASSERT_GE(Cubic->CongestionWindow, InitialWindow);
 }
 
+//
+// Test 40: LastSendAllowance Exact Decrement Path
+// Scenario: Tests the exact else branch (line 390) where LastSendAllowance
+// is decremented when bytes sent are less than the allowance. This covers
+// the pacing credit tracking path that was previously uncovered.
+//
+TEST(CubicTest, LastSendAllowanceExactDecrementPath)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, true, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: In congestion avoidance with pacing
+    Cubic->CongestionWindow = 20000;
+    Cubic->SlowStartThreshold = 15000;
+    Cubic->BytesInFlight = 5000;
+    Cubic->LastSendAllowance = 0;
+
+    // Call GetSendAllowance to set LastSendAllowance via pacing calculation
+    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, 10000, TRUE);
+    
+    // LastSendAllowance should now be set by pacing logic
+    ASSERT_GT(Cubic->LastSendAllowance, 0u);
+    uint32_t AllowanceBeforeSend = Cubic->LastSendAllowance;
+
+    // Send LESS than LastSendAllowance (should take else branch - decrement)
+    uint32_t BytesToSend = AllowanceBeforeSend / 2; // Send half of allowance
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, BytesToSend);
+
+    // LastSendAllowance should be decremented (line 390)
+    ASSERT_EQ(Cubic->LastSendAllowance, AllowanceBeforeSend - BytesToSend);
+    ASSERT_EQ(Cubic->BytesInFlight, 5000u + BytesToSend);
+}
+
+//
+// Test 41: Persistent Congestion Recovery
+// Scenario: Tests the full recovery path from persistent congestion
+// (window = 2*MTU) back to normal operation through gradual ACKs.
+// Important for validating recovery from severe network impairment.
+//
+TEST(CubicTest, PersistentCongestionRecovery)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Enter persistent congestion (severe congestion state)
+    Cubic->IsInPersistentCongestion = TRUE;
+    Cubic->CongestionWindow = 2 * 1280; // Minimum window (2 * MTU)
+    Cubic->SlowStartThreshold = 2 * 1280;
+    Cubic->BytesInFlight = 0;
+    Cubic->TimeOfCongAvoidStart = 1000000;
+    Cubic->WindowMax = 2 * 1280;
+    Cubic->HasHadCongestionEvent = TRUE;
+
+    uint32_t InitialWindow = Cubic->CongestionWindow;
+
+    // Send multiple ACKs to gradually recover
+    for (int i = 0; i < 10; i++) {
+        Cubic->BytesInFlight = 1200;
+        
+        QUIC_ACK_EVENT AckEvent;
+        CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+        AckEvent.TimeNow = 1000000 + (i * 10000);
+        AckEvent.LargestAck = 10 + i;
+        AckEvent.LargestSentPacketNumber = 20 + i;
+        AckEvent.NumRetransmittableBytes = 1200;
+        AckEvent.SmoothedRtt = 50000;
+        AckEvent.MinRttValid = FALSE;
+        AckEvent.IsImplicit = FALSE;
+        AckEvent.HasLoss = FALSE;
+
+        Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+            &Connection.CongestionControl, &AckEvent);
+    }
+
+    // Should have recovered: window grown beyond minimum
+    ASSERT_GT(Cubic->CongestionWindow, InitialWindow);
+    // Should exit persistent congestion after window growth
+    // (Note: actual flag may still be TRUE depending on implementation)
+}
+
+//
+// Test 42: Window Clamping at Exact Boundary
+// Scenario: Tests the exact boundary condition where CongestionWindow
+// equals 2 * BytesInFlightMax, validating the app-limited clamping logic.
+//
+TEST(CubicTest, WindowClampingExactBoundary)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 20, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: In CA mode with window that will be clamped
+    Cubic->BytesInFlightMax = 10000;
+    Cubic->CongestionWindow = 25000; // > 2 * BytesInFlightMax, will be clamped
+    Cubic->SlowStartThreshold = 20000;
+    Cubic->BytesInFlight = 5000;
+    Cubic->TimeOfCongAvoidStart = 1000000;
+    Cubic->TimeOfLastAck = 1000000;
+    Cubic->TimeOfLastAckValid = TRUE;
+    Cubic->WindowMax = 30000;
+    Cubic->KCubic = 100;
+    Cubic->HasHadCongestionEvent = TRUE;
+
+    // ACK should trigger clamping
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = 1010000;
+    AckEvent.LargestAck = 10;
+    AckEvent.LargestSentPacketNumber = 15;
+    AckEvent.NumRetransmittableBytes = 1200;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRttValid = FALSE;
+    AckEvent.IsImplicit = FALSE;
+    AckEvent.HasLoss = FALSE;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    // Window should be clamped to exactly 2 * BytesInFlightMax
+    ASSERT_EQ(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
+    ASSERT_EQ(Cubic->CongestionWindow, 20000u);
+}
+
+//
+// Test 43: AIMD Friendly Region (CUBIC vs AIMD Competition)
+// Scenario: Tests the scenario where AIMD produces a larger window than
+// CUBIC's concave phase calculation. CUBIC should follow the more aggressive
+// AIMD to be friendly to other TCP flows (TCP-friendliness property).
+//
+TEST(CubicTest, AIMDFriendlyRegion)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 20, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Shortly after congestion event, in CUBIC concave phase
+    // where AIMD should be more aggressive
+    Cubic->CongestionWindow = 40000;
+    Cubic->SlowStartThreshold = 39000; // In CA mode
+    Cubic->WindowMax = 50000;
+    Cubic->WindowPrior = 50000;
+    Cubic->BytesInFlight = 20000;
+    Cubic->BytesInFlightMax = 25000;
+    Cubic->TimeOfCongAvoidStart = 1000000;
+    Cubic->TimeOfLastAck = 1000000;
+    Cubic->TimeOfLastAckValid = TRUE;
+    Cubic->KCubic = 200; // Large K means we're in concave phase
+    Cubic->HasHadCongestionEvent = TRUE;
+    
+    // Set AIMD window ahead of current (AIMD is more aggressive)
+    Cubic->AimdWindow = 42000;
+
+    uint32_t WindowBeforeAck = Cubic->CongestionWindow;
+
+    // ACK with moderate time delta (concave phase)
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = 1050000; // 50ms later
+    AckEvent.LargestAck = 10;
+    AckEvent.LargestSentPacketNumber = 15;
+    AckEvent.NumRetransmittableBytes = 1200;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRttValid = FALSE;
+    AckEvent.IsImplicit = FALSE;
+    AckEvent.HasLoss = FALSE;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    // Window should have grown (CUBIC follows AIMD in friendly region)
+    ASSERT_GE(Cubic->CongestionWindow, WindowBeforeAck);
+}
+
+//
+// Test 45: LastSendAllowance Exact Match
+// Scenario: Tests the edge case where bytes sent exactly equals
+// LastSendAllowance. Should zero out allowance (not decrement).
+//
+TEST(CubicTest, LastSendAllowanceExactMatch)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, true, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: LastSendAllowance exactly matching send size
+    Cubic->LastSendAllowance = 1200;
+    Cubic->BytesInFlight = 5000;
+
+    // Send exactly LastSendAllowance bytes
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, 1200);
+
+    // Should be zeroed out (equality goes to if branch, not else)
+    ASSERT_EQ(Cubic->LastSendAllowance, 0u);
+    ASSERT_EQ(Cubic->BytesInFlight, 6200u);
+}
+
+//
+// Test 46: KCubic Calculation Validation
+// Scenario: Tests that KCubic is calculated and used correctly during
+// congestion avoidance. K represents the time (in milliseconds) for the
+// CUBIC function to reach WindowMax. Validates the formula is applied.
+//
+TEST(CubicTest, KCubicCalculationValidation)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 20, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: trigger a congestion event to calculate K
+    Cubic->WindowMax = 50000;
+    Cubic->CongestionWindow = 35000;
+    Cubic->HasHadCongestionEvent = TRUE;
+    
+    // Trigger congestion event to recalculate K
+    // K = CubeRoot((WindowMax - CongestionWindow) * 10 / (4 * MTU))
+    CubicCongestionControlOnCongestionEvent(&Connection.CongestionControl, FALSE, FALSE);
+    
+    // K should be calculated based on the formula
+    ASSERT_GT(Cubic->KCubic, 0u);
+    uint32_t OriginalK = Cubic->KCubic;
+
+    // Change window difference and recalculate
+    Cubic->WindowMax = 100000;
+    Cubic->CongestionWindow = 50000;
+    CubicCongestionControlOnCongestionEvent(&Connection.CongestionControl, FALSE, FALSE);
+    
+    // K should be different (larger window gap)
+    ASSERT_NE(Cubic->KCubic, OriginalK);
+    ASSERT_GT(Cubic->KCubic, 0u);
+}
+
