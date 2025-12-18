@@ -10,8 +10,9 @@ fi
 
 cd /main
 . /etc/os-release
-OS=$(echo $ID | xargs)
-VERSION=$(echo $VERSION_ID | xargs)
+# Trim whitespace without using xargs (not available on all distros)
+OS=$(echo $ID | tr -d '[:space:]')
+VERSION=$(echo $VERSION_ID | tr -d '[:space:]')
 
 echo "${OS} ${VERSION} is detected."
 
@@ -23,8 +24,19 @@ install_dependencies_apt()
 
 install_dependencies_rpm()
 {
-    yum update -y
-    find -name "libmsquic*.rpm" -exec yum localinstall -y {} \;
+    # Check if this is dnf5 (Fedora 42+) which has different syntax
+    if command -v dnf > /dev/null 2>&1 && dnf --version 2>&1 | grep -q "dnf5"; then
+        echo "Using dnf5 (Fedora 42+)"
+        find -name "libmsquic*.rpm" -exec dnf install -y --nogpgcheck {} \;
+    elif command -v dnf > /dev/null 2>&1; then
+        echo "Using dnf"
+        dnf update -y
+        find -name "libmsquic*.rpm" -exec dnf install -y {} \;
+    else
+        echo "Using yum"
+        yum update -y
+        find -name "libmsquic*.rpm" -exec yum localinstall -y {} \;
+    fi
 }
 
 install_dependencies_opensuse()
