@@ -2388,10 +2388,11 @@ SendFrame(
 
 void
 QuicTestKeyUpdateRandomLoss(
-    _In_ int Family,
-    _In_ uint8_t RandomLossPercentage
+    const KeyUpdateArgs2& Params
     )
 {
+    int Family = Params.Family;
+    uint8_t RandomLossPercentage = Params.RandomLossPercentage;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 

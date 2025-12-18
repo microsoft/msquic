@@ -2135,15 +2135,9 @@ TEST_P(WithFamilyArgs, KeyUpdate) {
 TEST_P(WithKeyUpdateArgs2, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestKeyUpdateRandomLoss", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS Params = {
-            GetParam().Family,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestKeyUpdateRandomLoss), GetParam()));
     } else {
-        QuicTestKeyUpdateRandomLoss(
-            GetParam().Family,
-            GetParam().RandomLossPercentage);
+        QuicTestKeyUpdateRandomLoss(GetParam());
     }
 }
 #endif
@@ -2742,7 +2736,7 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithKeyUpdateArgs2,
-    testing::ValuesIn(KeyUpdateArgs2::Generate()));
+    testing::ValuesIn(WithKeyUpdateArgs2::Generate()));
 
 #endif
 

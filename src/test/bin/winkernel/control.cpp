@@ -464,7 +464,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_ABORT_RECEIVE_TYPE),
-    sizeof(QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS),
+    0,
     0,
     0,
     0,
@@ -566,7 +566,6 @@ typedef union {
     QUIC_RUN_CONNECT_CLIENT_CERT ConnectClientCertParams;
     QUIC_RUN_CRED_VALIDATION CredValidationParams;
     QUIC_ABORT_RECEIVE_TYPE AbortReceiveType;
-    QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS KeyUpdateRandomLossParams;
     QUIC_RUN_MTU_DISCOVERY_PARAMS MtuDiscoveryParams;
     uint32_t Test;
     QUIC_RUN_REBIND_PARAMS RebindParams;
@@ -647,6 +646,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestValidateApi);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffers);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace);
+    RegisterTestFunction(QuicTestKeyUpdateRandomLoss);
 
     // Fail if no function matched
     char Buffer[256];
@@ -1290,14 +1290,6 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_ABORT_RECEIVE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestAbortReceive(Params->AbortReceiveType));
-        break;
-
-    case IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestKeyUpdateRandomLoss(
-                Params->KeyUpdateRandomLossParams.Family,
-                Params->KeyUpdateRandomLossParams.RandomLossPercentage))
         break;
 
     case IOCTL_QUIC_RUN_SLOW_RECEIVE:
