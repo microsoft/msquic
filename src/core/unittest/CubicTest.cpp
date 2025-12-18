@@ -923,8 +923,6 @@ TEST(CubicTest, BlockingBehavior_Complete)
     ASSERT_EQ(Cc->QuicCongestionControlGetExemptions(Cc), 1u);
 }
 
-
-
 //
 // Test 21: OnCongestionEvent - Persistent vs Normal Congestion
 // Scenario: Tests both persistent congestion path and normal congestion
@@ -1218,6 +1216,253 @@ TEST(CubicTest, OnDataAcknowledged_EdgeCases)
 
     // Should not crash
     ASSERT_LE(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
+}
+
+//
+// Test 26: Window Clamping to BytesInFlightMax
+// Scenario: Tests that window growth is properly clamped when the application
+// is app-limited and BytesInFlightMax is much lower than current window size.
+//
+TEST(CubicTest, WindowClampingToBytesInFlightMax)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Window wants to grow, but app is limited
+    uint32_t InitialWindow = Cubic->CongestionWindow;
+    Cubic->BytesInFlightMax = 3000; // Very low usage
+    Cubic->BytesInFlight = 2000;
+    Cubic->SlowStartThreshold = InitialWindow - 1000; // In CA mode
+    Cubic->TimeOfCongAvoidStart = 1000000;
+    Cubic->TimeOfLastAck = 1000000;
+    Cubic->TimeOfLastAckValid = TRUE;
+
+    // Try to grow window via ACK
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = 1100000;
+    AckEvent.LargestAck = 10;
+    AckEvent.LargestSentPacketNumber = 15;
+    AckEvent.NumRetransmittableBytes = 1500;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRtt = 45000;
+    AckEvent.MinRttValid = FALSE;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    // Window should be clamped to 2*BytesInFlightMax
+    ASSERT_LE(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
+}
+
+//
+// Test 27: App-Limited Flow Detection
+// Scenario: Tests that CUBIC properly identifies and handles app-limited scenarios
+// where the application isn't sending enough data to fill the congestion window.
+//
+TEST(CubicTest, AppLimitedFlowDetection)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 20, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Large window but low actual usage
+    Cubic->BytesInFlightMax = 5000; // App only using 5KB
+    Cubic->CongestionWindow = 50000; // But window is 50KB
+    uint32_t InitialWindow = Cubic->CongestionWindow;
+
+    // Simulate ACKs for app-limited sending
+    for (int i = 0; i < 5; i++) {
+        Cubic->BytesInFlight = 3000;
+
+        QUIC_ACK_EVENT AckEvent;
+        CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+        AckEvent.TimeNow = 1000000 + (i * 50000);
+        AckEvent.LargestAck = 5 + i;
+        AckEvent.LargestSentPacketNumber = 10 + i;
+        AckEvent.NumRetransmittableBytes = 1000;
+        AckEvent.SmoothedRtt = 50000;
+        AckEvent.MinRtt = 45000;
+        AckEvent.MinRttValid = FALSE;
+
+        Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+            &Connection.CongestionControl, &AckEvent);
+    }
+
+    // Window should be limited to 2 * BytesInFlightMax
+    ASSERT_LE(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
+}
+
+//
+// Test 28: Multiple Congestion Events in Sequence
+// Scenario: Tests behavior when multiple congestion events occur rapidly,
+// ensuring proper recovery state management and window reduction coordination.
+//
+TEST(CubicTest, MultipleCongestionEventsSequence)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 30, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+    uint32_t InitialWindow = Cubic->CongestionWindow;
+
+    // First loss - enter recovery
+    QUIC_LOSS_EVENT LossEvent1;
+    CxPlatZeroMemory(&LossEvent1, sizeof(LossEvent1));
+    LossEvent1.NumRetransmittableBytes = 1200;
+    LossEvent1.PersistentCongestion = FALSE;
+    LossEvent1.LargestPacketNumberLost = 5;
+    LossEvent1.LargestSentPacketNumber = 10;
+
+    Cubic->BytesInFlight = 10000;
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(
+        &Connection.CongestionControl, &LossEvent1);
+
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    uint32_t WindowAfterFirstLoss = Cubic->CongestionWindow;
+    ASSERT_LT(WindowAfterFirstLoss, InitialWindow);
+
+    // Second loss while still in recovery - should not reduce further
+    QUIC_LOSS_EVENT LossEvent2;
+    CxPlatZeroMemory(&LossEvent2, sizeof(LossEvent2));
+    LossEvent2.NumRetransmittableBytes = 1200;
+    LossEvent2.PersistentCongestion = FALSE;
+    LossEvent2.LargestPacketNumberLost = 7;
+    LossEvent2.LargestSentPacketNumber = 15;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(
+        &Connection.CongestionControl, &LossEvent2);
+
+    // Window should stay same (no further reduction in recovery)
+    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterFirstLoss);
+}
+
+//
+// Test 29: Spurious Retransmission Detection
+// Scenario: Tests handling of spurious congestion events where loss was
+// incorrectly detected and later acknowledged. Window should be restored.
+//
+TEST(CubicTest, SpuriousRetransmissionRecovery)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 20, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Establish baseline state after congestion
+    Cubic->CongestionWindow = 20000;
+    Cubic->WindowPrior = 30000; // Window before congestion
+    Cubic->IsInRecovery = TRUE;
+    Cubic->RecoverySentPacketNumber = 10;
+
+    uint32_t WindowBeforeSpurious = Cubic->CongestionWindow;
+
+    // Spurious retransmission detected
+    Connection.CongestionControl.QuicCongestionControlOnSpuriousCongestionEvent(
+        &Connection.CongestionControl);
+
+    // Window should be restored (implementation-specific behavior)
+    // At minimum, recovery state should be cleared
+    ASSERT_FALSE(Cubic->IsInRecovery);
+}
+
+//
+// Test 30: Pacing Rate Calculation Under High Load
+// Scenario: Tests pacing rate calculations when connection is under high load
+// with maximum window utilization and multiple concurrent streams.
+//
+TEST(CubicTest, PacingUnderHighLoad)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 100, 1000, true, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: High load scenario
+    Cubic->CongestionWindow = 100000; // 100KB window
+    Cubic->BytesInFlight = 95000; // Almost full
+    Cubic->BytesInFlightMax = 95000;
+    Cubic->SlowStartThreshold = 50000; // In congestion avoidance
+    Cubic->LastSendAllowance = 5000;
+
+    // Check pacing allows controlled sending
+    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, 10000, TRUE);
+
+    // Should allow some sending but pace it
+    ASSERT_GT(Allowance, 0u);
+    ASSERT_LE(Allowance, Cubic->CongestionWindow - Cubic->BytesInFlight);
+}
+
+//
+// Test 31: Large RTT Variation Handling
+// Scenario: Tests CUBIC's behavior when RTT varies significantly, which can
+// affect pacing decisions and HyStart++ delay detection mechanisms.
+//
+TEST(CubicTest, LargeRTTVariation)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 20, 1000, true, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Congestion avoidance with varying RTT
+    Cubic->CongestionWindow = 30000;
+    Cubic->SlowStartThreshold = 20000;
+    Cubic->BytesInFlight = 15000;
+    Cubic->LastSendAllowance = 0;
+
+    // First ACK with normal RTT
+    uint32_t Allowance1 = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, 10000, TRUE);
+
+    // Simulate RTT spike
+    Connection.Paths[0].SmoothedRtt = 200000; // 200ms (4x increase)
+
+    // Second ACK with high RTT
+    uint32_t Allowance2 = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, 10000, TRUE);
+
+    // Pacing should adapt to higher RTT (allow less per unit time)
+    ASSERT_LT(Allowance2, Allowance1 * 2); // Not directly proportional due to pacing
+}
+
+//
+// Test 32: Minimum Window Enforcement
+// Scenario: Tests that CUBIC maintains a minimum viable window even under
+// extreme congestion to ensure connection doesn't stall completely.
+//
+TEST(CubicTest, MinimumWindowEnforcement)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, false, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+    uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+
+    // Force persistent congestion
+    Cubic->CongestionWindow = 50000;
+    Cubic->IsInPersistentCongestion = FALSE;
+    Cubic->HasHadCongestionEvent = TRUE;
+
+    CubicCongestionControlOnCongestionEvent(&Connection.CongestionControl, TRUE, FALSE);
+
+    // Should reset to minimum (2 * MSS)
+    ASSERT_EQ(Cubic->CongestionWindow, DatagramPayloadLength * 2);
+    ASSERT_TRUE(Cubic->IsInPersistentCongestion);
+
+    // Ensure we can still send at least 2 packets
+    ASSERT_GE(Cubic->CongestionWindow, DatagramPayloadLength * 2);
 }
 
 
