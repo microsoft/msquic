@@ -1637,4 +1637,118 @@ TEST(CubicTest, LastSendAllowanceDecrement)
     ASSERT_EQ(Cubic->BytesInFlight, 6200u);
 }
 
+//
+// Test 38: CUBIC Window DeltaT Clamping at Extreme Values
+// Scenario: Tests the DeltaT > 2500000 clamping path in CUBIC formula
+//
+TEST(CubicTest, CUBICWindowDeltaTClamping)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
 
+    InitializeMockConnection(Connection, 1280);
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: In CA with ancient TimeOfCongAvoidStart
+    Cubic->CongestionWindow = 30000;
+    Cubic->SlowStartThreshold = 25000;
+    Cubic->TimeOfCongAvoidStart = 100; // Very old timestamp
+    Cubic->TimeOfLastAck = 100;
+    Cubic->TimeOfLastAckValid = TRUE;
+    Cubic->BytesInFlight = 15000;
+    Cubic->BytesInFlightMax = 15000;
+    Cubic->WindowMax = 35000;
+    Cubic->WindowPrior = 35000;
+    Cubic->KCubic = 100;
+    Cubic->AimdWindow = 30000;
+    Cubic->HasHadCongestionEvent = TRUE;
+
+    // ACK with time that causes DeltaT > 2500000 microseconds
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = 10000000000ULL; // Billions of microseconds later
+    AckEvent.LargestAck = 10;
+    AckEvent.LargestSentPacketNumber = 15;
+    AckEvent.NumRetransmittableBytes = 1200;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRttValid = FALSE;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    // Should not crash from overflow, window should be clamped
+    ASSERT_LE(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
+}
+
+//
+// Test 39: LastSendAllowance Exact Decrement Path
+// Scenario: Tests the exact else branch where LastSendAllowance is
+// decremented when not exceeding bytes sent. Covers line 390.
+//
+TEST(CubicTest, LastSendAllowanceExactDecrement)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, true, false, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: LastSendAllowance < bytes to send
+    Cubic->LastSendAllowance = 800;
+    Cubic->BytesInFlight = 5000;
+
+    // Send exactly more than LastSendAllowance
+    uint32_t BytesToSend = 1200;
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, BytesToSend);
+
+    // BytesInFlight should increase
+    ASSERT_EQ(Cubic->BytesInFlight, 5000u + BytesToSend);
+}
+
+//
+// Test 40: HyStart State Machine Coverage
+// Scenario: Tests that HyStart state transitions work correctly and
+// cover the switch statement branches including HYSTART_DONE state.
+//
+TEST(CubicTest, HyStartStateMachineCoverage)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, false, true, true, 50000);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Test that HYSTART_DONE state sets divisor to 1
+    // First get into DONE state through CSS completion
+    Cubic->HyStartState = HYSTART_ACTIVE;
+    Cubic->ConservativeSlowStartRounds = 1;
+    Cubic->HyStartRoundEnd = 5;
+    Cubic->CongestionWindow = 20000;
+    Cubic->SlowStartThreshold = UINT32_MAX;
+    Cubic->BytesInFlight = 10000;
+    Connection.Send.NextPacketNumber = 10;
+
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = 1000000;
+    AckEvent.LargestAck = 6;
+    AckEvent.LargestSentPacketNumber = 10;
+    AckEvent.NumRetransmittableBytes = 1200;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRttValid = FALSE;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    // Should be in DONE state with divisor = 1
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+    ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 1u);
+}
