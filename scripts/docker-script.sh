@@ -41,6 +41,10 @@ install_dependencies_rpm()
 
 install_dependencies_opensuse()
 {
+    # Install findutils if not available (minimal images may not have it)
+    if ! command -v find > /dev/null 2>&1; then
+        zypper --non-interactive install findutils
+    fi
     zypper ref
     find -name "libmsquic*.rpm" -exec zypper install --allow-unsigned-rpm -y {} \;
 }
