@@ -692,7 +692,9 @@ CxPlatWorkerPoolWorkerDrainEvents(
     _In_ CXPLAT_WORKER* Worker
     )
 {
+#if DEBUG
     uint32_t Iterations = 0;
+#endif
     do {
         Worker->State.TimeNow = CxPlatTimeUs64();
         Worker->State.ThreadID = CxPlatCurThreadID();
@@ -715,8 +717,9 @@ CxPlatWorkerPoolWorkerDrainEvents(
         Worker->State.NoWorkCount = 1;
         CxPlatProcessEvents(Worker);
 
-        ++Iterations;
-        CXPLAT_DBG_ASSERTMSG(Iterations < 10, "Is the library still active?");
+#if DEBUG
+        CXPLAT_DBG_ASSERTMSG(++Iterations < 10, "Is the library still active?");
+#endif
     } while (Worker->State.NoWorkCount == 0);
 }
 
