@@ -626,21 +626,21 @@ QUIC_STATUS InvokeTestFunction(void(*func)(), const uint8_t*, uint32_t argBuffer
 
 #define RegisterTestFunction(Function) \
     do { \
-        if (strcmp(RpcRequest->FunctionName, #Function) == 0) { \
+        if (strcmp(Request->FunctionName, #Function) == 0) { \
             return InvokeTestFunction( \
                 Function, \
-                (const uint8_t*)(RpcRequest + 1), \
-                RpcRequest->ParameterSize); \
+                (const uint8_t*)(Request + 1), \
+                Request->ParameterSize); \
         } \
     } while (false)
 
 QUIC_STATUS
 ExecuteTestRequest(
-    _In_ QUIC_RUN_TEST_REQUEST* RpcRequest
+    _In_ QUIC_RUN_TEST_REQUEST* Request
     )
 {
     // Ensure null termination
-    RpcRequest->FunctionName[sizeof(RpcRequest->FunctionName) - 1] = '\0';
+    Request->FunctionName[sizeof(Request->FunctionName) - 1] = '\0';
 
     // Register any test functions here
     RegisterTestFunction(QuicTestAckSendDelay);
@@ -650,7 +650,7 @@ ExecuteTestRequest(
 
     // Fail if no function matched
     char Buffer[256];
-    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, "Unknown function name in test RPC call: %s", RpcRequest->FunctionName);
+    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, "Unknown function name in test RPC call: %s", Request->FunctionName);
 
     QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", Buffer);
 
