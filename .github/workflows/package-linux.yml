@@ -176,7 +176,13 @@ jobs:
         popd
     - name: Docker Run
       run: |
-        docker run -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }}
+        # Map arch to Docker platform
+        case "${{ matrix.vec.arch }}" in
+          x64) PLATFORM="linux/amd64" ;;
+          arm64) PLATFORM="linux/arm64" ;;
+          arm) PLATFORM="linux/arm/v7" ;;
+        esac
+        docker run --platform $PLATFORM -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }}
 
   Complete:
     name: Package Linux Complete
