@@ -205,7 +205,8 @@ function Initialize-PackageFolderStructure {
         if (-not (Test-Path $distroPath)) {
             New-Item -ItemType Directory -Path $distroPath -Force | Out-Null
             Write-Host "  Created: $distro/" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "  Exists:  $distro/" -ForegroundColor Yellow
         }
     }
@@ -232,9 +233,9 @@ function Get-PackageVersion {
     # RPM: libmsquic-2.4.8-1.x86_64.rpm -> 2.4.8
     if ($Filename -match 'libmsquic[_-](\d+)\.(\d+)\.(\d+)') {
         return @{
-            Major = [int]$Matches[1]
-            Minor = [int]$Matches[2]
-            Patch = [int]$Matches[3]
+            Major    = [int]$Matches[1]
+            Minor    = [int]$Matches[2]
+            Patch    = [int]$Matches[3]
             Original = $Filename
         }
     }
@@ -261,9 +262,9 @@ function Get-LatestPackage {
         return $null
     }
     
-    $sorted = $versionedList | Sort-Object -Property @{Expression={$_.Major}; Descending=$true}, 
-                                                      @{Expression={$_.Minor}; Descending=$true}, 
-                                                      @{Expression={$_.Patch}; Descending=$true}
+    $sorted = $versionedList | Sort-Object -Property @{Expression = { $_.Major }; Descending = $true }, 
+    @{Expression = { $_.Minor }; Descending = $true }, 
+    @{Expression = { $_.Patch }; Descending = $true }
     
     # Handle single item case
     if ($sorted -is [hashtable]) {
@@ -305,7 +306,7 @@ function Get-PackageByVersion {
 }
 
 # Function to download packages from packages.microsoft.com
-function Download-LatestPackages {
+function Download-Packages {
     param(
         [string]$BasePath,
         [bool]$UseTestingRepo = $false,
@@ -341,88 +342,88 @@ function Download-LatestPackages {
     # - Azure Linux: Uses ms-oss path, testing may not exist
     
     $packageSources = @{
-        'ubuntu_22_04' = @{
-            'type' = 'deb'
+        'ubuntu_22_04'     = @{
+            'type'    = 'deb'
             'baseUrl' = 'https://packages.microsoft.com/ubuntu/22.04/prod/pool/main/libm/libmsquic/'
             # DEB repos have RC packages in same prod folder
         }
-        'ubuntu_24_04' = @{
-            'type' = 'deb'
+        'ubuntu_24_04'     = @{
+            'type'    = 'deb'
             'baseUrl' = 'https://packages.microsoft.com/ubuntu/24.04/prod/pool/main/libm/libmsquic/'
         }
-        'ubuntu_25_10' = @{
-            'type' = 'deb'
+        'ubuntu_25_10'     = @{
+            'type'    = 'deb'
             'baseUrl' = 'https://packages.microsoft.com/ubuntu/25.10/prod/pool/main/libm/libmsquic/'
         }
-        'debian_12' = @{
-            'type' = 'deb'
+        'debian_12'        = @{
+            'type'    = 'deb'
             'baseUrl' = 'https://packages.microsoft.com/debian/12/prod/pool/main/libm/libmsquic/'
         }
-        'debian_13' = @{
-            'type' = 'deb'
+        'debian_13'        = @{
+            'type'    = 'deb'
             'baseUrl' = 'https://packages.microsoft.com/debian/13/prod/pool/main/libm/libmsquic/'
         }
-        'azurelinux_3_0' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/x86_64/Packages/l/'
-            'arm64Url' = 'https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/aarch64/Packages/l/'
+        'azurelinux_3_0'   = @{
+            'type'            = 'rpm'
+            'baseUrl'         = 'https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/x86_64/Packages/l/'
+            'arm64Url'        = 'https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/aarch64/Packages/l/'
             # Azure Linux uses 'preview' instead of 'testing'
-            'testingUrl' = 'https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/x86_64/Packages/l/'
+            'testingUrl'      = 'https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/x86_64/Packages/l/'
             'testingArm64Url' = 'https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/aarch64/Packages/l/'
         }
-        'centos_stream_9' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/rhel/9/prod/Packages/l/'
+        'centos_stream_9'  = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/rhel/9/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/rhel/9/testing/Packages/l/'
         }
         'centos_stream_10' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/centos/10/prod/Packages/l/'
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/centos/10/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/centos/10/testing/Packages/l/'
         }
-        'rhel_9' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/rhel/9/prod/Packages/l/'
+        'rhel_9'           = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/rhel/9/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/rhel/9/testing/Packages/l/'
         }
-        'rhel_10' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/rhel/10/prod/Packages/l/'
+        'rhel_10'          = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/rhel/10/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/rhel/10/testing/Packages/l/'
         }
-        'fedora_42' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/fedora/42/prod/Packages/l/'
+        'fedora_42'        = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/fedora/42/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/fedora/42/testing/Packages/l/'
         }
-        'fedora_43' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/fedora/43/prod/Packages/l/'
+        'fedora_43'        = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/fedora/43/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/fedora/43/testing/Packages/l/'
         }
-        'opensuse_15_6' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/opensuse/15/prod/Packages/l/'
+        'opensuse_15_6'    = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/opensuse/15/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/yumrepos/microsoft-opensuse15-testing-prod/Packages/l/'
         }
-        'opensuse_16_0' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/opensuse/16/prod/Packages/l/'
+        'opensuse_16_0'    = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/opensuse/16/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/opensuse/16/testing/Packages/l/'
         }
-        'sles_15_6' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/sles/15/prod/Packages/l/'
+        'sles_15_6'        = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/sles/15/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/yumrepos/microsoft-sles15-testing-prod/Packages/l/'
         }
-        'sles_15_7' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/sles/15/prod/Packages/l/'
+        'sles_15_7'        = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/sles/15/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/yumrepos/microsoft-sles15-testing-prod/Packages/l/'
         }
-        'sles_16' = @{
-            'type' = 'rpm'
-            'baseUrl' = 'https://packages.microsoft.com/sles/16/prod/Packages/l/'
+        'sles_16'          = @{
+            'type'       = 'rpm'
+            'baseUrl'    = 'https://packages.microsoft.com/sles/16/prod/Packages/l/'
             'testingUrl' = 'https://packages.microsoft.com/sles/16/testing/Packages/l/'
         }
     }
@@ -441,7 +442,8 @@ function Download-LatestPackages {
         if ($UseTestingRepo -and $source['type'] -eq 'rpm' -and $source['testingUrl']) {
             # Testing mode: only try testing URL
             $urlsToTry += @{ url = $source['testingUrl']; label = 'testing' }
-        } else {
+        }
+        else {
             # Prod mode: try prod first, then testing as fallback
             $urlsToTry += @{ url = $source['baseUrl']; label = 'prod' }
             if ($FallbackToTesting -and $source['testingUrl']) {
@@ -457,164 +459,170 @@ function Download-LatestPackages {
             $baseUrl = $urlInfo.url
             $urlLabel = $urlInfo.label
 
-        try {
-            Write-Host "  Trying $urlLabel`: $baseUrl" -ForegroundColor Gray
+            try {
+                Write-Host "  Trying $urlLabel`: $baseUrl" -ForegroundColor Gray
 
-            $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing -ErrorAction Stop
-            $html = $response.Content
+                $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing -ErrorAction Stop
+                $html = $response.Content
             
-            if ($source['type'] -eq 'deb') {
-                # Find all .deb files and get the latest versions for each architecture
-                $debPattern = 'href="(libmsquic_[^"]+\.deb)"'
-                $regexMatches = [regex]::Matches($html, $debPattern)
+                if ($source['type'] -eq 'deb') {
+                    # Find all .deb files and get the latest versions for each architecture
+                    $debPattern = 'href="(libmsquic_[^"]+\.deb)"'
+                    $regexMatches = [regex]::Matches($html, $debPattern)
                 
-                if ($regexMatches.Count -eq 0) {
-                    Write-Host "  WARNING: No DEB packages found" -ForegroundColor Yellow
-                    continue
-                }
+                    if ($regexMatches.Count -eq 0) {
+                        Write-Host "  WARNING: No DEB packages found" -ForegroundColor Yellow
+                        continue
+                    }
                 
-                # Extract all filenames first, then filter
-                $allDebFiles = $regexMatches | ForEach-Object { $_.Groups[1].Value }
+                    # Extract all filenames first, then filter
+                    $allDebFiles = $regexMatches | ForEach-Object { $_.Groups[1].Value }
                 
-                # Group by architecture and find latest
-                # For testing repo: only include RC versions (~rc)
-                # For prod repo: exclude RC versions
-                if ($UseTestingRepo) {
-                    $amd64Files = $allDebFiles | Where-Object { $_ -match '_amd64\.deb$' -and $_ -match '~rc' }
-                    $arm64Files = $allDebFiles | Where-Object { $_ -match '_arm64\.deb$' -and $_ -match '~rc' }
-                    $armhfFiles = $allDebFiles | Where-Object { $_ -match '_armhf\.deb$' -and $_ -match '~rc' }
-                } else {
-                    $amd64Files = $allDebFiles | Where-Object { $_ -match '_amd64\.deb$' -and $_ -notmatch '~rc' }
-                    $arm64Files = $allDebFiles | Where-Object { $_ -match '_arm64\.deb$' -and $_ -notmatch '~rc' }
-                    $armhfFiles = $allDebFiles | Where-Object { $_ -match '_armhf\.deb$' -and $_ -notmatch '~rc' }
-                }
+                    # Group by architecture and find latest
+                    # For testing repo: only include RC versions (~rc)
+                    # For prod repo: exclude RC versions
+                    if ($UseTestingRepo) {
+                        $amd64Files = $allDebFiles | Where-Object { $_ -match '_amd64\.deb$' -and $_ -match '~rc' }
+                        $arm64Files = $allDebFiles | Where-Object { $_ -match '_arm64\.deb$' -and $_ -match '~rc' }
+                        $armhfFiles = $allDebFiles | Where-Object { $_ -match '_armhf\.deb$' -and $_ -match '~rc' }
+                    }
+                    else {
+                        $amd64Files = $allDebFiles | Where-Object { $_ -match '_amd64\.deb$' -and $_ -notmatch '~rc' }
+                        $arm64Files = $allDebFiles | Where-Object { $_ -match '_arm64\.deb$' -and $_ -notmatch '~rc' }
+                        $armhfFiles = $allDebFiles | Where-Object { $_ -match '_armhf\.deb$' -and $_ -notmatch '~rc' }
+                    }
 
-                # Select package by version (or latest if no version specified)
-                $latestAmd64 = Get-PackageByVersion -Packages $amd64Files -TargetVersion $TargetVersion
-                $latestArm64 = Get-PackageByVersion -Packages $arm64Files -TargetVersion $TargetVersion
-                $latestArmhf = Get-PackageByVersion -Packages $armhfFiles -TargetVersion $TargetVersion
+                    # Select package by version (or latest if no version specified)
+                    $latestAmd64 = Get-PackageByVersion -Packages $amd64Files -TargetVersion $TargetVersion
+                    $latestArm64 = Get-PackageByVersion -Packages $arm64Files -TargetVersion $TargetVersion
+                    $latestArmhf = Get-PackageByVersion -Packages $armhfFiles -TargetVersion $TargetVersion
 
-                if (-not $latestAmd64 -and -not $latestArm64 -and -not $latestArmhf) {
-                    $pkgType = if ($UseTestingRepo) { "RC" } else { "release" }
-                    $versionInfo = if ($TargetVersion) { " (version $TargetVersion)" } else { "" }
-                    Write-Host "  No $pkgType DEB packages found$versionInfo in $urlLabel" -ForegroundColor Gray
+                    if (-not $latestAmd64 -and -not $latestArm64 -and -not $latestArmhf) {
+                        $pkgType = if ($UseTestingRepo) { "RC" } else { "release" }
+                        $versionInfo = if ($TargetVersion) { " (version $TargetVersion)" } else { "" }
+                        Write-Host "  No $pkgType DEB packages found$versionInfo in $urlLabel" -ForegroundColor Gray
+                        continue  # Try next URL
+                    }
+
+                    # Download amd64
+                    if ($latestAmd64) {
+                        $downloadUrl = "$baseUrl$latestAmd64"
+                        $outputFile = Join-Path $distroPath $latestAmd64
+                        Write-Host "  Downloading: $latestAmd64 (from $urlLabel)" -ForegroundColor Green
+                        Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
+                        $downloadResults += @{ Distro = $distro; File = $latestAmd64; Status = 'OK'; Source = $urlLabel }
+                        $downloadedFromDistro = $true
+                    }
+
+                    # Download arm64
+                    if ($latestArm64) {
+                        $downloadUrl = "$baseUrl$latestArm64"
+                        $outputFile = Join-Path $distroPath $latestArm64
+                        Write-Host "  Downloading: $latestArm64 (from $urlLabel)" -ForegroundColor Green
+                        Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
+                        $downloadResults += @{ Distro = $distro; File = $latestArm64; Status = 'OK'; Source = $urlLabel }
+                        $downloadedFromDistro = $true
+                    }
+
+                    # Download armhf (arm32)
+                    if ($latestArmhf) {
+                        $downloadUrl = "$baseUrl$latestArmhf"
+                        $outputFile = Join-Path $distroPath $latestArmhf
+                        Write-Host "  Downloading: $latestArmhf (from $urlLabel)" -ForegroundColor Green
+                        Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
+                        $downloadResults += @{ Distro = $distro; File = $latestArmhf; Status = 'OK'; Source = $urlLabel }
+                        $downloadedFromDistro = $true
+                    }
+                }
+                else {
+                    # RPM - need to handle x86_64 and aarch64
+                    $rpmPattern = 'href="(libmsquic-[^"]+\.rpm)"'
+                
+                    # x86_64
+                    $x64RegexMatches = [regex]::Matches($html, $rpmPattern)
+                    $allX64RpmFiles = $x64RegexMatches | ForEach-Object { $_.Groups[1].Value }
+                
+                    # For testing repo (RPM): we're already using testing URL, so include all packages
+                    # For prod repo: exclude RC versions
+                    if ($UseTestingRepo) {
+                        # In testing repo, take the latest (could be RC or not)
+                        $x64Files = $allX64RpmFiles | Where-Object { $_ -match '\.x86_64\.rpm$' }
+                    }
+                    else {
+                        $x64Files = $allX64RpmFiles | Where-Object { $_ -match '\.x86_64\.rpm$' -and $_ -notmatch '~rc' }
+                    }
+                    $latestX64 = Get-PackageByVersion -Packages $x64Files -TargetVersion $TargetVersion
+                
+                    if ($latestX64) {
+                        $downloadUrl = "$baseUrl$latestX64"
+                        $outputFile = Join-Path $distroPath $latestX64
+                        Write-Host "  Downloading: $latestX64 (from $urlLabel)" -ForegroundColor Green
+                        Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
+                        $downloadResults += @{ Distro = $distro; File = $latestX64; Status = 'OK'; Source = $urlLabel }
+                        $downloadedFromDistro = $true
+                    }
+
+                    # aarch64 - some distros have separate URL (e.g., Azure Linux)
+                    # Check if we're using a testing/preview URL (either explicitly or via fallback)
+                    $isUsingTestingUrl = $UseTestingRepo -or ($urlLabel -match 'testing|fallback')
+                    $arm64Url = $baseUrl
+                    if ($isUsingTestingUrl -and $source['testingArm64Url']) {
+                        # Use testing/preview arm64 URL if available
+                        $arm64Url = $source['testingArm64Url']
+                    }
+                    elseif (-not $isUsingTestingUrl -and $source['arm64Url']) {
+                        # Use prod arm64 URL if available
+                        $arm64Url = $source['arm64Url']
+                    }
+                
+                    if ($arm64Url -ne $baseUrl) {
+                        Write-Host "  Fetching arm64 package list from: $arm64Url" -ForegroundColor Gray
+                        $arm64Response = Invoke-WebRequest -Uri $arm64Url -UseBasicParsing -ErrorAction Stop
+                        $arm64Html = $arm64Response.Content
+                    }
+                    else {
+                        $arm64Html = $html
+                    }
+                
+                    $arm64RegexMatches = [regex]::Matches($arm64Html, $rpmPattern)
+                    $allArm64RpmFiles = $arm64RegexMatches | ForEach-Object { $_.Groups[1].Value }
+                
+                    if ($UseTestingRepo) {
+                        $arm64Files = $allArm64RpmFiles | Where-Object { $_ -match '\.aarch64\.rpm$' }
+                    }
+                    else {
+                        $arm64Files = $allArm64RpmFiles | Where-Object { $_ -match '\.aarch64\.rpm$' -and $_ -notmatch '~rc' }
+                    }
+                    $latestArm64 = Get-PackageByVersion -Packages $arm64Files -TargetVersion $TargetVersion
+                
+                    if ($latestArm64) {
+                        $downloadUrl = "$arm64Url$latestArm64"
+                        $outputFile = Join-Path $distroPath $latestArm64
+                        Write-Host "  Downloading: $latestArm64 (from $urlLabel)" -ForegroundColor Green
+                        Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
+                        $downloadResults += @{ Distro = $distro; File = $latestArm64; Status = 'OK'; Source = $urlLabel }
+                        $downloadedFromDistro = $true
+                    }
+
+                    # If no RPM packages found at all, try next URL
+                    if (-not $latestX64 -and -not $latestArm64) {
+                        Write-Host "  No RPM packages found in $urlLabel" -ForegroundColor Gray
+                        continue  # Try next URL
+                    }
+                }
+            }
+            catch {
+                # Check if this is a 404 error (repo doesn't exist)
+                $errorMessage = $_.ToString()
+                if ($errorMessage -match '404' -or $errorMessage -match 'Not Found') {
+                    Write-Host "  $urlLabel not available (404), trying next..." -ForegroundColor Gray
+                    continue  # Try next URL in fallback
+                }
+                else {
+                    Write-Host "  ERROR in $urlLabel`: $_" -ForegroundColor Red
                     continue  # Try next URL
                 }
-
-                # Download amd64
-                if ($latestAmd64) {
-                    $downloadUrl = "$baseUrl$latestAmd64"
-                    $outputFile = Join-Path $distroPath $latestAmd64
-                    Write-Host "  Downloading: $latestAmd64 (from $urlLabel)" -ForegroundColor Green
-                    Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
-                    $downloadResults += @{ Distro = $distro; File = $latestAmd64; Status = 'OK'; Source = $urlLabel }
-                    $downloadedFromDistro = $true
-                }
-
-                # Download arm64
-                if ($latestArm64) {
-                    $downloadUrl = "$baseUrl$latestArm64"
-                    $outputFile = Join-Path $distroPath $latestArm64
-                    Write-Host "  Downloading: $latestArm64 (from $urlLabel)" -ForegroundColor Green
-                    Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
-                    $downloadResults += @{ Distro = $distro; File = $latestArm64; Status = 'OK'; Source = $urlLabel }
-                    $downloadedFromDistro = $true
-                }
-
-                # Download armhf (arm32)
-                if ($latestArmhf) {
-                    $downloadUrl = "$baseUrl$latestArmhf"
-                    $outputFile = Join-Path $distroPath $latestArmhf
-                    Write-Host "  Downloading: $latestArmhf (from $urlLabel)" -ForegroundColor Green
-                    Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
-                    $downloadResults += @{ Distro = $distro; File = $latestArmhf; Status = 'OK'; Source = $urlLabel }
-                    $downloadedFromDistro = $true
-                }
             }
-            else {
-                # RPM - need to handle x86_64 and aarch64
-                $rpmPattern = 'href="(libmsquic-[^"]+\.rpm)"'
-                
-                # x86_64
-                $x64RegexMatches = [regex]::Matches($html, $rpmPattern)
-                $allX64RpmFiles = $x64RegexMatches | ForEach-Object { $_.Groups[1].Value }
-                
-                # For testing repo (RPM): we're already using testing URL, so include all packages
-                # For prod repo: exclude RC versions
-                if ($UseTestingRepo) {
-                    # In testing repo, take the latest (could be RC or not)
-                    $x64Files = $allX64RpmFiles | Where-Object { $_ -match '\.x86_64\.rpm$' }
-                } else {
-                    $x64Files = $allX64RpmFiles | Where-Object { $_ -match '\.x86_64\.rpm$' -and $_ -notmatch '~rc' }
-                }
-                $latestX64 = Get-PackageByVersion -Packages $x64Files -TargetVersion $TargetVersion
-                
-                if ($latestX64) {
-                    $downloadUrl = "$baseUrl$latestX64"
-                    $outputFile = Join-Path $distroPath $latestX64
-                    Write-Host "  Downloading: $latestX64 (from $urlLabel)" -ForegroundColor Green
-                    Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
-                    $downloadResults += @{ Distro = $distro; File = $latestX64; Status = 'OK'; Source = $urlLabel }
-                    $downloadedFromDistro = $true
-                }
-
-                # aarch64 - some distros have separate URL (e.g., Azure Linux)
-                # Check if we're using a testing/preview URL (either explicitly or via fallback)
-                $isUsingTestingUrl = $UseTestingRepo -or ($urlLabel -match 'testing|fallback')
-                $arm64Url = $baseUrl
-                if ($isUsingTestingUrl -and $source['testingArm64Url']) {
-                    # Use testing/preview arm64 URL if available
-                    $arm64Url = $source['testingArm64Url']
-                } elseif (-not $isUsingTestingUrl -and $source['arm64Url']) {
-                    # Use prod arm64 URL if available
-                    $arm64Url = $source['arm64Url']
-                }
-                
-                if ($arm64Url -ne $baseUrl) {
-                    Write-Host "  Fetching arm64 package list from: $arm64Url" -ForegroundColor Gray
-                    $arm64Response = Invoke-WebRequest -Uri $arm64Url -UseBasicParsing -ErrorAction Stop
-                    $arm64Html = $arm64Response.Content
-                } else {
-                    $arm64Html = $html
-                }
-                
-                $arm64RegexMatches = [regex]::Matches($arm64Html, $rpmPattern)
-                $allArm64RpmFiles = $arm64RegexMatches | ForEach-Object { $_.Groups[1].Value }
-                
-                if ($UseTestingRepo) {
-                    $arm64Files = $allArm64RpmFiles | Where-Object { $_ -match '\.aarch64\.rpm$' }
-                } else {
-                    $arm64Files = $allArm64RpmFiles | Where-Object { $_ -match '\.aarch64\.rpm$' -and $_ -notmatch '~rc' }
-                }
-                $latestArm64 = Get-PackageByVersion -Packages $arm64Files -TargetVersion $TargetVersion
-                
-                if ($latestArm64) {
-                    $downloadUrl = "$arm64Url$latestArm64"
-                    $outputFile = Join-Path $distroPath $latestArm64
-                    Write-Host "  Downloading: $latestArm64 (from $urlLabel)" -ForegroundColor Green
-                    Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
-                    $downloadResults += @{ Distro = $distro; File = $latestArm64; Status = 'OK'; Source = $urlLabel }
-                    $downloadedFromDistro = $true
-                }
-
-                # If no RPM packages found at all, try next URL
-                if (-not $latestX64 -and -not $latestArm64) {
-                    Write-Host "  No RPM packages found in $urlLabel" -ForegroundColor Gray
-                    continue  # Try next URL
-                }
-            }
-        }
-        catch {
-            # Check if this is a 404 error (repo doesn't exist)
-            $errorMessage = $_.ToString()
-            if ($errorMessage -match '404' -or $errorMessage -match 'Not Found') {
-                Write-Host "  $urlLabel not available (404), trying next..." -ForegroundColor Gray
-                continue  # Try next URL in fallback
-            } else {
-                Write-Host "  ERROR in $urlLabel`: $_" -ForegroundColor Red
-                continue  # Try next URL
-            }
-        }
         }  # End of urlsToTry foreach
 
         # If no packages downloaded from any URL
@@ -635,6 +643,52 @@ function Download-LatestPackages {
     Write-Host ""
     Write-Host "Packages downloaded to: $BasePath" -ForegroundColor Cyan
     Write-Host ""
+
+    # Version consistency check
+    if ($downloadResults.Count -gt 0) {
+        Write-Host "=== Version Consistency Check ===" -ForegroundColor Cyan
+        Write-Host ""
+
+        $versions = @{}
+        foreach ($result in $downloadResults) {
+            $ver = Get-PackageVersion $result.File
+            if ($ver) {
+                $versionStr = "$($ver.Major).$($ver.Minor).$($ver.Patch)"
+                if (-not $versions.ContainsKey($versionStr)) {
+                    $versions[$versionStr] = @()
+                }
+                $versions[$versionStr] += "$($result.Distro): $($result.File)"
+            }
+        }
+
+        if ($versions.Count -eq 0) {
+            Write-Host "  WARNING: Could not extract version from any downloaded packages" -ForegroundColor Yellow
+        }
+        elseif ($versions.Count -eq 1) {
+            $versionStr = $versions.Keys | Select-Object -First 1
+            if ($TargetVersion -and $versionStr -ne $TargetVersion) {
+                Write-Host "  WARNING: Downloaded version ($versionStr) does not match target version ($TargetVersion)" -ForegroundColor Red
+            }
+            else {
+                Write-Host "  All packages have consistent version: $versionStr" -ForegroundColor Green
+            }
+        }
+        else {
+            Write-Host "  WARNING: Inconsistent package versions detected!" -ForegroundColor Red
+            Write-Host "  This may indicate a partial publish failure or publishing still in progress." -ForegroundColor Yellow
+            Write-Host "  Consider re-running validation later." -ForegroundColor Yellow
+            Write-Host ""
+            foreach ($versionStr in ($versions.Keys | Sort-Object -Descending)) {
+                Write-Host "  Version $versionStr`:" -ForegroundColor Yellow
+                foreach ($pkg in $versions[$versionStr]) {
+                    Write-Host "    - $pkg" -ForegroundColor Gray
+                }
+            }
+            Write-Host ""
+            Write-Host "  RECOMMENDATION: Wait for publishing to complete and re-run, or use -PackageVersion to target a specific version." -ForegroundColor Cyan
+        }
+        Write-Host ""
+    }
 }
 
 # Handle InitPackagesPath parameter
@@ -645,7 +699,7 @@ if ($InitPackagesPath) {
 
 # Handle DownloadPackages parameter
 if ($DownloadPackages) {
-    Download-LatestPackages -BasePath $DownloadPackages -UseTestingRepo $TestingRepo.IsPresent -TargetVersion $PackageVersion
+    Download-Packages -BasePath $DownloadPackages -UseTestingRepo $TestingRepo.IsPresent -TargetVersion $PackageVersion
     exit 0
 }
 
@@ -696,19 +750,21 @@ if ($QuickValidate) {
     if (-not (Test-Path $quickPackagesPath)) {
         Write-Host "[*] Creating package folder structure: $quickPackagesPath" -ForegroundColor Green
         Initialize-PackageFolderStructure -BasePath $quickPackagesPath
-    } else {
+    }
+    else {
         Write-Host "[*] Package folder exists: $quickPackagesPath" -ForegroundColor Green
     }
 
     # Check if we already have packages for the requested version
-    $existingPackages = Get-ChildItem -Path $quickPackagesPath -Include "*.deb","*.rpm" -Recurse -ErrorAction SilentlyContinue
+    $existingPackages = Get-ChildItem -Path $quickPackagesPath -Include "*.deb", "*.rpm" -Recurse -ErrorAction SilentlyContinue
     $packageCount = ($existingPackages | Measure-Object).Count
     $needDownload = $false
 
     if ($packageCount -eq 0) {
         Write-Host "[*] No packages found" -ForegroundColor Yellow
         $needDownload = $true
-    } elseif ($PackageVersion) {
+    }
+    elseif ($PackageVersion) {
         # Check if the requested version exists
         $versionPattern = $PackageVersion -replace '\.', '\.'
         $matchingPackages = $existingPackages | Where-Object { $_.Name -match "libmsquic[_-]$versionPattern" }
@@ -717,17 +773,19 @@ if ($QuickValidate) {
         if ($matchCount -eq 0) {
             Write-Host "[*] Found $packageCount package(s), but none match version $PackageVersion" -ForegroundColor Yellow
             $needDownload = $true
-        } else {
+        }
+        else {
             Write-Host "[*] Found $matchCount package(s) matching version $PackageVersion, skipping download" -ForegroundColor Green
         }
-    } else {
+    }
+    else {
         Write-Host "[*] Found $packageCount existing package(s), skipping download" -ForegroundColor Green
         Write-Host "    (Use -DeletePackages to clear and re-download)" -ForegroundColor Gray
     }
 
     if ($needDownload) {
         Write-Host "[*] Downloading from packages.microsoft.com..." -ForegroundColor Green
-        Download-LatestPackages -BasePath $quickPackagesPath -UseTestingRepo $TestingRepo.IsPresent -TargetVersion $PackageVersion
+        Download-Packages -BasePath $quickPackagesPath -UseTestingRepo $TestingRepo.IsPresent -TargetVersion $PackageVersion
     }
 
     # Set PackagesPath for the rest of the script
@@ -753,7 +811,7 @@ if (-not $PackagesPath) {
         (Join-Path $env:USERPROFILE 'Desktop\msquic-packages')
     )
     foreach ($path in $possiblePackagePaths) {
-        if ((Test-Path $path) -and (Get-ChildItem -Path $path -Include "*.deb","*.rpm" -Recurse -ErrorAction SilentlyContinue)) {
+        if ((Test-Path $path) -and (Get-ChildItem -Path $path -Include "*.deb", "*.rpm" -Recurse -ErrorAction SilentlyContinue)) {
             $PackagesPath = $path
             break
         }
@@ -767,127 +825,127 @@ if (-not $PackagesPath) {
 # .NET runtime will be installed as needed for testing
 $DockerImages = @{
     # Ubuntu: 25.10, 24.04, 22.04 - Arm32, Arm64, x64
-    'Ubuntu_22_04' = @{
-        'x64'   = 'ubuntu:22.04'
-        'arm64' = 'ubuntu:22.04'
-        'arm32' = 'ubuntu:22.04'  # armhf support
-        'type'  = 'deb'
+    'Ubuntu_22_04'     = @{
+        'x64'           = 'ubuntu:22.04'
+        'arm64'         = 'ubuntu:22.04'
+        'arm32'         = 'ubuntu:22.04'  # armhf support
+        'type'          = 'deb'
         'dotnetVersion' = '9.0'
     }
-    'Ubuntu_24_04' = @{
-        'x64'   = 'ubuntu:24.04'
-        'arm64' = 'ubuntu:24.04'
-        'arm32' = 'ubuntu:24.04'  # armhf support
-        'type'  = 'deb'
+    'Ubuntu_24_04'     = @{
+        'x64'           = 'ubuntu:24.04'
+        'arm64'         = 'ubuntu:24.04'
+        'arm32'         = 'ubuntu:24.04'  # armhf support
+        'type'          = 'deb'
         'dotnetVersion' = '9.0'
     }
-    'Ubuntu_25_10' = @{
-        'x64'   = 'ubuntu:25.10'
-        'arm64' = 'ubuntu:25.10'
-        'arm32' = 'ubuntu:25.10'  # armhf support
-        'type'  = 'deb'
+    'Ubuntu_25_10'     = @{
+        'x64'           = 'ubuntu:25.10'
+        'arm64'         = 'ubuntu:25.10'
+        'arm32'         = 'ubuntu:25.10'  # armhf support
+        'type'          = 'deb'
         'dotnetVersion' = '9.0'
     }
     # Debian: 13, 12 - Arm32, Arm64, x64
-    'Debian_12' = @{
-        'x64'   = 'debian:12'
-        'arm64' = 'debian:12'
-        'arm32' = 'debian:12'  # armhf support
-        'type'  = 'deb'
+    'Debian_12'        = @{
+        'x64'           = 'debian:12'
+        'arm64'         = 'debian:12'
+        'arm32'         = 'debian:12'  # armhf support
+        'type'          = 'deb'
         'dotnetVersion' = '9.0'
     }
-    'Debian_13' = @{
-        'x64'   = 'debian:trixie'
-        'arm64' = 'debian:trixie'
-        'arm32' = 'debian:trixie'  # armhf support
-        'type'  = 'deb'
+    'Debian_13'        = @{
+        'x64'           = 'debian:trixie'
+        'arm64'         = 'debian:trixie'
+        'arm32'         = 'debian:trixie'  # armhf support
+        'type'          = 'deb'
         'dotnetVersion' = '9.0'
     }
     # Azure Linux: 3.0 - Arm64, x64
-    'AzureLinux_3_0' = @{
-        'x64'   = 'mcr.microsoft.com/azurelinux/base/core:3.0'
-        'arm64' = 'mcr.microsoft.com/azurelinux/base/core:3.0'
-        'type'  = 'rpm'
+    'AzureLinux_3_0'   = @{
+        'x64'           = 'mcr.microsoft.com/azurelinux/base/core:3.0'
+        'arm64'         = 'mcr.microsoft.com/azurelinux/base/core:3.0'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
     # CentOS Stream: 10, 9 - Arm64, ppc64le, s390x, x64
-    'CentOS_Stream_9' = @{
-        'x64'     = 'quay.io/centos/centos:stream9'
-        'arm64'   = 'quay.io/centos/centos:stream9'
-        'ppc64le' = 'quay.io/centos/centos:stream9'
-        's390x'   = 'quay.io/centos/centos:stream9'
-        'type'    = 'rpm'
+    'CentOS_Stream_9'  = @{
+        'x64'           = 'quay.io/centos/centos:stream9'
+        'arm64'         = 'quay.io/centos/centos:stream9'
+        'ppc64le'       = 'quay.io/centos/centos:stream9'
+        's390x'         = 'quay.io/centos/centos:stream9'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
     'CentOS_Stream_10' = @{
-        'x64'     = 'quay.io/centos/centos:stream10'
-        'arm64'   = 'quay.io/centos/centos:stream10'
-        'ppc64le' = 'quay.io/centos/centos:stream10'
-        's390x'   = 'quay.io/centos/centos:stream10'
-        'type'    = 'rpm'
+        'x64'           = 'quay.io/centos/centos:stream10'
+        'arm64'         = 'quay.io/centos/centos:stream10'
+        'ppc64le'       = 'quay.io/centos/centos:stream10'
+        's390x'         = 'quay.io/centos/centos:stream10'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
     # RHEL: 10, 9 - Arm64, ppc64le, s390x, x64 (using UBI images)
-    'RHEL_9' = @{
-        'x64'     = 'registry.access.redhat.com/ubi9/ubi:latest'
-        'arm64'   = 'registry.access.redhat.com/ubi9/ubi:latest'
-        'ppc64le' = 'registry.access.redhat.com/ubi9/ubi:latest'
-        's390x'   = 'registry.access.redhat.com/ubi9/ubi:latest'
-        'type'    = 'rpm'
+    'RHEL_9'           = @{
+        'x64'           = 'registry.access.redhat.com/ubi9/ubi:latest'
+        'arm64'         = 'registry.access.redhat.com/ubi9/ubi:latest'
+        'ppc64le'       = 'registry.access.redhat.com/ubi9/ubi:latest'
+        's390x'         = 'registry.access.redhat.com/ubi9/ubi:latest'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
-    'RHEL_10' = @{
-        'x64'     = 'registry.access.redhat.com/ubi10/ubi:latest'
-        'arm64'   = 'registry.access.redhat.com/ubi10/ubi:latest'
-        'ppc64le' = 'registry.access.redhat.com/ubi10/ubi:latest'
-        's390x'   = 'registry.access.redhat.com/ubi10/ubi:latest'
-        'type'    = 'rpm'
+    'RHEL_10'          = @{
+        'x64'           = 'registry.access.redhat.com/ubi10/ubi:latest'
+        'arm64'         = 'registry.access.redhat.com/ubi10/ubi:latest'
+        'ppc64le'       = 'registry.access.redhat.com/ubi10/ubi:latest'
+        's390x'         = 'registry.access.redhat.com/ubi10/ubi:latest'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
     # Fedora: 43, 42 - Arm64, x64
-    'Fedora_42' = @{
-        'x64'   = 'fedora:42'
-        'arm64' = 'fedora:42'
-        'type'  = 'rpm'
+    'Fedora_42'        = @{
+        'x64'           = 'fedora:42'
+        'arm64'         = 'fedora:42'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
-    'Fedora_43' = @{
-        'x64'   = 'fedora:43'
-        'arm64' = 'fedora:43'
-        'type'  = 'rpm'
+    'Fedora_43'        = @{
+        'x64'           = 'fedora:43'
+        'arm64'         = 'fedora:43'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
     # openSUSE Leap: 16.0, 15.6 - Arm64, x64
-    'OpenSUSE_15_6' = @{
-        'x64'   = 'opensuse/leap:15.6'
-        'arm64' = 'opensuse/leap:15.6'
-        'type'  = 'rpm'
+    'OpenSUSE_15_6'    = @{
+        'x64'           = 'opensuse/leap:15.6'
+        'arm64'         = 'opensuse/leap:15.6'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
-    'OpenSUSE_16_0' = @{
-        'x64'   = 'opensuse/tumbleweed:latest'  # Using Tumbleweed as Leap 16 not yet released
-        'arm64' = 'opensuse/tumbleweed:latest'
-        'type'  = 'rpm'
+    'OpenSUSE_16_0'    = @{
+        'x64'           = 'opensuse/tumbleweed:latest'  # Using Tumbleweed as Leap 16 not yet released
+        'arm64'         = 'opensuse/tumbleweed:latest'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
     # SLES: 16.0, 15.7, 15.6 - Arm64, x64
-    'SLES_15_6' = @{
-        'x64'   = 'registry.suse.com/suse/sle15:15.6'
-        'arm64' = 'registry.suse.com/suse/sle15:15.6'
-        'type'  = 'rpm'
+    'SLES_15_6'        = @{
+        'x64'           = 'registry.suse.com/suse/sle15:15.6'
+        'arm64'         = 'registry.suse.com/suse/sle15:15.6'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
-    'SLES_15_7' = @{
-        'x64'   = 'registry.suse.com/suse/sle15:15.7'
-        'arm64' = 'registry.suse.com/suse/sle15:15.7'
-        'type'  = 'rpm'
+    'SLES_15_7'        = @{
+        'x64'           = 'registry.suse.com/suse/sle15:15.7'
+        'arm64'         = 'registry.suse.com/suse/sle15:15.7'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
-    'SLES_16' = @{
+    'SLES_16'          = @{
         # Note: SLES 16 image not yet publicly available. Using BCI as placeholder.
-        'x64'   = 'registry.suse.com/bci/bci-base:latest'
-        'arm64' = 'registry.suse.com/bci/bci-base:latest'
-        'type'  = 'rpm'
+        'x64'           = 'registry.suse.com/bci/bci-base:latest'
+        'arm64'         = 'registry.suse.com/bci/bci-base:latest'
+        'type'          = 'rpm'
         'dotnetVersion' = '9.0'
     }
 }
@@ -952,20 +1010,21 @@ function Test-PackageExists {
     # Determine architecture suffix for packages
     if ($PackageType -eq 'deb') {
         $archSuffix = switch ($Arch) {
-            'x64'   { 'amd64' }
+            'x64' { 'amd64' }
             'arm64' { 'arm64' }
             'arm32' { 'armhf' }
             default { 'amd64' }
         }
         $pattern = "*_${archSuffix}.deb"
-    } else {
+    }
+    else {
         $archSuffix = switch ($Arch) {
-            'x64'     { 'x86_64' }
-            'arm64'   { 'aarch64' }
-            'arm32'   { 'armv7hl' }
+            'x64' { 'x86_64' }
+            'arm64' { 'aarch64' }
+            'arm32' { 'armv7hl' }
             'ppc64le' { 'ppc64le' }
-            's390x'   { 's390x' }
-            default   { 'x86_64' }
+            's390x' { 's390x' }
+            default { 'x86_64' }
         }
         $pattern = "*.$archSuffix.rpm"
     }
@@ -990,7 +1049,7 @@ function Test-PackageExists {
     if ($allPackages.Count -eq 0) {
         return @{
             Found = $false
-            Path = $null
+            Path  = $null
         }
     }
 
@@ -1005,13 +1064,13 @@ function Test-PackageExists {
         $match = $allPackages | Where-Object { $_.Name -eq $selectedPackage } | Select-Object -First 1
         return @{
             Found = $true
-            Path = $match.FullName
+            Path  = $match.FullName
         }
     }
 
     return @{
         Found = $false
-        Path = $null
+        Path  = $null
     }
 }
 
@@ -1019,7 +1078,8 @@ function Test-DockerAvailable {
     try {
         $null = docker version 2>&1
         return $LASTEXITCODE -eq 0
-    } catch {
+    }
+    catch {
         return $false
     }
 }
@@ -1075,19 +1135,22 @@ function Setup-QemuEmulation {
 
     if ($arm64Ok) {
         Write-Success "arm64 emulation verified"
-    } else {
+    }
+    else {
         Write-WarningMsg "arm64 emulation may not work"
     }
 
     if ($arm32Ok) {
         Write-Success "arm32 emulation verified"
-    } else {
+    }
+    else {
         Write-WarningMsg "arm32 emulation may not work"
     }
 
     if ($arm64Ok -or $arm32Ok) {
         return $true
-    } else {
+    }
+    else {
         Write-WarningMsg "QEMU setup may have failed"
         Write-Info "To manually setup QEMU, run: docker run --rm --privileged tonistiigi/binfmt --install all"
         return $false
@@ -1103,20 +1166,20 @@ function Get-InstallScript {
     
     # Map architecture names for DEB packages
     $debArch = switch ($Arch) {
-        'x64'     { 'amd64' }
-        'arm64'   { 'arm64' }
-        'arm32'   { 'armhf' }
-        default   { 'amd64' }
+        'x64' { 'amd64' }
+        'arm64' { 'arm64' }
+        'arm32' { 'armhf' }
+        default { 'amd64' }
     }
     
     # Map architecture names for RPM packages
     $rpmArch = switch ($Arch) {
-        'x64'     { 'x86_64' }
-        'arm64'   { 'aarch64' }
-        'arm32'   { 'armv7hl' }
+        'x64' { 'x86_64' }
+        'arm64' { 'aarch64' }
+        'arm32' { 'armv7hl' }
         'ppc64le' { 'ppc64le' }
-        's390x'   { 's390x' }
-        default   { 'x86_64' }
+        's390x' { 's390x' }
+        default { 'x86_64' }
     }
     
     # Distro folder name (lowercase with underscores)
@@ -1155,8 +1218,23 @@ function Get-InstallScript {
         '        exit 1',
         '    fi',
         'else',
-        '    echo "WARNING: python3 not available, skipping library API validation"',
-        '    echo "Library installation was verified via ldconfig"',
+        '    echo "WARNING: python3 not available, falling back to ldd validation"',
+        '    # Find the library path using sed (more portable than awk)',
+        '    LIB_PATH=$(ldconfig -p | grep "libmsquic.so.2" | sed "s/.*=> //" | head -1)',
+        '    if [ -z "$LIB_PATH" ]; then',
+        '        echo "ERROR: libmsquic.so.2 not found in ldconfig cache"',
+        '        exit 1',
+        '    fi',
+        '    echo "Library path: $LIB_PATH"',
+        '    # Use ldd to check if all dependencies can be resolved',
+        '    echo "Checking library dependencies with ldd..."',
+        '    LDD_OUTPUT=$(ldd "$LIB_PATH" 2>&1)',
+        '    echo "$LDD_OUTPUT"',
+        '    if echo "$LDD_OUTPUT" | grep -q "not found"; then',
+        '        echo "ERROR: Library has missing dependencies"',
+        '        exit 1',
+        '    fi',
+        '    echo "SUCCESS: All library dependencies resolved"',
         'fi'
     )
     
@@ -1184,7 +1262,8 @@ function Get-InstallScript {
         )
         $script = $script -join "`n"
         return $script
-    } else {
+    }
+    else {
         # RPM-based (includes Azure Linux with tdnf, openSUSE/SLES with zypper, and yum/dnf distros)
         $script = @(
             'set -e',
@@ -1280,7 +1359,8 @@ if (Test-Path $LogPath) {
         Write-Step "Clearing $($oldLogs.Count) old log file(s)..."
         $oldLogs | Remove-Item -Force
     }
-} else {
+}
+else {
     New-Item -ItemType Directory -Path $LogPath -Force | Out-Null
 }
 $LogPath = Resolve-Path $LogPath -ErrorAction Stop
@@ -1292,7 +1372,7 @@ Write-Step "Available packages:"
 $distroFolders = Get-ChildItem -Path $PackagesPath -Directory -ErrorAction SilentlyContinue
 if ($distroFolders) {
     foreach ($folder in $distroFolders) {
-        $packages = Get-ChildItem -Path $folder.FullName -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.deb','.rpm' }
+        $packages = Get-ChildItem -Path $folder.FullName -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.deb', '.rpm' }
         if ($packages) {
             Write-Host "    $($folder.Name)/" -ForegroundColor Yellow
             $packages | ForEach-Object { Write-Info "      $($_.Name)" }
@@ -1300,7 +1380,7 @@ if ($distroFolders) {
     }
 }
 # Also check root folder
-$rootPackages = Get-ChildItem -Path $PackagesPath -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.deb','.rpm' }
+$rootPackages = Get-ChildItem -Path $PackagesPath -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.deb', '.rpm' }
 if ($rootPackages) {
     Write-Host "    (root)/" -ForegroundColor Yellow
     $rootPackages | ForEach-Object { Write-Info "      $($_.Name)" }
@@ -1316,7 +1396,8 @@ if ($needsQemu) {
 $distrosToTest = @()
 if ($Distro -eq 'All') {
     $distrosToTest = $DockerImages.Keys
-} else {
+}
+else {
     $distrosToTest = @($Distro)
 }
 
@@ -1326,7 +1407,8 @@ if ($Arch -eq 'All') {
     # Default to x64, arm64, and arm32 for 'All'
     # Note: arm32 is only available for Ubuntu, Debian, and Fedora (DEB distros mainly)
     $archsToTest = @('x64', 'arm64', 'arm32')
-} else {
+}
+else {
     $archsToTest = @($Arch)
 }
 
@@ -1345,18 +1427,26 @@ if ($runDotNetTests) {
         Write-WarningMsg "MsQuic repository not found. .NET tests will be skipped."
         Write-Info "To run .NET tests, ensure this script is in msquic/scripts/"
         $runDotNetTests = $false
-    } else {
+    }
+    else {
         # Check if .NET SDK is available
         $dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
         if (-not $dotnetCmd) {
             Write-WarningMsg ".NET SDK not found. .NET tests will be skipped."
             Write-Info "Install .NET SDK to enable .NET QUIC validation."
             $runDotNetTests = $false
-        } else {
+        }
+        else {
             Write-Step ".NET SDK found: $(dotnet --version)"
 
-            # Use cross-platform temp path (env:TEMP is Windows-only)
-            $tempDir = [System.IO.Path]::GetTempPath()
+            # Use cross-platform temp path that Docker can mount
+            # On macOS, /var/folders is not accessible to Docker by default, use /tmp instead
+            if ($IsMacOS) {
+                $tempDir = "/tmp"
+            }
+            else {
+                $tempDir = [System.IO.Path]::GetTempPath()
+            }
             $DotNetTestPath = Join-Path $tempDir "msquic_dotnet_docker_test"
 
             if (Test-Path $DotNetTestPath) {
@@ -1415,10 +1505,12 @@ if ($runDotNetTests) {
                                 }
                             }
                             Write-Info "  $rid (.NET $netVersion) build succeeded"
-                        } else {
+                        }
+                        else {
                             Write-WarningMsg "  $rid (.NET $netVersion) build failed"
                         }
-                    } catch {
+                    }
+                    catch {
                         Write-WarningMsg "  $rid (.NET $netVersion) build error: $_"
                     }
                 }
@@ -1428,7 +1520,8 @@ if ($runDotNetTests) {
                 Write-ErrorMsg "No platforms could be built"
                 $runDotNetTests = $false
                 $DotNetTestPath = $null
-            } else {
+            }
+            else {
                 # Group by arch for display
                 $archSummary = $builtConfigs | Group-Object -Property Arch | ForEach-Object {
                     $versions = ($_.Group | ForEach-Object { "net$($_.Version)" }) -join ', '
@@ -1486,12 +1579,12 @@ foreach ($currentArch in $archsToTest) {
             $versionInfo = if ($PackageVersion) { " (version $PackageVersion)" } else { "" }
             Write-WarningMsg "No $packageType package found for $distroName ($currentArch)$versionInfo - skipping"
             $results[$resultKey] = @{
-                'Distro' = $distroName
-                'Arch' = $currentArch
+                'Distro'      = $distroName
+                'Arch'        = $currentArch
                 'PackageTest' = $null
-                'DotNetTest' = $null
-                'Skipped' = $true
-                'SkipReason' = 'Package not found'
+                'DotNetTest'  = $null
+                'Skipped'     = $true
+                'SkipReason'  = 'Package not found'
             }
             $packageSkippedCount++
             if ($runDotNetTests) { $dotnetSkippedCount++ }
@@ -1500,13 +1593,13 @@ foreach ($currentArch in $archsToTest) {
 
         # Add to test task list
         $testTasks += @{
-            DistroName = $distroName
-            Image = $image
-            Arch = $currentArch
-            PackageType = $packageType
-            ResultKey = $resultKey
-            FriendlyName = $friendlyName
-            PackagePath = $packageCheck.Path
+            DistroName    = $distroName
+            Image         = $image
+            Arch          = $currentArch
+            PackageType   = $packageType
+            ResultKey     = $resultKey
+            FriendlyName  = $friendlyName
+            PackagePath   = $packageCheck.Path
             DotNetVersion = ($distroConfig['dotnetVersion'] ?? '9.0')
         }
         Write-Step "Queued: $friendlyName ($currentArch)"
@@ -1538,11 +1631,11 @@ if ($testTasks.Count -gt 0) {
 
             # Pre-compute all values needed for Docker execution
             $platform = switch ($task.Arch) {
-                'arm64'   { 'linux/arm64' }
-                'arm32'   { 'linux/arm/v7' }
+                'arm64' { 'linux/arm64' }
+                'arm32' { 'linux/arm/v7' }
                 'ppc64le' { 'linux/ppc64le' }
-                's390x'   { 'linux/s390x' }
-                default   { 'linux/amd64' }
+                's390x' { 'linux/s390x' }
+                default { 'linux/amd64' }
             }
 
             # Handle both string and PathInfo types
@@ -1559,7 +1652,8 @@ if ($testTasks.Count -gt 0) {
                 $archTestPath = Join-Path $DotNetTestPath $task.Arch
                 if (Test-Path $archTestPath) {
                     $dotnetMount = ($archTestPath.ToString()) -replace '\\', '/'
-                } else {
+                }
+                else {
                     $dotnetMount = $null
                     $includeDotNetTest = $false
                 }
@@ -1621,12 +1715,12 @@ if ($testTasks.Count -gt 0) {
                 param($Image, $Platform, $PackagesMount, $CombinedScript, $LogFile, $TaskInfo, $DotNetMount, $IncludeDotNetTest)
 
                 $output = @{
-                    ResultKey = $TaskInfo.ResultKey
-                    DistroName = $TaskInfo.DistroName
-                    Arch = $TaskInfo.Arch
+                    ResultKey   = $TaskInfo.ResultKey
+                    DistroName  = $TaskInfo.DistroName
+                    Arch        = $TaskInfo.Arch
                     PackageTest = $false
-                    DotNetTest = (-not $IncludeDotNetTest)  # Default to true if not testing .NET
-                    Logs = @()
+                    DotNetTest  = (-not $IncludeDotNetTest)  # Default to true if not testing .NET
+                    Logs        = @()
                 }
 
                 try {
@@ -1666,15 +1760,18 @@ if ($testTasks.Count -gt 0) {
                         $output.PackageTest = $false
                         $output.DotNetTest = $false
                         $output.Logs += "Package installation FAILED"
-                    } elseif ($exitCode -eq 0) {
+                    }
+                    elseif ($exitCode -eq 0) {
                         $output.PackageTest = $true
                         $output.DotNetTest = $true
                         $output.Logs += "All tests PASSED"
-                    } elseif ($exitCode -eq 1) {
+                    }
+                    elseif ($exitCode -eq 1) {
                         $output.PackageTest = $true
                         $output.DotNetTest = $false
                         $output.Logs += "Package OK, .NET test FAILED"
-                    } elseif ($exitCode -eq 2) {
+                    }
+                    elseif ($exitCode -eq 2) {
                         $output.PackageTest = $true
                         $output.DotNetTest = $true  # Skipped counts as pass
                         $output.Logs += "Package OK, .NET test SKIPPED"
@@ -1688,10 +1785,10 @@ if ($testTasks.Count -gt 0) {
             } -ArgumentList $task.Image, $platform, $packagesMount, $combinedScript, $logFile, $task, $dotnetMount, $includeDotNetTest
 
             $runningJobs[$task.ResultKey] = @{
-                Job = $job
-                Task = $task
-                LogFile = $logFile
-                StartTime = Get-Date
+                Job               = $job
+                Task              = $task
+                LogFile           = $logFile
+                StartTime         = Get-Date
                 IncludeDotNetTest = $includeDotNetTest
             }
             $taskIndex++
@@ -1729,12 +1826,12 @@ if ($testTasks.Count -gt 0) {
                 # Process result
                 if ($job.State -eq 'Completed' -and $output) {
                     $results[$output.ResultKey] = @{
-                        'Distro' = $output.DistroName
-                        'Arch' = $output.Arch
+                        'Distro'      = $output.DistroName
+                        'Arch'        = $output.Arch
                         'PackageTest' = $output.PackageTest
-                        'DotNetTest' = $output.DotNetTest
-                        'Skipped' = $false
-                        'SkipReason' = $null
+                        'DotNetTest'  = $output.DotNetTest
+                        'Skipped'     = $false
+                        'SkipReason'  = $null
                     }
 
                     # Determine overall pass/fail (both tests must pass)
@@ -1742,14 +1839,16 @@ if ($testTasks.Count -gt 0) {
 
                     if ($output.PackageTest) {
                         $packagePassCount++
-                    } else {
+                    }
+                    else {
                         $packageFailCount++
                     }
 
                     if ($runDotNetTests) {
                         if ($output.DotNetTest) {
                             $dotnetPassCount++
-                        } else {
+                        }
+                        else {
                             $dotnetFailCount++
                         }
                     }
@@ -1762,22 +1861,24 @@ if ($testTasks.Count -gt 0) {
                             $statusMsg += ", .NET OK"
                         }
                         Write-Host "[PASS] $($task.FriendlyName) ($($task.Arch)) - $statusMsg" -ForegroundColor Green
-                    } else {
+                    }
+                    else {
                         $statusMsg = if (-not $output.PackageTest) { "Package FAILED" } else { "Package OK" }
                         if ($runDotNetTests -and $jobIncludesDotNet) {
                             $statusMsg += if (-not $output.DotNetTest) { ", .NET FAILED" } else { ", .NET OK" }
                         }
                         Write-Host "[FAIL] $($task.FriendlyName) ($($task.Arch)) - $statusMsg (see $($task.ResultKey).log)" -ForegroundColor Red
                     }
-                } else {
+                }
+                else {
                     # Job failed
                     $results[$task.ResultKey] = @{
-                        'Distro' = $task.DistroName
-                        'Arch' = $task.Arch
+                        'Distro'      = $task.DistroName
+                        'Arch'        = $task.Arch
                         'PackageTest' = $false
-                        'DotNetTest' = $false
-                        'Skipped' = $false
-                        'SkipReason' = $null
+                        'DotNetTest'  = $false
+                        'Skipped'     = $false
+                        'SkipReason'  = $null
                     }
                     $packageFailCount++
                     if ($runDotNetTests) { $dotnetFailCount++ }
@@ -1815,9 +1916,11 @@ foreach ($key in $results.Keys | Sort-Object) {
     $arch = $result['Arch']
     if ($result['Skipped']) {
         Write-Skipped "  $friendlyName ($arch) - SKIPPED ($($result['SkipReason']))"
-    } elseif ($result['PackageTest']) {
+    }
+    elseif ($result['PackageTest']) {
         Write-Success "  $friendlyName ($arch) - Package PASSED"
-    } else {
+    }
+    else {
         Write-Failure "  $friendlyName ($arch) - Package FAILED"
     }
 }
@@ -1831,9 +1934,11 @@ if ($runDotNetTests) {
         $arch = $result['Arch']
         if ($result['Skipped']) {
             Write-Skipped "  $friendlyName ($arch) - SKIPPED ($($result['SkipReason']))"
-        } elseif ($result['DotNetTest']) {
+        }
+        elseif ($result['DotNetTest']) {
             Write-Success "  $friendlyName ($arch) - .NET PASSED"
-        } else {
+        }
+        else {
             Write-Failure "  $friendlyName ($arch) - .NET FAILED"
         }
     }
@@ -1861,7 +1966,8 @@ if ($totalFailed -gt 0) {
     Write-Host ""
     Write-ErrorMsg "Some validations failed!"
     exit 1
-} else {
+}
+else {
     Write-Host ""
     Write-Success "All validations passed!"
     exit 0
