@@ -160,6 +160,16 @@ UpdatePollCompletion(
     CxPlatUpdateExecutionContexts(Worker);
 }
 
+void
+CxPlatWorkerPoolWorkerDrainEvents(
+    _In_ CXPLAT_WORKER* Worker
+    );
+
+void
+CxPlatProcessEvents(
+    _In_ CXPLAT_WORKER* Worker
+    );
+
 BOOLEAN
 CxPlatWorkerPoolInitWorker(
     _Inout_ CXPLAT_WORKER* Worker,
@@ -449,6 +459,17 @@ CxPlatWorkerPoolDelete(
 #else
         UNREFERENCED_PARAMETER(RefType);
 #endif
+
+        if (RefType == CXPLAT_WORKER_POOL_REF_EXTERNAL) {
+            //
+            // In the case of external execution, it's possible for ExecutionDelete
+            // to run before all the queues have been drained of internal cleanup work.
+            // Run all the workers until there's nothing left to do here.
+            //
+            for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
+                CxPlatWorkerPoolWorkerDrainEvents(&WorkerPool->Workers[i]);
+            }
+        }
         CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
 
 #if DEBUG
@@ -664,6 +685,39 @@ CxPlatWorkerPoolWorkerPoll(
     }
 
     return Worker->State.WaitTime;
+}
+
+void
+CxPlatWorkerPoolWorkerDrainEvents(
+    _In_ CXPLAT_WORKER* Worker
+    )
+{
+    uint32_t Iterations = 0;
+    do {
+        Worker->State.TimeNow = CxPlatTimeUs64();
+        Worker->State.ThreadID = CxPlatCurThreadID();
+
+        CxPlatRunExecutionContexts(Worker);
+        if (Worker->State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running)) {
+            Worker->State.TimeNow = CxPlatTimeUs64();
+            CxPlatRunExecutionContexts(Worker); // Run once more to handle race conditions
+        }
+
+        //
+        // Set the wait time to zero here to process as soon as possible.
+        // Otherwise, CxPlatProcessEvents may wait this many milliseconds.
+        //
+        Worker->State.WaitTime = 0;
+
+        //
+        // Assume there is no work to do, and this will update to zero if work was done.
+        //
+        Worker->State.NoWorkCount = 1;
+        CxPlatProcessEvents(Worker);
+
+        ++Iterations;
+        CXPLAT_DBG_ASSERTMSG(Iterations < 10, "Is the library still active?");
+    } while (Worker->State.NoWorkCount == 0);
 }
 
 #define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
