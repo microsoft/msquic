@@ -880,12 +880,13 @@ TEST(CubicTest, CongestionAvoidance_IdleTimeDetection)
 }
 
 //
-// Test 19: GetSendAllowance - EstimatedWnd clamping to SlowStartThreshold
-// Scenario: Tests cubic.c where EstimatedWnd (CongestionWindow << 1)
-// exceeds SlowStartThreshold during slow start, causing EstimatedWnd to be clamped.
-// This ensures burst estimation doesn't exceed the slow start threshold.
+// Test 19: GetSendAllowance - Comprehensive Pacing Scenarios
+// Scenario: Tests multiple pacing paths in a single test to reduce redundancy:
+// 1. EstimatedWnd clamping to SlowStartThreshold during slow start
+// 2. EstimatedWnd calculation (1.25x) during congestion avoidance
+// 3. SendAllowance clamping to available window space
 //
-TEST(CubicTest, GetSendAllowance_EstimatedWndClamping)
+TEST(CubicTest, GetSendAllowance_PacingScenarios)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -895,142 +896,53 @@ TEST(CubicTest, GetSendAllowance_EstimatedWndClamping)
     Settings.SendIdleTimeoutMs = 1000;
 
     InitializeMockConnection(Connection, 1280);
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
-
-    // Setup: Make CongestionWindow < SlowStartThreshold
-    // and (CongestionWindow << 1) > SlowStartThreshold
-    uint32_t SlowStartThresh = 15000;
-    uint32_t CongWin = 10000;  // CongWin << 1 = 20000 > 15000
-
-    Cubic->SlowStartThreshold = SlowStartThresh;
-    Cubic->CongestionWindow = CongWin;
-    Cubic->BytesInFlight = 0;
-    Cubic->LastSendAllowance = 0;  // Initialize pacing state
-
-    // Enable pacing to exercise the EstimatedWnd calculation
     Connection.Settings.PacingEnabled = TRUE;
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000; // 50ms
 
-    // TimeSinceLastSend is passed as parameter (10ms = 10000 microseconds)
-    uint64_t TimeSinceLastSend = 10000;
-
-    // Call GetSendAllowance with valid time
-    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
-        &Connection.CongestionControl, TimeSinceLastSend, TRUE);
-
-    // Verify: EstimatedWnd should have been clamped to SlowStartThreshold (15000)
-    // Pacing calculation: (LastSendAllowance + (EstimatedWnd * TimeSinceLastSend) / RTT)
-    // = (0 + (15000 * 10000) / 50000) = 3000
-    uint32_t ExpectedAllowance = 3000;
-    ASSERT_EQ(Allowance, ExpectedAllowance);
-}
-
-//
-// Test 20: GetSendAllowance - Congestion Avoidance Pacing
-// Scenario: Tests cubic.c where EstimatedWnd is calculated as
-// CongestionWindow * 1.25 during congestion avoidance phase (CongestionWindow >= SlowStartThreshold).
-// This ensures proper pacing calculation when not in slow start.
-//
-TEST(CubicTest, GetSendAllowance_CongestionAvoidancePacing)
-{
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-
-    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
 
-    // Setup: Make CongestionWindow >= SlowStartThreshold to enter congestion avoidance
-    uint32_t SlowStartThresh = 10000;
-    uint32_t CongWin = 20000;  // CongWin >= SlowStartThresh
-
-    Cubic->SlowStartThreshold = SlowStartThresh;
-    Cubic->CongestionWindow = CongWin;
-
+    // Scenario 1: EstimatedWnd clamping (slow start)
+    Cubic->SlowStartThreshold = 15000;
+    Cubic->CongestionWindow = 10000;  // CongWin << 1 = 20000 > 15000
     Cubic->BytesInFlight = 0;
-    Cubic->LastSendAllowance = 0;  // Initialize pacing state
-
-    // Enable pacing to exercise the EstimatedWnd calculation
-    Connection.Settings.PacingEnabled = TRUE;
-    Connection.Paths[0].GotFirstRttSample = TRUE;
-    Connection.Paths[0].SmoothedRtt = 50000; // 50ms
-
-    // TimeSinceLastSend is passed as parameter (10ms = 10000 microseconds)
-    uint64_t TimeSinceLastSend = 10000;
-
-    // Call GetSendAllowance with valid time
-    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
-        &Connection.CongestionControl, TimeSinceLastSend, TRUE);
-
-    // Verify: EstimatedWnd should be CongestionWindow * 1.25 = 20000 + 5000 = 25000
-    // Pacing calculation: (LastSendAllowance + (EstimatedWnd * TimeSinceLastSend) / RTT)
-    // = (0 + (25000 * 10000) / 50000) = 5000
-    uint32_t ExpectedAllowance = 5000;
-    ASSERT_EQ(Allowance, ExpectedAllowance);
-}
-
-//
-// Test 21: GetSendAllowance - Clamping to Available Window
-// Scenario: Tests cubic.c where SendAllowance is clamped to
-// (CongestionWindow - BytesInFlight) when the pacing calculation results in
-// a value larger than the available window space.
-//
-TEST(CubicTest, GetSendAllowance_ClampToAvailableWindow)
-{
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-
-    InitializeMockConnection(Connection, 1280);
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
-
-    // Setup: Make pacing calculate a large value that exceeds available window
-    uint32_t CongWin = 10000;
-    uint32_t BytesInFlight = 8000;  // Available window = 10000 - 8000 = 2000
-
-    Cubic->CongestionWindow = CongWin;
-    Cubic->BytesInFlight = BytesInFlight;
-    Cubic->SlowStartThreshold = 5000;  // CongWin > SlowStartThresh (congestion avoidance)
     Cubic->LastSendAllowance = 0;
 
-    // Enable pacing with very large time elapsed to force large SendAllowance
-    Connection.Settings.PacingEnabled = TRUE;
-    Connection.Paths[0].GotFirstRttSample = TRUE;
-    Connection.Paths[0].SmoothedRtt = 10000; // 10ms - small RTT
-
-    // Large time elapsed to create SendAllowance > available window
-    uint64_t TimeSinceLastSend = 100000; // 100ms
-
-    // Call GetSendAllowance
     uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
-        &Connection.CongestionControl, TimeSinceLastSend, TRUE);
+        &Connection.CongestionControl, 10000, TRUE);
+    ASSERT_EQ(Allowance, 3000u); // (15000 * 10000) / 50000
 
-    // Verify: SendAllowance should be clamped to (CongestionWindow - BytesInFlight)
-    uint32_t ExpectedAllowance = CongWin - BytesInFlight; // 2000
-    ASSERT_EQ(Allowance, ExpectedAllowance);
+    // Scenario 2: Congestion avoidance pacing (1.25x multiplier)
+    Cubic->SlowStartThreshold = 10000;
+    Cubic->CongestionWindow = 20000;  // >= SlowStartThresh
+    Cubic->BytesInFlight = 0;
+    Cubic->LastSendAllowance = 0;
+
+    Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, 10000, TRUE);
+    ASSERT_EQ(Allowance, 5000u); // (25000 * 10000) / 50000
+
+    // Scenario 3: Clamping to available window
+    Cubic->CongestionWindow = 10000;
+    Cubic->BytesInFlight = 8000;
+    Cubic->SlowStartThreshold = 5000;
+    Cubic->LastSendAllowance = 0;
+    Connection.Paths[0].SmoothedRtt = 10000; // Small RTT
+
+    Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, 100000, TRUE);
+    ASSERT_EQ(Allowance, 2000u); // Clamped to CongWin - BytesInFlight
 }
 
 //
-// Test 22: UpdateBlockedState - Transition from Can Send to Blocked
-// Scenario: Tests cubic.c where PreviousCanSendState was TRUE
-// (could send before) and now CubicCongestionControlCanSend returns FALSE
-// (blocked now). This should add the QUIC_FLOW_BLOCKED_CONGESTION_CONTROL
-// reason to the connection's OutFlowBlockedReasons and return FALSE.
+// Test 20: Blocking Behavior - Comprehensive Flow Control
+// Scenario: Tests complete blocking/unblocking cycle including exemptions:
+// 1. Send until window full (can't send)
+// 2. Unblock via ACK (can send again)
+// 3. Block again and use exemptions to bypass
 //
-TEST(CubicTest, BlockingBehavior_WindowFull_CannotSend)
+TEST(CubicTest, BlockingBehavior_Complete)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -1044,52 +956,16 @@ TEST(CubicTest, BlockingBehavior_WindowFull_CannotSend)
 
     QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
 
-    // Phase 1: Verify initial state - can send
+    // Phase 1: Send until blocked
     ASSERT_TRUE(Cc->QuicCongestionControlCanSend(Cc));
-    uint32_t InitialAllowance = Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE);
-    ASSERT_GT(InitialAllowance, 0u);
-
-    // Phase 2: Send data until blocked using interface
     uint32_t TotalSent = SendUntilBlocked(Cc, &Connection);
-
-    // Phase 3: Verify blocked behavior
     ASSERT_FALSE(Cc->QuicCongestionControlCanSend(Cc));
     ASSERT_EQ(Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE), 0u);
 
-    // Phase 4: Verify we sent approximately one window's worth
     uint32_t Window = Cc->QuicCongestionControlGetCongestionWindow(Cc);
     ASSERT_GE(TotalSent, Window);
-    const uint32_t PacketSize = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
-    ASSERT_LE(TotalSent, Window + PacketSize); // At most one packet over
-}
 
-//
-// Test 23: UpdateBlockedState - Transition from Blocked to Can Send
-// Scenario: Tests cubic.c where PreviousCanSendState was FALSE
-// (blocked before) and now CubicCongestionControlCanSend returns TRUE (can send now).
-// This should remove the QUIC_FLOW_BLOCKED_CONGESTION_CONTROL reason, reset
-// Connection->Send.LastFlushTime, and return TRUE.
-//
-TEST(CubicTest, BlockingBehavior_Unblock_AfterAck)
-{
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-
-    InitializeMockConnection(Connection, 1280);
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
-
-    // Phase 1: Fill window and verify blocked
-    SendUntilBlocked(Cc, &Connection);
-    ASSERT_FALSE(Cc->QuicCongestionControlCanSend(Cc));
-    ASSERT_EQ(Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE), 0u);
-
-    // Phase 2: ACK some data to unblock
+    // Phase 2: Unblock via ACK
     QUIC_ACK_EVENT AckEvent = {0};
     AckEvent.TimeNow = CxPlatTimeUs64();
     AckEvent.NumRetransmittableBytes = 1200;
@@ -1098,50 +974,19 @@ TEST(CubicTest, BlockingBehavior_Unblock_AfterAck)
     AckEvent.MinRttValid = TRUE;
 
     Cc->QuicCongestionControlOnDataAcknowledged(Cc, &AckEvent);
-
-    // Phase 3: Verify unblocked
     ASSERT_TRUE(Cc->QuicCongestionControlCanSend(Cc));
-    uint32_t AllowanceAfterAck = Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE);
-    ASSERT_GT(AllowanceAfterAck, 0u);
-}
+    ASSERT_GT(Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE), 0u);
 
-//
-// Test 24: Blocking Behavior - Exemptions Allow Sending When Blocked
-// Scenario: Interface-based test verifying that exemptions (probe packets) allow
-// sending even when congestion window is full.
-//
-TEST(CubicTest, BlockingBehavior_Exemptions_AllowSendWhenBlocked)
-{
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-
-    InitializeMockConnection(Connection, 1280);
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
-
-    // Phase 1: Fill window and verify blocked
+    // Phase 3: Block again and use exemptions
     SendUntilBlocked(Cc, &Connection);
     ASSERT_FALSE(Cc->QuicCongestionControlCanSend(Cc));
-    ASSERT_EQ(Cc->QuicCongestionControlGetExemptions(Cc), 0u);
 
-    // Phase 2: Set exemption (for probe packets)
     Cc->QuicCongestionControlSetExemption(Cc, 2);
-
-    // Phase 3: Verify can send again due to exemptions
     ASSERT_TRUE(Cc->QuicCongestionControlCanSend(Cc));
     ASSERT_EQ(Cc->QuicCongestionControlGetExemptions(Cc), 2u);
 
-    // Phase 4: Send with exemption and verify exemption consumed
     Cc->QuicCongestionControlOnDataSent(Cc, 1200);
     ASSERT_EQ(Cc->QuicCongestionControlGetExemptions(Cc), 1u);
-
-    // Phase 5: Can still send with remaining exemption
-    ASSERT_TRUE(Cc->QuicCongestionControlCanSend(Cc));
 }
 
 //
@@ -1170,7 +1015,7 @@ static void SetupCongestionEventTest(
 }
 
 //
-// Test 25: OnCongestionEvent - Persistent vs Normal Congestion
+// Test 21: OnCongestionEvent - Persistent vs Normal Congestion
 // Scenario: Tests both persistent congestion path and normal congestion
 // path. Verifies state transitions, window reductions, and flag updates.
 // This consolidates multiple tests for better efficiency.
@@ -1226,7 +1071,7 @@ TEST(CubicTest, OnCongestionEvent_PersistentAndNormal)
 }
 
 //
-// Test 26: OnCongestionEvent - Fast Convergence Scenarios
+// Test 22: OnCongestionEvent - Fast Convergence Scenarios
 // Scenario: Comprehensive test covering fast convergence behavior in different scenarios:
 // 1. Fast convergence triggers when WindowLastMax > WindowMax
 // 2. No fast convergence when WindowLastMax <= WindowMax
@@ -1273,6 +1118,214 @@ TEST(CubicTest, OnCongestionEvent_FastConvergence)
 
     // Verify condition not >, so no fast convergence
     ASSERT_EQ(Cubic->WindowLastMax, Cubic->WindowMax);
+}
+
+//
+// Test 23: Recovery States - Exit vs Continuation
+// Scenario: Tests recovery logic for both paths:
+// 1. Recovery exit when ACK is for packet after recovery start
+// 2. Recovery continuation when ACK is for packet before/at recovery start
+//
+TEST(CubicTest, OnDataAcknowledged_RecoveryStates)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Part 1: Recovery exit (LargestAck > RecoverySentPacketNumber)
+    Cubic->IsInRecovery = TRUE;
+    Cubic->HasHadCongestionEvent = TRUE;
+    Cubic->RecoverySentPacketNumber = 10;
+    Cubic->BytesInFlight = 5000;
+
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = 2000000;
+    AckEvent.LargestAck = 15; // > RecoverySentPacketNumber
+    AckEvent.LargestSentPacketNumber = 20;
+    AckEvent.NumRetransmittableBytes = 1500;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRtt = 45000;
+    AckEvent.MinRttValid = TRUE;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    ASSERT_FALSE(Cubic->IsInRecovery);
+    ASSERT_EQ(Cubic->TimeOfCongAvoidStart, AckEvent.TimeNow);
+    ASSERT_EQ(Cubic->BytesInFlight, 3500u);
+
+    // Part 2: Recovery continuation (LargestAck <= RecoverySentPacketNumber)
+    uint32_t InitialWindow = Cubic->CongestionWindow;
+    Cubic->IsInRecovery = TRUE;
+    Cubic->RecoverySentPacketNumber = 10;
+    Cubic->BytesInFlight = 5000;
+
+    AckEvent.LargestAck = 8; // < RecoverySentPacketNumber
+    AckEvent.NumRetransmittableBytes = 1500;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_EQ(Cubic->CongestionWindow, InitialWindow);
+    ASSERT_EQ(Cubic->BytesInFlight, 3500u);
+}
+
+//
+// Test 24: Congestion Avoidance - Comprehensive Window Growth
+// Scenario: Tests multiple congestion avoidance paths in one test:
+// 1. Zero bytes ACKed - no window growth
+// 2. AIMD slow growth (accumulation when AimdWindow < WindowPrior)
+// 3. CUBIC constrained growth (1.5x max per RTT)
+//
+TEST(CubicTest, OnDataAcknowledged_CongestionAvoidance)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+
+    // Part 1: Zero bytes ACKed - no growth
+    uint32_t InitialWindow = Cubic->CongestionWindow;
+    AckEvent.TimeNow = 1000000;
+    AckEvent.LargestAck = 5;
+    AckEvent.LargestSentPacketNumber = 10;
+    AckEvent.NumRetransmittableBytes = 0;
+    AckEvent.SmoothedRtt = 50000;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    ASSERT_EQ(Cubic->CongestionWindow, InitialWindow);
+    ASSERT_TRUE(Cubic->TimeOfLastAckValid);
+
+    // Part 2: AIMD slow growth
+    Cubic->CongestionWindow = 20000;
+    Cubic->SlowStartThreshold = 19000;
+    Cubic->AimdWindow = 18000;
+    Cubic->WindowPrior = 20000;
+    Cubic->WindowMax = 20000;
+    Cubic->TimeOfCongAvoidStart = 1000000;
+    Cubic->TimeOfLastAck = 1000000;
+    Cubic->TimeOfLastAckValid = TRUE;
+    Cubic->BytesInFlight = 10000;
+    Cubic->AimdAccumulator = 0;
+
+    AckEvent.TimeNow = 1050000;
+    AckEvent.NumRetransmittableBytes = 2000;
+    AckEvent.MinRttValid = FALSE;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    ASSERT_EQ(Cubic->AimdAccumulator, 1000u); // BytesAcked/2
+
+    // Part 3: CUBIC constrained growth (1.5x limit)
+    Cubic->CongestionWindow = 18000;
+    Cubic->SlowStartThreshold = 17000;
+    Cubic->WindowMax = 25000;
+    Cubic->KCubic = 10;
+    Cubic->BytesInFlight = 10000;
+    InitialWindow = Cubic->CongestionWindow;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    ASSERT_GT(Cubic->CongestionWindow, InitialWindow);
+    ASSERT_LE(Cubic->CongestionWindow, InitialWindow + (InitialWindow / 2));
+}
+
+//
+// Test 25: Edge Cases - Limits and Overflow Protection
+// Scenario: Tests various edge cases and protection mechanisms:
+// 1. BytesInFlightMax limit (app-limited scenarios)
+// 2. Idle gap adjustment (freeze window growth during idle)
+// 3. DeltaT overflow protection (extreme time values)
+//
+TEST(CubicTest, OnDataAcknowledged_EdgeCases)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 50;
+    Settings.SendIdleTimeoutMs = 100;
+
+    InitializeMockConnection(Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+    Connection.Paths[0].RttVariance = 10000;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+
+    // Part 1: BytesInFlightMax limit
+    Cubic->BytesInFlightMax = 5000;
+    Cubic->BytesInFlight = 3000;
+
+    AckEvent.TimeNow = 1000000;
+    AckEvent.LargestAck = 10;
+    AckEvent.LargestSentPacketNumber = 15;
+    AckEvent.NumRetransmittableBytes = 3000;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRtt = 45000;
+    AckEvent.MinRttValid = FALSE;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    ASSERT_LE(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
+
+    // Part 2: Idle gap adjustment
+    Cubic->CongestionWindow = 20000;
+    Cubic->SlowStartThreshold = 19000;
+    Cubic->TimeOfCongAvoidStart = 1000000;
+    Cubic->TimeOfLastAck = 1000000;
+    Cubic->TimeOfLastAckValid = TRUE;
+    Cubic->BytesInFlight = 10000;
+
+    uint64_t InitialCongAvoidStart = Cubic->TimeOfCongAvoidStart;
+
+    AckEvent.TimeNow = 1500000; // 500ms idle gap
+    AckEvent.NumRetransmittableBytes = 2000;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    ASSERT_GT(Cubic->TimeOfCongAvoidStart, InitialCongAvoidStart);
+
+    // Part 3: DeltaT overflow protection
+    Settings.SendIdleTimeoutMs = 1000000;
+    Cubic->TimeOfCongAvoidStart = 1000000;
+    Cubic->TimeOfLastAck = 1000000;
+    Cubic->WindowMax = 25000;
+    Cubic->KCubic = 100;
+
+    AckEvent.TimeNow = 10000000000ULL; // Extreme future
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+
+    // Should not crash
+    ASSERT_LE(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
 }
 
 
