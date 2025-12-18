@@ -18,46 +18,29 @@ echo "${OS} ${VERSION} is detected."
 install_dependencies_apt()
 {
     apt-get update
-    if ! [ -f /usr/bin/dotnet ]; then
-        apt-get install -y wget gzip tar
-    fi
     apt-get install -y ./artifacts/libmsquic_*.deb
 }
 
 install_dependencies_rpm()
 {
     yum update -y
-    if ! [ -f /usr/bin/dotnet ]; then
-        yum install -y wget gzip tar # .NET installing requirements
-        yum install -y libicu # .NET dependencies
-    fi
     find -name "libmsquic*.rpm" -exec yum localinstall -y {} \;
 }
 
 install_dependencies_opensuse()
 {
     zypper ref
-    if ! [ -f /usr/bin/dotnet ]; then
-        zypper install -y wget gzip
-    fi
     find -name "libmsquic*.rpm" -exec zypper install --allow-unsigned-rpm -y {} \;
 }
 
-# .NET is installed already on Azure Linux and Mariner images
 install_libmsquic_azure_linux()
 {
-    if ! [ -f /usr/bin/dotnet ]; then
-        tdnf install -y wget gzip tar
-    fi
-    tdnf update
+    tdnf update -y
     find -name "libmsquic*.rpm" -exec tdnf install -y {} \;
 }
 
 install_libmsquic_alpine()
 {
-    if ! [ -f /usr/bin/dotnet ]; then
-        apk add --upgrade --no-cache wget gzip tar
-    fi
     find -name "libmsquic*.apk" -exec apk add --allow-untrusted {} \;
 }
 
@@ -82,14 +65,16 @@ if ! [ "$OS" = 'alpine' ]; then
     artifacts/bin/linux/${1}_${2}_${3}/msquictest --gtest_filter=ParameterValidation.ValidateApi
 fi
 
-# Install .NET if it is not installed
-if ! [ -f /usr/bin/dotnet ]; then
-    wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
-    chmod +x dotnet-install.sh
-    ./dotnet-install.sh --channel $4 --shared-runtime
-
-    export PATH=$PATH:$HOME/.dotnet
-    export DOTNET_ROOT=$HOME/.dotnet
+# Run .NET 10 self-contained test if available
+if [ -f /main/src/cs/QuicSimpleTest/artifacts/net10.0/QuicHello.net10.0 ]; then
+    echo "Running .NET 10 QUIC test..."
+    chmod +x /main/src/cs/QuicSimpleTest/artifacts/net10.0/QuicHello.net10.0
+    /main/src/cs/QuicSimpleTest/artifacts/net10.0/QuicHello.net10.0
 fi
 
-dotnet /main/src/cs/QuicSimpleTest/artifacts/net$4/QuicHello.net$4.dll
+# Run .NET 9 self-contained test if available
+if [ -f /main/src/cs/QuicSimpleTest/artifacts/net9.0/QuicHello.net9.0 ]; then
+    echo "Running .NET 9 QUIC test..."
+    chmod +x /main/src/cs/QuicSimpleTest/artifacts/net9.0/QuicHello.net9.0
+    /main/src/cs/QuicSimpleTest/artifacts/net9.0/QuicHello.net9.0
+fi
