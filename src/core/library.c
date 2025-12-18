@@ -886,7 +886,7 @@ QuicLibraryLazyInitialize(
 
 #ifndef _KERNEL_MODE
     if (MsQuicLib.WorkerPool == NULL) {
-        MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
+        MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig, CXPLAT_WORKER_POOL_REF_LIBRARY);
         if (!MsQuicLib.WorkerPool) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             MsQuicLibraryFreePartitions();

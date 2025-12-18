@@ -61,7 +61,7 @@ main(
 
     CxPlatSystemLoad();
     CxPlatInitialize();
-    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
     CxPlatRandom(sizeof(PcpNonce), PcpNonce);
     CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
     CxPlatDataPathInitialize(0, nullptr, nullptr, WorkerPool, &InitConfig, &Datapath);
@@ -99,7 +99,7 @@ Error:
         CxPlatPcpUninitialize(PcpContext);
     }
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 

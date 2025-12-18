@@ -265,7 +265,8 @@ CxPlatWorkerPoolDestroyWorker(
 
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreate(
-    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config,
+    _In_ CXPLAT_WORKER_POOL_REF RefType
     )
 {
     //
@@ -345,7 +346,7 @@ CxPlatWorkerPoolCreate(
     CxPlatRundownInitialize(&WorkerPool->Rundown);
 #if DEBUG
     CxPlatRefInitializeMultiple(WorkerPool->RefTypeBiasedCount, CXPLAT_WORKER_POOL_REF_COUNT);
-    CxPlatRefIncrement(&WorkerPool->RefTypeBiasedCount[CXPLAT_WORKER_POOL_REF_LIBRARY]);
+    CxPlatRefIncrement(&WorkerPool->RefTypeBiasedCount[RefType]);
 #endif
 
     return WorkerPool;
@@ -450,7 +451,7 @@ CxPlatWorkerPoolDelete(
 
 #if DEBUG
         for (uint32_t i = 0; i < CXPLAT_WORKER_POOL_REF_COUNT; i++) {
-            CXPLAT_TEL_ASSERT(WorkerPool->RefTypeBiasedCount[i] == 1);
+            CXPLAT_DBG_ASSERT(WorkerPool->RefTypeBiasedCount[i] == 1);
         }
 #endif
 

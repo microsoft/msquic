@@ -58,7 +58,7 @@ struct QuicAddr
     }
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
-        CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+        CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
         CXPLAT_DATAPATH* Datapath = nullptr;
         CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
         InitConfig.EnableDscpOnRecv = TRUE;
@@ -81,7 +81,7 @@ struct QuicAddr
             GTEST_FATAL_FAILURE_("Failed to resolve IP address.");
         }
         CxPlatDataPathUninitialize(Datapath);
-        CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
+        CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
     }
 };
 
@@ -464,7 +464,7 @@ struct CxPlatDataPath {
         ) noexcept
     {
         WorkerPool =
-            CxPlatWorkerPoolCreate(Config ? Config : &DefaultExecutionConfig);
+            CxPlatWorkerPoolCreate(Config ? Config : &DefaultExecutionConfig, CXPLAT_WORKER_POOL_REF_TOOL);
         CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
         InitConfig.EnableDscpOnRecv = TRUE;
         InitStatus =
@@ -480,7 +480,7 @@ struct CxPlatDataPath {
         if (Datapath) {
             CxPlatDataPathUninitialize(Datapath);
         }
-        CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
+        CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }

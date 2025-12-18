@@ -49,7 +49,7 @@ public:
     void SetUp() override {
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
-        WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+        WorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
         watchdog = new CxPlatWatchdog(Timeout);
         ASSERT_TRUE((SelfSignedCertParams =
             CxPlatGetSelfSignedCert(
@@ -157,7 +157,7 @@ public:
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatFreeSelfSignedCert(ClientCertParams);
 
-        CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
+        CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
         CxPlatUninitialize();
         CxPlatSystemUnload();
         delete watchdog;
