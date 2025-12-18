@@ -823,18 +823,9 @@ TEST(CubicTest, CongestionAvoidance_IdleTimeDetection)
 TEST(CubicTest, GetSendAllowance_PacingScenarios)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, true, false, true, 50000);
 
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-
-    InitializeMockConnection(Connection, 1280);
-    Connection.Settings.PacingEnabled = TRUE;
-    Connection.Paths[0].GotFirstRttSample = TRUE;
-    Connection.Paths[0].SmoothedRtt = 50000; // 50ms
-
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
 
     // Scenario 1: EstimatedWnd clamping (slow start)
@@ -879,14 +870,8 @@ TEST(CubicTest, GetSendAllowance_PacingScenarios)
 TEST(CubicTest, BlockingBehavior_Complete)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-
-    InitializeMockConnection(Connection, 1280);
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+    QUIC_SETTINGS_INTERNAL Settings{};
+    SetupCubicTest(Connection, Settings, 10, 1000, false, false, false, 50000);
 
     QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
 
@@ -1478,7 +1463,7 @@ TEST(CubicTest, CUBICWindowNegativeOverflow)
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
 
-    // Setup: Extreme values that could cause overflow (tests line 630)
+    // Setup: Extreme values that could cause overflow 
     Cubic->CongestionWindow = 100000000; // 100MB
     Cubic->SlowStartThreshold = 99000000;
     Cubic->TimeOfCongAvoidStart = 1000000;
@@ -1603,14 +1588,7 @@ TEST(CubicTest, CUBICWindowDeltaTClamping)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
-
-    InitializeMockConnection(Connection, 1280);
-    Settings.InitialWindowPackets = 20;
-    Settings.SendIdleTimeoutMs = 1000;
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    Connection.Paths[0].GotFirstRttSample = TRUE;
-    Connection.Paths[0].SmoothedRtt = 50000;
+    SetupCubicTest(Connection, Settings, 20, 1000, false, false, true, 50000);
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
 
@@ -1694,13 +1672,7 @@ TEST(CubicTest, SlowStartThresholdCrossingOverflow)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
-
-    // Don't use SetupCubicTest to have full control
-    InitializeMockConnection(Connection, 1280);
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    Settings.HyStartEnabled = FALSE;
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+    SetupCubicTest(Connection, Settings, 10, 1000, false, false, false, 50000);
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
 
