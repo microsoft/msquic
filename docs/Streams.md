@@ -167,6 +167,7 @@ There is no guarantee the `QUIC_BUFFER`s indicated in a receive notification wil
 
 The application is responsible for tracking the amount of data received and when a buffer it provided has been fully used.
 The application regains full ownership of a buffer after it get a receive notification for all bytes in the buffer and accept them by calling [StreamReceiveComplete](api/StreamReceiveComplete.md).
+MsQuic will not re-use a buffer for subsequent receives once it has been fully written, unless the app submit the same memory again.
 If the application accepts all the buffer's bytes **inline** from the receive notification, by returning `QUIC_STATUS_SUCCESS` and setting `TotalBufferLength` appropriately,
 it can free or reuse the buffer while in the notification handler.
 
