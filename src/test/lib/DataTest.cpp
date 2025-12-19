@@ -4879,11 +4879,14 @@ QuicTestStreamAppProvidedBuffers(
 }
 
 void
-QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend(
+QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
     )
 {
+    // Client side sending data - abort the stream on insufficient receive buffer notification
+
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
-    AppBuffersReceiverContext ReceiveContext;
+    AppBuffersReceiverContext ReceiveContext{};
+    AppBuffersSenderContext SenderContext{};
 
     // MsQuic basic initialization
     MsQuicRegistration Registration(true);
@@ -4899,77 +4902,156 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend(
         MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    // Client side sending data - provide more buffer on insufficient receive buffer notification
-    {
-        // Create send and receive buffers
-        const uint32_t BufferSize = 0x5000;
-        const uint32_t NumBuffers = 0x10;
-        UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
-        TEST_TRUE(SendDataBuffer);
-        for (auto i = 0u; i < BufferSize; ++i) {
-            SendDataBuffer[i] = static_cast<uint8_t>(i);
-        }
-        UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
-        TEST_TRUE(ReceiveDataBuffer);
-        QUIC_BUFFER QuicBuffers[NumBuffers]{};
-        for (auto i = 0u; i < NumBuffers; ++i) {
-            QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
-            QuicBuffers[i].Length = BufferSize / NumBuffers;
-        }
-
-        //
-        // Prepare a receiver stream context
-        // - some initial receive buffer space will be provided when the stream is accepted
-        // - more receive buffer space will be provided when the stream runs out of buffer space
-        //
-        ReceiveContext.BuffersForStreamStarted = QuicBuffers;
-        ReceiveContext.NumBuffersForStreamStarted = NumBuffers / 2;
-        ReceiveContext.BuffersForInsufficientRecvBuffer = QuicBuffers + NumBuffers / 2;
-        ReceiveContext.NumBuffersForInsufficientRecvBuffer = NumBuffers / 2;
-
-        // Setup a listener
-        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
-        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
-        QuicAddr ServerLocalAddr;
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        // Setup and start a client connection
-        MsQuicConnection Connection(Registration);
-        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-
-        TEST_QUIC_SUCCEEDED(Connection.Start(
-            ClientConfiguration,
-            ServerLocalAddr.GetFamily(),
-            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
-            ServerLocalAddr.GetPort()));
-        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-        TEST_TRUE(Connection.HandshakeComplete);
-
-        MsQuicStream ClientStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
-        TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
-
-        // Send all data at once. The receiver will provide more receive buffer inline in the
-        // insufficent receive buffer notification.
-        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
-        TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
-
-        TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-        TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
-        TEST_EQUAL(0, memcmp(SendDataBuffer.get(), ReceiveDataBuffer.get(), BufferSize));
+    // Create send and receive buffers
+    const uint32_t BufferSize = 0x5000;
+    const uint32_t NumBuffers = 0x10;
+    UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+    TEST_TRUE(SendDataBuffer);
+    for (auto i = 0u; i < BufferSize; ++i) {
+        SendDataBuffer[i] = static_cast<uint8_t>(i);
     }
+    UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+    TEST_TRUE(ReceiveDataBuffer);
+    QUIC_BUFFER QuicBuffers[NumBuffers]{};
+    for (auto i = 0u; i < NumBuffers; ++i) {
+        QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
+        QuicBuffers[i].Length = BufferSize / NumBuffers;
+    }
+
+    //
+    // Prepare a receiver stream context
+    // - some initial receive buffer space will be provided when the stream is accepted
+    // - more receive buffer space will be provided when the stream runs out of buffer space
+    //
+    ReceiveContext.BuffersForStreamStarted = QuicBuffers;
+    ReceiveContext.NumBuffersForStreamStarted = NumBuffers / 2;
+    ReceiveContext.ShutdownOnInsufficientRecvBuffer = TRUE;
+
+    // Setup a listener
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    // Setup and start a client connection
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(
+        ClientConfiguration,
+        ServerLocalAddr.GetFamily(),
+        QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+        ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    MsQuicStream ClientStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual,
+        AppBuffersSenderContext::StreamCallback, &SenderContext);
+    TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+    // Send data
+    // Don't send FIN so that the stream is deterministically closed after the sender gets the
+    // STOP_SENDING frame.
+    QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
+    TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1));
+
+    TEST_TRUE(SenderContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
+    TEST_EQUAL(SenderContext.PeerRecvAbortedError, 1);
 }
 
 void
-QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend(
+QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
+    )
+{
+    // Client side sending data - provide more buffer on insufficient receive buffer notification
+
+    // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
+    AppBuffersReceiverContext ReceiveContext{};
+
+    // MsQuic basic initialization
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest",
+        MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetStreamRecvWindowDefault(0x2000),
+        ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest",
+        MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetStreamRecvWindowDefault(0x2000),
+        MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    // Create send and receive buffers
+    const uint32_t BufferSize = 0x5000;
+    const uint32_t NumBuffers = 0x10;
+    UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+    TEST_TRUE(SendDataBuffer);
+    for (auto i = 0u; i < BufferSize; ++i) {
+        SendDataBuffer[i] = static_cast<uint8_t>(i);
+    }
+    UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+    TEST_TRUE(ReceiveDataBuffer);
+    QUIC_BUFFER QuicBuffers[NumBuffers]{};
+    for (auto i = 0u; i < NumBuffers; ++i) {
+        QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
+        QuicBuffers[i].Length = BufferSize / NumBuffers;
+    }
+
+    //
+    // Prepare a receiver stream context
+    // - some initial receive buffer space will be provided when the stream is accepted
+    // - more receive buffer space will be provided when the stream runs out of buffer space
+    //
+    ReceiveContext.BuffersForStreamStarted = QuicBuffers;
+    ReceiveContext.NumBuffersForStreamStarted = NumBuffers / 2;
+    ReceiveContext.BuffersForInsufficientRecvBuffer = QuicBuffers + NumBuffers / 2;
+    ReceiveContext.NumBuffersForInsufficientRecvBuffer = NumBuffers / 2;
+
+    // Setup a listener
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    // Setup and start a client connection
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(
+        ClientConfiguration,
+        ServerLocalAddr.GetFamily(),
+        QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+        ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    MsQuicStream ClientStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+    // Send all data at once. The receiver will provide more receive buffer inline in the
+    // insufficent receive buffer notification.
+    QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
+    TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+
+    TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
+    TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
+    TEST_EQUAL(0, memcmp(SendDataBuffer.get(), ReceiveDataBuffer.get(), BufferSize));
+}
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
     )
 {
     // Server side sending data - abort the stream on insufficient receive buffer notification
 
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
     AppBuffersSenderContext SenderContext{};
-    AppBuffersReceiverContext ReceiveContext;
+    AppBuffersReceiverContext ReceiveContext{};
 
     // MsQuic basic initialization
     MsQuicRegistration Registration(true);
@@ -4984,6 +5066,23 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend(
         MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetStreamRecvWindowDefault(0x2000),
         MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    // Create send and receive buffers
+    const uint32_t BufferSize = 0x5000;
+    const uint32_t NumBuffers = 0x10;
+    UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+    TEST_TRUE(SendDataBuffer);
+    for (auto i = 0u; i < BufferSize; ++i) {
+        SendDataBuffer[i] = static_cast<uint8_t>(i);
+    }
+
+    UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+    TEST_TRUE(ReceiveDataBuffer);
+    QUIC_BUFFER QuicBuffers[NumBuffers]{};
+    for (auto i = 0u; i < NumBuffers; ++i) {
+        QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
+        QuicBuffers[i].Length = BufferSize / NumBuffers;
+    }
 
     // Setup a listener
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersSenderContext::ConnCallback, &SenderContext);
@@ -5003,23 +5102,6 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend(
         ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection.HandshakeComplete);
-
-    // Create send and receive buffers
-    const uint32_t BufferSize = 0x5000;
-    const uint32_t NumBuffers = 0x10;
-    UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
-    TEST_TRUE(SendDataBuffer);
-    for (auto i = 0u; i < BufferSize; ++i) {
-        SendDataBuffer[i] = static_cast<uint8_t>(i);
-    }
-
-    UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
-    TEST_TRUE(ReceiveDataBuffer);
-    QUIC_BUFFER QuicBuffers[NumBuffers]{};
-    for (auto i = 0u; i < NumBuffers; ++i) {
-        QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
-        QuicBuffers[i].Length = BufferSize / NumBuffers;
-    }
 
     // Create and start a stream
     MsQuicStream ClientStream(
@@ -5054,11 +5136,110 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend(
 }
 
 void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
+    )
+{
+    // Server side sending data - provide more buffer on insufficient receive buffer notification
+
+    // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
+    AppBuffersSenderContext SenderContext{};
+    AppBuffersReceiverContext ReceiveContext;
+
+    // MsQuic basic initialization
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest",
+        MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetStreamRecvWindowDefault(0x2000),
+        ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest",
+        MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetStreamRecvWindowDefault(0x2000),
+        MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    // Create send and receive buffers
+    const uint32_t BufferSize = 0x5000;
+    const uint32_t NumBuffers = 0x10;
+    UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+    TEST_TRUE(SendDataBuffer);
+    for (auto i = 0u; i < BufferSize; ++i) {
+        SendDataBuffer[i] = static_cast<uint8_t>(i);
+    }
+
+    UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+    TEST_TRUE(ReceiveDataBuffer);
+    QUIC_BUFFER QuicBuffers[NumBuffers]{};
+    for (auto i = 0u; i < NumBuffers; ++i) {
+        QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
+        QuicBuffers[i].Length = BufferSize / NumBuffers;
+    }
+
+    // Setup a listener
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersSenderContext::ConnCallback, &SenderContext);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    // Setup a client connection
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(
+        ClientConfiguration,
+        ServerLocalAddr.GetFamily(),
+        QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+        ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    // Create and start a stream
+    MsQuicStream ClientStream(
+        Connection,
+        QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS,
+        CleanUpManual,
+        AppBuffersReceiverContext::StreamCallback,
+        &ReceiveContext);
+    TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
+
+    //
+    // Prepare a receiver stream context
+    // - some initial receive buffer space will be provided when the stream is accepted
+    // - more receive buffer space will be provided when the stream runs out of buffer space
+    //
+    ReceiveContext.BuffersForInsufficientRecvBuffer = QuicBuffers + NumBuffers / 2;
+    ReceiveContext.NumBuffersForInsufficientRecvBuffer = NumBuffers / 2;
+    ReceiveContext.Stream = &ClientStream;
+
+    // Provide some receive buffers before starting the stream
+    TEST_QUIC_SUCCEEDED(ClientStream.ProvideReceiveBuffers(NumBuffers / 2, QuicBuffers));
+
+    TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+    // Retrieve the server stream
+    auto* SenderStream = SenderContext.WaitForSenderStream();
+    TEST_NOT_EQUAL(SenderStream, nullptr);
+
+    // Send all data at once. The receiver will provide more receive buffer inline in the
+    // insufficent receive buffer notification.
+    QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
+    TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+
+    TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
+    TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
+    TEST_EQUAL(0, memcmp(SendDataBuffer.get(), ReceiveDataBuffer.get(), BufferSize));
+}
+
+void
 QuicTestStreamAppProvidedBuffersOutOfSpace(
     )
 {
-    QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend();
-    QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend();
+    QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream();
+    QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer();
+    QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream();
+    QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer();
 }
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
