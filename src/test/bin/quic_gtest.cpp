@@ -263,7 +263,6 @@ bool InvokeKernelTest(const std::string& Name, FunType, const ParamType& Params)
 TEST(ParameterValidation, ValidateGlobalParam) {
     TestLogger Logger("QuicTestValidateGlobalParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGlobalParam)));
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM));
     } else {
         QuicTestGlobalParam();
