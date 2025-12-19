@@ -12126,6 +12126,42 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
+    "WinUserDataPathReleased": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath Freed",
+      "UniqueId": "WinUserDataPathReleased",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "WinUserProcessorContextRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Processor Context Destroyed",
+      "UniqueId": "WinUserProcessorContextRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "WinUserSocketContextUnitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket Context queueing for destruction",
+      "UniqueId": "WinUserSocketContextUnitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "WorkerActivityStateUpdated": {
       "ModuleProperites": {},
       "TraceString": "[wrkr][%p] IsActive = %hhu, Arg = %u",
@@ -16980,6 +17016,21 @@
         "UniquenessHash": "98edbe6f-c588-a919-3251-cd78aa291751",
         "TraceID": "WindowsUserUnloaded",
         "EncodingString": "[ dll] Unloaded"
+      },
+      {
+        "UniquenessHash": "5b248237-d478-a21d-17ec-327b88972132",
+        "TraceID": "WinUserDataPathReleased",
+        "EncodingString": "[data][%p] Datapath Freed"
+      },
+      {
+        "UniquenessHash": "79ed1f96-d780-cb5d-a6a1-6bd2d82b634c",
+        "TraceID": "WinUserProcessorContextRelease",
+        "EncodingString": "[data][%p] Processor Context Destroyed"
+      },
+      {
+        "UniquenessHash": "bcc0a189-7f1d-8154-afe3-c9dcf28dee87",
+        "TraceID": "WinUserSocketContextUnitialize",
+        "EncodingString": "[data][%p] Socket Context queueing for destruction"
       },
       {
         "UniquenessHash": "c50d7d7b-5ea5-6f62-b2c8-8e06a5684266",
