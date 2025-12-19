@@ -279,6 +279,24 @@ jobs:
             prod_url: "https://packages.microsoft.com/rhel/9/prod/Packages/l"
             testing_url: "https://packages.microsoft.com/rhel/9/testing/Packages/l"
 
+          # RHEL 10 (RPM) - Using UBI images, no arm32 support
+          - friendlyName: "RHEL 10 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "registry.access.redhat.com/ubi10/ubi:latest"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/rhel/10/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/rhel/10/testing/Packages/l"
+          - friendlyName: "RHEL 10 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "registry.access.redhat.com/ubi10/ubi:latest"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/rhel/10/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/rhel/10/testing/Packages/l"
+            
           # Fedora 42 (RPM)
           - friendlyName: "Fedora 42 x64"
             arch: x64
@@ -540,7 +558,11 @@ jobs:
                 command -v dnf >/dev/null && dnf install -y /packages/*.rpm || yum install -y /packages/*.rpm
                 ;;
               opensuse*|sles)
-                rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                if [ "$VERSION_ID" = "16.0" ]; then
+                  rpm --import https://packages.microsoft.com/keys/microsoft-2025.asc 2>/dev/null || true
+                else
+                  rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                fi
                 zypper install -y --allow-unsigned-rpm /packages/*.rpm 2>/dev/null || \
                 zypper install -y --no-gpg-checks /packages/*.rpm 2>/dev/null || \
                 rpm -ivh --nodeps --nosignature /packages/*.rpm
