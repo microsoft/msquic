@@ -14,6 +14,8 @@ Abstract:
 #include "HandshakeTest.cpp.clog.h"
 #endif
 
+#include "MsQuicTests.h"
+
 char CurrentWorkingDirectory[MAX_PATH + 1];
 
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
@@ -571,9 +573,10 @@ QuicTestNatAddrRebind(
 
 void
 QuicTestPathValidationTimeout(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -650,9 +653,10 @@ QuicTestPathValidationTimeout(
 
 void
 QuicTestChangeMaxStreamID(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -1125,9 +1129,10 @@ QuicTestShutdownDuringHandshake(
 
 void
 QuicTestConnectUnreachable(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
@@ -1222,9 +1227,10 @@ QuicTestConnectInvalidAddress(
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     const uint32_t ClientVersions[] = { 168430090ul, LATEST_SUPPORTED_VERSION }; // Random reserved version to force VN.
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     MsQuicRegistration Registration;
@@ -1312,9 +1318,10 @@ struct ClearForcedRetryScope {
 
 void
 QuicTestVersionNegotiationRetry(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     const uint32_t ClientVersions[] = { 168430090ul, LATEST_SUPPORTED_VERSION }; // Random reserved version to force VN.
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint16_t RetryMemoryLimit = 0;
@@ -1506,9 +1513,10 @@ QuicTestCompatibleVersionNegotiation(
 
 void
 QuicTestCompatibleVersionNegotiationRetry(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
     const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
@@ -1805,9 +1813,10 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
 
 void
 QuicTestIncompatibleVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     const uint32_t ClientVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
     const uint32_t ServerVersions[] = { QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
@@ -1996,9 +2005,10 @@ RunFailedVersionNegotiation(
 
 void
 QuicTestFailedVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     const uint32_t NoCommonClientVersions[] = { QUIC_VERSION_DRAFT_29_H };
     const uint32_t NoCommonServerVersions[] = { QUIC_VERSION_1_MS_H };
 
@@ -2172,9 +2182,10 @@ QuicTestOneWayDelayNegotiation(
 
 void
 QuicTestConnectBadAlpn(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -2231,9 +2242,10 @@ QuicTestConnectBadAlpn(
 
 void
 QuicTestConnectBadSni(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -2315,9 +2327,10 @@ ListenerRejectConnection(
 
 void
 QuicTestConnectServerRejected(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -2490,9 +2503,10 @@ QuicTestKeyUpdateRandomLoss(
 
 void
 QuicTestForceKeyUpdate(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration{};
     TEST_TRUE(Registration.IsValid());
 
@@ -2645,9 +2659,10 @@ QuicTestForceKeyUpdate(
 
 void
 QuicTestKeyUpdate(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -3342,9 +3357,10 @@ struct LoadBalancedServer {
 
 void
 QuicTestLoadBalancedHandshake(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
     if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
@@ -3420,9 +3436,10 @@ QuicTestLoadBalancedHandshake(
 
 void
 QuicTestClientSharedLocalPort(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -3499,9 +3516,10 @@ GetTestInterfaceIndices(
 
 void
 QuicTestInterfaceBinding(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     uint32_t LoopbackInterfaceIndex = UINT32_MAX;
     uint32_t OtherInterfaceIndex = UINT32_MAX;
@@ -3554,9 +3572,10 @@ struct ListenerContext {
 
 void
 QuicTestRetryMemoryLimitConnect(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     ListenerContext Context;
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     uint32_t LoopbackInterfaceIndex = UINT32_MAX;
@@ -3737,9 +3756,10 @@ QuicTestResumptionAcrossVersions()
 
 void
 QuicTestClientBlockedSourcePort(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 

@@ -600,9 +600,9 @@ TEST(Basic, StartListenerMultiAlpns) {
 TEST_P(WithFamilyArgs, StartListenerImplicit) {
     TestLoggerT<ParamType> Logger("QuicTestStartListenerImplicit", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_START_LISTENER_IMPLICIT, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartListenerImplicit), GetParam()));
     } else {
-        QuicTestStartListenerImplicit(GetParam().Family);
+        QuicTestStartListenerImplicit(GetParam());
     }
 }
 
@@ -627,9 +627,9 @@ TEST(Basic, StartTwoListenersSameALPN) {
 TEST_P(WithFamilyArgs, StartListenerExplicit) {
     TestLoggerT<ParamType> Logger("QuicTestStartListenerExplicit", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_START_LISTENER_EXPLICIT, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartListenerExplicit), GetParam()));
     } else {
-        QuicTestStartListenerExplicit(GetParam().Family);
+        QuicTestStartListenerExplicit(GetParam());
     }
 }
 
@@ -665,18 +665,18 @@ TEST_P(WithBool, RejectConnection) {
 TEST_P(WithFamilyArgs, Ecn) {
     TestLoggerT<ParamType> Logger("Ecn", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ECN, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestEcn), GetParam()));
     } else {
-        QuicTestEcn(GetParam().Family);
+        QuicTestEcn(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, LocalPathChanges) {
     TestLoggerT<ParamType> Logger("QuicTestLocalPathChanges", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestLocalPathChanges), GetParam()));
     } else {
-        QuicTestLocalPathChanges(GetParam().Family);
+        QuicTestLocalPathChanges(GetParam());
     }
 }
 
@@ -745,28 +745,28 @@ TEST(Alpn, ChangeAlpn) {
 TEST_P(WithFamilyArgs, BindConnectionImplicit) {
     TestLoggerT<ParamType> Logger("QuicTestBindConnectionImplicit", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_BIND_CONNECTION_IMPLICIT, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestBindConnectionImplicit), GetParam()));
     } else {
-        QuicTestBindConnectionImplicit(GetParam().Family);
+        QuicTestBindConnectionImplicit(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, BindConnectionExplicit) {
     TestLoggerT<ParamType> Logger("QuicTestBindConnectionExplicit", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_BIND_CONNECTION_EXPLICIT, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestBindConnectionExplicit), GetParam()));
     } else {
-        QuicTestBindConnectionExplicit(GetParam().Family);
+        QuicTestBindConnectionExplicit(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, TestAddrFunctions) {
     TestLoggerT<ParamType> Logger("QuicTestAddrFunctions", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestAddrFunctions), GetParam()));
     }
     else {
-        QuicTestAddrFunctions(GetParam().Family);
+        QuicTestAddrFunctions(GetParam());
     }
 }
 
@@ -962,9 +962,9 @@ TEST_P(WithHandshakeArgs1, ResumeRejectionByServerAppAsync) {
 TEST_P(WithFamilyArgs, ClientSharedLocalPort) {
     TestLoggerT<ParamType> Logger("QuicTestClientSharedLocalPort", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_SHARED_LOCAL_PORT, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestClientSharedLocalPort), GetParam()));
     } else {
-        QuicTestClientSharedLocalPort(GetParam().Family);
+        QuicTestClientSharedLocalPort(GetParam());
     }
 }
 #endif
@@ -975,9 +975,9 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
         GTEST_SKIP_("DuoNIC is not supported");
     }
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestInterfaceBinding), GetParam()));
     } else {
-        QuicTestInterfaceBinding(GetParam().Family);
+        QuicTestInterfaceBinding(GetParam());
     }
 }
 
@@ -987,9 +987,9 @@ TEST_P(WithFamilyArgs, RetryMemoryLimitConnect) {
         GTEST_SKIP_("DuoNIC is not supported");
     }
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRetryMemoryLimitConnect), GetParam()));
     } else {
-        QuicTestRetryMemoryLimitConnect(GetParam().Family);
+        QuicTestRetryMemoryLimitConnect(GetParam());
     }
 }
 
@@ -1057,27 +1057,27 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
 TEST_P(WithFamilyArgs, VersionNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVersionNegotiation), GetParam()));
     } else {
-        QuicTestVersionNegotiation(GetParam().Family);
+        QuicTestVersionNegotiation(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, VersionNegotiationRetry) {
     TestLoggerT<ParamType> Logger("QuicTestVersionNegotiationRetry", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVersionNegotiationRetry), GetParam()));
     } else {
-        QuicTestVersionNegotiationRetry(GetParam().Family);
+        QuicTestVersionNegotiationRetry(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, CompatibleVersionNegotiationRetry) {
     TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationRetry", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCompatibleVersionNegotiationRetry), GetParam()));
     } else {
-        QuicTestCompatibleVersionNegotiationRetry(GetParam().Family);
+        QuicTestCompatibleVersionNegotiationRetry(GetParam());
     }
 }
 
@@ -1135,18 +1135,18 @@ TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient)
 TEST_P(WithFamilyArgs, IncompatibleVersionNegotiation) {
     TestLoggerT<ParamType> Logger("IncompatibleVersionNegotiation", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestIncompatibleVersionNegotiation), GetParam()));
     } else {
-        QuicTestIncompatibleVersionNegotiation(GetParam().Family);
+        QuicTestIncompatibleVersionNegotiation(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
     TestLoggerT<ParamType> Logger("FailedeVersionNegotiation", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestFailedVersionNegotiation), GetParam()));
     } else {
-        QuicTestFailedVersionNegotiation(GetParam().Family);
+        QuicTestFailedVersionNegotiation(GetParam());
     }
 }
 
@@ -1586,9 +1586,9 @@ TEST_P(WithFamilyArgs, Unreachable) {
     if (GetParam().Family == 4 && IsWindows2019()) GTEST_SKIP(); // IPv4 unreachable doesn't work on 2019
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_UNREACHABLE, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectUnreachable), GetParam()));
     } else {
-        QuicTestConnectUnreachable(GetParam().Family);
+        QuicTestConnectUnreachable(GetParam());
     }
 }
 
@@ -1604,36 +1604,36 @@ TEST(HandshakeTest, InvalidAddress) {
 TEST_P(WithFamilyArgs, BadALPN) {
     TestLoggerT<ParamType> Logger("QuicTestConnectBadAlpn", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_BAD_ALPN, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectBadAlpn), GetParam()));
     } else {
-        QuicTestConnectBadAlpn(GetParam().Family);
+        QuicTestConnectBadAlpn(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, BadSNI) {
     TestLoggerT<ParamType> Logger("QuicTestConnectBadSni", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_BAD_SNI, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectBadSni), GetParam()));
     } else {
-        QuicTestConnectBadSni(GetParam().Family);
+        QuicTestConnectBadSni(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, ServerRejected) {
     TestLoggerT<ParamType> Logger("QuicTestConnectServerRejected", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_SERVER_REJECTED, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectServerRejected), GetParam()));
     } else {
-        QuicTestConnectServerRejected(GetParam().Family);
+        QuicTestConnectServerRejected(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
     TestLoggerT<ParamType> Logger("QuicTestClientBlockedSourcePort", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_BLOCKED_SOURCE_PORT, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestClientBlockedSourcePort), GetParam()));
     } else {
-        QuicTestClientBlockedSourcePort(GetParam().Family);
+        QuicTestClientBlockedSourcePort(GetParam());
     }
 }
 
@@ -1740,9 +1740,9 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
 TEST_P(WithFamilyArgs, PathValidationTimeout) {
     TestLoggerT<ParamType> Logger("QuicTestPathValidationTimeout", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PATH_VALIDATION_TIMEOUT, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestPathValidationTimeout), GetParam()));
     } else {
-        QuicTestPathValidationTimeout(GetParam().Family);
+        QuicTestPathValidationTimeout(GetParam());
     }
 }
 #endif
@@ -1750,9 +1750,9 @@ TEST_P(WithFamilyArgs, PathValidationTimeout) {
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     TestLoggerT<ParamType> Logger("QuicTestChangeMaxStreamID", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestChangeMaxStreamID), GetParam()));
     } else {
-        QuicTestChangeMaxStreamID(GetParam().Family);
+        QuicTestChangeMaxStreamID(GetParam());
     }
 }
 
@@ -1763,9 +1763,9 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
 #endif
     TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestLoadBalancedHandshake), GetParam()));
     } else {
-        QuicTestLoadBalancedHandshake(GetParam().Family);
+        QuicTestLoadBalancedHandshake(GetParam());
     }
 }
 
@@ -2115,18 +2115,18 @@ TEST(Misc, StatelessResetKey) {
 TEST_P(WithFamilyArgs, ForcedKeyUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestForceKeyUpdate", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_FORCE_KEY_UPDATE, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestForceKeyUpdate), GetParam()));
     } else {
-        QuicTestForceKeyUpdate(GetParam().Family);
+        QuicTestForceKeyUpdate(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, KeyUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestKeyUpdate", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestKeyUpdate), GetParam()));
     } else {
-        QuicTestKeyUpdate(GetParam().Family);
+        QuicTestKeyUpdate(GetParam());
     }
 }
 
@@ -2227,7 +2227,7 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     }
 }
 
-TEST_P(WithFamilyArgs2, AckSendDelay) {
+TEST_P(WithFamilyArgs, AckSendDelay) {
     TestLogger Logger("QuicTestAckSendDelay");
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestAckSendDelay), GetParam()));
@@ -2503,18 +2503,18 @@ TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
 TEST_P(WithFamilyArgs, DatagramSend) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramSend", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDatagramSend), GetParam()));
     } else {
-        QuicTestDatagramSend(GetParam().Family);
+        QuicTestDatagramSend(GetParam());
     }
 }
 
 TEST_P(WithFamilyArgs, DatagramDrop) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramDrop", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_DROP, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDatagramDrop), GetParam()));
     } else {
-        QuicTestDatagramDrop(GetParam().Family);
+        QuicTestDatagramDrop(GetParam());
     }
 }
 
@@ -2598,12 +2598,7 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
-    ::testing::ValuesIn(FamilyArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Basic,
-    WithFamilyArgs2,
-    ::testing::ValuesIn(WithFamilyArgs2::Generate()));
+    ::testing::ValuesIn(WithFamilyArgs::Generate()));
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 

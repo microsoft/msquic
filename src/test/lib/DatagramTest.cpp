@@ -138,9 +138,10 @@ QuicTestDatagramNegotiation(
 
 void
 QuicTestDatagramSend(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -271,9 +272,10 @@ QuicTestDatagramSend(
 
 void
 QuicTestDatagramDrop(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 

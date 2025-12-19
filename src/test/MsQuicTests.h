@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#pragma once
+
 //
 // For official releases, disable tests for preview features:
 // the official release test binary for a version is used for down-level compatibility testing
@@ -42,6 +44,14 @@ extern "C" {
 
 void QuicTestInitialize();
 void QuicTestUninitialize();
+
+//
+// Parameter structures used by many tests
+//
+
+struct FamilyArgs {
+    int Family;
+};
 
 //
 // Parameter Validation Tests
@@ -104,15 +114,15 @@ void QuicTestRegistrationOpenClose();
 void QuicTestCreateListener();
 void QuicTestStartListener();
 void QuicTestStartListenerMultiAlpns();
-void QuicTestStartListenerImplicit(_In_ int Family);
+void QuicTestStartListenerImplicit(const FamilyArgs& Params);
 void QuicTestStartTwoListeners();
 void QuicTestStartTwoListenersSameALPN();
-void QuicTestStartListenerExplicit(_In_ int Family);
+void QuicTestStartListenerExplicit(const FamilyArgs& Params);
 void QuicTestCreateConnection();
-void QuicTestBindConnectionImplicit(_In_ int Family);
-void QuicTestBindConnectionExplicit(_In_ int Family);
+void QuicTestBindConnectionImplicit(const FamilyArgs& Params);
+void QuicTestBindConnectionExplicit(const FamilyArgs& Params);
 void QuicTestConnectionCloseFromCallback();
-void QuicTestAddrFunctions(_In_ int Family);
+void QuicTestAddrFunctions(const FamilyArgs& Params);
 
 //
 // MTU tests
@@ -131,7 +141,7 @@ QuicTestMtuDiscovery(
 //
 void
 QuicTestLocalPathChanges(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
@@ -169,17 +179,17 @@ QuicTestConnect(
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestVersionNegotiationRetry(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestCompatibleVersionNegotiationRetry(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -205,12 +215,12 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
 
 void
 QuicTestIncompatibleVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestFailedVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -258,22 +268,22 @@ QuicTestInvalidAlpnLengths(
 
 void
 QuicTestLoadBalancedHandshake(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestClientSharedLocalPort(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestInterfaceBinding(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestRetryMemoryLimitConnect(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -311,7 +321,7 @@ QuicTestShutdownDuringHandshake(
 
 void
 QuicTestConnectUnreachable(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -320,17 +330,17 @@ QuicTestConnectInvalidAddress(
 
 void
 QuicTestConnectBadAlpn(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestConnectBadSni(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestConnectServerRejected(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -355,7 +365,7 @@ QuicTestConnectExpiredClientCertificate(
 
 void
 QuicTestClientBlockedSourcePort(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -408,12 +418,12 @@ QuicTestNatAddrRebind(
 
 void
 QuicTestPathValidationTimeout(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestChangeMaxStreamID(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
@@ -470,12 +480,12 @@ QuicTestStatelessResetKey(
 
 void
 QuicTestForceKeyUpdate(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestKeyUpdate(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -550,13 +560,9 @@ QuicTestReceiveResumeNoData(
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     );
 
-struct FamilyArgs2 {
-    int Family;
-};
-
 void
 QuicTestAckSendDelay(
-    const FamilyArgs2& Params
+    const FamilyArgs& Params
     );
 
 typedef enum QUIC_ABORT_RECEIVE_TYPE {
@@ -633,7 +639,7 @@ QuicTestConnectionStreamStartSendPriority(
 
 void
 QuicTestEcn(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void QuicTestStreamAppProvidedBuffers(
@@ -684,12 +690,12 @@ QuicTestDatagramNegotiation(
 
 void
 QuicTestDatagramSend(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestDatagramDrop(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
