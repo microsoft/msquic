@@ -540,7 +540,11 @@ jobs:
                 command -v dnf >/dev/null && dnf install -y /packages/*.rpm || yum install -y /packages/*.rpm
                 ;;
               opensuse*|sles)
-                rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                if [ "$VERSION_ID" = "16.0" ]; then
+                  rpm --import https://packages.microsoft.com/keys/microsoft-2025.asc 2>/dev/null || true
+                else
+                  rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                fi
                 zypper install -y --allow-unsigned-rpm /packages/*.rpm 2>/dev/null || \
                 zypper install -y --no-gpg-checks /packages/*.rpm 2>/dev/null || \
                 rpm -ivh --nodeps --nosignature /packages/*.rpm
