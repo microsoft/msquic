@@ -36,6 +36,15 @@ extern QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 #endif
 extern char CurrentWorkingDirectory[MAX_PATH + 1];
 
+struct FamilyArgs2 {
+    int Family;
+};
+
+struct KeyUpdateArgs2 {
+    int Family;
+    uint8_t RandomLossPercentage;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -480,8 +489,7 @@ QuicTestKeyUpdate(
 
 void
 QuicTestKeyUpdateRandomLoss(
-    _In_ int Family,
-    _In_ uint8_t RandomLossPercentage
+    const KeyUpdateArgs2& Params
     );
 
 typedef enum QUIC_ABORTIVE_TRANSFER_DIRECTION {
@@ -550,13 +558,9 @@ QuicTestReceiveResumeNoData(
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     );
 
-struct FamilyArgs2 {
-    int Family;
-};
-
 void
 QuicTestAckSendDelay(
-    const FamilyArgs2& Params
+    const FamilyArgs2& Family
     );
 
 typedef enum QUIC_ABORT_RECEIVE_TYPE {
