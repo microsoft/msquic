@@ -91,6 +91,8 @@ find = []
 # This feature enables openssl on windows, and has no effect on linux.
 openssl = []
 quictls = []
+# Enable Windows XDP datapath support when building from source.
+windows-xdp = []
 static = ["src"]
 preview-api = []
 # Overwrite generated binding by reruning the bindgen

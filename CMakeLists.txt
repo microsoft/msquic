@@ -102,6 +102,7 @@ option(QUIC_EXTERNAL_TOOLCHAIN "Enable if system libs and include paths are conf
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 option(QUIC_LINUX_IOURING_ENABLED "Enables io_uring support" OFF)
 option(QUIC_LINUX_XDP_ENABLED "Enables XDP support" OFF)
+option(QUIC_WINDOWS_XDP_ENABLED "Enables Windows XDP support" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_EMBED_GIT_HASH "Embed git commit hash in the binary" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
