@@ -754,7 +754,7 @@ MsQuicLibraryUninitialize(
     }
 
 #ifndef _KERNEL_MODE
-    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
     MsQuicLib.WorkerPool = NULL;
 #endif
     CxPlatUninitialize();
@@ -887,7 +887,7 @@ QuicLibraryLazyInitialize(
 
 #ifndef _KERNEL_MODE
     if (MsQuicLib.WorkerPool == NULL) {
-        MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
+        MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig, CXPLAT_WORKER_POOL_REF_LIBRARY);
         if (!MsQuicLib.WorkerPool) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             MsQuicLibraryFreePartitions();
@@ -923,7 +923,7 @@ QuicLibraryLazyInitialize(
         MsQuicLibraryFreePartitions();
 #ifndef _KERNEL_MODE
         if (CreatedWorkerPool) {
-            CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+            CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
             MsQuicLib.WorkerPool = NULL;
         }
 #endif
@@ -2773,7 +2773,7 @@ MsQuicExecutionCreate(
         //
         // Clean up any previous worker pool and create a new one.
         //
-        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_EXTERNAL);
         MsQuicLib.WorkerPool =
             CxPlatWorkerPoolCreateExternal(Count, Configs, Executions);
         if (MsQuicLib.WorkerPool == NULL) {
@@ -2808,7 +2808,7 @@ MsQuicExecutionDelete(
     UNREFERENCED_PARAMETER(Count);
     UNREFERENCED_PARAMETER(Executions);
 
-    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_EXTERNAL);
     MsQuicLib.WorkerPool = NULL;
     MsQuicLib.CustomExecutions = FALSE;
 

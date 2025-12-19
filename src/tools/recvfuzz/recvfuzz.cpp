@@ -1032,7 +1032,7 @@ void SetupAndFuzz() {
         UdpRecvCallback,
         UdpUnreachCallback,
     };
-    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
     CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
     MUST_SUCCEED(
         CxPlatDataPathInitialize(
@@ -1107,7 +1107,7 @@ void SetupAndFuzz() {
 
     CxPlatSocketDelete(Binding);
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolDelete(WorkerPool);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
 
     while (PacketQueue != nullptr) {
         QUIC_RX_PACKET* packet = PacketQueue;
