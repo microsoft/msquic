@@ -326,9 +326,10 @@ TEST(ParameterValidation, ValidateTlsParam) {
 TEST_P(WithBool, ValidateTlsHandshakeInfo) {
     TestLoggerT<ParamType> Logger("QuicTestValidateTlsHandshakeInfo", GetParam());
     if (TestingKernelMode) {
-        if (IsWindows2022() || IsWindows2019()) GTEST_SKIP(); // Not supported on WS2019 or WS2022
-        uint8_t EnableResumption = (uint8_t)GetParam();
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO, EnableResumption));
+        if (IsWindows2022() || IsWindows2019()) {
+            GTEST_SKIP(); // Not supported on WS2019 or WS2022
+        }
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestTlsHandshakeInfo), GetParam()));
     } else {
         QuicTestTlsHandshakeInfo(GetParam());
     }
@@ -458,8 +459,7 @@ TEST(OwnershipValidation, ConnectionCloseBeforeStreamClose) {
 TEST_P(WithBool, ValidateStream) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStream", GetParam());
     if (TestingKernelMode) {
-        uint8_t Param = (uint8_t)GetParam();
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_STREAM, Param));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateStream), GetParam()));
     } else {
         QuicTestValidateStream(GetParam());
     }
@@ -654,8 +654,7 @@ TEST(Basic, ConnectionCloseFromCallback) {
 TEST_P(WithBool, RejectConnection) {
     TestLoggerT<ParamType> Logger("QuicTestConnectionRejection", GetParam());
     if (TestingKernelMode) {
-        uint8_t Param = (uint8_t)GetParam();
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_REJECTION, Param));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionRejection), GetParam()));
     } else {
         QuicTestConnectionRejection(GetParam());
     }
@@ -2068,8 +2067,7 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
 TEST_P(WithBool, IdleTimeout) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndIdle", GetParam());
     if (TestingKernelMode) {
-        uint8_t Param = (uint8_t)GetParam();
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_IDLE, Param));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndIdle), GetParam()));
     } else {
         QuicTestConnectAndIdle(GetParam());
     }

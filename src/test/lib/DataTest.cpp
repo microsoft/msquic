@@ -751,7 +751,7 @@ ListenerAcceptConnectionAndStreams(
 
 void
 QuicTestClientDisconnect(
-    bool StopListenerFirst
+    const bool& StopListenerFirst
     )
 {
     //

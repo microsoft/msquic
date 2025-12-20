@@ -654,6 +654,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnectionParam);
     RegisterTestFunction(QuicTestTlsParam);
     RegisterTestFunction(QuicTestStreamParam);
+    RegisterTestFunction(QuicTestValidateStream);
     RegisterTestFunction(QuicTestGetPerfCounters);
     RegisterTestFunction(QuicTestValidateConfiguration);
     RegisterTestFunction(QuicTestValidateListener);
@@ -708,7 +709,9 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnectServerRejected);
     RegisterTestFunction(QuicTestClientBlockedSourcePort);
     RegisterTestFunction(QuicTestConnectAndIdleForDestCidChange);
+    RegisterTestFunction(QuicTestConnectAndIdle);
     RegisterTestFunction(QuicTestServerDisconnect);
+    RegisterTestFunction(QuicTestClientDisconnect);
     RegisterTestFunction(QuicTestStatelessResetKey);
     RegisterTestFunction(QuicTestSlowReceive);
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
@@ -724,6 +727,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamPriority);
     RegisterTestFunction(QuicTestStreamPriorityInfiniteLoop);
     RegisterTestFunction(QuicTestStreamDifferentAbortErrors);
+    RegisterTestFunction(QuicTestConnectionRejection);
     RegisterTestFunction(QuicTestStreamAbortRecvFinRace);
     RegisterTestFunction(QuicTestStreamAbortConnFlowControl);
     RegisterTestFunction(QuicTestOperationPriority);
@@ -757,6 +761,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamReliableReset);
     RegisterTestFunction(QuicTestStreamReliableResetMultipleSends);
 #endif
+    RegisterTestFunction(QuicTestTlsHandshakeInfo);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffers);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace);
 
@@ -966,11 +971,6 @@ QuicTestCtlEvtIoDeviceControl(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_STREAM:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestValidateStream(Params->Connect != 0));
-        break;
-
     case IOCTL_QUIC_RUN_CONNECT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1007,16 +1007,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params2.FifoScheduling != 0,
                 Params->Params2.SendUdpToQtipListener != 0
                 ));
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECT_AND_IDLE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestConnectAndIdle(Params->EnableKeepAlive != 0));
-        break;
-
-    case IOCTL_QUIC_RUN_CLIENT_DISCONNECT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestClientDisconnect(Params->StopListenerFirst));
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS:
@@ -1260,11 +1250,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->MtuDiscoveryParams.RaiseMinimumMtu));
         break;
 
-    case IOCTL_QUIC_RUN_CONNECTION_REJECTION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestConnectionRejection(Params->RejectByClosing));
-        break;
-
     case IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         //
@@ -1399,11 +1384,6 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE:
         QuicTestCtlRun(QuicTestStreamMultiReceive());
 
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
         break;
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

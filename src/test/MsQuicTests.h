@@ -62,7 +62,7 @@ void QuicTestValidateRegistration();
 void QuicTestValidateConfiguration();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
-void QuicTestValidateStream(bool Connect);
+void QuicTestValidateStream(const bool& Connect);
 void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
 void QuicTestCommonParam();
@@ -71,7 +71,7 @@ void QuicTestConfigurationParam();
 void QuicTestListenerParam();
 void QuicTestConnectionParam();
 void QuicTestTlsParam();
-void QuicTestTlsHandshakeInfo(_In_ bool EnableResumption);
+void QuicTestTlsHandshakeInfo(const bool& EnableResumption);
 void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
@@ -94,7 +94,7 @@ void QuicTestConnectionCloseBeforeStreamClose();
 //
 // Rejection Tests
 //
-void QuicTestConnectionRejection(bool RejectByClosing);
+void QuicTestConnectionRejection(const bool& RejectByClosing);
 
 //
 // Event Validation Tests
@@ -455,7 +455,7 @@ QuicTestConnectAndPing(
 
 void
 QuicTestConnectAndIdle(
-    _In_ bool EnableKeepAlive
+    const bool& EnableKeepAlive
     );
 
 void
@@ -470,7 +470,7 @@ QuicTestServerDisconnect(
 
 void
 QuicTestClientDisconnect(
-    bool StopListenerFirst
+    const bool& StopListenerFirst
     );
 
 void

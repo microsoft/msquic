@@ -740,7 +740,7 @@ QuicTestChangeMaxStreamID(
 
 void
 QuicTestConnectAndIdle(
-    _In_ bool EnableKeepAlive
+    const bool& EnableKeepAlive
     )
 {
     MsQuicRegistration Registration;
