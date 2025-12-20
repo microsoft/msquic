@@ -2040,11 +2040,12 @@ QuicTestFailedVersionNegotiation(
 
 void
 QuicTestReliableResetNegotiation(
-    _In_ int Family,
-    _In_ bool ServerSupport,
-    _In_ bool ClientSupport
+    const FeatureSupportArgs& Params
     )
 {
+    const int Family = Params.Family;
+    const bool ServerSupport = Params.ServerSupport;
+    const bool ClientSupport = Params.ClientSupport;
     struct Context {
         bool Negotiated {false};
         bool CallbackReceived {false};
@@ -2113,11 +2114,12 @@ QuicTestReliableResetNegotiation(
 
 void
 QuicTestOneWayDelayNegotiation(
-    _In_ int Family,
-    _In_ bool ServerSupport,
-    _In_ bool ClientSupport
+    const FeatureSupportArgs& Params
     )
 {
+    const int Family = Params.Family;
+    const bool ServerSupport = Params.ServerSupport;
+    const bool ClientSupport = Params.ClientSupport;
     struct Context {
         bool SendNegotiated {false};
         bool RecvNegotiated {false};

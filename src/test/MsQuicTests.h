@@ -232,18 +232,20 @@ QuicTestFailedVersionNegotiation(
     const FamilyArgs& Params
     );
 
+struct FeatureSupportArgs {
+    int Family;
+    bool ServerSupport;
+    bool ClientSupport;
+};
+
 void
 QuicTestReliableResetNegotiation(
-    _In_ int Family,
-    _In_ bool ServerSupport,
-    _In_ bool ClientSupport
+    const FeatureSupportArgs& Params
 );
 
 void
 QuicTestOneWayDelayNegotiation(
-    _In_ int Family,
-    _In_ bool ServerSupport,
-    _In_ bool ClientSupport
+    const FeatureSupportArgs& Params
     );
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
@@ -695,37 +697,49 @@ void
 QuicDrillTestVarIntEncoder(
     );
 
+struct DrillInitialPacketCidArgs {
+    int Family;
+    bool SourceOrDest;
+    bool ActualCidLengthValid;
+    bool ShortCidLength;
+    bool CidLengthFieldValid;
+};
+
 void
 QuicDrillTestInitialCid(
-    _In_ int Family,
-    _In_ bool Source, // or Dest
-    _In_ bool ValidActualLength, // or invalid
-    _In_ bool Short, // or long
-    _In_ bool ValidLengthField // or invalid
+    const DrillInitialPacketCidArgs& Params
     );
+
+struct DrillInitialPacketTokenArgs {
+    int Family;
+};
 
 void
 QuicDrillTestInitialToken(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     );
 
 void
 QuicDrillTestServerVNPacket(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     );
 
 void
 QuicDrillTestKeyUpdateDuringHandshake(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     );
 
 //
 // Datagram tests
 //
+struct DatagramNegotiationArgs {
+    int Family;
+    bool DatagramReceiveEnabled;
+};
+
 void
 QuicTestDatagramNegotiation(
-    _In_ int Family,
-    _In_ bool DatagramReceiveEnabled
+    const DatagramNegotiationArgs& Params
     );
 
 void

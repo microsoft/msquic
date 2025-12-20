@@ -705,6 +705,10 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestCompatibleVersionNegotiationDefaultClient);
     RegisterTestFunction(QuicTestIncompatibleVersionNegotiation);
     RegisterTestFunction(QuicTestFailedVersionNegotiation);
+    RegisterTestFunction(QuicTestStreamReliableReset);
+    RegisterTestFunction(QuicTestReliableResetNegotiation);
+    RegisterTestFunction(QuicTestStreamMultiReceive);
+    RegisterTestFunction(QuicTestOneWayDelayNegotiation);
 #endif
     RegisterTestFunction(QuicTestConnectUnreachable);
     RegisterTestFunction(QuicTestConnectInvalidAddress);
@@ -742,6 +746,11 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestOperationPriority);
     RegisterTestFunction(QuicTestConnectionPriority);
     RegisterTestFunction(QuicDrillTestVarIntEncoder);
+    RegisterTestFunction(QuicDrillTestInitialCid);
+    RegisterTestFunction(QuicDrillTestInitialToken);
+    RegisterTestFunction(QuicDrillTestServerVNPacket);
+    RegisterTestFunction(QuicDrillTestKeyUpdateDuringHandshake);
+    RegisterTestFunction(QuicTestDatagramNegotiation);
 #ifdef _WIN32
     RegisterTestFunction(QuicTestStorage);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -1058,32 +1067,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params6.ShutdownType));
         break;
 
-    case IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_CID:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicDrillTestInitialCid(
-                Params->DrillParams.Family,
-                Params->DrillParams.SourceOrDest,
-                Params->DrillParams.ActualCidLengthValid,
-                Params->DrillParams.ShortCidLength,
-                Params->DrillParams.CidLengthFieldValid));
-        break;
-
-    case IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicDrillTestInitialToken(
-                Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestDatagramNegotiation(
-                Params->DatagramNegotiationParams.Family,
-                Params->DatagramNegotiationParams.DatagramReceiveEnabled));
-        break;
-
     case IOCTL_QUIC_RUN_NAT_PORT_REBIND:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1300,34 +1283,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestReliableResetNegotiation(
-                Params->FeatureNegotiationParams.Family,
-                Params->FeatureNegotiationParams.ServerSupport,
-                Params->FeatureNegotiationParams.ClientSupport));
-        break;
-
-    case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestOneWayDelayNegotiation(
-                Params->FeatureNegotiationParams.Family,
-                Params->FeatureNegotiationParams.ServerSupport,
-                Params->FeatureNegotiationParams.ClientSupport));
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:
-        break;
-#endif
-
-    case IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicDrillTestServerVNPacket(Params->Family));
-        break;
-
     case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
@@ -1355,11 +1310,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->ConnPoolCreateParams.TestCibirSupport));
         break;
 #endif
-
-    case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicDrillTestKeyUpdateDuringHandshake(Params->Family));
-        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

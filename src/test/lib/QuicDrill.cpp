@@ -352,11 +352,7 @@ QuicDrillInitialPacketFailureTest(
 
 void
 QuicDrillTestInitialCid(
-    _In_ int Family,
-    _In_ bool Source, // or Dest
-    _In_ bool ValidActualLength, // or invalid
-    _In_ bool Short, // or long
-    _In_ bool ValidLengthField // or invalid
+    const DrillInitialPacketCidArgs& Params
     )
 {
 /**
@@ -374,6 +370,11 @@ QuicDrillTestInitialCid(
 
 */
 
+    const int Family = Params.Family;
+    const bool Source = Params.SourceOrDest;
+    const bool ValidActualLength = Params.ActualCidLengthValid;
+    const bool Short = Params.ShortCidLength;
+    const bool ValidLengthField = Params.CidLengthFieldValid;
     uint8_t ActualCidLength;
     uint8_t CidLengthField;
 
@@ -451,9 +452,10 @@ QuicDrillTestInitialCid(
 
 void
 QuicDrillTestInitialToken(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     )
 {
+    const int Family = Params.Family;
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     const uint8_t GeneratedTokenLength = 20;
     uint64_t TokenLen;
@@ -503,9 +505,10 @@ QuicDrillTestInitialToken(
 
 void
 QuicDrillTestServerVNPacket(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -547,9 +550,10 @@ QuicDrillTestServerVNPacket(
 
 void
 QuicDrillTestKeyUpdateDuringHandshake(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 

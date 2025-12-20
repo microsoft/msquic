@@ -360,10 +360,16 @@ class WithHandshakeArgs12 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs12> {
 };
 
-struct FeatureSupportArgs {
-    int Family;
-    bool ServerSupport;
-    bool ClientSupport;
+std::ostream& operator << (std::ostream& o, const FeatureSupportArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerSupport ? "Server Yes" : "Server No") << "/" <<
+        (args.ClientSupport ? "Client Yes" : "Client No");
+}
+
+struct WithFeatureSupportArgs : public testing::Test,
+    public testing::WithParamInterface<FeatureSupportArgs> {
+
     static ::std::vector<FeatureSupportArgs> Generate() {
         ::std::vector<FeatureSupportArgs> list;
         for (int Family : { 4, 6 })
@@ -372,17 +378,6 @@ struct FeatureSupportArgs {
             list.push_back({ Family, ServerSupport, ClientSupport });
         return list;
     }
-};
-
-std::ostream& operator << (std::ostream& o, const FeatureSupportArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.ServerSupport ? "Server Yes" : "Server No") << "/" <<
-        (args.ClientSupport ? "Client Yes" : "Client No");
-}
-
-class WithFeatureSupportArgs : public testing::Test,
-    public testing::WithParamInterface<FeatureSupportArgs> {
 };
 
 struct SendArgs1 {
@@ -701,43 +696,20 @@ class WithReceiveResumeNoDataArgs : public testing::Test,
     public testing::WithParamInterface<ReceiveResumeNoDataArgs> {
 };
 
-struct DatagramNegotiationArgs {
-    int Family;
-    bool DatagramReceiveEnabled;
-    static ::std::vector<DatagramNegotiationArgs> Generate() {
-        ::std::vector<DatagramNegotiationArgs> list;
-        for (int Family : { 4, 6 })
-        for (bool DatagramReceiveEnabled : { false, true })
-            list.push_back({ Family, DatagramReceiveEnabled });
-        return list;
-    }
-};
-
 std::ostream& operator << (std::ostream& o, const DatagramNegotiationArgs& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.DatagramReceiveEnabled ? "DatagramReceiveEnabled" : "DatagramReceiveDisabled");
 }
 
-class WithDatagramNegotiationArgs : public testing::Test,
+struct WithDatagramNegotiationArgs : public testing::Test,
     public testing::WithParamInterface<DatagramNegotiationArgs> {
-};
 
-struct DrillInitialPacketCidArgs {
-    int Family;
-    bool SourceOrDest;
-    bool ActualCidLengthValid;
-    bool ShortCidLength;
-    bool CidLengthFieldValid;
-
-    static ::std::vector<DrillInitialPacketCidArgs> Generate() {
-        ::std::vector<DrillInitialPacketCidArgs> list;
+    static ::std::vector<DatagramNegotiationArgs> Generate() {
+        ::std::vector<DatagramNegotiationArgs> list;
         for (int Family : { 4, 6 })
-        for (bool SourceOrDest : { true, false })
-        for (bool ActualCidLengthValid : { true, false })
-        for (bool ShortCidLength : { true, false })
-        for (bool CidLengthFieldValid : { true, false })
-            list.push_back({ Family, SourceOrDest, ActualCidLengthValid, ShortCidLength, CidLengthFieldValid });
+        for (bool DatagramReceiveEnabled : { false, true })
+            list.push_back({ Family, DatagramReceiveEnabled });
         return list;
     }
 };
@@ -751,17 +723,17 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketCidArgs& arg
         (args.CidLengthFieldValid ? "Valid" : "Invalid") << " length";
 }
 
-class WithDrillInitialPacketCidArgs: public testing::TestWithParam<DrillInitialPacketCidArgs> {
-protected:
-};
+struct WithDrillInitialPacketCidArgs: public testing::Test,
+    public testing::TestWithParam<DrillInitialPacketCidArgs> {
 
-struct DrillInitialPacketTokenArgs {
-    int Family;
-
-    static ::std::vector<DrillInitialPacketTokenArgs> Generate() {
-        ::std::vector<DrillInitialPacketTokenArgs> list;
+    static ::std::vector<DrillInitialPacketCidArgs> Generate() {
+        ::std::vector<DrillInitialPacketCidArgs> list;
         for (int Family : { 4, 6 })
-            list.push_back({ Family, });
+        for (bool SourceOrDest : { true, false })
+        for (bool ActualCidLengthValid : { true, false })
+        for (bool ShortCidLength : { true, false })
+        for (bool CidLengthFieldValid : { true, false })
+            list.push_back({ Family, SourceOrDest, ActualCidLengthValid, ShortCidLength, CidLengthFieldValid });
         return list;
     }
 };
@@ -771,8 +743,15 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& a
         (args.Family == 4 ? "v4" : "v6");
 }
 
-class WithDrillInitialPacketTokenArgs: public testing::Test,
+struct WithDrillInitialPacketTokenArgs: public testing::Test,
     public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
+
+    static ::std::vector<DrillInitialPacketTokenArgs> Generate() {
+        ::std::vector<DrillInitialPacketTokenArgs> list;
+        for (int Family : { 4, 6 })
+            list.push_back({ Family, });
+        return list;
+    }
 };
 
 std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& args) {

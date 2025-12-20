@@ -1122,28 +1122,18 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
 TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation) {
     TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_FEATURE_NEGOTIATION Params = {
-            GetParam().Family,
-            GetParam().ServerSupport,
-            GetParam().ClientSupport
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReliableResetNegotiation), GetParam()));
     } else {
-        QuicTestReliableResetNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
+        QuicTestReliableResetNegotiation(GetParam());
     }
 }
 
 TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation) {
     TestLoggerT<ParamType> Logger("OneWayDelayNegotiation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_FEATURE_NEGOTIATION Params = {
-            GetParam().Family,
-            GetParam().ServerSupport,
-            GetParam().ClientSupport
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestOneWayDelayNegotiation), GetParam()));
     } else {
-        QuicTestOneWayDelayNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
+        QuicTestOneWayDelayNegotiation(GetParam());
     }
 }
 
@@ -2335,8 +2325,9 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 TEST(Misc, StreamMultiReceive) {
     TestLogger Logger("StreamMultiReceive");
     if (TestingKernelMode) {
+        // TODO guhetier: Why??
         GTEST_SKIP();
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamMultiReceive)));
     } else {
         QuicTestStreamMultiReceive();
     }
@@ -2469,61 +2460,45 @@ TEST(Drill, VarIntEncoder) {
 TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().SourceOrDest,
-            (uint8_t)GetParam().ActualCidLengthValid,
-            (uint8_t)GetParam().ShortCidLength,
-            (uint8_t)GetParam().CidLengthFieldValid
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_CID, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestInitialCid), GetParam()));
     } else {
-        QuicDrillTestInitialCid(
-            GetParam().Family,
-            GetParam().SourceOrDest,
-            GetParam().ActualCidLengthValid,
-            GetParam().ShortCidLength,
-            GetParam().CidLengthFieldValid);
+        QuicDrillTestInitialCid(GetParam());
     }
 }
 
 TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketToken", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestInitialToken), GetParam()));
     } else {
-        QuicDrillTestInitialToken(GetParam().Family);
+        QuicDrillTestInitialToken(GetParam());
     }
 }
 
 TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestServerVNPacket) {
     TestLoggerT<ParamType> Logger("QuicDrillTestServerVNPacket", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestServerVNPacket), GetParam()));
     } else {
-        QuicDrillTestServerVNPacket(GetParam().Family);
+        QuicDrillTestServerVNPacket(GetParam());
     }
 }
 
 TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake) {
     TestLoggerT<ParamType> Logger("QuicDrillTestKeyUpdateDuringHandshake", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestKeyUpdateDuringHandshake), GetParam()));
     } else {
-        QuicDrillTestKeyUpdateDuringHandshake(GetParam().Family);
+        QuicDrillTestKeyUpdateDuringHandshake(GetParam());
     }
 }
 
 TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_DATAGRAM_NEGOTIATION Params = {
-            GetParam().Family,
-            GetParam().DatagramReceiveEnabled
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDatagramNegotiation), GetParam()));
     } else {
-        QuicTestDatagramNegotiation(GetParam().Family, GetParam().DatagramReceiveEnabled);
+        QuicTestDatagramNegotiation(GetParam());
     }
 }
 
@@ -2693,7 +2668,7 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithFeatureSupportArgs,
-    testing::ValuesIn(FeatureSupportArgs::Generate()));
+    testing::ValuesIn(WithFeatureSupportArgs::Generate()));
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -2799,17 +2774,17 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithDatagramNegotiationArgs,
-    testing::ValuesIn(DatagramNegotiationArgs::Generate()));
+    testing::ValuesIn(WithDatagramNegotiationArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketCidArgs,
-    testing::ValuesIn(DrillInitialPacketCidArgs::Generate()));
+    testing::ValuesIn(WithDrillInitialPacketCidArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketTokenArgs,
-    testing::ValuesIn(DrillInitialPacketTokenArgs::Generate()));
+    testing::ValuesIn(WithDrillInitialPacketTokenArgs::Generate()));
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
