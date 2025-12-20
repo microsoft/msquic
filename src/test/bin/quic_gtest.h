@@ -29,31 +29,22 @@ class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
 
-struct MtuArgs {
-    int Family;
-    int DropMode;
-    uint8_t RaiseMinimum;
-    static ::std::vector<MtuArgs> Generate() {
-        ::std::vector<MtuArgs> list;
-        for (int Family : { 4, 6}) {
-            for (int DropMode : {0, 1, 2, 3}) {
-                for (uint8_t RaiseMinimum : {0, 1}) {
-                    list.push_back({ Family, DropMode, RaiseMinimum });
-                }
-            }
-        }
-        return list;
-    }
-};
-
 std::ostream& operator << (std::ostream& o, const MtuArgs& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         args.DropMode << "/" << args.RaiseMinimum << "/";
 }
 
-class WithMtuArgs : public testing::Test,
+struct WithMtuArgs : public testing::Test,
     public testing::WithParamInterface<MtuArgs> {
+    static ::std::vector<MtuArgs> Generate() {
+        ::std::vector<MtuArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint8_t DropMode : {0, 1, 2, 3})
+        for (uint8_t RaiseMinimum : {0, 1})
+            list.push_back({ Family, DropMode, RaiseMinimum });
+        return list;
+    }
 };
 
 struct WithFamilyArgs :
@@ -804,8 +795,12 @@ struct WithValidateConnectionEventArgs : public testing::Test,
 };
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-struct ValidateNetStatsConnEventArgs {
-    uint32_t Test;
+std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs& args) {
+    return o << args.Test;
+}
+
+struct WithValidateNetStatsConnEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
     static ::std::vector<ValidateNetStatsConnEventArgs> Generate() {
         ::std::vector<ValidateNetStatsConnEventArgs> list;
         for (uint32_t Test = 0; Test < 2; ++Test)
@@ -813,32 +808,20 @@ struct ValidateNetStatsConnEventArgs {
         return list;
     }
 };
+#endif
 
-std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs& args) {
+std::ostream& operator << (std::ostream& o, const ValidateStreamEventArgs& args) {
     return o << args.Test;
 }
 
-class WithValidateNetStatsConnEventArgs : public testing::Test,
-    public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
-};
-#endif
-
-struct ValidateStreamEventArgs {
-    uint32_t Test;
+struct WithValidateStreamEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateStreamEventArgs> {
     static ::std::vector<ValidateStreamEventArgs> Generate() {
         ::std::vector<ValidateStreamEventArgs> list;
         for (uint32_t Test = 0; Test < 9; ++Test)
             list.push_back({ Test });
         return list;
     }
-};
-
-std::ostream& operator << (std::ostream& o, const ValidateStreamEventArgs& args) {
-    return o << args.Test;
-}
-
-class WithValidateStreamEventArgs : public testing::Test,
-    public testing::WithParamInterface<ValidateStreamEventArgs> {
 };
 
 struct RebindPaddingArgs {

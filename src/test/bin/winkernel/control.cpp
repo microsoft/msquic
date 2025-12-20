@@ -687,6 +687,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestBindConnectionExplicit);
     RegisterTestFunction(QuicTestAddrFunctions);
     RegisterTestFunction(QuicTestMtuSettings);
+    RegisterTestFunction(QuicTestMtuDiscovery);
     RegisterTestFunction(QuicTestValidAlpnLengths);
     RegisterTestFunction(QuicTestInvalidAlpnLengths);
     RegisterTestFunction(QuicTestChangeAlpn);
@@ -713,6 +714,10 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestServerDisconnect);
     RegisterTestFunction(QuicTestClientDisconnect);
     RegisterTestFunction(QuicTestValidateConnectionEvents);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestValidateNetStatsConnEvent);
+#endif
+    RegisterTestFunction(QuicTestValidateStreamEvents);
     RegisterTestFunction(QuicTestStatelessResetKey);
     RegisterTestFunction(QuicTestSlowReceive);
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
@@ -1014,11 +1019,6 @@ QuicTestCtlEvtIoDeviceControl(
                 ));
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestValidateStreamEvents(Params->Test));
-        break;
-
     case IOCTL_QUIC_RUN_ABORTIVE_SHUTDOWN:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1240,16 +1240,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->KeyUpdateRandomLossParams.RandomLossPercentage))
         break;
 
-    case IOCTL_QUIC_RUN_MTU_DISCOVERY:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestMtuDiscovery(
-                Params->MtuDiscoveryParams.Family,
-                Params->MtuDiscoveryParams.DropClientProbePackets,
-                Params->MtuDiscoveryParams.DropServerProbePackets,
-                Params->MtuDiscoveryParams.RaiseMinimumMtu));
-        break;
-
     case IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         //
@@ -1368,13 +1358,6 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
         break;
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestValidateNetStatsConnEvent(Params->Test));
-        break;
-#endif
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN:
         CXPLAT_FRE_ASSERT(Params != nullptr);

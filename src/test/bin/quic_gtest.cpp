@@ -491,9 +491,9 @@ TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
 TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
     TestLoggerT<ParamType> Logger("QuicTestValidateNetStatsConnEvent", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT, GetParam().Test));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateNetStatsConnEvent), GetParam()));
     } else {
-        QuicTestValidateNetStatsConnEvent(GetParam().Test);
+        QuicTestValidateNetStatsConnEvent(GetParam());
     }
 }
 #endif
@@ -501,9 +501,9 @@ TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
 TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStreamEvents", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS, GetParam().Test));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateStreamEvents), GetParam()));
     } else {
-        QuicTestValidateStreamEvents(GetParam().Test);
+        QuicTestValidateStreamEvents(GetParam());
     }
 }
 
@@ -695,20 +695,10 @@ TEST(Mtu, Settings) {
 TEST_P(WithMtuArgs, MtuDiscovery) {
     TestLoggerT<ParamType> Logger("QuicTestMtuDiscovery", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_MTU_DISCOVERY_PARAMS Params = {
-            GetParam().Family,
-            (uint8_t)(GetParam().DropMode & 1),
-            (uint8_t)(GetParam().DropMode & 2),
-            (uint8_t)GetParam().RaiseMinimum
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_DISCOVERY, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestMtuDiscovery), GetParam()));
     }
     else {
-        QuicTestMtuDiscovery(
-            GetParam().Family,
-            GetParam().DropMode & 1,
-            GetParam().DropMode & 2,
-            GetParam().RaiseMinimum);
+        QuicTestMtuDiscovery(GetParam());
     }
 }
 
@@ -2643,13 +2633,13 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithValidateNetStatsConnEventArgs,
-    testing::ValuesIn(ValidateNetStatsConnEventArgs::Generate()));
+    testing::ValuesIn(WithValidateNetStatsConnEventArgs::Generate()));
 #endif
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithValidateStreamEventArgs,
-    testing::ValuesIn(ValidateStreamEventArgs::Generate()));
+    testing::ValuesIn(WithValidateStreamEventArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
@@ -2666,7 +2656,7 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     Mtu,
     WithMtuArgs,
-    ::testing::ValuesIn(MtuArgs::Generate()));
+    ::testing::ValuesIn(WithMtuArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Basic,

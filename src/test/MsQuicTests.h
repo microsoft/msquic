@@ -105,9 +105,15 @@ struct ValidateConnectionEventArgs {
 };
 void QuicTestValidateConnectionEvents(const ValidateConnectionEventArgs& Params);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-void QuicTestValidateNetStatsConnEvent(uint32_t Test);
+struct ValidateNetStatsConnEventArgs {
+    uint32_t Test;
+};
+void QuicTestValidateNetStatsConnEvent(const ValidateNetStatsConnEventArgs& Params);
 #endif
-void QuicTestValidateStreamEvents(uint32_t Test);
+struct ValidateStreamEventArgs {
+    uint32_t Test;
+};
+void QuicTestValidateStreamEvents(const ValidateStreamEventArgs& Params);
 
 //
 // Basic Functionality Tests
@@ -131,13 +137,13 @@ void QuicTestAddrFunctions(const FamilyArgs& Params);
 // MTU tests
 //
 void QuicTestMtuSettings();
-void
-QuicTestMtuDiscovery(
-    _In_ int Family,
-    _In_ BOOLEAN DropClientProbePackets,
-    _In_ BOOLEAN DropServerProbePackets,
-    _In_ BOOLEAN RaiseMinimumMtu
-    );
+
+struct MtuArgs {
+    int Family;
+    uint8_t DropMode;
+    uint8_t RaiseMinimum;
+};
+void QuicTestMtuDiscovery(const MtuArgs& Params);
 
 //
 // Path tests
