@@ -191,10 +191,16 @@ class WithHandshakeArgs5 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs5> {
 };
 
-struct VersionNegotiationExtArgs {
-    int Family;
-    bool DisableVNEClient;
-    bool DisableVNEServer;
+std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.DisableVNEClient ? "DisableClient" : "EnableClient") << "/" <<
+        (args.DisableVNEServer ? "DisableServer" : "EnableServer");
+}
+
+struct WithVersionNegotiationExtArgs : public testing::Test,
+    public testing::WithParamInterface<VersionNegotiationExtArgs> {
+
     static ::std::vector<VersionNegotiationExtArgs> Generate() {
         ::std::vector<VersionNegotiationExtArgs> list;
         for (int Family : { 4, 6 })
@@ -203,17 +209,6 @@ struct VersionNegotiationExtArgs {
             list.push_back({ Family, DisableVNEClient, DisableVNEServer });
         return list;
     }
-};
-
-std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.DisableVNEClient ? "DisableClient" : "EnableClient") << "/" <<
-        (args.DisableVNEServer ? "DisableServer" : "EnableServer");
-}
-
-class WithVersionNegotiationExtArgs : public testing::Test,
-    public testing::WithParamInterface<VersionNegotiationExtArgs> {
 };
 
 struct HandshakeArgs6 {

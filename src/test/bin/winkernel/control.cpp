@@ -700,6 +700,9 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestVersionNegotiation);
     RegisterTestFunction(QuicTestVersionNegotiationRetry);
     RegisterTestFunction(QuicTestCompatibleVersionNegotiationRetry);
+    RegisterTestFunction(QuicTestCompatibleVersionNegotiation);
+    RegisterTestFunction(QuicTestCompatibleVersionNegotiationDefaultServer);
+    RegisterTestFunction(QuicTestCompatibleVersionNegotiationDefaultClient);
     RegisterTestFunction(QuicTestIncompatibleVersionNegotiation);
     RegisterTestFunction(QuicTestFailedVersionNegotiation);
 #endif
@@ -1105,35 +1108,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestCompatibleVersionNegotiation(
-                Params->VersionNegotiationExtParams.Family,
-                Params->VersionNegotiationExtParams.DisableVNEClient,
-                Params->VersionNegotiationExtParams.DisableVNEServer));
-        break;
-
-    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestCompatibleVersionNegotiationDefaultServer(
-                Params->VersionNegotiationExtParams.Family,
-                Params->VersionNegotiationExtParams.DisableVNEClient,
-                Params->VersionNegotiationExtParams.DisableVNEServer));
-        break;
-
-    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestCompatibleVersionNegotiationDefaultClient(
-                Params->VersionNegotiationExtParams.Family,
-                Params->VersionNegotiationExtParams.DisableVNEClient,
-                Params->VersionNegotiationExtParams.DisableVNEServer));
-        break;
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
     case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:
         CXPLAT_FRE_ASSERT(Params != nullptr);

@@ -201,25 +201,25 @@ QuicTestCompatibleVersionNegotiationRetry(
     const FamilyArgs& Params
     );
 
+struct VersionNegotiationExtArgs {
+    int Family;
+    bool DisableVNEClient;
+    bool DisableVNEServer;
+};
+
 void
 QuicTestCompatibleVersionNegotiation(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     );
 
 void
 QuicTestCompatibleVersionNegotiationDefaultClient(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     );
 
 void
 QuicTestCompatibleVersionNegotiationDefaultServer(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     );
 
 void

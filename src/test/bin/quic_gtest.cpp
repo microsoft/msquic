@@ -1077,51 +1077,27 @@ TEST_P(WithFamilyArgs, CompatibleVersionNegotiationRetry) {
 TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiation) {
     TestLoggerT<ParamType> Logger("CompatibleVersionNegotiation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_VERSION_NEGOTIATION_EXT Params = {
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCompatibleVersionNegotiation), GetParam()));
     } else {
-        QuicTestCompatibleVersionNegotiation(
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer);
+        QuicTestCompatibleVersionNegotiation(GetParam());
     }
 }
 
 TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultServer) {
     TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationDefaultServer", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_VERSION_NEGOTIATION_EXT Params = {
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCompatibleVersionNegotiationDefaultServer), GetParam()));
     } else {
-        QuicTestCompatibleVersionNegotiationDefaultServer(
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer);
+        QuicTestCompatibleVersionNegotiationDefaultServer(GetParam());
     }
 }
 
 TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient) {
     TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationDefaultClient", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_VERSION_NEGOTIATION_EXT Params = {
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCompatibleVersionNegotiationDefaultClient), GetParam()));
     } else {
-        QuicTestCompatibleVersionNegotiationDefaultClient(
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer);
+        QuicTestCompatibleVersionNegotiationDefaultClient(GetParam());
     }
 }
 
@@ -2669,7 +2645,7 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithVersionNegotiationExtArgs,
-    testing::ValuesIn(VersionNegotiationExtArgs::Generate()));
+    testing::ValuesIn(WithVersionNegotiationExtArgs::Generate()));
 #endif
 
 INSTANTIATE_TEST_SUITE_P(

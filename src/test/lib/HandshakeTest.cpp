@@ -1408,11 +1408,12 @@ QuicTestVersionNegotiationRetry(
 
 void
 QuicTestCompatibleVersionNegotiation(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     )
 {
+    const int Family = Params.Family;
+    const bool DisableVNEClient = Params.DisableVNEClient;
+    const bool DisableVNEServer = Params.DisableVNEServer;
     const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
     const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
@@ -1618,11 +1619,12 @@ QuicTestCompatibleVersionNegotiationRetry(
 
 void
 QuicTestCompatibleVersionNegotiationDefaultServer(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     )
 {
+    const int Family = Params.Family;
+    const bool DisableVNEClient = Params.DisableVNEClient;
+    const bool DisableVNEServer = Params.DisableVNEServer;
     const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
@@ -1714,11 +1716,12 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
 
 void
 QuicTestCompatibleVersionNegotiationDefaultClient(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     )
 {
+    const int Family = Params.Family;
+    const bool DisableVNEClient = Params.DisableVNEClient;
+    const bool DisableVNEServer = Params.DisableVNEServer;
     const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
