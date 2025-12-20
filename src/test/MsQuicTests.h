@@ -100,7 +100,10 @@ void QuicTestConnectionRejection(const bool& RejectByClosing);
 // Event Validation Tests
 //
 
-void QuicTestValidateConnectionEvents(uint32_t Test);
+struct ValidateConnectionEventArgs {
+    uint32_t Test;
+};
+void QuicTestValidateConnectionEvents(const ValidateConnectionEventArgs& Params);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void QuicTestValidateNetStatsConnEvent(uint32_t Test);
 #endif

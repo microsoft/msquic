@@ -357,7 +357,9 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
 
 TEST(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+    if (IsWindows2022()) {
+        GTEST_SKIP(); // Not supported with Schannel on WS2022
+    }
 #endif
     TestLogger Logger("QuicTestValidateConfiguration");
     if (TestingKernelMode) {
@@ -479,9 +481,9 @@ TEST(ParameterValidation, CloseConnBeforeStreamFlush) {
 TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateConnectionEvents", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS, GetParam().Test));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateConnectionEvents), GetParam()));
     } else {
-        QuicTestValidateConnectionEvents(GetParam().Test);
+        QuicTestValidateConnectionEvents(GetParam());
     }
 }
 
@@ -2635,7 +2637,7 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithValidateConnectionEventArgs,
-    testing::ValuesIn(ValidateConnectionEventArgs::Generate()));
+    testing::ValuesIn(WithValidateConnectionEventArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 INSTANTIATE_TEST_SUITE_P(

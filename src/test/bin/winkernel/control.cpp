@@ -712,6 +712,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnectAndIdle);
     RegisterTestFunction(QuicTestServerDisconnect);
     RegisterTestFunction(QuicTestClientDisconnect);
+    RegisterTestFunction(QuicTestValidateConnectionEvents);
     RegisterTestFunction(QuicTestStatelessResetKey);
     RegisterTestFunction(QuicTestSlowReceive);
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
@@ -1011,11 +1012,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params2.FifoScheduling != 0,
                 Params->Params2.SendUdpToQtipListener != 0
                 ));
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestValidateConnectionEvents(Params->Test));
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS:

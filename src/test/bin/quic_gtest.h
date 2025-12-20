@@ -789,22 +789,18 @@ class WithDrillInitialPacketTokenArgs: public testing::Test,
     public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
 };
 
-struct ValidateConnectionEventArgs {
-    uint32_t Test;
+std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& args) {
+    return o << args.Test;
+}
+
+struct WithValidateConnectionEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateConnectionEventArgs> {
     static ::std::vector<ValidateConnectionEventArgs> Generate() {
         ::std::vector<ValidateConnectionEventArgs> list;
         for (uint32_t Test = 0; Test < 3; ++Test)
             list.push_back({ Test });
         return list;
     }
-};
-
-std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& args) {
-    return o << args.Test;
-}
-
-class WithValidateConnectionEventArgs : public testing::Test,
-    public testing::WithParamInterface<ValidateConnectionEventArgs> {
 };
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)

@@ -554,8 +554,9 @@ QuicTestValidateConnectionEvents3(
     TEST_TRUE(Server.Complete.WaitTimeout(1000));
 }
 
-void QuicTestValidateConnectionEvents(uint32_t Test)
+void QuicTestValidateConnectionEvents(const ValidateConnectionEventArgs& Params)
 {
+    uint32_t Test = Params.Test;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
