@@ -20,7 +20,12 @@ if("${CX_PLATFORM}" STREQUAL "windows")
        ${SYSTEM_PROCESSOR} STREQUAL "arm64ec")
         set(SOURCES ${SOURCES} datapath_raw_dummy.c)
     else()
-        set(SOURCES ${SOURCES} datapath_raw.c datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c datapath_raw_xdp_win.c)
+        set(SOURCES ${SOURCES} datapath_raw.c datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c)
+        if(QUIC_WINDOWS_XDP_ENABLED)
+            list(APPEND SOURCES datapath_raw_xdp_win.c)
+        else()
+            list(APPEND SOURCES datapath_raw_dummy.c)
+        endif()
     endif()
 else()
     set(SOURCES ${SOURCES} platform_posix.c storage_posix.c cgroup.c datapath_unix.c)
@@ -124,11 +129,15 @@ target_link_libraries(msquic_platform PRIVATE warnings main_binary_link_args)
 set_property(TARGET msquic_platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if ("${CX_PLATFORM}" STREQUAL "windows")
-    target_include_directories(
-        msquic_platform
-        PRIVATE
-        ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
-        ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
+    if(QUIC_WINDOWS_XDP_ENABLED)
+        target_include_directories(
+            msquic_platform
+            PRIVATE
+            ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
+            ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
+    else()
+        target_include_directories(msquic_platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
+    endif()
 elseif(QUIC_LINUX_XDP_ENABLED)
     include_directories(/usr/include/libnl3)
     target_include_directories(msquic_platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})

@@ -57,6 +57,10 @@ fn cmake_build() {
         config.define("QUIC_TLS_LIB", "quictls");
     }
 
+    if cfg!(all(windows, feature = "windows-xdp")) {
+        config.define("QUIC_WINDOWS_XDP_ENABLED", "on");
+    }
+
     if cfg!(feature = "static") {
         config.define("QUIC_BUILD_SHARED", "off");
     }
