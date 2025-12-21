@@ -73,6 +73,8 @@ typedef struct QUIC_PACKET_SPACE {
     //
     QUIC_CONNECTION* Connection;
 
+    QUIC_PATHID* PathID;
+
     //
     // List of received packets that we don't have the key for yet.
     //
@@ -129,7 +131,7 @@ QuicAckTrackerGetPacketSpace(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketSpaceInitialize(
-    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATHID* PathID,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _Out_ QUIC_PACKET_SPACE** NewPackets
     );

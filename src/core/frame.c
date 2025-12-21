@@ -49,6 +49,7 @@ QuicUint8tDecode(
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckHeaderEncode(
+    _In_ BOOLEAN MultipathNegotiated,
     _In_ const QUIC_ACK_EX * const Frame,
     _In_opt_ QUIC_ACK_ECN_EX* Ecn,
     _Inout_ uint16_t* Offset,
@@ -57,7 +58,8 @@ QuicAckHeaderEncode(
     )
 {
     uint16_t RequiredLength =
-        sizeof(uint8_t) +     // Type
+        (MultipathNegotiated ? QuicVarIntSize(QUIC_FRAME_PATH_ACK) : sizeof(uint8_t)) +     // Type
+        (MultipathNegotiated ? QuicVarIntSize(Frame->PathId) : 0) +
         QuicVarIntSize(Frame->LargestAcknowledged) +
         QuicVarIntSize(Frame->AckDelay) +
         QuicVarIntSize(Frame->AdditionalAckBlockCount) +
@@ -68,7 +70,12 @@ QuicAckHeaderEncode(
     }
 
     Buffer = Buffer + *Offset;
-    Buffer = QuicUint8Encode(Ecn == NULL ? QUIC_FRAME_ACK : QUIC_FRAME_ACK + 1, Buffer);
+    if (MultipathNegotiated) {
+        Buffer = QuicVarIntEncode(Ecn == NULL ? QUIC_FRAME_PATH_ACK : QUIC_FRAME_PATH_ACK + 1, Buffer);
+        Buffer = QuicVarIntEncode(Frame->PathId, Buffer);
+    } else {
+        Buffer = QuicUint8Encode(Ecn == NULL ? QUIC_FRAME_ACK : QUIC_FRAME_ACK + 1, Buffer);
+    }
     Buffer = QuicVarIntEncode(Frame->LargestAcknowledged, Buffer);
     Buffer = QuicVarIntEncode(Frame->AckDelay, Buffer);
     Buffer = QuicVarIntEncode(Frame->AdditionalAckBlockCount, Buffer);
@@ -81,6 +88,7 @@ QuicAckHeaderEncode(
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckHeaderDecode(
+    _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
@@ -88,6 +96,14 @@ QuicAckHeaderDecode(
     _Out_ QUIC_ACK_EX* Frame
     )
 {
+    if (FrameType == QUIC_FRAME_PATH_ACK || FrameType == QUIC_FRAME_PATH_ACK_1) {
+        if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathId)) {
+            return FALSE;
+        }
+    } else {
+        Frame->PathId = 0;
+    }
+    
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->LargestAcknowledged) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->AckDelay) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->AdditionalAckBlockCount) ||
@@ -188,6 +204,8 @@ QuicAckEcnDecode(
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckFrameEncode(
+    _In_ BOOLEAN MultipathNegotiated,
+    _In_ uint32_t PathId,
     _In_ const QUIC_RANGE * const AckBlocks,
     _In_ uint64_t AckDelay,
     _In_opt_ QUIC_ACK_ECN_EX* Ecn,
@@ -206,13 +224,14 @@ QuicAckFrameEncode(
     // Write the ACK Frame Header
     //
     QUIC_ACK_EX Frame = {
+        PathId,
         Largest,                // LargestAcknowledged
         AckDelay,               // AckDelay
         i,                      // AdditionalAckBlockCount
         Count - 1               // FirstAckBlock
     };
 
-    if (!QuicAckHeaderEncode(&Frame, Ecn, Offset, BufferLength, Buffer)) {
+    if (!QuicAckHeaderEncode(MultipathNegotiated, &Frame, Ecn, Offset, BufferLength, Buffer)) {
         return FALSE;
     }
 
@@ -273,6 +292,7 @@ QuicAckFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ BOOLEAN* InvalidFrame,
+    _Out_ uint32_t* PathId,
     _Inout_ QUIC_RANGE* AckRanges, // Pre-Initialized by caller
     _When_(FrameType == QUIC_FRAME_ACK_1, _Out_)
         QUIC_ACK_ECN_EX* Ecn,
@@ -286,7 +306,7 @@ QuicAckFrameDecode(
     // Decode the ACK frame header.
     //
     QUIC_ACK_EX Frame;
-    if (!QuicAckHeaderDecode(BufferLength, Buffer, Offset, &Frame)) {
+    if (!QuicAckHeaderDecode(FrameType, BufferLength, Buffer, Offset, &Frame)) {
         *InvalidFrame = TRUE;
         return FALSE;
     }
@@ -347,9 +367,10 @@ QuicAckFrameDecode(
         }
     }
 
+    *PathId = (uint32_t)Frame.PathId;
     *AckDelay = Frame.AckDelay;
 
-    if (FrameType == QUIC_FRAME_ACK_1) {
+    if (FrameType == QUIC_FRAME_ACK_1 || FrameType == QUIC_FRAME_PATH_ACK_1) {
         //
         // The ECN section was provided. Decode it as well.
         //
@@ -953,6 +974,7 @@ QuicStreamsBlockedFrameDecode(
 _Success_(return != FALSE)
 BOOLEAN
 QuicNewConnectionIDFrameEncode(
+    _In_ QUIC_FRAME_TYPE FrameType,
     _In_ const QUIC_NEW_CONNECTION_ID_EX * const Frame,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
@@ -960,7 +982,10 @@ QuicNewConnectionIDFrameEncode(
     )
 {
     uint16_t RequiredLength =
-        sizeof(uint8_t) +     // Type
+        (FrameType == QUIC_FRAME_PATH_NEW_CONNECTION_ID ?
+            QuicVarIntSize(QUIC_FRAME_PATH_NEW_CONNECTION_ID) : sizeof(uint8_t)) + // Type
+        (FrameType == QUIC_FRAME_PATH_NEW_CONNECTION_ID ?
+            QuicVarIntSize(Frame->PathID) : 0) +
         QuicVarIntSize(Frame->Sequence) +
         QuicVarIntSize(Frame->RetirePriorTo) +
         sizeof(uint8_t) +     // Length
@@ -972,7 +997,12 @@ QuicNewConnectionIDFrameEncode(
     }
 
     Buffer = Buffer + *Offset;
-    Buffer = QuicUint8Encode(QUIC_FRAME_NEW_CONNECTION_ID, Buffer);
+    if (FrameType == QUIC_FRAME_PATH_NEW_CONNECTION_ID) {
+        Buffer = QuicVarIntEncode(QUIC_FRAME_PATH_NEW_CONNECTION_ID, Buffer);
+        Buffer = QuicVarIntEncode(Frame->PathID, Buffer);
+    } else {
+        Buffer = QuicUint8Encode(QUIC_FRAME_NEW_CONNECTION_ID, Buffer);
+    }
     Buffer = QuicVarIntEncode(Frame->Sequence, Buffer);
     Buffer = QuicVarIntEncode(Frame->RetirePriorTo, Buffer);
     Buffer = QuicUint8Encode(Frame->Length, Buffer);
@@ -985,6 +1015,7 @@ QuicNewConnectionIDFrameEncode(
 _Success_(return != FALSE)
 BOOLEAN
 QuicNewConnectionIDFrameDecode(
+    _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
@@ -992,6 +1023,14 @@ QuicNewConnectionIDFrameDecode(
     _Out_ QUIC_NEW_CONNECTION_ID_EX* Frame
     )
 {
+    if (FrameType == QUIC_FRAME_PATH_NEW_CONNECTION_ID) {
+        if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathID)) {
+            return FALSE;
+        }
+    } else {
+        Frame->PathID = 0;
+    }
+    
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Sequence) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->RetirePriorTo) ||
         Frame->RetirePriorTo > Frame->Sequence ||
@@ -1015,6 +1054,7 @@ QuicNewConnectionIDFrameDecode(
 _Success_(return != FALSE)
 BOOLEAN
 QuicRetireConnectionIDFrameEncode(
+    _In_ QUIC_FRAME_TYPE FrameType,
     _In_ const QUIC_RETIRE_CONNECTION_ID_EX * const Frame,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
@@ -1022,7 +1062,10 @@ QuicRetireConnectionIDFrameEncode(
     )
 {
     uint16_t RequiredLength =
-        sizeof(uint8_t) +     // Type
+        (FrameType == QUIC_FRAME_PATH_RETIRE_CONNECTION_ID ?
+            QuicVarIntSize(QUIC_FRAME_PATH_RETIRE_CONNECTION_ID) : sizeof(uint8_t)) + // Type
+        (FrameType == QUIC_FRAME_PATH_RETIRE_CONNECTION_ID ?
+            QuicVarIntSize(Frame->PathID) : 0) +
         QuicVarIntSize(Frame->Sequence);
 
     if (BufferLength < *Offset + RequiredLength) {
@@ -1030,7 +1073,12 @@ QuicRetireConnectionIDFrameEncode(
     }
 
     Buffer = Buffer + *Offset;
-    Buffer = QuicUint8Encode(QUIC_FRAME_RETIRE_CONNECTION_ID, Buffer);
+    if (FrameType == QUIC_FRAME_PATH_RETIRE_CONNECTION_ID) {
+        Buffer = QuicVarIntEncode(QUIC_FRAME_PATH_RETIRE_CONNECTION_ID, Buffer);
+        Buffer = QuicVarIntEncode(Frame->PathID, Buffer);
+    } else {
+        Buffer = QuicUint8Encode(QUIC_FRAME_RETIRE_CONNECTION_ID, Buffer);
+    }
     QuicVarIntEncode(Frame->Sequence, Buffer);
     *Offset += RequiredLength;
 
@@ -1040,6 +1088,7 @@ QuicRetireConnectionIDFrameEncode(
 _Success_(return != FALSE)
 BOOLEAN
 QuicRetireConnectionIDFrameDecode(
+    _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
@@ -1047,6 +1096,14 @@ QuicRetireConnectionIDFrameDecode(
     _Out_ QUIC_RETIRE_CONNECTION_ID_EX* Frame
     )
 {
+    if (FrameType == QUIC_FRAME_PATH_RETIRE_CONNECTION_ID) {
+        if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathID)) {
+            return FALSE;
+        }
+    } else {
+        Frame->PathID = 0;
+    }
+
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Sequence)) {
         return FALSE;
     }
@@ -1095,6 +1152,276 @@ QuicPathChallengeFrameDecode(
     }
     CxPlatCopyMemory(Frame->Data, Buffer + *Offset, sizeof(Frame->Data));
     *Offset += sizeof(Frame->Data);
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathAbandonFrameEncode(
+    _In_ const QUIC_PATH_ABANDON_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_PATH_ABANDON) +     // Type
+        QuicVarIntSize(Frame->PathID) +
+        QuicVarIntSize(Frame->ErrorCode);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_PATH_ABANDON, Buffer);
+    Buffer = QuicVarIntEncode(Frame->PathID, Buffer);
+    QuicVarIntEncode(Frame->ErrorCode, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathAbandonFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_ABANDON_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathID) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ErrorCode)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathBackupFrameEncode(
+    _In_ const QUIC_PATH_BACKUP_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_PATH_BACKUP) +     // Type
+        QuicVarIntSize(Frame->PathID) +
+        QuicVarIntSize(Frame->StatusSequenceNumber);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_PATH_BACKUP, Buffer);
+    Buffer = QuicVarIntEncode(Frame->PathID, Buffer);
+    QuicVarIntEncode(Frame->StatusSequenceNumber, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathBackupFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_BACKUP_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathID) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StatusSequenceNumber)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathAvailableFrameEncode(
+    _In_ const QUIC_PATH_AVAILABLE_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_PATH_AVAILABLE) +     // Type
+        QuicVarIntSize(Frame->PathID) +
+        QuicVarIntSize(Frame->StatusSequenceNumber);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_PATH_AVAILABLE, Buffer);
+    Buffer = QuicVarIntEncode(Frame->PathID, Buffer);
+    QuicVarIntEncode(Frame->StatusSequenceNumber, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathAvailableFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_AVAILABLE_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathID) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StatusSequenceNumber)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicMaxPathIDFrameEncode(
+    _In_ const QUIC_MAX_PATH_ID_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_MAX_PATH_ID) +     // Type
+        QuicVarIntSize(Frame->MaximumPathID);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_MAX_PATH_ID, Buffer);
+    QuicVarIntEncode(Frame->MaximumPathID, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicMaxPathIDFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_MAX_PATH_ID_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->MaximumPathID)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathsBlockedFrameEncode(
+    _In_ const QUIC_PATHS_BLOCKED_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_PATHS_BLOCKED) +     // Type
+        QuicVarIntSize(Frame->MaximumPathID);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_PATHS_BLOCKED, Buffer);
+    QuicVarIntEncode(Frame->MaximumPathID, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathsBlockedFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATHS_BLOCKED_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->MaximumPathID)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathCidsBlockedFrameEncode(
+    _In_ const QUIC_PATH_CIDS_BLOCKED_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_PATH_CIDS_BLOCKED) +     // Type
+        QuicVarIntSize(Frame->PathID) +
+        QuicVarIntSize(Frame->NextSequenceNumber);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_PATH_CIDS_BLOCKED, Buffer);
+    Buffer = QuicVarIntEncode(Frame->PathID, Buffer);
+    QuicVarIntEncode(Frame->NextSequenceNumber, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathCidsBlockedFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_CIDS_BLOCKED_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathID) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->NextSequenceNumber)) {
+        return FALSE;
+    }
+
     return TRUE;
 }
 
@@ -1389,26 +1716,50 @@ QuicFrameLog(
     }
 
     case QUIC_FRAME_ACK:
-    case QUIC_FRAME_ACK_1: {
+    case QUIC_FRAME_ACK_1:
+    case QUIC_FRAME_PATH_ACK:
+    case QUIC_FRAME_PATH_ACK_1: {
         QUIC_ACK_EX Frame;
-        if (!QuicAckHeaderDecode(PacketLength, Packet, Offset, &Frame)) {
+        if (FrameType == QUIC_FRAME_ACK || FrameType == QUIC_FRAME_ACK_1) {
+            if (!QuicAckHeaderDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
+                QuicTraceLogVerbose(
+                    FrameLogAckInvalid,
+                    "[%c][%cX][%llu]   ACK [Invalid]",
+                    PtkConnPre(Connection),
+                    PktRxPre(Rx),
+                    PacketNumber);
+                return FALSE;
+            }
+
             QuicTraceLogVerbose(
-                FrameLogAckInvalid,
-                "[%c][%cX][%llu]   ACK [Invalid]",
+                FrameLogAck,
+                "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
-                PacketNumber);
-            return FALSE;
-        }
+                PacketNumber,
+                Frame.LargestAcknowledged,
+                Frame.AckDelay);
+        } else {
+            if (!QuicAckHeaderDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
+                QuicTraceLogVerbose(
+                    FrameLogPathAckInvalid,
+                    "[%c][%cX][%llu]   PATH_ACK [Invalid]",
+                    PtkConnPre(Connection),
+                    PktRxPre(Rx),
+                    PacketNumber);
+                return FALSE;
+            }
 
-        QuicTraceLogVerbose(
-            FrameLogAck,
-            "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
-            PtkConnPre(Connection),
-            PktRxPre(Rx),
-            PacketNumber,
-            Frame.LargestAcknowledged,
-            Frame.AckDelay);
+            QuicTraceLogVerbose(
+                FrameLogPathAck,
+                "[%c][%cX][%llu]   PathId:%llu ACK Largest:%llu Delay:%llu",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber,
+                Frame.PathId,
+                Frame.LargestAcknowledged,
+                Frame.AckDelay);
+        }
 
         if (Frame.FirstAckBlock == 0) {
             QuicTraceLogVerbose(
@@ -1771,7 +2122,7 @@ QuicFrameLog(
 
     case QUIC_FRAME_NEW_CONNECTION_ID: {
         QUIC_NEW_CONNECTION_ID_EX Frame;
-        if (!QuicNewConnectionIDFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+        if (!QuicNewConnectionIDFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
             QuicTraceLogVerbose(
                 FrameLogNewConnectionIDInvalid,
                 "[%c][%cX][%llu]   NEW_CONN_ID [Invalid]",
@@ -1794,9 +2145,35 @@ QuicFrameLog(
         break;
     }
 
+    case QUIC_FRAME_PATH_NEW_CONNECTION_ID: {
+        QUIC_NEW_CONNECTION_ID_EX Frame;
+        if (!QuicNewConnectionIDFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathNewConnectionIDInvalid,
+                "[%c][%cX][%llu]   PATH_NEW_CONN_ID [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathNewConnectionID,
+            "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.Sequence,
+            Frame.RetirePriorTo,
+            QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer,
+            QuicCidBufToStr(Frame.Buffer + Frame.Length, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+        break;
+    }
+
     case QUIC_FRAME_RETIRE_CONNECTION_ID: {
         QUIC_RETIRE_CONNECTION_ID_EX Frame;
-        if (!QuicRetireConnectionIDFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+        if (!QuicRetireConnectionIDFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
             QuicTraceLogVerbose(
                 FrameLogRetireConnectionIDInvalid,
                 "[%c][%cX][%llu]   RETIRE_CONN_ID [Invalid]",
@@ -1812,6 +2189,29 @@ QuicFrameLog(
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
+            Frame.Sequence);
+        break;
+    }
+
+    case QUIC_FRAME_PATH_RETIRE_CONNECTION_ID: {
+        QUIC_RETIRE_CONNECTION_ID_EX Frame;
+        if (!QuicRetireConnectionIDFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathRetireConnectionIDInvalid,
+                "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathRetireConnectionID,
+            "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID PathID:%llu Seq:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
             Frame.Sequence);
         break;
     }
@@ -1857,6 +2257,142 @@ QuicFrameLog(
             PktRxPre(Rx),
             PacketNumber,
             CxPlatByteSwapUint64(*(uint64_t*)Frame.Data));
+        break;
+    }
+
+    case QUIC_FRAME_PATH_ABANDON: {
+        QUIC_PATH_ABANDON_EX Frame;
+        if (!QuicPathAbandonFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathAbandonInvalid,
+                "[%c][%cX][%llu]   PATH_ABANDON [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathAbandon,
+            "[%c][%cX][%llu]   PATH_ABANDON PathID:%llu ErrorCode:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.ErrorCode);
+        break;
+    }
+
+    case QUIC_FRAME_PATH_BACKUP: {
+        QUIC_PATH_BACKUP_EX Frame;
+        if (!QuicPathBackupFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathBackupInvalid,
+                "[%c][%cX][%llu]   PATH_BACKUP [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathBackup,
+            "[%c][%cX][%llu]   PATH_BACKUP PathID:%llu SSN:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.StatusSequenceNumber);
+        break;
+    }
+
+    case QUIC_FRAME_PATH_AVAILABLE: {
+        QUIC_PATH_AVAILABLE_EX Frame;
+        if (!QuicPathAvailableFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathAvailableInvalid,
+                "[%c][%cX][%llu]   PATH_AVAILABLE [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathAvailable,
+            "[%c][%cX][%llu]   PATH_AVAILABLE PathID:%llu SSN:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.StatusSequenceNumber);
+        break;
+    }
+
+    case QUIC_FRAME_MAX_PATH_ID: {
+        QUIC_MAX_PATH_ID_EX Frame;
+        if (!QuicMaxPathIDFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogMaxPathIDInvalid,
+                "[%c][%cX][%llu]   MAX_PATH_ID [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogMaxPathID,
+            "[%c][%cX][%llu]   MAX_PATH_ID Max:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.MaximumPathID);
+        break;
+    }
+
+    case QUIC_FRAME_PATHS_BLOCKED: {
+        QUIC_PATHS_BLOCKED_EX Frame;
+        if (!QuicPathsBlockedFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathsBlockedInvalid,
+                "[%c][%cX][%llu]   PATHS_BLOCKED [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathsBlocked,
+            "[%c][%cX][%llu]   PATHS_BLOCKED Max:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.MaximumPathID);
+        break;
+    }
+
+    case QUIC_FRAME_PATH_CIDS_BLOCKED: {
+        QUIC_PATH_CIDS_BLOCKED_EX Frame;
+        if (!QuicPathCidsBlockedFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathCidsBlockedInvalid,
+                "[%c][%cX][%llu]   PATH_CIDS_BLOCKED [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathCidsBlocked,
+            "[%c][%cX][%llu]   PATH_CIDS_BLOCKED PathID:%llu Next SSN:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.NextSequenceNumber);
         break;
     }
 

@@ -156,21 +156,21 @@ QuicCryptoInitialize(
     RecvBufferInitialized = TRUE;
 
     if (QuicConnIsServer(Connection)) {
-        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-        QUIC_CID_HASH_ENTRY* SourceCid =
+        CXPLAT_DBG_ASSERT(Connection->Paths[0].PathID->SourceCids.Next != NULL);
+        QUIC_CID_SLIST_ENTRY* SourceCid =
             CXPLAT_CONTAINING_RECORD(
-                Connection->SourceCids.Next,
-                QUIC_CID_HASH_ENTRY,
+                Connection->Paths[0].PathID->SourceCids.Next,
+                QUIC_CID_SLIST_ENTRY,
                 Link);
 
         HandshakeCid = SourceCid->CID.Data;
         HandshakeCidLength = SourceCid->CID.Length;
 
     } else {
-        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
+        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->Paths[0].PathID->DestCids));
         QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
-                Connection->DestCids.Flink,
+                Connection->Paths[0].PathID->DestCids.Flink,
                 QUIC_CID_LIST_ENTRY,
                 Link);
 
@@ -411,21 +411,21 @@ QuicCryptoOnVersionChange(
     }
 
     if (QuicConnIsServer(Connection)) {
-        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-        QUIC_CID_HASH_ENTRY* SourceCid =
+        CXPLAT_DBG_ASSERT(Connection->Paths[0].PathID->SourceCids.Next != NULL);
+        QUIC_CID_SLIST_ENTRY* SourceCid =
             CXPLAT_CONTAINING_RECORD(
-                Connection->SourceCids.Next,
-                QUIC_CID_HASH_ENTRY,
+                Connection->Paths[0].PathID->SourceCids.Next,
+                QUIC_CID_SLIST_ENTRY,
                 Link);
 
         HandshakeCid = SourceCid->CID.Data;
         HandshakeCidLength = SourceCid->CID.Length;
 
     } else {
-        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
+        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->Paths[0].PathID->DestCids));
         QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
-                Connection->DestCids.Flink,
+                Connection->Paths[0].PathID->DestCids.Flink,
                 QUIC_CID_LIST_ENTRY,
                 Link);
 
@@ -494,6 +494,10 @@ QuicCryptoHandshakeConfirmed(
         QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
     }
 
+    if (QuicConnOpenNewPaths(Connection)) {
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+    }
+
     QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
 }
 
@@ -537,12 +541,13 @@ QuicCryptoDiscardKeys(
     // Clean up send/recv tracking state for the encryption level.
     //
 
-    CXPLAT_DBG_ASSERT(Connection->Packets[EncryptLevel] != NULL);
+    CXPLAT_DBG_ASSERT(Connection->Paths[0].PathID->ID == 0);
+    CXPLAT_DBG_ASSERT(Connection->Paths[0].PathID->Packets[EncryptLevel] != NULL);
     BOOLEAN HasAckElicitingPacketsToAcknowledge =
-        Connection->Packets[EncryptLevel]->AckTracker.AckElicitingPacketsToAcknowledge != 0;
-    QuicLossDetectionDiscardPackets(&Connection->LossDetection, KeyType);
-    QuicPacketSpaceUninitialize(Connection->Packets[EncryptLevel]);
-    Connection->Packets[EncryptLevel] = NULL;
+        Connection->Paths[0].PathID->Packets[EncryptLevel]->AckTracker.AckElicitingPacketsToAcknowledge != 0;
+    QuicLossDetectionDiscardPackets(&Connection->Paths[0].PathID->LossDetection, KeyType);
+    QuicPacketSpaceUninitialize(Connection->Paths[0].PathID->Packets[EncryptLevel]);
+    Connection->Paths[0].PathID->Packets[EncryptLevel] = NULL;
 
     //
     // Clean up any possible left over recovery state.
@@ -1430,7 +1435,7 @@ QuicCryptoProcessTlsCompletion(
         CXPLAT_TEL_ASSERT(Crypto->TlsState.EarlyDataState != CXPLAT_TLS_EARLY_DATA_ACCEPTED);
         if (QuicConnIsClient(Connection)) {
             QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_0_RTT);
-            QuicLossDetectionOnZeroRttRejected(&Connection->LossDetection);
+            QuicLossDetectionOnZeroRttRejected(&Connection->Paths[0].PathID->LossDetection);
         } else {
             QuicConnDiscardDeferred0Rtt(Connection);
         }
@@ -1615,25 +1620,25 @@ QuicCryptoProcessTlsCompletion(
             // Take this opportinuty to clean up the client chosen initial CID.
             // It will be the second one in the list.
             //
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next->Next == NULL);
-            QUIC_CID_HASH_ENTRY* InitialSourceCid =
+            CXPLAT_DBG_ASSERT(Connection->Paths[0].PathID->SourceCids.Next != NULL);
+            CXPLAT_DBG_ASSERT(Connection->Paths[0].PathID->SourceCids.Next->Next != NULL);
+            CXPLAT_DBG_ASSERT(Connection->Paths[0].PathID->SourceCids.Next->Next->Next == NULL);
+            QUIC_CID_SLIST_ENTRY* InitialSourceCid =
                 CXPLAT_CONTAINING_RECORD(
-                    Connection->SourceCids.Next->Next,
-                    QUIC_CID_HASH_ENTRY,
+                    Connection->Paths[0].PathID->SourceCids.Next->Next,
+                    QUIC_CID_SLIST_ENTRY,
                     Link);
             CXPLAT_DBG_ASSERT(InitialSourceCid->CID.IsInitial);
-            Connection->SourceCids.Next->Next = Connection->SourceCids.Next->Next->Next;
+            Connection->Paths[0].PathID->SourceCids.Next->Next = Connection->Paths[0].PathID->SourceCids.Next->Next->Next;
             CXPLAT_DBG_ASSERT(!InitialSourceCid->CID.IsInLookupTable);
             QuicTraceEvent(
                 ConnSourceCidRemoved,
-                "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+                "[conn][%p][pathid][%u] (SeqNum=%llu) Removed Source CID: %!CID!",
                 Connection,
+                Connection->Paths[0].PathID->ID,
                 InitialSourceCid->CID.SequenceNumber,
                 CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
-            CXPLAT_FREE(InitialSourceCid, QUIC_POOL_CIDHASH);
+            CXPLAT_FREE(InitialSourceCid, QUIC_POOL_CIDSLIST);
         }
 
         //
@@ -1644,7 +1649,13 @@ QuicCryptoProcessTlsCompletion(
         Connection->State.Connected = TRUE;
         QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_CONNECTED);
 
-        QuicConnGenerateNewSourceCids(Connection, FALSE);
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+        if (!Connection->State.DisableConnIDGen) {
+            QuicPathIDSetGenerateNewSourceCids(&Connection->PathIDs, FALSE);
+        }
+#else
+        QuicPathIDSetGenerateNewSourceCids(&Connection->PathIDs, FALSE);
+#endif
 
         CXPLAT_DBG_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
         if (QuicConnIsClient(Connection)) {
@@ -1678,7 +1689,7 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
-        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
+        CXPLAT_DBG_ASSERT(Connection->PathsCount >= 1);
         QUIC_PATH* Path = &Connection->Paths[0];
         CXPLAT_DBG_ASSERT(Path->IsActive);
 
@@ -2144,8 +2155,6 @@ QuicCryptoUpdateKeyPhase(
         Connection->Stats.Misc.KeyUpdateCount++;
     }
 
-    QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
-
     UNREFERENCED_PARAMETER(LocalUpdate);
     QuicTraceEvent(
         ConnKeyPhaseChange,
@@ -2153,17 +2162,27 @@ QuicCryptoUpdateKeyPhase(
         Connection,
         LocalUpdate);
 
-    PacketSpace->WriteKeyPhaseStartPacketNumber = Connection->Send.NextPacketNumber;
-    PacketSpace->CurrentKeyPhase = !PacketSpace->CurrentKeyPhase;
+    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+    QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
 
-    //
-    // Reset the read packet space so any new packet will be properly detected.
-    //
-    PacketSpace->ReadKeyPhaseStartPacketNumber = UINT64_MAX;
+    for (uint8_t i = 0; i < PathIDCount; i++) {
+        QUIC_PACKET_SPACE* PacketSpace = PathIDs[i]->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+        
+        PacketSpace->WriteKeyPhaseStartPacketNumber = PathIDs[i]->NextPacketNumber;
+        PacketSpace->CurrentKeyPhase = !PacketSpace->CurrentKeyPhase;
 
-    PacketSpace->AwaitingKeyPhaseConfirmation = TRUE;
+        //
+        // Reset the read packet space so any new packet will be properly detected.
+        //
+        PacketSpace->ReadKeyPhaseStartPacketNumber = UINT64_MAX;
 
-    PacketSpace->CurrentKeyPhaseBytesSent = 0;
+        PacketSpace->AwaitingKeyPhaseConfirmation = TRUE;
+
+        PacketSpace->CurrentKeyPhaseBytesSent = 0;
+
+        QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
+    }
 }
 
 BOOLEAN

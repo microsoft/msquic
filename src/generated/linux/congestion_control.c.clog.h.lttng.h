@@ -6,10 +6,10 @@
 // [conn][%p] Unknown congestion control algorithm: %hu, fallback to Cubic
 // QuicTraceLogConnWarning(
             InvalidCongestionControlAlgorithm,
-            QuicCongestionControlGetConnection(Cc),
+            QuicCongestionControlGetPathID(Cc)->Connection,
             "Unknown congestion control algorithm: %hu, fallback to Cubic",
             Settings->CongestionControlAlgorithm);
-// arg1 = arg1 = QuicCongestionControlGetConnection(Cc) = arg1
+// arg1 = arg1 = QuicCongestionControlGetPathID(Cc)->Connection = arg1
 // arg3 = arg3 = Settings->CongestionControlAlgorithm = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONGESTION_CONTROL_C, InvalidCongestionControlAlgorithm,

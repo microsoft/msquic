@@ -819,6 +819,49 @@ struct MtuDropHelper : public DatapathHook
     }
 };
 
+struct PathProbeHelper : public DatapathHook
+{
+    uint16_t ClientProbePort;
+    CxPlatEvent ServerReceiveProbeEvent;
+    CxPlatEvent ClientReceiveProbeEvent;
+    uint32_t ClientDropPacketCount;
+    uint32_t ServerDropPacketCount;
+    PathProbeHelper(uint16_t ClientPort, uint32_t ClientCount = 0, uint32_t ServerCount = 0) :
+        ClientProbePort(ClientPort),
+        ClientDropPacketCount(ClientCount),
+        ServerDropPacketCount(ServerCount) {
+        DatapathHooks::Instance->AddHook(this);
+    }
+    ~PathProbeHelper() {
+        DatapathHooks::Instance->RemoveHook(this);
+    }
+    void ClientDropPackets(uint32_t Count) { ClientDropPacketCount = Count; }
+    void ServerDropPackets(uint32_t Count) { ServerDropPacketCount = Count; }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
+        ) {
+        if (QuicAddrGetPort(&Datagram->Route->RemoteAddress) == ClientProbePort) {
+            if (ClientDropPacketCount == 0) {
+                ServerReceiveProbeEvent.Set();
+            } else {
+                ClientDropPacketCount--;
+                return TRUE;
+            }
+        }
+        if (QuicAddrGetPort(&Datagram->Route->LocalAddress) == ClientProbePort) {
+            if (ServerDropPacketCount == 0) {
+                ClientReceiveProbeEvent.Set();
+            } else {
+                ServerDropPacketCount--;
+                return TRUE;
+            }
+        }
+        return FALSE;
+    }
+};
+
 struct ReplaceAddressHelper : public DatapathHook
 {
     QUIC_ADDR Original;

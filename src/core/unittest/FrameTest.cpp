@@ -23,6 +23,7 @@ TEST_P(AckFrameTest, AckFrameEncodeDecode)
     const uint64_t ContigPktCount = 4;
     const uint64_t MinPktNum = 5;
     const uint64_t AckDelay = 0;
+    uint32_t PathId;
     QUIC_ACK_ECN_EX Ecn = {4, 4, 4};
     QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
     QUIC_RANGE AckRange;
@@ -44,10 +45,10 @@ TEST_P(AckFrameTest, AckFrameEncodeDecode)
     ASSERT_TRUE(QuicRangeAddRange(&AckRange, MinPktNum, ContigPktCount, &Unused) != nullptr);
     ASSERT_TRUE(QuicRangeAddValue(&AckRange, MaxPktNum));
 
-    ASSERT_TRUE(QuicAckFrameEncode(&AckRange, AckDelay, (GetParam() == QUIC_FRAME_ACK ? nullptr : &Ecn), &Offset, BufferLength, Buffer));
+    ASSERT_TRUE(QuicAckFrameEncode(FALSE, 0, &AckRange, AckDelay, (GetParam() == QUIC_FRAME_ACK ? nullptr : &Ecn), &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_EQ(Buffer[0], GetParam());
-    ASSERT_TRUE(QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckRange, &DecodedEcn, &DecodedAckDelay));
+    ASSERT_TRUE(QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &PathId, &DecodedAckRange, &DecodedEcn, &DecodedAckDelay));
 
     ASSERT_FALSE(InvalidFrame);
     ASSERT_EQ(AckDelay, DecodedAckDelay);
@@ -72,6 +73,7 @@ TEST_P(AckFrameTest, AckFrameEncodeDecode)
 }
 
 TEST_P(AckFrameTest, DecodeAckFrameFail) {
+    uint32_t PathId;
     QUIC_ACK_ECN_EX DecodedEcn;
     uint8_t Buffer[18];
     uint16_t BufferLength;
@@ -100,7 +102,7 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
         Buffer[9] = 3;
     }
 
-    BOOLEAN Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
+    BOOLEAN Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &PathId, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
 
     ASSERT_TRUE(InvalidFrame);
     ASSERT_FALSE(Result);
@@ -134,7 +136,7 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
         Buffer[17] = 6;
     }
 
-    Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
+    Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &PathId, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
 
     ASSERT_TRUE(InvalidFrame);
     ASSERT_FALSE(Result);
@@ -158,7 +160,7 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
         Buffer[7] = 9;
     }
 
-    Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
+    Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &PathId, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
 
     ASSERT_TRUE(InvalidFrame);
     ASSERT_FALSE(Result);
@@ -190,7 +192,7 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
                 //
                 Buffer[7] = (i & 4) ? (uint8_t)TestValue : 0;
 
-                ASSERT_FALSE(QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay));
+                ASSERT_FALSE(QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &PathId, &DecodedAckBlocks, &DecodedEcn, &AckDelay));
 
                 QuicRangeReset(&DecodedAckBlocks);
             }
@@ -982,7 +984,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST(FrameTest, NewConnectionIdFrameEncodeDecode)
 {
-    QUIC_NEW_CONNECTION_ID_EX Frame = {5, 63, 0,
+    QUIC_NEW_CONNECTION_ID_EX Frame = {5, 0, 63, 0,
         {5, 5, 5, 5, 5,
         16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16}};
     QUIC_NEW_CONNECTION_ID_EX DecodedFrame;
@@ -993,9 +995,9 @@ TEST(FrameTest, NewConnectionIdFrameEncodeDecode)
     CxPlatZeroMemory(Buffer, BufferLength);
     CxPlatZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
 
-    ASSERT_TRUE(QuicNewConnectionIDFrameEncode(&Frame, &Offset, BufferLength, Buffer));
+    ASSERT_TRUE(QuicNewConnectionIDFrameEncode(QUIC_FRAME_NEW_CONNECTION_ID, &Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
-    ASSERT_TRUE(QuicNewConnectionIDFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
+    ASSERT_TRUE(QuicNewConnectionIDFrameDecode(QUIC_FRAME_NEW_CONNECTION_ID, BufferLength, Buffer, &Offset, &DecodedFrame));
 
     ASSERT_EQ(Frame.Length, DecodedFrame.Length);
     ASSERT_EQ(Frame.Sequence, DecodedFrame.Sequence);
@@ -1129,7 +1131,7 @@ struct NewConnectionIdFrameTest : ::testing::TestWithParam<NewConnectionIdFrameP
 TEST_P(NewConnectionIdFrameTest, DecodeNewConnectionIdFrameFail) {
     QUIC_NEW_CONNECTION_ID_EX DecodedFrame;
     uint16_t Offset = 1;
-    ASSERT_FALSE(QuicNewConnectionIDFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+    ASSERT_FALSE(QuicNewConnectionIDFrameDecode(QUIC_FRAME_NEW_CONNECTION_ID, GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
 }
 
 INSTANTIATE_TEST_SUITE_P(FrameTest, NewConnectionIdFrameTest, ::testing::ValuesIn(NewConnectionIdFrameParams::GenerateDecodeFailParams()));
@@ -1142,9 +1144,9 @@ TEST(FrameTest, RetireConnectionIdFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    ASSERT_TRUE(QuicRetireConnectionIDFrameEncode(&Frame, &Offset, BufferLength, Buffer));
+    ASSERT_TRUE(QuicRetireConnectionIDFrameEncode(QUIC_FRAME_RETIRE_CONNECTION_ID, &Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
-    ASSERT_TRUE(QuicRetireConnectionIDFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
+    ASSERT_TRUE(QuicRetireConnectionIDFrameDecode(QUIC_FRAME_RETIRE_CONNECTION_ID, BufferLength, Buffer, &Offset, &DecodedFrame));
 
     ASSERT_EQ(Frame.Sequence, DecodedFrame.Sequence);
 }
@@ -1170,7 +1172,7 @@ struct RetireConnectionIdFrameTest : ::testing::TestWithParam<RetireConnectionId
 TEST_P(RetireConnectionIdFrameTest, DecodeRetireConnectionIdFrameFail) {
     QUIC_RETIRE_CONNECTION_ID_EX DecodedFrame;
     uint16_t Offset = 1;
-    ASSERT_FALSE(QuicRetireConnectionIDFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+    ASSERT_FALSE(QuicRetireConnectionIDFrameDecode(QUIC_FRAME_RETIRE_CONNECTION_ID, GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
 }
 
 INSTANTIATE_TEST_SUITE_P(FrameTest, RetireConnectionIdFrameTest, ::testing::ValuesIn(RetireConnectionIdFrameParams::GenerateDecodeFailParams()));

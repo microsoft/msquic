@@ -175,6 +175,8 @@ impl Settings {
     define_settings_entry_bitflag2!(set_NetStatsEventEnabled);
     #[cfg(feature = "preview-api")]
     define_settings_entry_bitflag2!(set_StreamMultiReceiveEnabled);
+    #[cfg(feature = "preview-api")]
+    define_settings_entry_bitflag2!(set_MultipathEnabled);
 
     define_settings_entry!(
         set_StreamRecvWindowBidiLocalDefault,

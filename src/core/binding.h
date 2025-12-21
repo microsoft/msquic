@@ -46,6 +46,7 @@ typedef struct QUIC_RX_PACKET {
     //
     uint64_t PacketNumber;
 
+    uint32_t PathId;
     //
     // Represents the sender side's timestamp (in us) from the start of their
     // epoch.
@@ -386,7 +387,18 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCid
+    _In_ QUIC_CID_SLIST_ENTRY* SourceCid
+    );
+
+//
+// Attempts to insert all the connection's new source CIDs into the binding's
+// lookup table.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingAddAllSourceConnectionIDs(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -396,30 +408,24 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
-    _In_ CXPLAT_SLIST_ENTRY** Entry
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     );
 
 //
-// Removes all the connection's source CIDs from the binding's lookup table.
+// Removes all the source CIDs from the binding's lookup table.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicBindingRemoveConnection(
+QuicBindingRemoveAllSourceConnectionIDs(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CONNECTION* Connection
     );
 
-//
-// Moves all the connections source CIDs from the one binding's lookup table to
-// another.
-//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicBindingMoveSourceConnectionIDs(
-    _In_ QUIC_BINDING* BindingSrc,
-    _In_ QUIC_BINDING* BindingDest,
-    _In_ QUIC_CONNECTION* Connection
+QuicBindingRemoveRemoteHash(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry
     );
 
 //
@@ -545,4 +551,17 @@ QuicRetryTokenDecrypt(
 
     CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
     return QUIC_SUCCEEDED(Status);
+}
+
+//
+// Helper to get the owning QUIC_BINDING for the lookup module.
+//
+QUIC_INLINE
+_Ret_notnull_
+QUIC_BINDING*
+QuicLookupGetBinding(
+    _In_ QUIC_LOOKUP* Lookup
+    )
+{
+    return CXPLAT_CONTAINING_RECORD(Lookup, QUIC_BINDING, Lookup);
 }

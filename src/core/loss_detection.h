@@ -160,30 +160,23 @@ QuicLossDetectionOnPacketSent(
     );
 
 //
-// Processes a received ACK frame. Returns true if the frame could be
-// successfully processed. On failure, 'InvalidFrame' indicates if the frame
-// was corrupt or not.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicLossDetectionProcessAckFrame(
-    _In_ QUIC_LOSS_DETECTION* LossDetection,
-    _In_ QUIC_PATH* Path,
-    _In_ QUIC_RX_PACKET* Packet,
-    _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _In_ QUIC_FRAME_TYPE FrameType,
-    _In_ uint16_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t* const Buffer,
-    _Inout_ uint16_t* Offset,
-    _Out_ BOOLEAN* InvalidFrame
-    );
-
-//
 // Called when the loss detection timer fires.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionProcessTimerOperation(
     _In_ QUIC_LOSS_DETECTION* LossDetection
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLossDetectionProcessAckBlocks(
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
+    _In_ QUIC_PATH* Path,
+    _In_ QUIC_RX_PACKET* Packet,
+    _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
+    _In_ uint64_t AckDelay,
+    _In_ QUIC_RANGE* AckBlocks,
+    _Out_ BOOLEAN* InvalidAckBlock,
+    _In_opt_ QUIC_ACK_ECN_EX* Ecn
     );

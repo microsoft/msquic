@@ -45,6 +45,8 @@
 ../src/core/packet_space.c
 ../src/core/registration.c
 ../src/core/send.c
+../src/core/pathid_set.c
+../src/core/pathid.c
 ../src/core/path.c
 ../src/core/settings.c
 ../src/core/connection.c
@@ -83,6 +85,7 @@
 ../src/bin/static/empty.c
 ../src/core/operation.h
 ../src/core/stream.h
+../src/core/pathid.h
 ../src/core/connection.h
 ../src/test/lib/TestHelpers.h
 ../src/test/lib/TestStream.cpp

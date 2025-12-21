@@ -511,6 +511,8 @@ void WriteAckFrame(
     uint64_t AckDelay = 40;
     CXPLAT_FRE_ASSERT(
         QuicAckFrameEncode(
+            FALSE,
+            0,
             &AckRange,
             AckDelay,
             nullptr,

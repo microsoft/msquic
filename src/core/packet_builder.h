@@ -23,7 +23,7 @@ typedef struct QUIC_PACKET_BUILDER {
     //
     // The source connection ID.
     //
-    QUIC_CID_HASH_ENTRY* SourceCid;
+    QUIC_CID_SLIST_ENTRY* SourceCid;
 
     //
     // Represents a set of UDP datagrams.
@@ -236,7 +236,7 @@ QuicPacketBuilderHasAllowance(
 {
     return
         Builder->SendAllowance > 0 ||
-        QuicCongestionControlGetExemptions(&Builder->Connection->CongestionControl) > 0;
+        QuicCongestionControlGetExemptions(&Builder->Path->PathID->CongestionControl) > 0;
 }
 
 //
@@ -247,7 +247,7 @@ QUIC_INLINE
 BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ uint8_t FrameType,
+    _In_ uint32_t FrameType,
     _In_ BOOLEAN IsAckEliciting
     )
 {
