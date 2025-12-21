@@ -386,3 +386,6 @@ _site
 
 # packaging artifacts
 APKBUILD
+
+# Temporary package download folder by validation script
+msquic-packages/

@@ -16,7 +16,7 @@ volatile long ConnectionsActive;
 void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
     CxPlatSystemLoad();
     CxPlatInitialize();
-    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
     CXPLAT_DATAPATH* Datapath = nullptr;
     //QuicAddrSetFamily(&ServerAddress, AF_INET);
     CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
@@ -26,7 +26,7 @@ void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
         exit(1);
     }
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolDelete(WorkerPool);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 }

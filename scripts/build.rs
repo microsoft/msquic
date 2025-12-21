@@ -2,10 +2,6 @@
 // Licensed under the MIT License.
 
 fn main() {
-    if cfg!(feature = "static") {
-        assert!(cfg!(feature = "src"), "static requires build for src");
-    }
-
     #[cfg(all(feature = "src", feature = "find"))]
     panic!("feature src and find are mutually exclusive");
 

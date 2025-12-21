@@ -3379,11 +3379,12 @@ struct OperationPriorityTestContext {
         UNREFERENCED_PARAMETER(Stream);
         auto TestContext = (OperationPriorityTestContext*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_START_COMPLETE) {
-            if (TestContext->CurrentStartCount++ == 0) {
-                // pseudo blocking operation.
-                // Needed for GetParam based test
+            if (TestContext->CurrentStartCount == 0) {
+                TestContext->BlockAfterInitialStart.Set();
+                // Block the connection thread for 1 second to let the test queue operations
                 CxPlatSleep(1000);
             }
+            TestContext->CurrentStartCount++;
         } else if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
             if (++TestContext->CurrentSendCount == TestContext->NumSend) {
                 TestContext->AllSendsComplete.Set();
@@ -3398,9 +3399,10 @@ struct OperationPriorityTestContext {
             if (TestContext->CurrentStartCount == 0) {
                 // initial dummy stream start to block this thread
                 TestContext->BlockAfterInitialStart.Set();
-                // Wait until all operations are queued
                 TestContext->OperationQueuedComplete.WaitTimeout(TestWaitTimeout);
+                // All operation are now queued, release the connection thread.
             } else if (TestContext->CurrentStartCount == 1) {
+                // Check that the next created stream is the expected one based on priorities.
                 TestContext->TestSucceeded = TestContext->ExpectedStream == Stream;
             }
             TestContext->CurrentStartCount++;
@@ -3426,6 +3428,8 @@ const uint8_t OperationPriorityTestContext::NumSend = 100;
 
 void QuicTestOperationPriority()
 {
+    TestScopeLogger TestScope(__FUNCTION__);
+
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -3451,12 +3455,15 @@ void QuicTestOperationPriority()
     uint8_t RawBuffer[100];
     QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
     MsQuicStream* Streams[OperationPriorityTestContext::NumSend] = {0};
-    // Insert GetParam in front of 100 StreamSend ops
-    // Validate by comparing SendTotalStreamBytes on the statistics
+
+    // 1. Validate a high priority GetParam is executed before normal priority StreamSend operations
+    // - a high priority GetParam should run before any but the first send operation and before any send flush
+    // - a normal priority GetParam should run after the all send operations
     {
-        // NOTE: this test can be flaky if all the operations are not queued during the Connection thread is blocked
+        TestScopeLogger CaseScope("OperationPriority - High pri GetParam vs StreamSend");
+
         OperationPriorityTestContext Context;
-        QUIC_STATISTICS_V2 BaseStat = {0};
+        QUIC_STATISTICS_V2 BaseStat{};
         uint32_t StatSize = sizeof(BaseStat);
         TEST_QUIC_SUCCEEDED(MsQuic->GetParam(
             Connection,
@@ -3464,27 +3471,48 @@ void QuicTestOperationPriority()
             &StatSize,
             &BaseStat));
 
-        for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
+        // Queue the first send. The first send complete callback will hold the connection thread for 1 second
+        // allowing all the operations and the GetParam to be queued before the execution restarts.
+        // (events can't be used since GetParam is blocking)
+        Streams[0] = new(std::nothrow) MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientGetParamStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Streams[0]->GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Streams[0]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+        TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
+
+        // Queue the other send operations.
+        for (uint8_t i = 1; i < OperationPriorityTestContext::NumSend; ++i) {
             Streams[i] = new(std::nothrow) MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientGetParamStreamCallback, &Context);
             TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
-            // Queueing 100 StreamSendFlush operations during the Connection thread is blocked
             TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
         }
 
-        QUIC_STATISTICS_V2 ActualStat = {0};
+        // Queue the high priority GetParam operation - it should run before the 99 sends.
+        QUIC_STATISTICS_V2 ActualStat{};
         TEST_QUIC_SUCCEEDED(MsQuic->GetParam(
             Connection,
             QUIC_PARAM_CONN_STATISTICS_V2_PLAT | QUIC_PARAM_HIGH_PRIORITY,
             &StatSize,
             &ActualStat));
+
+        // No byte should have been sent yet (FLUSH_SEND should not have run)
         TEST_EQUAL(BaseStat.SendTotalStreamBytes, ActualStat.SendTotalStreamBytes);
+
+        // Note: We can't validate that GetParam ran before all other send operation, any validation
+        // will race with the execution of the send operations without a way to synchronize them.
+        // A weaker validation is all we can do.
 
         TEST_QUIC_SUCCEEDED(MsQuic->GetParam(
             Connection,
             QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
             &StatSize,
             &ActualStat));
-        TEST_NOT_EQUAL(BaseStat.SendTotalStreamBytes, ActualStat.SendTotalStreamBytes);
+
+        // By the time the normal priority GetParam runs, all start operations should have completed
+        // Note: Depending on timing and send-buffering, send operations might not have completed.
+        //       The bytes sent may still be BaseStat.SendTotalStreamBytes if a SEND_FLUSH is queued
+        //       only after the GetParam is.
+        TEST_EQUAL(Context.CurrentStartCount, OperationPriorityTestContext::NumSend);
 
         TEST_TRUE(Context.AllSendsComplete.WaitTimeout(TestWaitTimeout));
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
@@ -3492,9 +3520,11 @@ void QuicTestOperationPriority()
         }
     }
 
-    // Insert StreamStart and StreamSend in front of 100 StreamSend ops
+    // 2. Insert StreamStart and StreamSend in front of 100 StreamSend ops
     // Validate by whether the first processed StreamStart/Send are from specific ExpectedStream
     { // ooxxxxx...xxx
+        TestScopeLogger CaseScope("OperationPriority - High pri StreamStart/Send vs StreamSend");
+
         OperationPriorityTestContext Context;
         MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
         MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
@@ -3522,9 +3552,10 @@ void QuicTestOperationPriority()
         }
     }
 
-    // Insert StreamStart in front of 100 StreamSend ops, but StreamSend is not
+    // 3. Insert StreamStart in front of 100 StreamSend ops, but StreamSend is not
     // Validate by whether the first processed StreamStart are from specific ExpectedStream, StreamSend is not
     { // oxxxx....xxxo
+        TestScopeLogger CaseScope("OperationPriority - High pri StreamStart vs StreamSend");
         OperationPriorityTestContext Context;
         MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
         MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);

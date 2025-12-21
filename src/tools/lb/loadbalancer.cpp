@@ -213,7 +213,7 @@ main(int argc, char **argv)
 
     CxPlatSystemLoad();
     CxPlatInitialize();
-    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
 
     CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
     CXPLAT_DATAPATH_INIT_CONFIG DataPathInitConfig = {0};
@@ -225,7 +225,7 @@ main(int argc, char **argv)
 
     delete PublicInterface;
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolDelete(WorkerPool);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 
