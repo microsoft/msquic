@@ -147,6 +147,7 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE                = 0x00080000, // Schannel only
     QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE                = 0x00100000, // OpenSSL only currently
     QUIC_CREDENTIAL_FLAG_DISABLE_AIA                            = 0x00200000, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_BLOB                = 0x00400000, // OpenSSL only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -416,6 +417,8 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
     QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;// Optional
     const char* CaCertificateFile;                      // Optional
+    const uint8_t* CaCertificateBlob;                   // Optional
+    uint32_t CaCertificateBlobLength;                   // Optional
 } QUIC_CREDENTIAL_CONFIG;
 
 //
