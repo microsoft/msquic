@@ -15,6 +15,16 @@ Abstract:
 #include "range.c.clog.h"
 #endif
 
+//
+// Forward declarations for internal helper functions
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t QuicRangeCalculateShrinkLength(
+    _In_ QUIC_RANGE* Range, 
+    _In_ uint32_t MinAllocMultiplier, 
+    _In_ uint32_t UsedThresholdDenominator
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeInitialize(
@@ -194,30 +204,14 @@ QuicRangeRemoveSubranges(
 
     Range->UsedLength -= Count;
 
-    if (Range->AllocLength >= QUIC_RANGE_INITIAL_SUB_COUNT * 2 &&
-        Range->UsedLength < Range->AllocLength / 4) {
+    uint32_t NewAllocLength = QuicRangeCalculateShrinkLength(Range, 2, 4);
+    if (NewAllocLength != Range->AllocLength) {
         //
         // Shrink
         //
-        uint32_t NewAllocLength = Range->AllocLength / 2;
-        QUIC_SUBRANGE* NewSubRanges;
-        if (NewAllocLength == QUIC_RANGE_INITIAL_SUB_COUNT) {
-            NewSubRanges = Range->PreAllocSubRanges;
-        } else {
-            NewSubRanges =
-                CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength, QUIC_POOL_RANGE);
-            if (NewSubRanges == NULL) {
-                return FALSE;
-            }
+        if (QuicRangeShrink(Range, NewAllocLength)) {
+            return TRUE;
         }
-        memcpy(
-            NewSubRanges,
-            Range->SubRanges,
-            Range->UsedLength * sizeof(QUIC_SUBRANGE));
-        CXPLAT_FREE(Range->SubRanges, QUIC_POOL_RANGE);
-        Range->SubRanges = NewSubRanges;
-        Range->AllocLength = NewAllocLength;
-        return TRUE;
     }
 
     return FALSE;
@@ -372,6 +366,11 @@ QuicRangeAddRange(
         }
     }
 
+    // Compact the range to merge any newly adjacent subranges
+    if (*RangeUpdated) {
+        QuicRangeCompact(Range);
+    }
+
     return Sub;
 }
 
@@ -468,6 +467,9 @@ QuicRangeRemoveRange(
         Sub->Low = Low + Count;
     }
 
+    // Compact the range to merge any newly adjacent subranges after removal
+    QuicRangeCompact(Range);
+
     return TRUE;
 }
 
@@ -499,6 +501,9 @@ QuicRangeSetMin(
     if (i > 0) {
         QuicRangeRemoveSubranges(Range, 0, i);
     }
+
+    // Compact the range to merge any newly adjacent subranges
+    QuicRangeCompact(Range);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -547,4 +552,157 @@ QuicRangeGetMaxSafe(
         return TRUE;
     }
     return FALSE;
+}
+
+//
+// Compacts the range by merging overlapping or adjacent subranges to reduce
+// memory fragmentation and improve performance. This function iterates through
+// all subranges, merging any that overlap or touch, and optionally shrinks
+// the allocation if the used space is significantly less than allocated.
+//
+// Parameters:
+//   Range - Pointer to the QUIC_RANGE to compact.
+//
+// Notes:
+//   - Merging reduces the number of subranges, which can speed up searches
+//     and iterations.
+//   - Shrinking occurs if allocation is 4x initial size and used < 1/8 of allocated.
+//   - This is a potentially expensive operation (O(n)) but optimizes long-term usage.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRangeCompact(
+    _Inout_ QUIC_RANGE* Range
+    )
+{
+    if (Range->UsedLength <= 1) {
+        return; // Nothing to compact
+    }
+
+    uint32_t CurrentIndex = 0;
+
+    // Iterate through subranges to find and merge overlapping/adjacent ones
+    while (CurrentIndex < Range->UsedLength - 1) {
+        QUIC_SUBRANGE* CurrentRange = QuicRangeGet(Range, CurrentIndex);
+        QUIC_SUBRANGE* NextRange = QuicRangeGet(Range, CurrentIndex + 1);
+
+        uint64_t CurrentHigh = QuicRangeGetHigh(CurrentRange);
+        uint64_t NextLow = NextRange->Low;
+        uint64_t NextHigh = QuicRangeGetHigh(NextRange);
+
+        if (NextLow <= CurrentHigh) {
+            // Ranges overlap or are adjacent (NextLow == CurrentHigh + 1) - merge them
+            uint64_t MergedHigh = CXPLAT_MAX(CurrentHigh, NextHigh);
+
+            // Update current range to cover both
+            CurrentRange->Count = MergedHigh - CurrentRange->Low;
+
+            // Remove the next range since it's now merged
+            QuicRangeRemoveSubranges(Range, CurrentIndex + 1, 1);
+
+            // Don't increment CurrentIndex so we can check the next range
+            // against the newly merged range
+        } else {
+            // No overlap - move to next range
+            CurrentIndex++;
+        }
+    }
+
+    // Consider shrinking the allocation if we're using much less space
+    uint32_t NewAllocLength = QuicRangeCalculateShrinkLength(Range, 4, 8);
+    if (NewAllocLength != Range->AllocLength) {
+        QuicRangeShrink(Range, NewAllocLength);
+    }
+}
+
+//
+// Calculates the new allocation length for shrinking the range's subranges array.
+// This helper determines if shrinking is warranted based on configurable thresholds
+// and computes the target size, ensuring it doesn't go below the initial count.
+//
+// Parameters:
+//   Range - Pointer to the QUIC_RANGE to evaluate.
+//   MinAllocMultiplier - Minimum multiplier of initial sub-count before shrinking
+//                        (e.g., 2 means shrink only if alloc >= 2 * initial).
+//   UsedThresholdDenominator - Denominator for used threshold (e.g., 4 means
+//                              shrink if used < alloc / 4).
+//
+// Returns:
+//   New allocation length if shrinking is needed, otherwise current AllocLength.
+//
+// Notes:
+//   - Shrinking reduces memory usage but may incur reallocation cost.
+//   - The new length is halved but clamped to at least QUIC_RANGE_INITIAL_SUB_COUNT.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicRangeCalculateShrinkLength(
+    _In_ QUIC_RANGE* Range,
+    _In_ uint32_t MinAllocMultiplier,
+    _In_ uint32_t UsedThresholdDenominator
+    )
+{
+    if (Range->AllocLength >= QUIC_RANGE_INITIAL_SUB_COUNT * MinAllocMultiplier &&
+        Range->UsedLength < Range->AllocLength / UsedThresholdDenominator) {
+        // Shrink to half the current allocation, but not below initial size
+        return CXPLAT_MAX(Range->AllocLength / 2, QUIC_RANGE_INITIAL_SUB_COUNT);
+    }
+    return Range->AllocLength;
+}
+
+//
+// Shrinks the allocation of the subranges array to the specified new length.
+// This function reallocates the array to reduce memory usage when the range
+// is using significantly less space than allocated.
+//
+// Parameters:
+//   Range - Pointer to the QUIC_RANGE to shrink.
+//   NewAllocLength - The target allocation length (must be >= UsedLength).
+//
+// Returns:
+//   TRUE if shrinking succeeded, FALSE if allocation failed.
+//
+// Notes:
+//   - If NewAllocLength equals QUIC_RANGE_INITIAL_SUB_COUNT, uses pre-allocated buffer.
+//   - Copies only the used subranges to the new array.
+//   - Frees the old array if it wasn't the pre-allocated one.
+//   - Failure to allocate leaves the range unchanged.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != FALSE)
+BOOLEAN
+QuicRangeShrink(
+    _Inout_ QUIC_RANGE* Range,
+    _In_ uint32_t NewAllocLength
+    )
+{
+    QUIC_SUBRANGE* NewSubRanges;
+
+    // Use pre-allocated buffer if shrinking to initial size
+    if (NewAllocLength == QUIC_RANGE_INITIAL_SUB_COUNT) {
+        NewSubRanges = Range->PreAllocSubRanges;
+    } else {
+        // Allocate new buffer
+        NewSubRanges = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength, QUIC_POOL_RANGE);
+        if (NewSubRanges == NULL) {
+            // Allocation failed, cannot shrink
+            return FALSE;
+        }
+    }
+
+    // Copy existing subranges to the new buffer
+    memcpy(
+        NewSubRanges,
+        Range->SubRanges,
+        Range->UsedLength * sizeof(QUIC_SUBRANGE));
+
+    // Free the old buffer if it wasn't pre-allocated
+    if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
+        CXPLAT_FREE(Range->SubRanges, QUIC_POOL_RANGE);
+    }
+
+    // Update the range with the new allocation
+    Range->SubRanges = NewSubRanges;
+    Range->AllocLength = NewAllocLength;
+    return TRUE;
 }
