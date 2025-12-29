@@ -18,6 +18,8 @@ Abstract:
 #include "control.cpp.clog.h"
 #endif
 
+#include <ntdef.h>
+
 #include "msquicp.h"
 
 const MsQuicApi* MsQuic;
@@ -589,6 +591,76 @@ typedef union {
     X; \
     Status = Client->TestFailure ? STATUS_FAIL_FAST_EXCEPTION : STATUS_SUCCESS;
 
+// Base template providing a readable error for unsupported scenarios
+template<class... Args>
+QUIC_STATUS InvokeTestFunction(void(Args...), const uint8_t*, uint32_t) {
+    static_assert(false, "Only functions with no argument or one constant reference argument are supported");
+}
+
+// Specialization for functions with one const reference argument
+template<class Arg>
+QUIC_STATUS InvokeTestFunction(void(*func)(const Arg&), const uint8_t* argBuffer, uint32_t argBufferSize) {
+    if (sizeof(Arg) != argBufferSize) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Invalid parameter size for test function");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    const Arg& arg = *reinterpret_cast<const Arg*>(argBuffer);
+    func(arg);
+    return QUIC_STATUS_SUCCESS;
+}
+
+// Specialization for functions with no arguments
+template<>
+QUIC_STATUS InvokeTestFunction(void(*func)(), const uint8_t*, uint32_t argBufferSize) {
+    if (0 != argBufferSize) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Parameter provided for a test function expecting none");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    func();
+    return QUIC_STATUS_SUCCESS;
+}
+
+#define RegisterTestFunction(Function) \
+    do { \
+        if (strcmp(Request->FunctionName, #Function) == 0) { \
+            return InvokeTestFunction( \
+                Function, \
+                (const uint8_t*)(Request + 1), \
+                Request->ParameterSize); \
+        } \
+    } while (false)
+
+QUIC_STATUS
+ExecuteTestRequest(
+    _In_ QUIC_RUN_TEST_REQUEST* Request
+    )
+{
+    // Ensure null termination
+    Request->FunctionName[sizeof(Request->FunctionName) - 1] = '\0';
+
+    // Register any test functions here
+    RegisterTestFunction(QuicTestAckSendDelay);
+    RegisterTestFunction(QuicTestValidateApi);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffers);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace);
+
+    // Fail if no function matched
+    char Buffer[256];
+    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, "Unknown function name in IOCTL test request: %s", Request->FunctionName);
+
+    QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", Buffer);
+
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
 VOID
 QuicTestCtlEvtIoDeviceControl(
     _In_ WDFQUEUE /* Queue */,
@@ -631,7 +703,46 @@ QuicTestCtlEvtIoDeviceControl(
         goto Error;
     }
 
+    // For now, this IOCTL is handled separately since it has variable length input.
+    // Eventually, when all tests are migrated, it can be unified with the remaining setup IOCTLs.
+    if (IoControlCode == IOCTL_QUIC_RUN_TEST) {
+        QUIC_RUN_TEST_REQUEST* TestRequest{};
+        size_t Length{};
+        Status =
+            WdfRequestRetrieveInputBuffer(
+                Request,
+                sizeof(QUIC_RUN_TEST_REQUEST),
+                reinterpret_cast<void**>(&TestRequest),
+                &Length);
+        if (!NT_SUCCESS(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "WdfRequestRetrieveInputBuffer failed for run test request");
+            goto Error;
+        }
+
+        if (Length < sizeof(QUIC_RUN_TEST_REQUEST) + TestRequest->ParameterSize) {
+            Status = STATUS_INVALID_PARAMETER;
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "IOCTL buffer too small for test parameters");
+            goto Error;
+        }
+
+        // Invoke the test function
+        Client->TestFailure = false;
+        Status = ExecuteTestRequest(TestRequest);
+        if (Status == QUIC_STATUS_SUCCESS && Client->TestFailure) {
+            Status = STATUS_FAIL_FAST_EXCEPTION;
+        }
+        goto Error;
+    }
+
     ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
+
     if (FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(
@@ -894,10 +1005,6 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestKeyUpdate(Params->Family));
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_API:
-        QuicTestCtlRun(QuicTestValidateApi());
-        break;
-
     case IOCTL_QUIC_RUN_CONNECT_SERVER_REJECTED:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestConnectServerRejected(Params->Family));
@@ -1040,12 +1147,6 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS:
         QuicTestCtlRun(QuicTestGetPerfCounters());
-        break;
-
-    case IOCTL_QUIC_RUN_ACK_SEND_DELAY:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestAckSendDelay(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION:
@@ -1549,13 +1650,6 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS:
-        QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE:
-        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersOutOfSpace());
-        break;
 
     case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:
         CXPLAT_FRE_ASSERT(Params != nullptr);

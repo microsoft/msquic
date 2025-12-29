@@ -10,6 +10,8 @@
 #include "quic_gtest.cpp.clog.h"
 #endif
 
+#include <array>
+
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 #pragma message("Test compiled with datapath hooks enabled")
 #endif
@@ -227,23 +229,36 @@ struct TestLoggerT {
     }
 };
 
-TEST(ParameterValidation, ValidateApi) {
-    TestLogger Logger("QuicTestValidateApi");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_API));
-    } else {
-        QuicTestValidateApi();
-    }
+// Helpers to invoke a test in kernel mode through the test driver.
+
+template<class FunType>
+bool InvokeKernelTest(const std::string& Name, FunType) {
+    static_assert(std::is_invocable_v<FunType>, "Invalid parameters for test function");
+    QUIC_RUN_TEST_REQUEST Request{};
+    Name.copy(Request.FunctionName, sizeof(Request.FunctionName));
+
+    return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)&Request, (uint32_t)sizeof(Request));
 }
 
-TEST(ParameterValidation, ValidateRegistration) {
-    TestLogger Logger("QuicTestValidateRegistration");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_REGISTRATION));
-    } else {
-        QuicTestValidateRegistration();
-    }
+template<class FunType, class ParamType>
+bool InvokeKernelTest(const std::string& Name, FunType, const ParamType& Params) {
+    static_assert(std::is_invocable_v<FunType, const ParamType&>, "Invalid parameters for test function");
+    static_assert(std::is_pod_v<ParamType>, "ParamType must be POD");
+
+    // Serialize the request header and arguments
+    std::array<uint8_t, sizeof(QUIC_RUN_TEST_REQUEST) + sizeof(ParamType)> Buffer{};
+    auto& Request = *reinterpret_cast<QUIC_RUN_TEST_REQUEST*>(Buffer.data());
+    Name.copy(Request.FunctionName, sizeof(Request.FunctionName));
+    Request.ParameterSize = sizeof(ParamType);
+    std::copy_n(
+        reinterpret_cast<const uint8_t*>(&Params),
+        sizeof(ParamType), Buffer.data() + sizeof(QUIC_RUN_TEST_REQUEST));
+
+    return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)Buffer.data(), (uint32_t)Buffer.size());
 }
+
+#define FUNC(TestFunction) \
+    #TestFunction, TestFunction
 
 TEST(ParameterValidation, ValidateGlobalParam) {
     TestLogger Logger("QuicTestValidateGlobalParam");
@@ -2265,12 +2280,12 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     }
 }
 
-TEST_P(WithFamilyArgs, AckSendDelay) {
+TEST_P(WithFamilyArgs2, AckSendDelay) {
     TestLogger Logger("QuicTestAckSendDelay");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ACK_SEND_DELAY, GetParam().Family));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestAckSendDelay), GetParam()));
     } else {
-        QuicTestAckSendDelay(GetParam().Family);
+        QuicTestAckSendDelay(GetParam());
     }
 }
 
@@ -2416,7 +2431,7 @@ TEST(Misc, StreamMultiReceive) {
 TEST(Misc, StreamAppProvidedBuffers) {
     TestLogger Logger("StreamAppProvidedBuffers");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers)));
     } else {
         QuicTestStreamAppProvidedBuffers();
     }
@@ -2425,7 +2440,7 @@ TEST(Misc, StreamAppProvidedBuffers) {
 TEST(Misc, StreamAppProvidedBuffersOutOfSpace) {
     TestLogger Logger("QuicTestStreamAppProvidedBuffersOutOfSpace");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace)));
     } else {
         QuicTestStreamAppProvidedBuffersOutOfSpace();
     }
@@ -2637,6 +2652,11 @@ INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
     ::testing::ValuesIn(FamilyArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithFamilyArgs2,
+    ::testing::ValuesIn(WithFamilyArgs2::Generate()));
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
