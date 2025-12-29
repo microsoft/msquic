@@ -163,12 +163,21 @@ typedef struct QUIC_CID_LIST_ENTRY {
 #define QUIC_CID_VALIDATE_NULL(Conn, Cid) UNREFERENCED_PARAMETER(Cid)
 #endif
 
+typedef struct QUIC_CID_SLIST_ENTRY {
+
+    CXPLAT_SLIST_ENTRY Link;
+    CXPLAT_SLIST_ENTRY HashEntries;
+    QUIC_CID CID;
+
+} QUIC_CID_SLIST_ENTRY;
+
 typedef struct QUIC_CID_HASH_ENTRY {
 
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_SLIST_ENTRY Link;
     QUIC_CONNECTION* Connection;
-    QUIC_CID CID;
+    QUIC_BINDING* Binding;
+    QUIC_CID_SLIST_ENTRY* Parent;
 
 } QUIC_CID_HASH_ENTRY;
 
@@ -178,18 +187,16 @@ typedef struct QUIC_CID_HASH_ENTRY {
 //
 QUIC_INLINE
 _Success_(return != NULL)
-QUIC_CID_HASH_ENTRY*
-QuicCidNewNullSource(
-    _In_ QUIC_CONNECTION* Connection
-    )
+QUIC_CID_SLIST_ENTRY*
+QuicCidNewNullSource()
 {
-    QUIC_CID_HASH_ENTRY* Entry =
-        (QUIC_CID_HASH_ENTRY*)CXPLAT_ALLOC_NONPAGED(
-            sizeof(QUIC_CID_HASH_ENTRY),
-            QUIC_POOL_CIDHASH);
+    QUIC_CID_SLIST_ENTRY* Entry =
+        (QUIC_CID_SLIST_ENTRY*)CXPLAT_ALLOC_NONPAGED(
+            sizeof(QUIC_CID_SLIST_ENTRY),
+            QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
-        Entry->Connection = Connection;
+        Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
     }
 
@@ -201,23 +208,22 @@ QuicCidNewNullSource(
 //
 QUIC_INLINE
 _Success_(return != NULL)
-QUIC_CID_HASH_ENTRY*
+QUIC_CID_SLIST_ENTRY*
 QuicCidNewSource(
-    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t Length,
     _In_reads_(Length)
         const uint8_t* const Data
     )
 {
-    QUIC_CID_HASH_ENTRY* Entry =
-        (QUIC_CID_HASH_ENTRY*)
+    QUIC_CID_SLIST_ENTRY* Entry =
+        (QUIC_CID_SLIST_ENTRY*)
         CXPLAT_ALLOC_NONPAGED(
-            sizeof(QUIC_CID_HASH_ENTRY) +
+            sizeof(QUIC_CID_SLIST_ENTRY) +
             Length,
-            QUIC_POOL_CIDHASH);
+            QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
-        Entry->Connection = Connection;
+        Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = Length;
         if (Length != 0) {

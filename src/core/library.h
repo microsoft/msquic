@@ -423,9 +423,8 @@ QuicPerfCounterTrySnapShot(
 //
 QUIC_INLINE
 _Success_(return != NULL)
-QUIC_CID_HASH_ENTRY*
+QUIC_CID_SLIST_ENTRY*
 QuicCidNewRandomSource(
-    _In_opt_ QUIC_CONNECTION* Connection,
     _In_reads_opt_(MsQuicLib.CidServerIdLength)
         const void* ServerID,
     _In_ uint16_t PartitionID,
@@ -438,15 +437,15 @@ QuicCidNewRandomSource(
     CXPLAT_DBG_ASSERT(MsQuicLib.CidTotalLength == MsQuicLib.CidServerIdLength + QUIC_CID_PID_LENGTH + QUIC_CID_PAYLOAD_LENGTH);
     CXPLAT_DBG_ASSERT(QUIC_CID_PAYLOAD_LENGTH > PrefixLength);
 
-    QUIC_CID_HASH_ENTRY* Entry =
-        (QUIC_CID_HASH_ENTRY*)
+    QUIC_CID_SLIST_ENTRY* Entry =
+        (QUIC_CID_SLIST_ENTRY*)
         CXPLAT_ALLOC_NONPAGED(
-            sizeof(QUIC_CID_HASH_ENTRY) +
+            sizeof(QUIC_CID_SLIST_ENTRY) +
             MsQuicLib.CidTotalLength,
-            QUIC_POOL_CIDHASH);
+            QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
-        Entry->Connection = Connection;
+        Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = MsQuicLib.CidTotalLength;
 
