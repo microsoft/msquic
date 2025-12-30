@@ -61,6 +61,9 @@ MsQuicLibraryLoad(
         CxPlatSystemLoad();
         CxPlatLockInitialize(&MsQuicLib.Lock);
         CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
+#if DEBUG
+        CxPlatDispatchLockInitialize(&QuicStreamTrackerLock);
+#endif
         CxPlatListInitializeHead(&MsQuicLib.Registrations);
         CxPlatListInitializeHead(&MsQuicLib.Bindings);
         QuicTraceRundownCallback = QuicTraceRundown;
@@ -87,6 +90,9 @@ MsQuicLibraryUnload(
         QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
         QUIC_LIB_VERIFY(!MsQuicLib.InUse);
         MsQuicLib.Loaded = FALSE;
+#if DEBUG
+        CxPlatDispatchLockUninitialize(&QuicStreamTrackerLock);
+#endif
         CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
         CxPlatLockUninitialize(&MsQuicLib.Lock);
         CxPlatSystemUnload();
