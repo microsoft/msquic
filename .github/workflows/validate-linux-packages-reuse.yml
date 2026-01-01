@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout msquic Repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
           repository: microsoft/msquic
           ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
@@ -425,7 +425,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
       - name: Set up QEMU
         if: matrix.arch != 'x64'
