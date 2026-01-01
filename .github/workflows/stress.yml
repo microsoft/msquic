@@ -124,12 +124,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
-    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+    - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       if: matrix.vec.plat == 'windows'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
-    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+    - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.xdp }}${{ matrix.vec.iouring}}${{ matrix.vec.build }}
@@ -184,12 +184,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
-    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+    - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       if: matrix.vec.plat == 'windows'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
-    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+    - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}

@@ -64,12 +64,12 @@ jobs:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: ${{ inputs.config }}-macos-macos-15-x64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Download Build Artifacts (arm64)
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: ${{ inputs.config }}-macos-macos-15-arm64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -101,7 +101,7 @@ jobs:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-15-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -125,17 +125,17 @@ jobs:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (iOS x64)
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: Framework-${{ inputs.config }}-ios-macos-15-x64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: Framework-${{ inputs.config }}-ios-macos-15-arm64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: Framework-${{ inputs.config }}-macos-macos-15-universal-${{ inputs.tls }}
         path: artifacts
