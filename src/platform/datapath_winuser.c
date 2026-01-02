@@ -783,6 +783,10 @@ CxPlatDataPathRelease(
         Datapath->Freed = TRUE;
         WSACleanup();
         CxPlatWorkerPoolRelease(Datapath->WorkerPool, CXPLAT_WORKER_POOL_REF_WINSOCK);
+        QuicTraceLogVerbose(
+            WinUserDataPathReleased,
+            "[data][%p] Datapath Freed",
+            Datapath);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }
@@ -796,6 +800,10 @@ CxPlatProcessorContextRelease(
     if (CxPlatRefDecrement(&DatapathProc->RefCount)) {
         CXPLAT_DBG_ASSERT(!DatapathProc->Uninitialized);
         DatapathProc->Uninitialized = TRUE;
+        QuicTraceLogVerbose(
+            WinUserProcessorContextRelease,
+            "[data][%p] Processor Context Destroyed",
+            DatapathProc);
         CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
         CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
         CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
@@ -2493,6 +2501,10 @@ CxPlatSocketContextUninitialize(
     // processing of those completions will release their references on the
     // context.
     //
+    QuicTraceLogVerbose(
+        WinUserSocketContextUnitialize,
+        "[data][%p] Socket Context queueing for destruction",
+        SocketProc);
     if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         QuicTraceEvent(

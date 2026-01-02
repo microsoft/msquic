@@ -214,6 +214,42 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathUroPreallocExceeded , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WinUserDataPathReleased
+// [data][%p] Datapath Freed
+// QuicTraceLogVerbose(
+            WinUserDataPathReleased,
+            "[data][%p] Datapath Freed",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WinUserDataPathReleased
+#define _clog_3_ARGS_TRACE_WinUserDataPathReleased(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, WinUserDataPathReleased , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WinUserProcessorContextRelease
+// [data][%p] Processor Context Destroyed
+// QuicTraceLogVerbose(
+            WinUserProcessorContextRelease,
+            "[data][%p] Processor Context Destroyed",
+            DatapathProc);
+// arg2 = arg2 = DatapathProc = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WinUserProcessorContextRelease
+#define _clog_3_ARGS_TRACE_WinUserProcessorContextRelease(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, WinUserProcessorContextRelease , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathShutDownComplete
 // [data][%p] Shut down (complete)
 // QuicTraceLogVerbose(
@@ -243,6 +279,24 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete , arg2);\
 #ifndef _clog_3_ARGS_TRACE_DatapathSocketContextComplete
 #define _clog_3_ARGS_TRACE_DatapathSocketContextComplete(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WinUserSocketContextUnitialize
+// [data][%p] Socket Context queueing for destruction
+// QuicTraceLogVerbose(
+        WinUserSocketContextUnitialize,
+        "[data][%p] Socket Context queueing for destruction",
+        SocketProc);
+// arg2 = arg2 = SocketProc = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WinUserSocketContextUnitialize
+#define _clog_3_ARGS_TRACE_WinUserSocketContextUnitialize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, WinUserSocketContextUnitialize , arg2);\
 
 #endif
 
