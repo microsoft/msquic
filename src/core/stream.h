@@ -11,13 +11,6 @@
 
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
-#if DEBUG
-//
-// Global stream object tracker for debugging.
-//
-extern CXPLAT_DISPATCH_LOCK QuicStreamTrackerLock;
-#endif
-
 //
 // The stream type is encoded into the low bits of the stream ID:
 //
