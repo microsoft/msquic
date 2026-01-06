@@ -217,7 +217,6 @@ QuicStreamFree(
 
 #if DEBUG
     QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_STREAM, &Stream->DbgObjectLink);
-
     CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
     CxPlatListEntryRemove(&Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
