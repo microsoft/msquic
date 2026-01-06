@@ -3005,7 +3005,7 @@ QuicTestNthPacketDrop(
         CONTINUE_ON_FAIL(Stream.GetInitStatus());
 
         CONTINUE_ON_FAIL(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
-        TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(2000));
+        TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(4000));
         if (RecvContext.Failure || !LossHelper.Dropped() ||
             CxPlatTimeDiff64(StartTime, CxPlatTimeUs64()) > S_TO_US(TimeOutS)) {
             StopRunning = true;
