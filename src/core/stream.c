@@ -15,14 +15,6 @@ Abstract:
 #include "stream.c.clog.h"
 #endif
 
-#if DEBUG
-//
-// Global stream object tracker for debugging.
-//
-CXPLAT_LIST_ENTRY QuicStreamTrackerList = { &QuicStreamTrackerList, &QuicStreamTrackerList };
-CXPLAT_DISPATCH_LOCK QuicStreamTrackerLock;
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicStreamInitialize(
@@ -54,10 +46,7 @@ QuicStreamInitialize(
     CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
     CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
-
-    CxPlatDispatchLockAcquire(&QuicStreamTrackerLock);
-    CxPlatListInsertTail(&QuicStreamTrackerList, &Stream->TrackerLink);
-    CxPlatDispatchLockRelease(&QuicStreamTrackerLock);
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_STREAM, &Stream->DbgObjectLink);
 #endif
     QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
 
@@ -187,10 +176,7 @@ Exit:
     if (Stream) {
 #if DEBUG
         CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Stream->RefTypeBiasedCount[QUIC_STREAM_REF_APP]));
-        CxPlatDispatchLockAcquire(&QuicStreamTrackerLock);
-        CxPlatListEntryRemove(&Stream->TrackerLink);
-        CxPlatDispatchLockRelease(&QuicStreamTrackerLock);
-
+        QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_STREAM, &Stream->DbgObjectLink);
         CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
         CxPlatListEntryRemove(&Stream->AllStreamsLink);
         CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
@@ -230,9 +216,7 @@ QuicStreamFree(
     CXPLAT_DBG_ASSERT(Stream->SendRequests == NULL);
 
 #if DEBUG
-    CxPlatDispatchLockAcquire(&QuicStreamTrackerLock);
-    CxPlatListEntryRemove(&Stream->TrackerLink);
-    CxPlatDispatchLockRelease(&QuicStreamTrackerLock);
+    QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_STREAM, &Stream->DbgObjectLink);
 
     CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
     CxPlatListEntryRemove(&Stream->AllStreamsLink);

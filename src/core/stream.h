@@ -276,7 +276,7 @@ typedef struct QUIC_STREAM {
     //
     // The list entry in the global stream tracker list.
     //
-    CXPLAT_LIST_ENTRY TrackerLink;
+    CXPLAT_LIST_ENTRY DbgObjectLink;
 #endif
 
     //
