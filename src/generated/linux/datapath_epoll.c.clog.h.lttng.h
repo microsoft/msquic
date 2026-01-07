@@ -21,15 +21,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CxPlatDataPathRelease
+// Decoder Ring for EpollDataPathRelease
 // [data][%p] Datapath Freed
-// QuicTraceLogInfo(
-            CxPlatDataPathRelease,
+// QuicTraceLogVerbose(
+            EpollDataPathRelease,
             "[data][%p] Datapath Freed",
             Datapath);
 // arg2 = arg2 = Datapath = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, CxPlatDataPathRelease,
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, EpollDataPathRelease,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -40,15 +40,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, CxPlatDataPathRelease,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CxPlatProcessorContextRelease
+// Decoder Ring for EpollProcessorContextRelease
 // [data][%p] Processor Context Destroyed
-// QuicTraceLogInfo(
-            CxPlatProcessorContextRelease,
+// QuicTraceLogVerbose(
+            EpollProcessorContextRelease,
             "[data][%p] Processor Context Destroyed",
             DatapathPartition);
 // arg2 = arg2 = DatapathPartition = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, CxPlatProcessorContextRelease,
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, EpollProcessorContextRelease,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -59,15 +59,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, CxPlatProcessorContextRelease,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CxPlatSocketRelease
+// Decoder Ring for EpollSocketRelease
 // [data][%p] Socket Freed
-// QuicTraceLogInfo(
-            CxPlatSocketRelease,
+// QuicTraceLogVerbose(
+            EpollSocketRelease,
             "[data][%p] Socket Freed",
             Socket);
 // arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, CxPlatSocketRelease,
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, EpollSocketRelease,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -78,15 +78,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, CxPlatSocketRelease,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CxPlatProcessorContextQueuedForDestruction
+// Decoder Ring for EpollProcessorContextQueuedForDestruction
 // [data][%p] Processor Context queueing for destruction
-// QuicTraceLogInfo(
-            CxPlatProcessorContextQueuedForDestruction,
+// QuicTraceLogVerbose(
+            EpollProcessorContextQueuedForDestruction,
             "[data][%p] Processor Context queueing for destruction",
             SocketContext->DatapathPartition);
 // arg2 = arg2 = SocketContext->DatapathPartition = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, CxPlatProcessorContextQueuedForDestruction,
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, EpollProcessorContextQueuedForDestruction,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(

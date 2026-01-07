@@ -4098,6 +4098,54 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "EpollDataPathRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath Freed",
+      "UniqueId": "EpollDataPathRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "EpollProcessorContextQueuedForDestruction": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Processor Context queueing for destruction",
+      "UniqueId": "EpollProcessorContextQueuedForDestruction",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "EpollProcessorContextRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Processor Context Destroyed",
+      "UniqueId": "EpollProcessorContextRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "EpollSocketRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket Freed",
+      "UniqueId": "EpollSocketRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "EventSilentDiscard": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Event silently discarded",
@@ -14486,6 +14534,26 @@
         "UniquenessHash": "efc12508-e546-ff7a-e943-829ad204f871",
         "TraceID": "EncodeTPVersionNegotiationExt",
         "EncodingString": "[conn][%p] TP: Version Negotiation Extension (%u bytes)"
+      },
+      {
+        "UniquenessHash": "90b212de-4b70-8615-e1af-5200524c3524",
+        "TraceID": "EpollDataPathRelease",
+        "EncodingString": "[data][%p] Datapath Freed"
+      },
+      {
+        "UniquenessHash": "601d8cc0-d27a-41c6-f3ac-7c80b38c497f",
+        "TraceID": "EpollProcessorContextQueuedForDestruction",
+        "EncodingString": "[data][%p] Processor Context queueing for destruction"
+      },
+      {
+        "UniquenessHash": "79f07720-218d-8cf8-f4be-665272271c7b",
+        "TraceID": "EpollProcessorContextRelease",
+        "EncodingString": "[data][%p] Processor Context Destroyed"
+      },
+      {
+        "UniquenessHash": "f03f3a95-788f-14ab-849b-552a62ea1a6f",
+        "TraceID": "EpollSocketRelease",
+        "EncodingString": "[data][%p] Socket Freed"
       },
       {
         "UniquenessHash": "21a2e517-42a5-1d18-885f-8b57b79a2fba",

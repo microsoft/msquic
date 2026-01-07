@@ -309,8 +309,8 @@ CxPlatDataPathRelease(
 #endif
         CxPlatWorkerPoolRelease(Datapath->WorkerPool, CXPLAT_WORKER_POOL_REF_EPOLL);
 
-        QuicTraceLogInfo(
-            CxPlatDataPathRelease,
+        QuicTraceLogVerbose(
+            EpollDataPathRelease,
             "[data][%p] Datapath Freed",
             Datapath);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
@@ -328,8 +328,8 @@ CxPlatProcessorContextRelease(
         CXPLAT_DBG_ASSERT(!DatapathPartition->Uninitialized);
         DatapathPartition->Uninitialized = TRUE;
 #endif
-        QuicTraceLogInfo(
-            CxPlatProcessorContextRelease,
+        QuicTraceLogVerbose(
+            EpollProcessorContextRelease,
             "[data][%p] Processor Context Destroyed",
             DatapathPartition);
         CxPlatPoolUninitialize(&DatapathPartition->SendBlockPool);
@@ -937,8 +937,8 @@ CxPlatSocketRelease(
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
 #endif
-        QuicTraceLogInfo(
-            CxPlatSocketRelease,
+        QuicTraceLogVerbose(
+            EpollSocketRelease,
             "[data][%p] Socket Freed",
             Socket);
         CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
@@ -1034,8 +1034,8 @@ CxPlatSocketContextUninitialize(
         //
         epoll_ctl(*SocketContext->DatapathPartition->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
 
-        QuicTraceLogInfo(
-            CxPlatProcessorContextQueuedForDestruction,
+        QuicTraceLogVerbose(
+            EpollProcessorContextQueuedForDestruction,
             "[data][%p] Processor Context queueing for destruction",
             SocketContext->DatapathPartition);
 
