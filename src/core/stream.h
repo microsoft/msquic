@@ -265,6 +265,11 @@ typedef struct QUIC_STREAM {
     // The list entry in the stream set's list of all allocated streams.
     //
     CXPLAT_LIST_ENTRY AllStreamsLink;
+
+    //
+    // The list entry in the global stream tracker list.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
 #endif
 
     //

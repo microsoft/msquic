@@ -61,6 +61,9 @@ MsQuicLibraryLoad(
         CxPlatSystemLoad();
         CxPlatLockInitialize(&MsQuicLib.Lock);
         CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
+#if DEBUG
+        QuicLibraryInitializeDbg();
+#endif
         CxPlatListInitializeHead(&MsQuicLib.Registrations);
         CxPlatListInitializeHead(&MsQuicLib.Bindings);
         QuicTraceRundownCallback = QuicTraceRundown;
@@ -87,6 +90,9 @@ MsQuicLibraryUnload(
         QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
         QUIC_LIB_VERIFY(!MsQuicLib.InUse);
         MsQuicLib.Loaded = FALSE;
+#if DEBUG
+        QuicLibraryUninitializeDbg();
+#endif
         CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
         CxPlatLockUninitialize(&MsQuicLib.Lock);
         CxPlatSystemUnload();
@@ -2894,3 +2900,57 @@ QuicLibrarySetRetryKeyConfig(
         Config->RotationMs);
     return QUIC_STATUS_SUCCESS;
 }
+
+#if DEBUG
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibraryInitializeDbg(
+    void
+    )
+{
+    CxPlatDispatchLockInitialize(&MsQuicLib.DbgLock);
+
+    for (int i = 0; i < QUIC_DBG_OBJECT_TYPE_MAX; i++) {
+        CxPlatListInitializeHead(&MsQuicLib.DbgObjectTrackers[i].List);
+        MsQuicLib.DbgObjectTrackers[i].Count = 0;
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibraryUninitializeDbg(
+    void
+    )
+{
+    CxPlatDispatchLockUninitialize(&MsQuicLib.DbgLock);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryTrackDbgObject(
+    QUIC_DBG_OBJECT_TYPE Type,
+    CXPLAT_LIST_ENTRY* ObjectEntry
+    )
+{
+    CxPlatDispatchLockAcquire(&MsQuicLib.DbgLock);
+    CxPlatListInsertTail(&MsQuicLib.DbgObjectTrackers[Type].List, ObjectEntry);
+    MsQuicLib.DbgObjectTrackers[Type].Count++;
+    CxPlatDispatchLockRelease(&MsQuicLib.DbgLock);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryUntrackDbgObject(
+    QUIC_DBG_OBJECT_TYPE Type,
+    CXPLAT_LIST_ENTRY* ObjectEntry
+    )
+{
+    CxPlatDispatchLockAcquire(&MsQuicLib.DbgLock);
+    CxPlatListEntryRemove(ObjectEntry);
+    CXPLAT_DBG_ASSERT(MsQuicLib.DbgObjectTrackers[Type].Count > 0);
+    MsQuicLib.DbgObjectTrackers[Type].Count--;
+    CxPlatDispatchLockRelease(&MsQuicLib.DbgLock);
+}
+
+#endif // DEBUG
