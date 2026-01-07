@@ -2923,6 +2923,10 @@ QuicLibraryUninitializeDbg(
     void
     )
 {
+    for (int i = 0; i < QUIC_DBG_OBJECT_TYPE_MAX; i++) {
+        CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&MsQuicLib.DbgObjectTrackers[i].List));
+        CXPLAT_DBG_ASSERT(MsQuicLib.DbgObjectTrackers[i].Count == 0);
+    }
     CxPlatDispatchLockUninitialize(&MsQuicLib.DbgLock);
 }
 
