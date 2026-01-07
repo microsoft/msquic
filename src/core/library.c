@@ -783,6 +783,10 @@ CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context)
 
             CxPlatThreadWait(&Registration->CloseThread);
             CxPlatThreadDelete(&Registration->CloseThread);
+#if DEBUG
+            QuicLibraryUntrackDbgObject(
+                QUIC_DBG_OBJECT_TYPE_REGISTRATION, &Registration->DbgObjectLink);
+#endif
             CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
             CxPlatRundownRelease(&MsQuicLib.RegistrationCloseCleanupRundown);
 
