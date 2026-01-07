@@ -277,6 +277,13 @@ typedef struct QUIC_BINDING {
 
     } Stats;
 
+#if DEBUG
+    //
+    // The list entry in the global binding tracker list.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
+#endif
+
 } QUIC_BINDING;
 
 //

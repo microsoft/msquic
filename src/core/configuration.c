@@ -87,6 +87,7 @@ MsQuicConfigurationOpen(
 #if DEBUG
     CxPlatRefInitializeMultiple(Configuration->RefTypeBiasedCount, QUIC_CONF_REF_COUNT);
     CxPlatRefIncrement(&Configuration->RefTypeBiasedCount[QUIC_CONF_REF_HANDLE]);
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONFIGURATION, &Configuration->DbgObjectLink);
 #endif
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
@@ -220,6 +221,9 @@ Error:
         CxPlatStorageClose(Configuration->Storage);
         QuicSiloRelease(Configuration->Silo);
 #endif
+#if DEBUG
+        QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONFIGURATION, &Configuration->DbgObjectLink);
+#endif
         CXPLAT_FREE(Configuration, QUIC_POOL_CONFIG);
     }
 
@@ -270,6 +274,7 @@ QuicConfigurationUninitialize(
     for (uint32_t i = 0; i < QUIC_CONF_REF_COUNT; i++) {
         CXPLAT_DBG_ASSERT(QuicReadLongPtrNoFence(&Configuration->RefTypeBiasedCount[i]) == 1);
     }
+    QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONFIGURATION, &Configuration->DbgObjectLink);
 #endif
 
     QuicTraceEvent(

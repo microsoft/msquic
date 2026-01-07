@@ -85,6 +85,10 @@ MsQuicListenerOpen(
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
     CxPlatRefInitialize(&Listener->RefCount);
 
+#if DEBUG
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_LISTENER, &Listener->DbgObjectLink);
+#endif
+
 #ifdef QUIC_SILO
     Listener->Silo = QuicSiloGetCurrentServerSilo();
     QuicSiloAddRef(Listener->Silo);
@@ -104,6 +108,9 @@ MsQuicListenerOpen(
 
     if (RegistrationShuttingDown) {
         QuicRegistrationRundownRelease(Registration, QUIC_REG_REF_LISTENER);
+#if DEBUG
+        QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_LISTENER, &Listener->DbgObjectLink);
+#endif
         CxPlatEventUninitialize(Listener->StopEvent);
         CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
         Listener = NULL;
@@ -159,6 +166,9 @@ QuicListenerFree(
     CxPlatRefUninitialize(&Listener->StartRefCount);
     CxPlatEventUninitialize(Listener->StopEvent);
     CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
+#if DEBUG
+    QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_LISTENER, &Listener->DbgObjectLink);
+#endif
     CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
     QuicRegistrationRundownRelease(Registration, QUIC_REG_REF_LISTENER);
 }
