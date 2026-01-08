@@ -800,9 +800,6 @@ TEST(CubicTest, FastConvergence_AdditionalReduction)
 
     Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &FirstLoss);
 
-    // After first loss, WindowMax and WindowLastMax are set
-    uint32_t WindowMaxAfterFirstLoss = Cubic->WindowMax;
-
     // Grow the window by acknowledging data and sending more (simulate recovery and growth)
     QUIC_ACK_EVENT AckEvent;
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
@@ -1379,7 +1376,6 @@ TEST(CubicTest, UpdateBlockedState_UnblockFlow)
 
     // Start with blocked state by filling the window
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, Cubic->CongestionWindow);
-    BOOLEAN PreviousCanSend = FALSE;
 
     // Now free up space by acknowledging half the data
     QUIC_ACK_EVENT AckEvent;
