@@ -21,6 +21,82 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EpollDataPathRelease
+// [data][%p] Datapath Freed
+// QuicTraceLogVerbose(
+            EpollDataPathRelease,
+            "[data][%p] Datapath Freed",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, EpollDataPathRelease,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EpollProcessorContextRelease
+// [data][%p] Processor Context Destroyed
+// QuicTraceLogVerbose(
+            EpollProcessorContextRelease,
+            "[data][%p] Processor Context Destroyed",
+            DatapathPartition);
+// arg2 = arg2 = DatapathPartition = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, EpollProcessorContextRelease,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EpollSocketRelease
+// [data][%p] Socket Freed
+// QuicTraceLogVerbose(
+            EpollSocketRelease,
+            "[data][%p] Socket Freed",
+            Socket);
+// arg2 = arg2 = Socket = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, EpollSocketRelease,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EpollProcessorContextQueuedForDestruction
+// [data][%p] Processor Context queueing for destruction
+// QuicTraceLogVerbose(
+            EpollProcessorContextQueuedForDestruction,
+            "[data][%p] Processor Context queueing for destruction",
+            SocketContext->DatapathPartition);
+// arg2 = arg2 = SocketContext->DatapathPartition = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, EpollProcessorContextQueuedForDestruction,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(

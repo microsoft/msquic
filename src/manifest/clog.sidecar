@@ -2327,6 +2327,54 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "CxPlatDataPathRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath Freed",
+      "UniqueId": "CxPlatDataPathRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "CxPlatProcessorContextQueuedForDestruction": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Processor Context queueing for destruction",
+      "UniqueId": "CxPlatProcessorContextQueuedForDestruction",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "CxPlatProcessorContextRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Processor Context Destroyed",
+      "UniqueId": "CxPlatProcessorContextRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "CxPlatSocketRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket Freed",
+      "UniqueId": "CxPlatSocketRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "DatagramReceiveEnableUpdated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated datagram receive enabled to %hhu",
@@ -4049,6 +4097,54 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EpollDataPathRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath Freed",
+      "UniqueId": "EpollDataPathRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "EpollProcessorContextQueuedForDestruction": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Processor Context queueing for destruction",
+      "UniqueId": "EpollProcessorContextQueuedForDestruction",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "EpollProcessorContextRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Processor Context Destroyed",
+      "UniqueId": "EpollProcessorContextRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "EpollSocketRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket Freed",
+      "UniqueId": "EpollSocketRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "EventSilentDiscard": {
       "ModuleProperites": {},
@@ -12078,6 +12174,42 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
+    "WinUserDataPathReleased": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath Freed",
+      "UniqueId": "WinUserDataPathReleased",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "WinUserProcessorContextRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Processor Context Destroyed",
+      "UniqueId": "WinUserProcessorContextRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "WinUserSocketContextUnitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket Context queueing for destruction",
+      "UniqueId": "WinUserSocketContextUnitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "WorkerActivityStateUpdated": {
       "ModuleProperites": {},
       "TraceString": "[wrkr][%p] IsActive = %hhu, Arg = %u",
@@ -13819,6 +13951,26 @@
         "EncodingString": "[conn][%p] Custom cert validation succeeded"
       },
       {
+        "UniquenessHash": "3af4c467-3ba7-6731-d41e-c1ba77b895cd",
+        "TraceID": "CxPlatDataPathRelease",
+        "EncodingString": "[data][%p] Datapath Freed"
+      },
+      {
+        "UniquenessHash": "8522ffcc-cfd1-e94a-0319-01a4c08cd42d",
+        "TraceID": "CxPlatProcessorContextQueuedForDestruction",
+        "EncodingString": "[data][%p] Processor Context queueing for destruction"
+      },
+      {
+        "UniquenessHash": "c410c37a-0b82-1460-3443-35ea6a623cff",
+        "TraceID": "CxPlatProcessorContextRelease",
+        "EncodingString": "[data][%p] Processor Context Destroyed"
+      },
+      {
+        "UniquenessHash": "f3405592-976d-918b-2112-b5a12c903389",
+        "TraceID": "CxPlatSocketRelease",
+        "EncodingString": "[data][%p] Socket Freed"
+      },
+      {
         "UniquenessHash": "886942eb-0bdc-fffd-0a3b-e2ea639228bb",
         "TraceID": "DatagramReceiveEnableUpdated",
         "EncodingString": "[conn][%p] Updated datagram receive enabled to %hhu"
@@ -14382,6 +14534,26 @@
         "UniquenessHash": "efc12508-e546-ff7a-e943-829ad204f871",
         "TraceID": "EncodeTPVersionNegotiationExt",
         "EncodingString": "[conn][%p] TP: Version Negotiation Extension (%u bytes)"
+      },
+      {
+        "UniquenessHash": "90b212de-4b70-8615-e1af-5200524c3524",
+        "TraceID": "EpollDataPathRelease",
+        "EncodingString": "[data][%p] Datapath Freed"
+      },
+      {
+        "UniquenessHash": "601d8cc0-d27a-41c6-f3ac-7c80b38c497f",
+        "TraceID": "EpollProcessorContextQueuedForDestruction",
+        "EncodingString": "[data][%p] Processor Context queueing for destruction"
+      },
+      {
+        "UniquenessHash": "79f07720-218d-8cf8-f4be-665272271c7b",
+        "TraceID": "EpollProcessorContextRelease",
+        "EncodingString": "[data][%p] Processor Context Destroyed"
+      },
+      {
+        "UniquenessHash": "f03f3a95-788f-14ab-849b-552a62ea1a6f",
+        "TraceID": "EpollSocketRelease",
+        "EncodingString": "[data][%p] Socket Freed"
       },
       {
         "UniquenessHash": "21a2e517-42a5-1d18-885f-8b57b79a2fba",
@@ -16912,6 +17084,21 @@
         "UniquenessHash": "98edbe6f-c588-a919-3251-cd78aa291751",
         "TraceID": "WindowsUserUnloaded",
         "EncodingString": "[ dll] Unloaded"
+      },
+      {
+        "UniquenessHash": "5b248237-d478-a21d-17ec-327b88972132",
+        "TraceID": "WinUserDataPathReleased",
+        "EncodingString": "[data][%p] Datapath Freed"
+      },
+      {
+        "UniquenessHash": "79ed1f96-d780-cb5d-a6a1-6bd2d82b634c",
+        "TraceID": "WinUserProcessorContextRelease",
+        "EncodingString": "[data][%p] Processor Context Destroyed"
+      },
+      {
+        "UniquenessHash": "bcc0a189-7f1d-8154-afe3-c9dcf28dee87",
+        "TraceID": "WinUserSocketContextUnitialize",
+        "EncodingString": "[data][%p] Socket Context queueing for destruction"
       },
       {
         "UniquenessHash": "c50d7d7b-5ea5-6f62-b2c8-8e06a5684266",
