@@ -18,6 +18,10 @@
 #define _clog_MACRO_QuicTraceLogWarning  1
 #define QuicTraceLogWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceLogVerbose
+#define _clog_MACRO_QuicTraceLogVerbose  1
+#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -37,6 +41,78 @@ extern "C" {
 #ifndef _clog_3_ARGS_TRACE_DatapathRecvEmpty
 #define _clog_3_ARGS_TRACE_DatapathRecvEmpty(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EpollDataPathRelease
+// [data][%p] Datapath Freed
+// QuicTraceLogVerbose(
+            EpollDataPathRelease,
+            "[data][%p] Datapath Freed",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EpollDataPathRelease
+#define _clog_3_ARGS_TRACE_EpollDataPathRelease(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, EpollDataPathRelease , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EpollProcessorContextRelease
+// [data][%p] Processor Context Destroyed
+// QuicTraceLogVerbose(
+            EpollProcessorContextRelease,
+            "[data][%p] Processor Context Destroyed",
+            DatapathPartition);
+// arg2 = arg2 = DatapathPartition = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EpollProcessorContextRelease
+#define _clog_3_ARGS_TRACE_EpollProcessorContextRelease(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, EpollProcessorContextRelease , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EpollSocketRelease
+// [data][%p] Socket Freed
+// QuicTraceLogVerbose(
+            EpollSocketRelease,
+            "[data][%p] Socket Freed",
+            Socket);
+// arg2 = arg2 = Socket = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EpollSocketRelease
+#define _clog_3_ARGS_TRACE_EpollSocketRelease(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, EpollSocketRelease , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EpollProcessorContextQueuedForDestruction
+// [data][%p] Processor Context queueing for destruction
+// QuicTraceLogVerbose(
+            EpollProcessorContextQueuedForDestruction,
+            "[data][%p] Processor Context queueing for destruction",
+            SocketContext->DatapathPartition);
+// arg2 = arg2 = SocketContext->DatapathPartition = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EpollProcessorContextQueuedForDestruction
+#define _clog_3_ARGS_TRACE_EpollProcessorContextQueuedForDestruction(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, EpollProcessorContextQueuedForDestruction , arg2);\
 
 #endif
 

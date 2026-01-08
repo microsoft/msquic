@@ -1,0 +1,659 @@
+# Reusable workflow - called by validate-linux-packages.yml
+# Not intended to be run directly
+name: Validate Linux Packages Reuse
+
+on:
+  workflow_call:
+    inputs:
+      package_version:
+        description: 'Package version to validate (empty for latest)'
+        required: false
+        default: ''
+        type: string
+      config:
+        description: 'Build configuration'
+        required: false
+        default: 'Release'
+        type: string
+      tls:
+        description: 'TLS provider'
+        required: false
+        default: 'quictls'
+        type: string
+      skip_dotnet_tests:
+        description: 'Skip .NET QUIC tests'
+        required: false
+        default: false
+        type: boolean
+      testing_repo:
+        description: 'Use testing/preview packages'
+        required: false
+        default: false
+        type: boolean
+
+permissions: read-all
+
+jobs:
+  # Job 1: Build msquictest for all architectures using the standard build workflow
+  # Build on Ubuntu 22.04 for maximum glibc compatibility with older distros
+  # TLS provider mapping for older versions:
+  # - 2.4.x: 'quictls' -> 'openssl3', others pass through
+  # - 2.5+: use as-is
+  build-test-x64:
+    name: Build Test (x64)
+    uses: ./.github/workflows/build-reuse-unix.yml
+    with:
+      ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
+      config: ${{ inputs.config }}
+      plat: linux
+      os: ubuntu-22.04
+      arch: x64
+      tls: ${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}
+      build: '-Test'
+
+  build-test-arm64:
+    name: Build Test (arm64)
+    uses: ./.github/workflows/build-reuse-unix.yml
+    with:
+      ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
+      config: ${{ inputs.config }}
+      plat: linux
+      os: ubuntu-22.04
+      arch: arm64
+      tls: ${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}
+      build: '-Test'
+
+  build-test-arm:
+    name: Build Test (arm)
+    uses: ./.github/workflows/build-reuse-unix.yml
+    with:
+      ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
+      config: ${{ inputs.config }}
+      plat: linux
+      os: ubuntu-22.04
+      arch: arm
+      tls: ${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}
+      build: '-Test'
+
+  # Job 2: Build .NET test application
+  build-dotnet-test:
+    name: Build .NET Test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout msquic Repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          repository: microsoft/msquic
+          ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@2016bd2012dba4e32de620c46fe006a3ac9f0602
+        with:
+          dotnet-version: '9.0'
+
+      - name: Build QuicHello
+        run: |
+          cd src/cs/QuicSimpleTest
+          # Build for all architectures (self-contained for easier validation)
+          dotnet publish QuicHello.net9.0.csproj -c Release -o ../../../dotnet-artifacts/x64 -r linux-x64 --self-contained true
+          dotnet publish QuicHello.net9.0.csproj -c Release -o ../../../dotnet-artifacts/arm64 -r linux-arm64 --self-contained true
+          dotnet publish QuicHello.net9.0.csproj -c Release -o ../../../dotnet-artifacts/arm -r linux-arm --self-contained true
+
+      - name: Upload .NET Artifacts
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: dotnet-test-artifacts
+          path: dotnet-artifacts/
+          retention-days: 1
+
+  # Job 3: Validate packages across all distro/arch combinations
+  validate-packages:
+    name: ${{ matrix.friendlyName }}
+    needs: [build-test-x64, build-test-arm64, build-test-arm, build-dotnet-test]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu 22.04 (DEB)
+          - friendlyName: "Ubuntu 22.04 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "ubuntu:22.04"
+            type: deb
+            pkg_arch: amd64
+            prod_url: "https://packages.microsoft.com/ubuntu/22.04/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Ubuntu 22.04 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "ubuntu:22.04"
+            type: deb
+            pkg_arch: arm64
+            prod_url: "https://packages.microsoft.com/ubuntu/22.04/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Ubuntu 22.04 arm32"
+            arch: arm
+            platform: "linux/arm/v7"
+            image: "ubuntu:22.04"
+            type: deb
+            pkg_arch: armhf
+            prod_url: "https://packages.microsoft.com/ubuntu/22.04/prod/pool/main/libm/libmsquic"
+
+          # Ubuntu 24.04 (DEB)
+          - friendlyName: "Ubuntu 24.04 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "ubuntu:24.04"
+            type: deb
+            pkg_arch: amd64
+            prod_url: "https://packages.microsoft.com/ubuntu/24.04/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Ubuntu 24.04 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "ubuntu:24.04"
+            type: deb
+            pkg_arch: arm64
+            prod_url: "https://packages.microsoft.com/ubuntu/24.04/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Ubuntu 24.04 arm32"
+            arch: arm
+            platform: "linux/arm/v7"
+            image: "ubuntu:24.04"
+            type: deb
+            pkg_arch: armhf
+            prod_url: "https://packages.microsoft.com/ubuntu/24.04/prod/pool/main/libm/libmsquic"
+
+          # Debian 12 (DEB)
+          - friendlyName: "Debian 12 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "debian:12"
+            type: deb
+            pkg_arch: amd64
+            prod_url: "https://packages.microsoft.com/debian/12/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Debian 12 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "debian:12"
+            type: deb
+            pkg_arch: arm64
+            prod_url: "https://packages.microsoft.com/debian/12/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Debian 12 arm32"
+            arch: arm
+            platform: "linux/arm/v7"
+            image: "debian:12"
+            type: deb
+            pkg_arch: armhf
+            prod_url: "https://packages.microsoft.com/debian/12/prod/pool/main/libm/libmsquic"
+
+          # Debian 13 (DEB)
+          - friendlyName: "Debian 13 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "debian:trixie"
+            type: deb
+            pkg_arch: amd64
+            prod_url: "https://packages.microsoft.com/debian/13/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Debian 13 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "debian:trixie"
+            type: deb
+            pkg_arch: arm64
+            prod_url: "https://packages.microsoft.com/debian/13/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Debian 13 arm32"
+            arch: arm
+            platform: "linux/arm/v7"
+            image: "debian:trixie"
+            type: deb
+            pkg_arch: armhf
+            prod_url: "https://packages.microsoft.com/debian/13/prod/pool/main/libm/libmsquic"
+
+          # Azure Linux 3.0 (RPM) - No arm32 support, has separate arch URLs
+          - friendlyName: "Azure Linux 3.0 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "mcr.microsoft.com/azurelinux/base/core:3.0"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/x86_64/Packages/l"
+            testing_url: "https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/x86_64/Packages/l"
+          - friendlyName: "Azure Linux 3.0 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "mcr.microsoft.com/azurelinux/base/core:3.0"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/aarch64/Packages/l"
+            testing_url: "https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/aarch64/Packages/l"
+
+          # CentOS Stream 9 (RPM) - No arm32 support
+          - friendlyName: "CentOS Stream 9 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "quay.io/centos/centos:stream9"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/centos/9/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/centos/9/testing/Packages/l"
+          - friendlyName: "CentOS Stream 9 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "quay.io/centos/centos:stream9"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/centos/9/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/centos/9/testing/Packages/l"
+
+          # CentOS Stream 10 (RPM) - No arm32 support
+          - friendlyName: "CentOS Stream 10 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "quay.io/centos/centos:stream10"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/centos/10/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/centos/10/testing/Packages/l"
+          - friendlyName: "CentOS Stream 10 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "quay.io/centos/centos:stream10"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/centos/10/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/centos/10/testing/Packages/l"
+
+          # RHEL 9 (RPM) - Using UBI images, no arm32 support
+          - friendlyName: "RHEL 9 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "registry.access.redhat.com/ubi9/ubi:latest"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/rhel/9/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/rhel/9/testing/Packages/l"
+          - friendlyName: "RHEL 9 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "registry.access.redhat.com/ubi9/ubi:latest"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/rhel/9/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/rhel/9/testing/Packages/l"
+
+          # RHEL 10 (RPM) - Using UBI images, no arm32 support
+          - friendlyName: "RHEL 10 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "registry.access.redhat.com/ubi10/ubi:latest"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/rhel/10/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/rhel/10/testing/Packages/l"
+          - friendlyName: "RHEL 10 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "registry.access.redhat.com/ubi10/ubi:latest"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/rhel/10/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/rhel/10/testing/Packages/l"
+            
+          # Fedora 42 (RPM)
+          - friendlyName: "Fedora 42 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "fedora:42"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/fedora/42/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/42/testing/Packages/l"
+          - friendlyName: "Fedora 42 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "fedora:42"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/fedora/42/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/42/testing/Packages/l"
+
+          # Fedora 43 (RPM)
+          - friendlyName: "Fedora 43 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "fedora:43"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/fedora/43/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/43/testing/Packages/l"
+          - friendlyName: "Fedora 43 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "fedora:43"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/fedora/43/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/43/testing/Packages/l"
+
+          # openSUSE Leap 15.6 (RPM) - No arm32 support
+          - friendlyName: "openSUSE 15.6 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "opensuse/leap:15.6"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/opensuse/15/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/yumrepos/microsoft-opensuse15-testing-prod/Packages/l"
+          - friendlyName: "openSUSE 15.6 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "opensuse/leap:15.6"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/opensuse/15/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/yumrepos/microsoft-opensuse15-testing-prod/Packages/l"
+
+          # openSUSE Leap 16.0 (RPM) - No arm32 support
+          - friendlyName: "openSUSE 16.0 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "opensuse/leap:16.0"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/opensuse/16/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/opensuse/16/testing/Packages/l"
+          - friendlyName: "openSUSE 16.0 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "opensuse/leap:16.0"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/opensuse/16/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/opensuse/16/testing/Packages/l"
+
+          # SLES 15.6 (RPM) - No arm32 support
+          - friendlyName: "SLES 15.6 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "registry.suse.com/suse/sle15:15.6"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/sles/15/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/yumrepos/microsoft-sles15-testing-prod/Packages/l"
+          - friendlyName: "SLES 15.6 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "registry.suse.com/suse/sle15:15.6"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/sles/15/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/yumrepos/microsoft-sles15-testing-prod/Packages/l"
+
+          # SLES 15.7 (RPM) - No arm32 support
+          - friendlyName: "SLES 15.7 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "registry.suse.com/suse/sle15:15.7"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/sles/15/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/yumrepos/microsoft-sles15-testing-prod/Packages/l"
+          - friendlyName: "SLES 15.7 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "registry.suse.com/suse/sle15:15.7"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/sles/15/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/yumrepos/microsoft-sles15-testing-prod/Packages/l"
+
+          # SLES 16 (RPM) - Using BCI base, no arm32 support
+          - friendlyName: "SLES 16 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "registry.suse.com/bci/bci-base:16.0"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/sles/16/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/sles/16/testing/Packages/l"
+          - friendlyName: "SLES 16 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "registry.suse.com/bci/bci-base:16.0"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/sles/16/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/sles/16/testing/Packages/l"
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+
+      - name: Set up QEMU
+        if: matrix.arch != 'x64'
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+
+      - name: Download Test Artifacts
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          # TLS mapping: for 2.4.x, quictls -> openssl3
+          name: ${{ inputs.config }}-linux-ubuntu-22.04-${{ matrix.arch }}-${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}-Test
+          path: artifacts
+
+      - name: Download .NET Artifacts
+        if: ${{ !inputs.skip_dotnet_tests }}
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: dotnet-test-artifacts
+          path: dotnet-artifacts
+
+      - name: Download Package
+        shell: bash
+        run: |
+          VERSION="${{ inputs.package_version }}"
+          mkdir -p packages
+
+          # Build filename based on package type
+          if [ "${{ matrix.type }}" = "deb" ]; then
+            FILENAME="libmsquic_${VERSION}_${{ matrix.pkg_arch }}.deb"
+          else
+            FILENAME="libmsquic-${VERSION}-1.${{ matrix.pkg_arch }}.rpm"
+          fi
+
+          echo "Looking for package: $FILENAME"
+
+          # Try prod URL first, then testing URL if available
+          PROD_URL="${{ matrix.prod_url }}/${FILENAME}"
+          TESTING_URL="${{ matrix.testing_url }}/${FILENAME}"
+
+          echo "Trying prod URL: $PROD_URL"
+          if curl -fsSL "$PROD_URL" -o "packages/${FILENAME}" 2>/dev/null; then
+            echo "Downloaded from prod repo"
+          elif [ -n "${{ matrix.testing_url }}" ]; then
+            echo "Prod failed, trying testing URL: $TESTING_URL"
+            if curl -fsSL "$TESTING_URL" -o "packages/${FILENAME}" 2>/dev/null; then
+              echo "Downloaded from testing repo"
+            else
+              echo "ERROR: Failed to download package from both prod and testing repos"
+              exit 1
+            fi
+          else
+            echo "ERROR: Failed to download package from prod repo (no testing URL configured)"
+            exit 1
+          fi
+
+          ls -la packages/
+
+      - name: List Downloaded Files
+        run: |
+          echo "=== Packages ==="
+          ls -la packages/ || echo "No packages directory"
+          echo ""
+          echo "=== Artifacts ==="
+          ls -la artifacts/ || echo "No artifacts directory"
+          echo ""
+          echo "=== .NET Artifacts ==="
+          ls -la dotnet-artifacts/${{ matrix.arch }}/ || echo "No .NET artifacts"
+
+      - name: Start Container
+        id: container
+        run: |
+          CONTAINER_NAME="msquic-test-${{ github.run_id }}-${{ strategy.job-index }}"
+          echo "name=$CONTAINER_NAME" >> $GITHUB_OUTPUT
+
+          # Compute effective TLS (for 2.4.x: quictls -> openssl3)
+          EFFECTIVE_TLS="${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}"
+          echo "tls=$EFFECTIVE_TLS" >> $GITHUB_OUTPUT
+
+          # Find msquictest binary
+          MSQUICTEST_PATH="artifacts/bin/linux/${{ matrix.arch }}_${{ inputs.config }}_${EFFECTIVE_TLS}/msquictest"
+          if [ ! -f "$MSQUICTEST_PATH" ]; then
+            echo "msquictest not found at expected path: $MSQUICTEST_PATH"
+            echo "Searching for msquictest in artifacts..."
+            find artifacts -name "msquictest" -type f 2>/dev/null || true
+            MSQUICTEST_PATH=$(find artifacts -name "msquictest" -type f 2>/dev/null | head -1)
+            if [ -z "$MSQUICTEST_PATH" ]; then
+              echo "ERROR: Could not find msquictest binary"
+              exit 1
+            fi
+          fi
+          echo "Found msquictest at: $MSQUICTEST_PATH"
+          echo "msquictest=$MSQUICTEST_PATH" >> $GITHUB_OUTPUT
+
+          docker create --name "$CONTAINER_NAME" \
+            --platform ${{ matrix.platform }} \
+            -v $(pwd)/packages:/packages:ro \
+            ${{ matrix.image }} sleep infinity
+          docker start "$CONTAINER_NAME"
+
+      - name: Init Dependencies
+        run: |
+          docker exec ${{ steps.container.outputs.name }} sh -c '
+            if [ -f /etc/os-release ]; then . /etc/os-release; fi
+            case "$ID" in
+              ubuntu|debian)
+                apt-get update -qq && apt-get install -y python3 curl ca-certificates
+                ;;
+              centos|rhel|almalinux|rocky|fedora)
+                # Use --allowerasing to handle curl-minimal conflict on minimal images
+                command -v dnf >/dev/null && dnf install -y --allowerasing python3 curl ca-certificates || yum install -y python3 curl ca-certificates
+                ;;
+              opensuse*|sles)
+                zypper install -y python3 curl ca-certificates
+                ;;
+              azurelinux|mariner)
+                tdnf install -y python3 curl ca-certificates
+                ;;
+            esac
+          '
+
+      - name: Install Package
+        run: |
+          docker exec ${{ steps.container.outputs.name }} sh -c '
+            if [ -f /etc/os-release ]; then . /etc/os-release; fi
+            case "$ID" in
+              ubuntu|debian)
+                apt-get install -y /packages/*.deb
+                ;;
+              centos|rhel|almalinux|rocky|fedora)
+                rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                command -v dnf >/dev/null && dnf install -y /packages/*.rpm || yum install -y /packages/*.rpm
+                ;;
+              opensuse*|sles)
+                if [ "$VERSION_ID" = "16.0" ]; then
+                  rpm --import https://packages.microsoft.com/keys/microsoft-2025.asc 2>/dev/null || true
+                else
+                  rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                fi
+                zypper install -y --allow-unsigned-rpm /packages/*.rpm 2>/dev/null || \
+                zypper install -y --no-gpg-checks /packages/*.rpm 2>/dev/null || \
+                rpm -ivh --nodeps --nosignature /packages/*.rpm
+                ;;
+              azurelinux|mariner)
+                rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                tdnf install -y /packages/*.rpm
+                ;;
+            esac
+          '
+
+      - name: Test Library Load (Python)
+        run: |
+          docker exec ${{ steps.container.outputs.name }} python3 -c "
+          import ctypes, sys
+          for path in ['libmsquic.so.2', '/usr/lib/libmsquic.so.2', '/usr/lib64/libmsquic.so.2']:
+              try:
+                  ctypes.CDLL(path)
+                  print(f'Successfully loaded: {path}')
+                  sys.exit(0)
+              except OSError as e:
+                  print(f'Failed to load {path}: {e}')
+          print('ERROR: Could not load libmsquic.so.2')
+          sys.exit(1)
+          "
+
+      - name: Copy msquictest
+        run: |
+          docker cp "${{ steps.container.outputs.msquictest }}" "${{ steps.container.outputs.name }}:/tmp/msquictest"
+          docker exec ${{ steps.container.outputs.name }} chmod +x /tmp/msquictest
+
+      - name: Run msquictest
+        run: |
+          docker exec ${{ steps.container.outputs.name }} /tmp/msquictest --gtest_filter=ParameterValidation.ValidateApi
+
+      - name: Copy .NET Artifacts
+        if: ${{ !inputs.skip_dotnet_tests }}
+        run: |
+          docker exec ${{ steps.container.outputs.name }} mkdir -p /dotnet
+          docker cp dotnet-artifacts/${{ matrix.arch }}/. "${{ steps.container.outputs.name }}:/dotnet/"
+
+      - name: Run .NET Test
+        if: ${{ !inputs.skip_dotnet_tests }}
+        run: |
+          docker exec ${{ steps.container.outputs.name }} sh -c '
+            # Find and run the self-contained QuicHello executable
+            EXE=$(find /dotnet -maxdepth 1 -name "QuicHello*" -type f ! -name "*.dll" ! -name "*.pdb" ! -name "*.json" 2>/dev/null | head -1)
+            if [ -z "$EXE" ]; then
+              echo "ERROR: QuicHello executable not found"
+              ls -la /dotnet/
+              exit 1
+            fi
+            echo "Found executable: $EXE"
+            chmod +x "$EXE"
+            export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+            "$EXE"
+          '
+
+      - name: Stop Container
+        if: always()
+        run: |
+          docker stop "${{ steps.container.outputs.name }}" 2>/dev/null || true
+          docker rm "${{ steps.container.outputs.name }}" 2>/dev/null || true
+
+      - name: Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: logs-${{ matrix.friendlyName }}
+          path: |
+            packages/
+            artifacts/
+
+  # Job 4: Summary
+  summary:
+    name: Validation Summary
+    if: always()
+    needs: [validate-packages]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## Linux Package Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Package Version**: ${{ inputs.package_version || 'latest' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Testing Repo**: ${{ inputs.testing_repo }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Skip .NET Tests**: ${{ inputs.skip_dotnet_tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the individual job results above for detailed status of each distro/arch combination." >> $GITHUB_STEP_SUMMARY
+
+      - name: Check Status
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+        with:
+          jobs: ${{ toJSON(needs) }}

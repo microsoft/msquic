@@ -76,9 +76,14 @@ jobs:
       uses: actions/setup-dotnet@2016bd2012dba4e32de620c46fe006a3ac9f0602
       with:
         dotnet-version: ${{ matrix.vec.dotnetVersion }}
-    - name: Build .NET QUIC Test Project
+    - name: Build .NET QUIC Test Project (self-contained)
       run: |
-        pushd src/cs/QuicSimpleTest && dotnet build QuicHello.net${{ matrix.vec.dotnetVersion }}.csproj -a ${{ matrix.vec.arch }} -c ${{ matrix.vec.config }} -o artifacts/net${{ matrix.vec.dotnetVersion }} -f net${{ matrix.vec.dotnetVersion }} && popd
+        # Map arch to musl runtime identifier
+        case "${{ matrix.vec.arch }}" in
+          x64) RID="linux-musl-x64" ;;
+          arm64) RID="linux-musl-arm64" ;;
+        esac
+        pushd src/cs/QuicSimpleTest && dotnet publish QuicHello.net${{ matrix.vec.dotnetVersion }}.csproj -r $RID -c ${{ matrix.vec.config }} -o artifacts/net${{ matrix.vec.dotnetVersion }} -f net${{ matrix.vec.dotnetVersion }} --self-contained true /p:PublishSingleFile=true && popd
     - name: Docker Run
       run: |
         docker run -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }} ${{ matrix.vec.dotnetVersion }}
