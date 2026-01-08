@@ -783,6 +783,10 @@ CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context)
 
             CxPlatThreadWait(&Registration->CloseThread);
             CxPlatThreadDelete(&Registration->CloseThread);
+#if DEBUG
+            QuicLibraryUntrackDbgObject(
+                QUIC_DBG_OBJECT_TYPE_REGISTRATION, &Registration->DbgObjectLink);
+#endif
             CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
             CxPlatRundownRelease(&MsQuicLib.RegistrationCloseCleanupRundown);
 
@@ -2923,6 +2927,10 @@ QuicLibraryUninitializeDbg(
     void
     )
 {
+    for (int i = 0; i < QUIC_DBG_OBJECT_TYPE_MAX; i++) {
+        CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&MsQuicLib.DbgObjectTrackers[i].List));
+        CXPLAT_DBG_ASSERT(MsQuicLib.DbgObjectTrackers[i].Count == 0);
+    }
     CxPlatDispatchLockUninitialize(&MsQuicLib.DbgLock);
 }
 

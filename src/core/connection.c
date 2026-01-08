@@ -86,6 +86,7 @@ QuicConnAlloc(
 
 #if DEBUG
     InterlockedIncrement(&MsQuicLib.ConnectionCount);
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONNECTION, &Connection->DbgObjectLink);
 #endif
     QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_CREATED);
     QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_ACTIVE);
@@ -413,6 +414,9 @@ QuicConnFree(
         CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
     }
     Connection->State.Freed = TRUE;
+#if DEBUG
+    QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONNECTION, &Connection->DbgObjectLink);
+#endif
     QuicTraceEvent(
         ConnDestroyed,
         "[conn][%p] Destroyed",

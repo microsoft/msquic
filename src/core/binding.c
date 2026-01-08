@@ -68,6 +68,9 @@ QuicBindingInitialize(
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
     CxPlatListInitializeHead(&Binding->Listeners);
     QuicLookupInitialize(&Binding->Lookup);
+#if DEBUG
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_BINDING, &Binding->DbgObjectLink);
+#endif
     if (!CxPlatHashtableInitializeEx(&Binding->StatelessOperTable, CXPLAT_HASH_MIN_SIZE)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -179,6 +182,9 @@ Error:
             if (HashTableInitialized) {
                 CxPlatHashtableUninitialize(&Binding->StatelessOperTable);
             }
+#if DEBUG
+            QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_BINDING, &Binding->DbgObjectLink);
+#endif
             CxPlatDispatchLockUninitialize(&Binding->StatelessOperLock);
             CxPlatDispatchRwLockUninitialize(&Binding->RwLock);
             CXPLAT_FREE(Binding, QUIC_POOL_BINDING);
@@ -231,6 +237,9 @@ QuicBindingUninitialize(
     QuicLookupUninitialize(&Binding->Lookup);
     CxPlatDispatchLockUninitialize(&Binding->StatelessOperLock);
     CxPlatHashtableUninitialize(&Binding->StatelessOperTable);
+#if DEBUG
+    QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_BINDING, &Binding->DbgObjectLink);
+#endif
     CxPlatDispatchRwLockUninitialize(&Binding->RwLock);
 
     QuicTraceEvent(
