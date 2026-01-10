@@ -18,8 +18,9 @@ Abstract:
 typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
     //
-    // Thread used to drive the worker. Only set when the worker is created and
-    // managed internally (default case).
+    // Thread used to drive the worker, when the worker is created and
+    // managed internally (default case). In the external execution case,
+    // this thread is the cleanup thread.
     //
     CXPLAT_THREAD Thread;
 
@@ -68,6 +69,12 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     //
     CXPLAT_SLIST_ENTRY* ExecutionContexts;
 
+    //
+    // The event for the cleanup worker to wait on to start cleanup.
+    // NULL in the internally-managed execution case.
+    //
+    CXPLAT_EVENT* CleanupEvent;
+
 #if DEBUG // Debug statistics
     uint64_t LoopCount;
     uint64_t EcPollCount;
@@ -92,7 +99,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     BOOLEAN StoppingThread : 1;
     BOOLEAN StoppedThread : 1;
     BOOLEAN DestroyedThread : 1;
-    BOOLEAN DrainingEvents : 1;
 #if DEBUG // Debug flags - Must not be in the bitfield.
     BOOLEAN ThreadStarted;
     BOOLEAN ThreadFinished;
@@ -108,6 +114,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 typedef struct CXPLAT_WORKER_POOL {
 
     CXPLAT_RUNDOWN_REF Rundown;
+    CXPLAT_EVENT CleanupEvent; // Only used with external workers.
     uint32_t WorkerCount;
     BOOLEAN External;
 
@@ -163,11 +170,6 @@ UpdatePollCompletion(
 }
 
 void
-CxPlatWorkerPoolDrainEvents(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    );
-
-void
 CxPlatProcessEvents(
     _In_ CXPLAT_WORKER* Worker
     );
@@ -175,9 +177,10 @@ CxPlatProcessEvents(
 BOOLEAN
 CxPlatWorkerPoolInitWorker(
     _Inout_ CXPLAT_WORKER* Worker,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_ uint16_t IdealProcessor,
     _In_opt_ CXPLAT_EVENTQ* EventQ, // Only for external workers
-    _In_opt_ CXPLAT_THREAD_CONFIG* ThreadConfig // Only for internal workers
+    _In_ CXPLAT_THREAD_CONFIG* ThreadConfig
     )
 {
     CxPlatLockInitialize(&Worker->ECLock);
@@ -186,6 +189,7 @@ CxPlatWorkerPoolInitWorker(
     Worker->IdealProcessor = IdealProcessor;
     Worker->State.WaitTime = UINT32_MAX;
     Worker->State.ThreadID = UINT32_MAX;
+    Worker->CleanupEvent = &WorkerPool->CleanupEvent;
 
     if (EventQ != NULL) {
         Worker->EventQ = *EventQ;
@@ -351,7 +355,7 @@ CxPlatWorkerPoolCreate(
 
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
         if (!CxPlatWorkerPoolInitWorker(
-                Worker, IdealProcessor, NULL, &ThreadConfig)) {
+                Worker, WorkerPool, IdealProcessor, NULL, &ThreadConfig)) {
             goto Error;
         }
     }
@@ -379,6 +383,15 @@ Error:
     CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
 
     return NULL;
+}
+
+CXPLAT_THREAD_CALLBACK(CxPlatExecutionCleanupThread, Context)
+{
+    CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context;
+
+    CxPlatEventWaitForever(*Worker->CleanupEvent);
+
+    return CxPlatWorkerThread(Context);
 }
 
 _Success_(return != NULL)
@@ -410,6 +423,16 @@ CxPlatWorkerPoolCreateExternal(
     WorkerPool->WorkerCount = Count;
     WorkerPool->External = TRUE;
 
+    CxPlatEventInitialize(&WorkerPool->CleanupEvent, TRUE, FALSE);
+
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        CXPLAT_THREAD_FLAG_SET_IDEAL_PROC,
+        0,
+        "cxplat_exec_cleanup",
+        CxPlatExecutionCleanupThread,
+        NULL
+    };
+
     //
     // Set up each worker thread with the configuration initialized above. Also
     // creates the event queue and all the SQEs used to shutdown, wake and poll
@@ -421,7 +444,7 @@ CxPlatWorkerPoolCreateExternal(
 
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
         if (!CxPlatWorkerPoolInitWorker(
-                Worker, IdealProcessor, Configs[i].EventQ, NULL)) {
+                Worker, WorkerPool, IdealProcessor, Configs[i].EventQ, &ThreadConfig)) {
             goto Error;
         }
         Executions[i] = (QUIC_EXECUTION*)Worker;
@@ -468,9 +491,9 @@ CxPlatWorkerPoolDelete(
             //
             // In the case of external execution, it's possible for ExecutionDelete
             // to run before all the queues have been drained of internal cleanup work.
-            // Run all the workers until there's nothing left to do here.
+            // Allow the cleanup threads to run until there's nothing left to do.
             //
-            CxPlatWorkerPoolDrainEvents(WorkerPool);
+            CxPlatEventSet(WorkerPool->CleanupEvent);
         }
         CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
 
@@ -689,32 +712,6 @@ CxPlatWorkerPoolWorkerPoll(
     return Worker->State.WaitTime;
 }
 
-#define CXPLAT_WORKER_DRAINING_ITERATION_COUNT 10
-
-void
-CxPlatWorkerPoolDrainEvents(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    )
-{
-    BOOLEAN MoreWork = FALSE;
-    do {
-        MoreWork = FALSE;
-
-        for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
-            CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
-            Worker->DrainingEvents = TRUE;
-            Worker->StoppedThread = FALSE;
-
-            CxPlatWorkerThread(Worker);
-
-            if (Worker->State.NoWorkCount < CXPLAT_WORKER_DRAINING_ITERATION_COUNT) {
-                MoreWork = TRUE;
-            }
-        }
-
-    } while (MoreWork);
-}
-
 #define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
 #define DYNAMIC_POOL_PRUNE_COUNT        8
 
@@ -860,16 +857,6 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             CxPlatRunExecutionContexts(Worker); // Run once more to handle race conditions
         }
 
-        if (Worker->DrainingEvents) {
-            if (Worker->State.WaitTime == UINT32_MAX) {
-                //
-                // Don't wait forever for new events, just check if any events are present and
-                // continue.
-                //
-                Worker->State.WaitTime = 0;
-            }
-        }
-
         CxPlatProcessEvents(Worker);
 
         if (Worker->State.NoWorkCount == 0) {
@@ -882,13 +869,6 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         if (Worker->State.TimeNow - Worker->State.LastPoolProcessTime > DYNAMIC_POOL_PROCESSING_PERIOD) {
             CxPlatProcessDynamicPoolAllocators(Worker);
             Worker->State.LastPoolProcessTime = Worker->State.TimeNow;
-        }
-
-        if (Worker->DrainingEvents) {
-            //
-            // Don't run indefinitely; Just do one iteration and stop.
-            //
-            Worker->StoppedThread = TRUE;
         }
     }
 
