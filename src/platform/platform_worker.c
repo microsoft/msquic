@@ -169,11 +169,6 @@ UpdatePollCompletion(
     CxPlatUpdateExecutionContexts(Worker);
 }
 
-void
-CxPlatProcessEvents(
-    _In_ CXPLAT_WORKER* Worker
-    );
-
 BOOLEAN
 CxPlatWorkerPoolInitWorker(
     _Inout_ CXPLAT_WORKER* Worker,
@@ -469,6 +464,7 @@ Error:
         CxPlatWorkerPoolDestroyWorker(Worker);
     }
 
+    CxPlatEventUninitialize(WorkerPool->CleanupEvent);
     CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
 
     return NULL;
@@ -491,7 +487,9 @@ CxPlatWorkerPoolDelete(
             //
             // In the case of external execution, it's possible for ExecutionDelete
             // to run before all the queues have been drained of internal cleanup work.
-            // Allow the cleanup threads to run until there's nothing left to do.
+            // By calling ExecutionDelete, the app has indicated it is done with MsQuic,
+            // so take ownership of the workers and allow them to run on cleanup threads
+            // until there's nothing left to do.
             //
             CxPlatEventSet(WorkerPool->CleanupEvent);
         }
@@ -509,6 +507,9 @@ CxPlatWorkerPoolDelete(
         }
 
         CxPlatRundownUninitialize(&WorkerPool->Rundown);
+        if (WorkerPool->External) {
+            CxPlatEventUninitialize(WorkerPool->CleanupEvent);
+        }
         CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
     }
 }
