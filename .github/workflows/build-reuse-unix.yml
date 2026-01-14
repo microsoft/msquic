@@ -36,7 +36,7 @@ on:
         # options:
         #   - ubuntu-22.04
         #   - ubuntu-24.04
-        #   - macos-13
+        #   - macos-15
       arch:
         required: false
         default: 'x64'

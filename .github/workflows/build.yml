@@ -183,7 +183,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [macos, ios]
-        os: ['macos-13']
+        os: ['macos-15']
         arch: [x64, arm64]
         tls: [quictls]
         static: ['', '-Static']

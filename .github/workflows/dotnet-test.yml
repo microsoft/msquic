@@ -75,7 +75,7 @@ jobs:
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
           { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", xdp: "-UseXdp" },
-          { plat: "macos", os: "macos-13", arch: "universal", tls: "quictls" },
+          { plat: "macos", os: "macos-15", arch: "universal", tls: "quictls" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
