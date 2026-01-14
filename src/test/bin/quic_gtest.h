@@ -56,34 +56,16 @@ class WithMtuArgs : public testing::Test,
     public testing::WithParamInterface<MtuArgs> {
 };
 
-struct FamilyArgs {
-    int Family;
-    static ::std::vector<FamilyArgs> Generate() {
-        ::std::vector<FamilyArgs> list;
-        for (int Family : { 4, 6})
-            list.push_back({ Family });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const FamilyArgs& args) {
-    return o << (args.Family == 4 ? "v4" : "v6");
-}
-
-class WithFamilyArgs : public testing::Test,
-    public testing::WithParamInterface<FamilyArgs> {
-};
-
-struct WithFamilyArgs2 :
+struct WithFamilyArgs :
     public testing::Test,
-    public testing::WithParamInterface<FamilyArgs2> {
+    public testing::WithParamInterface<FamilyArgs> {
 
-    static ::std::vector<FamilyArgs2> Generate() {
+    static ::std::vector<FamilyArgs> Generate() {
         return {{4}, {6}};
     }
 };
 
-std::ostream& operator << (std::ostream& o, const FamilyArgs2& args) {
+std::ostream& operator << (std::ostream& o, const FamilyArgs& args) {
     return o << (args.Family == 4 ? "v4" : "v6");
 }
 

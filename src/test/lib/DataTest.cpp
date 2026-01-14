@@ -751,7 +751,7 @@ ListenerAcceptConnectionAndStreams(
 
 void
 QuicTestClientDisconnect(
-    bool StopListenerFirst
+    const bool& StopListenerFirst
     )
 {
     //
@@ -2346,7 +2346,7 @@ private:
 
 void
 QuicTestAckSendDelay(
-    const FamilyArgs2& Params
+    const FamilyArgs& Params
     )
 {
     int Family = Params.Family;
@@ -2588,9 +2588,10 @@ struct EcnTestContext {
 
 void
 QuicTestEcn(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     //
