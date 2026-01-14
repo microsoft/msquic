@@ -642,10 +642,28 @@ QuicTestEcn(
     const FamilyArgs& Params
     );
 
-void QuicTestStreamAppProvidedBuffers(
+void
+QuicTestStreamAppProvidedBuffers_ClientSend(
     );
 
-void QuicTestStreamAppProvidedBuffersOutOfSpace(
+void
+QuicTestStreamAppProvidedBuffers_ServerSend(
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
     );
 
 //

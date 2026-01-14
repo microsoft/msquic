@@ -2372,23 +2372,61 @@ TEST(Misc, StreamMultiReceive) {
     }
 }
 
-TEST(Misc, StreamAppProvidedBuffers) {
-    TestLogger Logger("StreamAppProvidedBuffers");
+TEST(Misc, StreamAppProvidedBuffers_ClientSend) {
+    TestLogger Logger("StreamAppProvidedBuffers_ClientSend");
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers)));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers_ClientSend)));
     } else {
-        QuicTestStreamAppProvidedBuffers();
+        QuicTestStreamAppProvidedBuffers_ClientSend();
     }
 }
 
-TEST(Misc, StreamAppProvidedBuffersOutOfSpace) {
-    TestLogger Logger("QuicTestStreamAppProvidedBuffersOutOfSpace");
+TEST(Misc, StreamAppProvidedBuffers_ServerSend) {
+    TestLogger Logger("StreamAppProvidedBuffers_ServerSend");
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace)));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers_ServerSend)));
     } else {
-        QuicTestStreamAppProvidedBuffersOutOfSpace();
+        QuicTestStreamAppProvidedBuffers_ServerSend();
     }
 }
+
+// Invoke the following test functions
+TEST(Misc, StreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream) {
+    TestLogger Logger("StreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream)));
+    } else {
+        QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream();
+    }
+}
+
+TEST(Misc, StreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer) {
+    TestLogger Logger("StreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer)));
+    } else {
+        QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer();
+    }
+}
+
+TEST(Misc, StreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream) {
+    TestLogger Logger("StreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream)));
+    } else {
+        QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream();
+    }
+}
+
+TEST(Misc, StreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer) {
+    TestLogger Logger("StreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer)));
+    } else {
+        QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer();
+    }
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {

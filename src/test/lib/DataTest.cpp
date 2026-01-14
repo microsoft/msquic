@@ -4945,14 +4945,6 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
 }
 
 void
-QuicTestStreamAppProvidedBuffers(
-    )
-{
-    QuicTestStreamAppProvidedBuffers_ClientSend();
-    QuicTestStreamAppProvidedBuffers_ServerSend();
-}
-
-void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
     )
 {
@@ -5280,16 +5272,6 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
     TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
     TEST_EQUAL(ReceiveContext.ReceivedBytes, Buffers.SendDataSize);
     TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
-}
-
-void
-QuicTestStreamAppProvidedBuffersOutOfSpace(
-    )
-{
-    QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream();
-    QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer();
-    QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream();
-    QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer();
 }
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
