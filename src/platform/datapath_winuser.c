@@ -2661,6 +2661,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         //
         AcceptSocketProc->IoStarted = TRUE;
         if (!CxPlatRundownAcquire(&AcceptSocketProc->RundownRef)) {
+            AcceptSocketProc = NULL;
             goto Error;
         }
 
