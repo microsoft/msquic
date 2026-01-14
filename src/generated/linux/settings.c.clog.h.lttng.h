@@ -907,6 +907,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingConnIDGenDisabled
+// [sett] ConnIDGenDisabled          = %hhu
+// QuicTraceLogVerbose(SettingConnIDGenDisabled,               "[sett] ConnIDGenDisabled          = %hhu", Settings->ConnIDGenDisabled);
+// arg2 = arg2 = Settings->ConnIDGenDisabled = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingConnIDGenDisabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(

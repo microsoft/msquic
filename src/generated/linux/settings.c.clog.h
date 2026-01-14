@@ -873,6 +873,21 @@ tracepoint(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingConnIDGenDisabled
+// [sett] ConnIDGenDisabled          = %hhu
+// QuicTraceLogVerbose(SettingConnIDGenDisabled,               "[sett] ConnIDGenDisabled          = %hhu", Settings->ConnIDGenDisabled);
+// arg2 = arg2 = Settings->ConnIDGenDisabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingConnIDGenDisabled
+#define _clog_3_ARGS_TRACE_SettingConnIDGenDisabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingConnIDGenDisabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(
