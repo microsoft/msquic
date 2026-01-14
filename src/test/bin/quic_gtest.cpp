@@ -2094,8 +2094,7 @@ TEST(Misc, ServerDisconnect) {
 TEST(Misc, ClientDisconnect) {
     TestLogger Logger("QuicTestClientDisconnect");
     if (TestingKernelMode) {
-        uint8_t Param = 0;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_DISCONNECT, Param));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestClientDisconnect), false));
     } else {
         QuicTestClientDisconnect(false); // TODO - Support true, when race condition is fixed.
     }
