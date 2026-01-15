@@ -4765,9 +4765,9 @@ QuicTestStreamAppProvidedBuffers_ClientSend(
     // Client side sending data, server side receiving with app-provided buffers
 
     const uint32_t StreamStartBuffersNum = 8;
-    const uint32_t StreamStartBuffersSize = 0x2800;
+    const uint32_t StreamStartBuffersSize = 0x500;
     const uint32_t AdditionalBuffersNum = 8;
-    const uint32_t AdditionalBuffersSize = 0x2800;
+    const uint32_t AdditionalBuffersSize = 0x500;
     AppProvidedBuffers Buffers{
         StreamStartBuffersNum, StreamStartBuffersSize,
         AdditionalBuffersNum, AdditionalBuffersSize };
@@ -4792,14 +4792,15 @@ QuicTestStreamAppProvidedBuffers_ClientSend(
 
     // Prepare a receiver stream context
     // - some initial receive buffer space will be provided when the stream is accepted
-    // - more receive buffer space will be provided after 0x1500 bytes are received
-    // - an event will be signaled when 0x1500 bytes are received to synchronize with the sender
+    // - more receive buffer space will be provided after half the initial
+    //       receive buffers are filled.
+    // - an event will be signaled at that point to synchronize with the sender.
     ReceiveContext.BuffersForStreamStarted = Buffers.StreamStartBuffers.get();
     ReceiveContext.NumBuffersForStreamStarted = Buffers.NumStreamStartBuffers;
     ReceiveContext.BuffersForThreshold = Buffers.AdditionalBuffers.get();
     ReceiveContext.NumBuffersForThreshold = Buffers.NumAdditionalBuffers;
-    ReceiveContext.MoreBufferThreshold = 0x1500;
-    ReceiveContext.ReceivedBytesThreshold = 0x1500;
+    ReceiveContext.MoreBufferThreshold = StreamStartBuffersSize * StreamStartBuffersNum / 2;
+    ReceiveContext.ReceivedBytesThreshold = ReceiveContext.MoreBufferThreshold;
 
     // Setup a listener
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
@@ -4891,12 +4892,13 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
     TEST_TRUE(Connection.HandshakeComplete);
 
     // Create and start a receiver stream
-    // - more receive buffer space will be provided after 0x1500 bytes are received
-    // - an event will be signaled when 0x1500 bytes are received to synchronize with the sender
+    // - more receive buffer space will be provided after half the initial
+    //   receive buffers are filled.
+    // - an event will be signaled at that point to synchronize with the sender.
     ReceiveContext.BuffersForThreshold = Buffers.AdditionalBuffers.get();
     ReceiveContext.NumBuffersForThreshold = Buffers.NumAdditionalBuffers;
-    ReceiveContext.MoreBufferThreshold = 0x1500;
-    ReceiveContext.ReceivedBytesThreshold = 0x1500;
+    ReceiveContext.MoreBufferThreshold = StreamStartBuffersSize * StreamStartBuffersNum / 2;
+    ReceiveContext.ReceivedBytesThreshold = ReceiveContext.MoreBufferThreshold;
 
     MsQuicStream ClientStream(
         Connection,
