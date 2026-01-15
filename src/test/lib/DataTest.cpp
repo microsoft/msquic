@@ -4762,6 +4762,17 @@ void
 QuicTestStreamAppProvidedBuffers_ClientSend(
     )
 {
+    // Client side sending data, server side receiving with app-provided buffers
+
+    const uint32_t StreamStartBuffersNum = 8;
+    const uint32_t StreamStartBuffersSize = 0x2800;
+    const uint32_t AdditionalBuffersNum = 8;
+    const uint32_t AdditionalBuffersSize = 0x2800;
+    AppProvidedBuffers Buffers{
+        StreamStartBuffersNum, StreamStartBuffersSize,
+        AdditionalBuffersNum, AdditionalBuffersSize };
+    TEST_TRUE(Buffers.IsValid());
+
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
     AppBuffersReceiverContext ReceiveContext{};
 
@@ -4779,32 +4790,14 @@ QuicTestStreamAppProvidedBuffers_ClientSend(
         MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    // Client side sending data
-
-    // Create send and receive buffers
-    const uint32_t BufferSize = 0x5000;
-    const uint32_t NumBuffers = 0x10;
-    UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
-    TEST_TRUE(SendDataBuffer);
-    for (auto i = 0u; i < BufferSize; ++i) {
-        SendDataBuffer[i] = static_cast<uint8_t>(i);
-    }
-    UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
-    TEST_TRUE(ReceiveDataBuffer);
-    QUIC_BUFFER QuicBuffers[NumBuffers]{};
-    for (auto i = 0u; i < NumBuffers; ++i) {
-        QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
-        QuicBuffers[i].Length = BufferSize / NumBuffers;
-    }
-
     // Prepare a receiver stream context
     // - some initial receive buffer space will be provided when the stream is accepted
     // - more receive buffer space will be provided after 0x1500 bytes are received
     // - an event will be signaled when 0x1500 bytes are received to synchronize with the sender
-    ReceiveContext.BuffersForStreamStarted = QuicBuffers;
-    ReceiveContext.NumBuffersForStreamStarted = NumBuffers / 2;
-    ReceiveContext.BuffersForThreshold = QuicBuffers + NumBuffers / 2;
-    ReceiveContext.NumBuffersForThreshold = NumBuffers / 2;
+    ReceiveContext.BuffersForStreamStarted = Buffers.StreamStartBuffers.get();
+    ReceiveContext.NumBuffersForStreamStarted = Buffers.NumStreamStartBuffers;
+    ReceiveContext.BuffersForThreshold = Buffers.AdditionalBuffers.get();
+    ReceiveContext.NumBuffersForThreshold = Buffers.NumAdditionalBuffers;
     ReceiveContext.MoreBufferThreshold = 0x1500;
     ReceiveContext.ReceivedBytesThreshold = 0x1500;
 
@@ -4831,24 +4824,35 @@ QuicTestStreamAppProvidedBuffers_ClientSend(
     TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
     TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
 
-    // Send data, waiting for the treshold to be  reached to ensure
+    // Send data, waiting for the treshold to be reached to ensure
     // buffer space is provided in time.
-    QUIC_BUFFER Buffer1{BufferSize / 2, SendDataBuffer.get()};
-    QUIC_BUFFER Buffer2{BufferSize / 2, SendDataBuffer.get() + BufferSize / 2};
+    QUIC_BUFFER Buffer1{Buffers.SendDataSize / 2, Buffers.SendDataBuffer.get()};
+    QUIC_BUFFER Buffer2{Buffers.SendDataSize / 2, Buffers.SendDataBuffer.get() + Buffers.SendDataSize / 2};
 
     TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer1, 1));
     TEST_TRUE(ReceiveContext.ReceivedBytesThresholdReached.WaitTimeout(TestWaitTimeout));
     TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer2, 1, QUIC_SEND_FLAG_FIN));
 
     TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-    TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
-    TEST_EQUAL(0, memcmp(SendDataBuffer.get(), ReceiveDataBuffer.get(), BufferSize));
+    TEST_EQUAL(ReceiveContext.ReceivedBytes, Buffers.SendDataSize);
+    TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
 }
 
 void
 QuicTestStreamAppProvidedBuffers_ServerSend(
     )
 {
+    // Sever side sending data, client side receiving with app-provided buffers
+
+    const uint32_t StreamStartBuffersNum = 8;
+    const uint32_t StreamStartBuffersSize = 0x2800;
+    const uint32_t AdditionalBuffersNum = 8;
+    const uint32_t AdditionalBuffersSize = 0x2800;
+    AppProvidedBuffers Buffers{
+        StreamStartBuffersNum, StreamStartBuffersSize,
+        AdditionalBuffersNum, AdditionalBuffersSize };
+    TEST_TRUE(Buffers.IsValid());
+
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
     AppBuffersSenderContext SenderContext{};
     AppBuffersReceiverContext ReceiveContext{};
@@ -4886,28 +4890,11 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection.HandshakeComplete);
 
-    // Create send and receive buffers
-    const uint32_t BufferSize = 0x5000;
-    const uint32_t NumBuffers = 0x10;
-    UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
-    TEST_TRUE(SendDataBuffer);
-    for (auto i = 0u; i < BufferSize; ++i) {
-        SendDataBuffer[i] = static_cast<uint8_t>(i);
-    }
-
-    UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
-    TEST_TRUE(ReceiveDataBuffer);
-    QUIC_BUFFER QuicBuffers[NumBuffers]{};
-    for (auto i = 0u; i < NumBuffers; ++i) {
-        QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
-        QuicBuffers[i].Length = BufferSize / NumBuffers;
-    }
-
     // Create and start a receiver stream
     // - more receive buffer space will be provided after 0x1500 bytes are received
     // - an event will be signaled when 0x1500 bytes are received to synchronize with the sender
-    ReceiveContext.BuffersForThreshold = QuicBuffers + NumBuffers / 2;
-    ReceiveContext.NumBuffersForThreshold = NumBuffers / 2;
+    ReceiveContext.BuffersForThreshold = Buffers.AdditionalBuffers.get();
+    ReceiveContext.NumBuffersForThreshold = Buffers.NumAdditionalBuffers;
     ReceiveContext.MoreBufferThreshold = 0x1500;
     ReceiveContext.ReceivedBytesThreshold = 0x1500;
 
@@ -4921,7 +4908,7 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
 
     ReceiveContext.Stream = &ClientStream;
     // Provide some receive buffers before starting the stream
-    ClientStream.ProvideReceiveBuffers(NumBuffers / 2, QuicBuffers);
+    ClientStream.ProvideReceiveBuffers(Buffers.NumStreamStartBuffers, Buffers.StreamStartBuffers.get());
 
     TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
     TEST_QUIC_SUCCEEDED(ClientStream.Shutdown(QUIC_STATUS_SUCCESS, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL));
@@ -4932,16 +4919,16 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
     //
     // Send data, waiting for the treshold to be  reached to ensure
     // buffer space is provided in time.
-    QUIC_BUFFER Buffer1{BufferSize / 2, SendDataBuffer.get()};
-    QUIC_BUFFER Buffer2{BufferSize / 2, SendDataBuffer.get() + BufferSize / 2};
+    QUIC_BUFFER Buffer1{Buffers.SendDataSize / 2, Buffers.SendDataBuffer.get()};
+    QUIC_BUFFER Buffer2{Buffers.SendDataSize / 2, Buffers.SendDataBuffer.get() + Buffers.SendDataSize / 2};
 
     TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer1, 1));
     TEST_TRUE(ReceiveContext.ReceivedBytesThresholdReached.WaitTimeout(TestWaitTimeout));
     TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer2, 1, QUIC_SEND_FLAG_FIN));
 
     TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-    TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
-    TEST_EQUAL(0, memcmp(SendDataBuffer.get(), ReceiveDataBuffer.get(), BufferSize));
+    TEST_EQUAL(ReceiveContext.ReceivedBytes, Buffers.SendDataSize);
+    TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
 }
 
 void
