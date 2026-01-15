@@ -1030,6 +1030,7 @@ typedef struct CXPLAT_EVENTQ {
 #if DEBUG
     uint32_t CqContentionCount;
     uint32_t SqContentionCount;
+    uint32_t OutstandingSubmissions;
 #endif
     BOOLEAN NeedsSubmit;
 } CXPLAT_EVENTQ;
@@ -1118,7 +1119,7 @@ CxPlatEventGetSqe(
 }
 
 QUIC_INLINE
-void
+BOOLEAN
 CxPlatEventQSubmit(
     _In_ CXPLAT_EVENTQ* Queue
     )
@@ -1128,12 +1129,16 @@ CxPlatEventQSubmit(
     CXPLAT_DBG_ASSERT(Queue->SqContentionCount++ == 0);
     CxPlatLockRelease(&Queue->Lock);
 #endif
-    io_uring_submit(&Queue->Ring);
+    int result = io_uring_submit(&Queue->Ring);
 #if DEBUG
     CxPlatLockAcquire(&Queue->Lock);
     CXPLAT_DBG_ASSERT(--Queue->SqContentionCount == 0);
+    if (result > 0) {
+        Queue->OutstandingSubmissions++;
+    }
     CxPlatLockRelease(&Queue->Lock);
 #endif
+    return result > 0;
 }
 
 QUIC_INLINE
@@ -1152,8 +1157,7 @@ CxPlatEventQEnqueue(
     }
     io_uring_prep_nop(io_sqe);
     io_uring_sqe_set_data(io_sqe, Sqe);
-    CxPlatEventQSubmit(Queue);
-    Enqueued = TRUE;
+    Enqueued = CxPlatEventQSubmit(Queue);
 Exit:
     CxPlatLockRelease(&Queue->Lock);
     return Enqueued;
@@ -1204,6 +1208,9 @@ Exit:
 #if DEBUG
     CxPlatLockAcquire(&Queue->Lock);
     CXPLAT_DBG_ASSERT(--Queue->CqContentionCount == 0);
+    if (result > 0) {
+        Queue->OutstandingSubmissions -= result;
+    }
     CxPlatLockRelease(&Queue->Lock);
 #endif
     return result;

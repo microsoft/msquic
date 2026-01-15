@@ -246,7 +246,7 @@ CxPlatWorkerPoolDestroyWorker(
 {
     if (Worker->InitializedThread) {
         Worker->StoppingThread = TRUE;
-        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe);
+        CXPLAT_FRE_ASSERT(CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe));
         CxPlatThreadWait(&Worker->Thread);
         CxPlatThreadDelete(&Worker->Thread);
 #if DEBUG

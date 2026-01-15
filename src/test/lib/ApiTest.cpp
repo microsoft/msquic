@@ -6755,6 +6755,7 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     // Verify an EC can be created and deleted without any other actions.
     //
     {
+    TestScopeLogger LogScope("EC create/delete");
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
     }
@@ -6763,6 +6764,7 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     // Verify an EC can be polled.
     //
     {
+        TestScopeLogger LogScope("EC polling");
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
 
@@ -6779,6 +6781,7 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     // closed while running in EC mode.
     //
     {
+        TestScopeLogger LogScope("EC + registration open/close");
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
 
