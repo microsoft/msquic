@@ -10,54 +10,53 @@ fi
 
 cd /main
 . /etc/os-release
-OS=$(echo $ID | xargs)
-VERSION=$(echo $VERSION_ID | xargs)
+# Trim whitespace without using xargs (not available on all distros)
+OS=$(echo $ID | tr -d '[:space:]')
+VERSION=$(echo $VERSION_ID | tr -d '[:space:]')
 
 echo "${OS} ${VERSION} is detected."
 
 install_dependencies_apt()
 {
     apt-get update
-    if ! [ -f /usr/bin/dotnet ]; then
-        apt-get install -y wget gzip tar
-    fi
     apt-get install -y ./artifacts/libmsquic_*.deb
 }
 
 install_dependencies_rpm()
 {
-    yum update -y
-    if ! [ -f /usr/bin/dotnet ]; then
-        yum install -y wget gzip tar # .NET installing requirements
-        yum install -y libicu # .NET dependencies
+    # Check if this is dnf5 (Fedora 42+) which has different syntax
+    if command -v dnf > /dev/null 2>&1 && dnf --version 2>&1 | grep -q "dnf5"; then
+        echo "Using dnf5 (Fedora 42+)"
+        find -name "libmsquic*.rpm" -exec dnf install -y --nogpgcheck {} \;
+    elif command -v dnf > /dev/null 2>&1; then
+        echo "Using dnf"
+        dnf update -y
+        find -name "libmsquic*.rpm" -exec dnf install -y {} \;
+    else
+        echo "Using yum"
+        yum update -y
+        find -name "libmsquic*.rpm" -exec yum localinstall -y {} \;
     fi
-    find -name "libmsquic*.rpm" -exec yum localinstall -y {} \;
 }
 
 install_dependencies_opensuse()
 {
-    zypper ref
-    if ! [ -f /usr/bin/dotnet ]; then
-        zypper install -y wget gzip
+    # Install findutils if not available (minimal images may not have it)
+    if ! command -v find > /dev/null 2>&1; then
+        zypper --non-interactive install findutils
     fi
+    zypper ref
     find -name "libmsquic*.rpm" -exec zypper install --allow-unsigned-rpm -y {} \;
 }
 
-# .NET is installed already on Azure Linux and Mariner images
 install_libmsquic_azure_linux()
 {
-    if ! [ -f /usr/bin/dotnet ]; then
-        tdnf install -y wget gzip tar
-    fi
-    tdnf update
+    tdnf update -y
     find -name "libmsquic*.rpm" -exec tdnf install -y {} \;
 }
 
 install_libmsquic_alpine()
 {
-    if ! [ -f /usr/bin/dotnet ]; then
-        apk add --upgrade --no-cache wget gzip tar
-    fi
     find -name "libmsquic*.apk" -exec apk add --allow-untrusted {} \;
 }
 
@@ -65,7 +64,7 @@ if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
     install_dependencies_apt
 elif [ "$OS" = "centos" ] || [ "$OS" = "almalinux" ] || [ "$OS" = "rhel" ] || [ "$OS" = "fedora" ]; then
     install_dependencies_rpm
-elif [ "$OS" = 'opensuse-leap' ]; then
+elif [ "$OS" = 'opensuse-leap' ] || [ "$OS" = 'opensuse-tumbleweed' ] || [ "$OS" = 'sles' ]; then
     install_dependencies_opensuse
 elif [ "$OS" = 'azurelinux' ] || [ "$OS" = 'mariner' ]; then
     install_libmsquic_azure_linux
@@ -82,14 +81,16 @@ if ! [ "$OS" = 'alpine' ]; then
     artifacts/bin/linux/${1}_${2}_${3}/msquictest --gtest_filter=ParameterValidation.ValidateApi
 fi
 
-# Install .NET if it is not installed
-if ! [ -f /usr/bin/dotnet ]; then
-    wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
-    chmod +x dotnet-install.sh
-    ./dotnet-install.sh --channel $4 --shared-runtime
-
-    export PATH=$PATH:$HOME/.dotnet
-    export DOTNET_ROOT=$HOME/.dotnet
+# Run .NET 10 self-contained test if available
+if [ -f /main/src/cs/QuicSimpleTest/artifacts/net10.0/QuicHello.net10.0 ]; then
+    echo "Running .NET 10 QUIC test..."
+    chmod +x /main/src/cs/QuicSimpleTest/artifacts/net10.0/QuicHello.net10.0
+    /main/src/cs/QuicSimpleTest/artifacts/net10.0/QuicHello.net10.0
 fi
 
-dotnet /main/src/cs/QuicSimpleTest/artifacts/net$4/QuicHello.net$4.dll
+# Run .NET 9 self-contained test if available
+if [ -f /main/src/cs/QuicSimpleTest/artifacts/net9.0/QuicHello.net9.0 ]; then
+    echo "Running .NET 9 QUIC test..."
+    chmod +x /main/src/cs/QuicSimpleTest/artifacts/net9.0/QuicHello.net9.0
+    /main/src/cs/QuicSimpleTest/artifacts/net9.0/QuicHello.net9.0
+fi

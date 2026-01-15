@@ -187,6 +187,7 @@ MsQuicRegistrationOpen(
 #if DEBUG
     CxPlatRefInitializeMultiple(Registration->RefTypeBiasedCount, QUIC_REG_REF_COUNT);
     CxPlatRefIncrement(&Registration->RefTypeBiasedCount[QUIC_REG_REF_HANDLE_OWNER]);
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_REGISTRATION, &Registration->DbgObjectLink);
 #endif
     CxPlatEventInitialize(&Registration->CloseEvent, TRUE, FALSE);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
@@ -257,6 +258,7 @@ Error:
         CxPlatEventUninitialize(Registration->CloseEvent);
 #if DEBUG
         CxPlatRefDecrement(&Registration->RefTypeBiasedCount[QUIC_REG_REF_HANDLE_OWNER]);
+        QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_REGISTRATION, &Registration->DbgObjectLink);
 #endif
         CxPlatRundownUninitialize(&Registration->Rundown);
         CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
@@ -291,6 +293,9 @@ MsQuicRegistrationClose(
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
         QuicRegistrationClose(Registration);
+#if DEBUG
+        QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_REGISTRATION, &Registration->DbgObjectLink);
+#endif
         CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
 
         QuicTraceEvent(

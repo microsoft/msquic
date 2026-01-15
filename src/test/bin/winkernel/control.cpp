@@ -18,6 +18,8 @@ Abstract:
 #include "control.cpp.clog.h"
 #endif
 
+#include <ntdef.h>
+
 #include "msquicp.h"
 
 const MsQuicApi* MsQuic;
@@ -585,6 +587,193 @@ typedef union {
     X; \
     Status = Client->TestFailure ? STATUS_FAIL_FAST_EXCEPTION : STATUS_SUCCESS;
 
+// Base template providing a readable error for unsupported scenarios
+template<class... Args>
+QUIC_STATUS InvokeTestFunction(void(Args...), const uint8_t*, uint32_t) {
+    static_assert(false, "Only functions with no argument or one constant reference argument are supported");
+}
+
+// Specialization for functions with one const reference argument
+template<class Arg>
+QUIC_STATUS InvokeTestFunction(void(*func)(const Arg&), const uint8_t* argBuffer, uint32_t argBufferSize) {
+    if (sizeof(Arg) != argBufferSize) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Invalid parameter size for test function");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    const Arg& arg = *reinterpret_cast<const Arg*>(argBuffer);
+    func(arg);
+    return QUIC_STATUS_SUCCESS;
+}
+
+// Specialization for functions with no arguments
+template<>
+QUIC_STATUS InvokeTestFunction(void(*func)(), const uint8_t*, uint32_t argBufferSize) {
+    if (0 != argBufferSize) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Parameter provided for a test function expecting none");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    func();
+    return QUIC_STATUS_SUCCESS;
+}
+
+#define RegisterTestFunction(Function) \
+    do { \
+        if (strcmp(Request->FunctionName, #Function) == 0) { \
+            return InvokeTestFunction( \
+                Function, \
+                (const uint8_t*)(Request + 1), \
+                Request->ParameterSize); \
+        } \
+    } while (false)
+
+QUIC_STATUS
+ExecuteTestRequest(
+    _In_ QUIC_RUN_TEST_REQUEST* Request
+    )
+{
+    // Ensure null termination
+    Request->FunctionName[sizeof(Request->FunctionName) - 1] = '\0';
+
+    // Register any test functions here
+    RegisterTestFunction(QuicTestAckSendDelay);
+    RegisterTestFunction(QuicTestValidateApi);
+    RegisterTestFunction(QuicTestValidateRegistration);
+    RegisterTestFunction(QuicTestGlobalParam);
+    RegisterTestFunction(QuicTestCommonParam);
+    RegisterTestFunction(QuicTestRegistrationParam);
+    RegisterTestFunction(QuicTestConfigurationParam);
+    RegisterTestFunction(QuicTestListenerParam);
+    RegisterTestFunction(QuicTestConnectionParam);
+    RegisterTestFunction(QuicTestTlsParam);
+    RegisterTestFunction(QuicTestStreamParam);
+    RegisterTestFunction(QuicTestValidateStream);
+    RegisterTestFunction(QuicTestGetPerfCounters);
+    RegisterTestFunction(QuicTestValidateConfiguration);
+    RegisterTestFunction(QuicTestValidateListener);
+    RegisterTestFunction(QuicTestValidateConnection);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestValidateConnectionPoolCreate);
+    RegisterTestFunction(QuicTestValidateExecutionContext);
+    RegisterTestFunction(QuicTestValidatePartition);
+#endif
+    RegisterTestFunction(QuicTestRegistrationShutdownBeforeConnOpen);
+    RegisterTestFunction(QuicTestRegistrationShutdownAfterConnOpen);
+    RegisterTestFunction(QuicTestRegistrationShutdownAfterConnOpenBeforeStart);
+    RegisterTestFunction(QuicTestRegistrationShutdownAfterConnOpenAndStart);
+    RegisterTestFunction(QuicTestConnectionCloseBeforeStreamClose);
+    RegisterTestFunction(QuicTestCloseConnBeforeStreamFlush);
+    RegisterTestFunction(QuicTestValidateParamApi);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestRegistrationOpenClose);
+#endif
+    RegisterTestFunction(QuicTestCreateListener);
+    RegisterTestFunction(QuicTestStartListener);
+    RegisterTestFunction(QuicTestStartListenerMultiAlpns);
+    RegisterTestFunction(QuicTestStartTwoListeners);
+    RegisterTestFunction(QuicTestStartTwoListenersSameALPN);
+    RegisterTestFunction(QuicTestStartListenerImplicit);
+    RegisterTestFunction(QuicTestStartListenerExplicit);
+    RegisterTestFunction(QuicTestCreateConnection);
+    RegisterTestFunction(QuicTestConnectionCloseFromCallback);
+    RegisterTestFunction(QuicTestBindConnectionImplicit);
+    RegisterTestFunction(QuicTestBindConnectionExplicit);
+    RegisterTestFunction(QuicTestAddrFunctions);
+    RegisterTestFunction(QuicTestMtuSettings);
+    RegisterTestFunction(QuicTestValidAlpnLengths);
+    RegisterTestFunction(QuicTestInvalidAlpnLengths);
+    RegisterTestFunction(QuicTestChangeAlpn);
+#ifndef QUIC_DISABLE_SHARED_PORT_TESTS
+    RegisterTestFunction(QuicTestClientSharedLocalPort);
+#endif
+    RegisterTestFunction(QuicTestInterfaceBinding);
+    RegisterTestFunction(QuicTestRetryMemoryLimitConnect);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestVersionNegotiation);
+    RegisterTestFunction(QuicTestVersionNegotiationRetry);
+    RegisterTestFunction(QuicTestCompatibleVersionNegotiationRetry);
+    RegisterTestFunction(QuicTestIncompatibleVersionNegotiation);
+    RegisterTestFunction(QuicTestFailedVersionNegotiation);
+#endif
+    RegisterTestFunction(QuicTestConnectUnreachable);
+    RegisterTestFunction(QuicTestConnectInvalidAddress);
+    RegisterTestFunction(QuicTestConnectBadAlpn);
+    RegisterTestFunction(QuicTestConnectBadSni);
+    RegisterTestFunction(QuicTestConnectServerRejected);
+    RegisterTestFunction(QuicTestClientBlockedSourcePort);
+    RegisterTestFunction(QuicTestConnectAndIdleForDestCidChange);
+    RegisterTestFunction(QuicTestConnectAndIdle);
+    RegisterTestFunction(QuicTestServerDisconnect);
+    RegisterTestFunction(QuicTestClientDisconnect);
+    RegisterTestFunction(QuicTestStatelessResetKey);
+    RegisterTestFunction(QuicTestSlowReceive);
+#ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+#ifndef QUIC_TEST_OPENSSL_FLAGS
+    RegisterTestFunction(QuicTestNthAllocFail);
+#endif
+#endif
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    RegisterTestFunction(QuicTestEcn);
+    RegisterTestFunction(QuicTestLocalPathChanges);
+    RegisterTestFunction(QuicTestNthPacketDrop);
+#endif
+    RegisterTestFunction(QuicTestStreamPriority);
+    RegisterTestFunction(QuicTestStreamPriorityInfiniteLoop);
+    RegisterTestFunction(QuicTestStreamDifferentAbortErrors);
+    RegisterTestFunction(QuicTestConnectionRejection);
+    RegisterTestFunction(QuicTestStreamAbortRecvFinRace);
+    RegisterTestFunction(QuicTestStreamAbortConnFlowControl);
+    RegisterTestFunction(QuicTestOperationPriority);
+    RegisterTestFunction(QuicTestConnectionPriority);
+    RegisterTestFunction(QuicDrillTestVarIntEncoder);
+#ifdef _WIN32
+    RegisterTestFunction(QuicTestStorage);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestVersionStorage);
+#endif
+#ifdef DEBUG
+    RegisterTestFunction(QuicTestRetryConfigSetting);
+#endif
+#endif
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestVersionSettings);
+#endif
+    RegisterTestFunction(QuicTestDatagramSend);
+    RegisterTestFunction(QuicTestDatagramDrop);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    RegisterTestFunction(QuicTestPathValidationTimeout);
+#endif
+    RegisterTestFunction(QuicTestChangeMaxStreamID);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    RegisterTestFunction(QuicTestLoadBalancedHandshake);
+#endif
+    RegisterTestFunction(QuicTestForceKeyUpdate);
+    RegisterTestFunction(QuicTestKeyUpdate);
+    RegisterTestFunction(QuicTestServerDisconnect);
+#ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
+    RegisterTestFunction(QuicTestStreamReliableReset);
+    RegisterTestFunction(QuicTestStreamReliableResetMultipleSends);
+#endif
+    RegisterTestFunction(QuicTestTlsHandshakeInfo);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffers);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace);
+
+    // Fail if no function matched
+    char Buffer[256];
+    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, "Unknown function name in IOCTL test request: %s", Request->FunctionName);
+
+    QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", Buffer);
+
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
 VOID
 QuicTestCtlEvtIoDeviceControl(
     _In_ WDFQUEUE /* Queue */,
@@ -627,7 +816,46 @@ QuicTestCtlEvtIoDeviceControl(
         goto Error;
     }
 
+    // For now, this IOCTL is handled separately since it has variable length input.
+    // Eventually, when all tests are migrated, it can be unified with the remaining setup IOCTLs.
+    if (IoControlCode == IOCTL_QUIC_RUN_TEST) {
+        QUIC_RUN_TEST_REQUEST* TestRequest{};
+        size_t Length{};
+        Status =
+            WdfRequestRetrieveInputBuffer(
+                Request,
+                sizeof(QUIC_RUN_TEST_REQUEST),
+                reinterpret_cast<void**>(&TestRequest),
+                &Length);
+        if (!NT_SUCCESS(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "WdfRequestRetrieveInputBuffer failed for run test request");
+            goto Error;
+        }
+
+        if (Length < sizeof(QUIC_RUN_TEST_REQUEST) + TestRequest->ParameterSize) {
+            Status = STATUS_INVALID_PARAMETER;
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "IOCTL buffer too small for test parameters");
+            goto Error;
+        }
+
+        // Invoke the test function
+        Client->TestFailure = false;
+        Status = ExecuteTestRequest(TestRequest);
+        if (Status == QUIC_STATUS_SUCCESS && Client->TestFailure) {
+            Status = STATUS_FAIL_FAST_EXCEPTION;
+        }
+        goto Error;
+    }
+
     ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
+
     if (FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(
@@ -743,59 +971,6 @@ QuicTestCtlEvtIoDeviceControl(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION:
-        QuicTestCtlRun(QuicTestValidateRegistration());
-        break;
-    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION:
-        QuicTestCtlRun(QuicTestValidateConfiguration());
-        break;
-    case IOCTL_QUIC_RUN_VALIDATE_LISTENER:
-        QuicTestCtlRun(QuicTestValidateListener());
-        break;
-    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION:
-        QuicTestCtlRun(QuicTestValidateConnection());
-        break;
-    case IOCTL_QUIC_RUN_VALIDATE_STREAM:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestValidateStream(Params->Connect != 0));
-        break;
-
-    case IOCTL_QUIC_RUN_CREATE_LISTENER:
-        QuicTestCtlRun(QuicTestCreateListener());
-        break;
-    case IOCTL_QUIC_RUN_START_LISTENER:
-        QuicTestCtlRun(QuicTestStartListener());
-        break;
-    case IOCTL_QUIC_RUN_START_LISTENER_IMPLICIT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestStartListenerImplicit(Params->Family));
-        break;
-    case IOCTL_QUIC_RUN_START_TWO_LISTENERS:
-        QuicTestCtlRun(QuicTestStartTwoListeners());
-        break;
-    case IOCTL_QUIC_RUN_START_TWO_LISTENERS_SAME_ALPN:
-        QuicTestCtlRun(QuicTestStartTwoListenersSameALPN());
-        break;
-    case IOCTL_QUIC_RUN_START_LISTENER_EXPLICIT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestStartListenerExplicit(Params->Family));
-        break;
-    case IOCTL_QUIC_RUN_CREATE_CONNECTION:
-        QuicTestCtlRun(QuicTestCreateConnection());
-        break;
-    case IOCTL_QUIC_RUN_BIND_CONNECTION_IMPLICIT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestBindConnectionImplicit(Params->Family));
-        break;
-    case IOCTL_QUIC_RUN_BIND_CONNECTION_EXPLICIT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestBindConnectionExplicit(Params->Family));
-        break;
-    case IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestAddrFunctions(Params->Family));
-        break;
-
     case IOCTL_QUIC_RUN_CONNECT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -834,35 +1009,6 @@ QuicTestCtlEvtIoDeviceControl(
                 ));
         break;
 
-    case IOCTL_QUIC_RUN_CONNECT_AND_IDLE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestConnectAndIdle(Params->EnableKeepAlive != 0));
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECT_UNREACHABLE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestConnectUnreachable(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECT_BAD_ALPN:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestConnectBadAlpn(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECT_BAD_SNI:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestConnectBadSni(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_SERVER_DISCONNECT:
-        QuicTestCtlRun(QuicTestServerDisconnect());
-        break;
-
-    case IOCTL_QUIC_RUN_CLIENT_DISCONNECT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestClientDisconnect(Params->StopListenerFirst));
-        break;
-
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestValidateConnectionEvents(Params->Test));
@@ -871,32 +1017,6 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestValidateStreamEvents(Params->Test));
-        break;
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_VERSION_NEGOTIATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestVersionNegotiation(Params->Family));
-        break;
-#endif
-
-    case IOCTL_QUIC_RUN_FORCE_KEY_UPDATE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestForceKeyUpdate(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_KEY_UPDATE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestKeyUpdate(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_API:
-        QuicTestCtlRun(QuicTestValidateApi());
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECT_SERVER_REJECTED:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestConnectServerRejected(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_ABORTIVE_SHUTDOWN:
@@ -935,11 +1055,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params6.ShutdownType));
         break;
 
-    case IOCTL_QUIC_RUN_DRILL_ENCODE_VAR_INT:
-        QuicTestCtlRun(
-            QuicDrillTestVarIntEncoder());
-        break;
-
     case IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_CID:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -958,30 +1073,12 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Family));
         break;
 
-    case IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN:
-        QuicTestCtlRun(QuicTestStartListenerMultiAlpns());
-        break;
-
     case IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramNegotiation(
                 Params->DatagramNegotiationParams.Family,
                 Params->DatagramNegotiationParams.DatagramReceiveEnabled));
-        break;
-
-    case IOCTL_QUIC_RUN_DATAGRAM_SEND:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestDatagramSend(
-                Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_DATAGRAM_DROP:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestDatagramDrop(
-                Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_NAT_PORT_REBIND:
@@ -1001,30 +1098,6 @@ QuicTestCtlEvtIoDeviceControl(
                 FALSE));
         break;
 
-    case IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestChangeMaxStreamID(
-                Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_PATH_VALIDATION_TIMEOUT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestPathValidationTimeout(
-                Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS:
-        QuicTestCtlRun(QuicTestGetPerfCounters());
-        break;
-
-    case IOCTL_QUIC_RUN_ACK_SEND_DELAY:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestAckSendDelay(Params->Family));
-        break;
-
     case IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1034,16 +1107,6 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestVersionNegotiationRetry(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestCompatibleVersionNegotiationRetry(Params->Family));
-        break;
-
     case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1070,20 +1133,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->VersionNegotiationExtParams.DisableVNEClient,
                 Params->VersionNegotiationExtParams.DisableVNEServer));
         break;
-
-    case IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestIncompatibleVersionNegotiation(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS:
-        QuicTestCtlRun(QuicTestVersionSettings());
-        break;
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
     case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:
@@ -1092,14 +1141,6 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestConnectClientCertificate(
                 Params->ConnectClientCertParams.Family,
                 Params->ConnectClientCertParams.UseClientCert));
-        break;
-
-    case IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS:
-        QuicTestCtlRun(QuicTestValidAlpnLengths());
-        break;
-
-    case IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS:
-        QuicTestCtlRun(QuicTestInvalidAlpnLengths());
         break;
 
     case IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT:
@@ -1199,18 +1240,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->KeyUpdateRandomLossParams.RandomLossPercentage))
         break;
 
-    case IOCTL_QUIC_RUN_SLOW_RECEIVE:
-        QuicTestCtlRun(QuicTestSlowReceive());
-        break;
-
-    case IOCTL_QUIC_RUN_NTH_ALLOC_FAIL:
-        QuicTestCtlRun(QuicTestNthAllocFail());
-        break;
-
-    case IOCTL_QUIC_RUN_MTU_SETTINGS:
-        QuicTestCtlRun(QuicTestMtuSettings());
-        break;
-
     case IOCTL_QUIC_RUN_MTU_DISCOVERY:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1219,71 +1248,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->MtuDiscoveryParams.DropClientProbePackets,
                 Params->MtuDiscoveryParams.DropServerProbePackets,
                 Params->MtuDiscoveryParams.RaiseMinimumMtu));
-        break;
-
-    case IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestLoadBalancedHandshake(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_CLIENT_SHARED_LOCAL_PORT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestClientSharedLocalPort(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_PARAM_API:
-        QuicTestCtlRun(QuicTestValidateParamApi());
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_PRIORITY:
-        QuicTestCtlRun(QuicTestStreamPriority());
-        break;
-
-    case IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestLocalPathChanges(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS:
-        QuicTestCtlRun(QuicTestStreamDifferentAbortErrors());
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECTION_REJECTION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestConnectionRejection(Params->RejectByClosing));
-        break;
-
-    case IOCTL_QUIC_RUN_INTERFACE_BINDING:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestInterfaceBinding(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECT_INVALID_ADDRESS:
-        QuicTestCtlRun(QuicTestConnectInvalidAddress());
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_ABORT_RECV_FIN_RACE:
-        QuicTestCtlRun(QuicTestStreamAbortRecvFinRace());
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL:
-        QuicTestCtlRun(QuicTestStreamAbortConnFlowControl());
-        break;
-
-    case IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN:
-        QuicTestCtlRun(QuicTestRegistrationShutdownBeforeConnOpen());
-        break;
-
-    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN:
-        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpen());
-        break;
-
-    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_BEFORE_START:
-        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpenBeforeStart());
-        break;
-
-    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START:
-        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpenAndStart());
         break;
 
     case IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION:
@@ -1320,77 +1284,8 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 #endif
 
-    case IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP:
-        QuicTestCtlRun(QuicTestStreamPriorityInfiniteLoop());
-        break;
-
     case IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS:
         QuicTestCtlRun(QuicTestResumptionAcrossVersions());
-        break;
-
-    case IOCTL_QUIC_RUN_CLIENT_BLOCKED_SOURCE_PORT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestClientBlockedSourcePort(
-                Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_STORAGE:
-        QuicTestCtlRun(QuicTestStorage());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM:
-        QuicTestCtlRun(QuicTestGlobalParam());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM:
-        QuicTestCtlRun(QuicTestCommonParam());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM:
-        QuicTestCtlRun(QuicTestRegistrationParam());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM:
-        QuicTestCtlRun(QuicTestConfigurationParam());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_LISTENER_PARAM:
-        QuicTestCtlRun(QuicTestListenerParam());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_PARAM:
-        QuicTestCtlRun(QuicTestConnectionParam());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM:
-        QuicTestCtlRun(QuicTestTlsParam());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM:
-        QuicTestCtlRun(QuicTestStreamParam());
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK:
-        QuicTestCtlRun(QuicTestConnectionCloseFromCallback());
-        break;
-
-    case IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH:
-        QuicTestCtlRun(QuicTestCloseConnBeforeStreamFlush());
-        break;
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_VERSION_STORAGE:
-        QuicTestCtlRun(QuicTestVersionStorage());
-        break;
-#endif
-
-    case IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE:
-        QuicTestCtlRun(QuicTestConnectAndIdleForDestCidChange());
-        break;
-
-    case IOCTL_QUIC_RUN_CHANGE_ALPN:
-        QuicTestCtlRun(QuicTestChangeAlpn());
         break;
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -1423,11 +1318,6 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestStreamBlockUnblockConnFlowControl(Params->Bidirectional));
-        break;
-
-    case IOCTL_QUIC_RUN_ECN:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestEcn(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
@@ -1466,25 +1356,12 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:
-        QuicTestCtlRun(QuicTestStreamReliableReset());
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS:
-        QuicTestCtlRun(QuicTestStreamReliableResetMultipleSends());
         break;
 #endif
-
-    case IOCTL_QUIC_RUN_STATELESS_RESET_KEY:
-        QuicTestCtlRun(QuicTestStatelessResetKey());
-        break;
 
     case IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicDrillTestServerVNPacket(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE:
-        QuicTestCtlRun(QuicTestConnectionCloseBeforeStreamClose());
         break;
 
     case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
@@ -1504,35 +1381,12 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestShutdownDuringHandshake(Params->ClientShutdown));
         break;
 
-    case IOCTL_QUIC_RUN_NTH_PACKET_DROP:
-        QuicTestCtlRun(QuicTestNthPacketDrop());
-        break;
-
-    case IOCTL_QUIC_RUN_OPERATION_PRIORITY:
-        QuicTestCtlRun(QuicTestOperationPriority());
-
     case IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE:
         QuicTestCtlRun(QuicTestStreamMultiReceive());
 
         break;
 
-    case IOCTL_QUIC_RUN_CONNECTION_PRIORITY:
-        QuicTestCtlRun(QuicTestConnectionPriority());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
-        break;
-
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS:
-        QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE:
-        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersOutOfSpace());
-        break;
 
     case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1543,36 +1397,11 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->ConnPoolCreateParams.XdpSupported,
                 Params->ConnPoolCreateParams.TestCibirSupport));
         break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
-        QuicTestCtlRun(QuicTestValidateConnectionPoolCreate());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT:
-        QuicTestCtlRun(QuicTestValidateExecutionContext());
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_PARTITION:
-        QuicTestCtlRun(QuicTestValidatePartition());
-        break;
-
-    case IOCTL_QUIC_RUN_REGISTRATION_OPEN_CLOSE:
-        QuicTestCtlRun(QuicTestRegistrationOpenClose());
-        break;
 #endif
 
     case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicDrillTestKeyUpdateDuringHandshake(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestRetryMemoryLimitConnect(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING:
-        QuicTestCtlRun(QuicTestRetryConfigSetting());
         break;
 
     default:

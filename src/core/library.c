@@ -61,6 +61,9 @@ MsQuicLibraryLoad(
         CxPlatSystemLoad();
         CxPlatLockInitialize(&MsQuicLib.Lock);
         CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
+#if DEBUG
+        QuicLibraryInitializeDbg();
+#endif
         CxPlatListInitializeHead(&MsQuicLib.Registrations);
         CxPlatListInitializeHead(&MsQuicLib.Bindings);
         QuicTraceRundownCallback = QuicTraceRundown;
@@ -87,6 +90,9 @@ MsQuicLibraryUnload(
         QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
         QUIC_LIB_VERIFY(!MsQuicLib.InUse);
         MsQuicLib.Loaded = FALSE;
+#if DEBUG
+        QuicLibraryUninitializeDbg();
+#endif
         CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
         CxPlatLockUninitialize(&MsQuicLib.Lock);
         CxPlatSystemUnload();
@@ -754,7 +760,7 @@ MsQuicLibraryUninitialize(
     }
 
 #ifndef _KERNEL_MODE
-    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
     MsQuicLib.WorkerPool = NULL;
 #endif
     CxPlatUninitialize();
@@ -777,6 +783,10 @@ CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context)
 
             CxPlatThreadWait(&Registration->CloseThread);
             CxPlatThreadDelete(&Registration->CloseThread);
+#if DEBUG
+            QuicLibraryUntrackDbgObject(
+                QUIC_DBG_OBJECT_TYPE_REGISTRATION, &Registration->DbgObjectLink);
+#endif
             CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
             CxPlatRundownRelease(&MsQuicLib.RegistrationCloseCleanupRundown);
 
@@ -887,7 +897,7 @@ QuicLibraryLazyInitialize(
 
 #ifndef _KERNEL_MODE
     if (MsQuicLib.WorkerPool == NULL) {
-        MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
+        MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig, CXPLAT_WORKER_POOL_REF_LIBRARY);
         if (!MsQuicLib.WorkerPool) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             MsQuicLibraryFreePartitions();
@@ -923,7 +933,7 @@ QuicLibraryLazyInitialize(
         MsQuicLibraryFreePartitions();
 #ifndef _KERNEL_MODE
         if (CreatedWorkerPool) {
-            CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+            CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
             MsQuicLib.WorkerPool = NULL;
         }
 #endif
@@ -2773,7 +2783,7 @@ MsQuicExecutionCreate(
         //
         // Clean up any previous worker pool and create a new one.
         //
-        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_EXTERNAL);
         MsQuicLib.WorkerPool =
             CxPlatWorkerPoolCreateExternal(Count, Configs, Executions);
         if (MsQuicLib.WorkerPool == NULL) {
@@ -2808,7 +2818,7 @@ MsQuicExecutionDelete(
     UNREFERENCED_PARAMETER(Count);
     UNREFERENCED_PARAMETER(Executions);
 
-    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_EXTERNAL);
     MsQuicLib.WorkerPool = NULL;
     MsQuicLib.CustomExecutions = FALSE;
 
@@ -2894,3 +2904,61 @@ QuicLibrarySetRetryKeyConfig(
         Config->RotationMs);
     return QUIC_STATUS_SUCCESS;
 }
+
+#if DEBUG
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibraryInitializeDbg(
+    void
+    )
+{
+    CxPlatDispatchLockInitialize(&MsQuicLib.DbgLock);
+
+    for (int i = 0; i < QUIC_DBG_OBJECT_TYPE_MAX; i++) {
+        CxPlatListInitializeHead(&MsQuicLib.DbgObjectTrackers[i].List);
+        MsQuicLib.DbgObjectTrackers[i].Count = 0;
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibraryUninitializeDbg(
+    void
+    )
+{
+    for (int i = 0; i < QUIC_DBG_OBJECT_TYPE_MAX; i++) {
+        CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&MsQuicLib.DbgObjectTrackers[i].List));
+        CXPLAT_DBG_ASSERT(MsQuicLib.DbgObjectTrackers[i].Count == 0);
+    }
+    CxPlatDispatchLockUninitialize(&MsQuicLib.DbgLock);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryTrackDbgObject(
+    QUIC_DBG_OBJECT_TYPE Type,
+    CXPLAT_LIST_ENTRY* ObjectEntry
+    )
+{
+    CxPlatDispatchLockAcquire(&MsQuicLib.DbgLock);
+    CxPlatListInsertTail(&MsQuicLib.DbgObjectTrackers[Type].List, ObjectEntry);
+    MsQuicLib.DbgObjectTrackers[Type].Count++;
+    CxPlatDispatchLockRelease(&MsQuicLib.DbgLock);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryUntrackDbgObject(
+    QUIC_DBG_OBJECT_TYPE Type,
+    CXPLAT_LIST_ENTRY* ObjectEntry
+    )
+{
+    CxPlatDispatchLockAcquire(&MsQuicLib.DbgLock);
+    CxPlatListEntryRemove(ObjectEntry);
+    CXPLAT_DBG_ASSERT(MsQuicLib.DbgObjectTrackers[Type].Count > 0);
+    MsQuicLib.DbgObjectTrackers[Type].Count--;
+    CxPlatDispatchLockRelease(&MsQuicLib.DbgLock);
+}
+
+#endif // DEBUG

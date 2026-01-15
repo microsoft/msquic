@@ -1,0 +1,54 @@
+name: Validate Linux Packages
+
+# Manual trigger only - allows specifying package version and options
+on:
+  workflow_dispatch:
+    inputs:
+      package_version:
+        description: 'Package version to validate (e.g., 2.4.8). Leave empty for latest.'
+        required: false
+        default: ''
+        type: string
+      skip_dotnet_tests:
+        description: 'Skip .NET QUIC tests'
+        required: false
+        default: false
+        type: boolean
+      testing_repo:
+        description: 'Use testing/preview packages from packages.microsoft.com'
+        required: false
+        default: false
+        type: boolean
+      config:
+        description: 'Build configuration for test artifacts'
+        required: false
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+      tls:
+        description: 'TLS provider for test artifacts'
+        required: false
+        default: 'quictls'
+        type: choice
+        options:
+          - quictls
+          - openssl
+
+concurrency:
+  group: validate-linux-packages-${{ github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  validate:
+    name: Validate
+    uses: ./.github/workflows/validate-linux-packages-reuse.yml
+    with:
+      package_version: ${{ inputs.package_version }}
+      skip_dotnet_tests: ${{ inputs.skip_dotnet_tests }}
+      testing_repo: ${{ inputs.testing_repo }}
+      config: ${{ inputs.config }}
+      tls: ${{ inputs.tls }}

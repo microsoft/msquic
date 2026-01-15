@@ -751,7 +751,7 @@ ListenerAcceptConnectionAndStreams(
 
 void
 QuicTestClientDisconnect(
-    bool StopListenerFirst
+    const bool& StopListenerFirst
     )
 {
     //
@@ -2346,9 +2346,11 @@ private:
 
 void
 QuicTestAckSendDelay(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    int Family = Params.Family;
+
     //
     // Validates that a server eventually sends acks in response to a non-ack eliciting packet.
     //
@@ -2586,9 +2588,10 @@ struct EcnTestContext {
 
 void
 QuicTestEcn(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     //
@@ -3003,7 +3006,7 @@ QuicTestNthPacketDrop(
         CONTINUE_ON_FAIL(Stream.GetInitStatus());
 
         CONTINUE_ON_FAIL(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
-        TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(2000));
+        TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(4000));
         if (RecvContext.Failure || !LossHelper.Dropped() ||
             CxPlatTimeDiff64(StartTime, CxPlatTimeUs64()) > S_TO_US(TimeOutS)) {
             StopRunning = true;

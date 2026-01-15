@@ -289,7 +289,7 @@ DataPathInitialize(
             Datapath, i, &Datapath->Partitions[i]);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
+    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool, CXPLAT_WORKER_POOL_REF_EPOLL));
     *NewDatapath = Datapath;
 
     return QUIC_STATUS_SUCCESS;
@@ -307,7 +307,12 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
-        CxPlatWorkerPoolRelease(Datapath->WorkerPool);
+        CxPlatWorkerPoolRelease(Datapath->WorkerPool, CXPLAT_WORKER_POOL_REF_EPOLL);
+
+        QuicTraceLogVerbose(
+            EpollDataPathRelease,
+            "[data][%p] Datapath Freed",
+            Datapath);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }
@@ -323,6 +328,10 @@ CxPlatProcessorContextRelease(
         CXPLAT_DBG_ASSERT(!DatapathPartition->Uninitialized);
         DatapathPartition->Uninitialized = TRUE;
 #endif
+        QuicTraceLogVerbose(
+            EpollProcessorContextRelease,
+            "[data][%p] Processor Context Destroyed",
+            DatapathPartition);
         CxPlatPoolUninitialize(&DatapathPartition->SendBlockPool);
         CxPlatPoolUninitialize(&DatapathPartition->RecvBlockPool);
         CxPlatDataPathRelease(DatapathPartition->Datapath);
@@ -928,6 +937,10 @@ CxPlatSocketRelease(
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
 #endif
+        QuicTraceLogVerbose(
+            EpollSocketRelease,
+            "[data][%p] Socket Freed",
+            Socket);
         CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
     }
 }
@@ -1020,6 +1033,11 @@ CxPlatSocketContextUninitialize(
         // Cancel and clean up any pending IO.
         //
         epoll_ctl(*SocketContext->DatapathPartition->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+
+        QuicTraceLogVerbose(
+            EpollProcessorContextQueuedForDestruction,
+            "[data][%p] Processor Context queueing for destruction",
+            SocketContext->DatapathPartition);
 
         CXPLAT_FRE_ASSERT(
             CxPlatEventQEnqueue(

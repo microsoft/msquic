@@ -46,6 +46,7 @@ QuicStreamInitialize(
     CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
     CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_STREAM, &Stream->DbgObjectLink);
 #endif
     QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
 
@@ -175,6 +176,7 @@ Exit:
     if (Stream) {
 #if DEBUG
         CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Stream->RefTypeBiasedCount[QUIC_STREAM_REF_APP]));
+        QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_STREAM, &Stream->DbgObjectLink);
         CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
         CxPlatListEntryRemove(&Stream->AllStreamsLink);
         CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
@@ -214,6 +216,7 @@ QuicStreamFree(
     CXPLAT_DBG_ASSERT(Stream->SendRequests == NULL);
 
 #if DEBUG
+    QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_STREAM, &Stream->DbgObjectLink);
     CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
     CxPlatListEntryRemove(&Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);

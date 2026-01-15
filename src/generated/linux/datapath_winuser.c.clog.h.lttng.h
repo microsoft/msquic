@@ -192,6 +192,44 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathUroPreallocExceeded,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WinUserDataPathReleased
+// [data][%p] Datapath Freed
+// QuicTraceLogVerbose(
+            WinUserDataPathReleased,
+            "[data][%p] Datapath Freed",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, WinUserDataPathReleased,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WinUserProcessorContextRelease
+// [data][%p] Processor Context Destroyed
+// QuicTraceLogVerbose(
+            WinUserProcessorContextRelease,
+            "[data][%p] Processor Context Destroyed",
+            DatapathProc);
+// arg2 = arg2 = DatapathProc = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, WinUserProcessorContextRelease,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathShutDownComplete
 // [data][%p] Shut down (complete)
 // QuicTraceLogVerbose(
@@ -220,6 +258,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete,
 // arg2 = arg2 = SocketProc = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WinUserSocketContextUnitialize
+// [data][%p] Socket Context queueing for destruction
+// QuicTraceLogVerbose(
+        WinUserSocketContextUnitialize,
+        "[data][%p] Socket Context queueing for destruction",
+        SocketProc);
+// arg2 = arg2 = SocketProc = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, WinUserSocketContextUnitialize,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(

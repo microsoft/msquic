@@ -76,6 +76,13 @@ typedef struct QUIC_REGISTRATION {
     //
     CXPLAT_LIST_ENTRY Link;
 
+#if DEBUG
+    //
+    // Link into the global debug object tracker.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
+#endif
+
     //
     // Set of workers that manage most of the processing work.
     //
