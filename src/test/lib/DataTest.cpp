@@ -4696,19 +4696,18 @@ struct AppProvidedBuffers {
     bool Initialized{false};
 
     AppProvidedBuffers(
-        uint32_t StreamStartBuffersNum, uint32_t StreamStartBuffersSize,
-        uint32_t AdditionalBuffersNum, uint32_t AdditionalBuffersSize
+        const AppProvidedBuffersConfig& Config
     ) {
 
-        const uint32_t BufferSize = StreamStartBuffersNum * StreamStartBuffersSize +
-            AdditionalBuffersNum * AdditionalBuffersSize;
+        const uint32_t BufferSize = Config.StreamStartBuffersNum * Config.StreamStartBuffersSize +
+            Config.AdditionalBuffersNum * Config.AdditionalBuffersSize;
 
         if (BufferSize == 0) {
             return;
         }
 
-        NumStreamStartBuffers = StreamStartBuffersNum;
-        NumAdditionalBuffers = AdditionalBuffersNum;
+        NumStreamStartBuffers = Config.StreamStartBuffersNum;
+        NumAdditionalBuffers = Config.AdditionalBuffersNum;
 
         SendDataSize = BufferSize;
         SendDataBuffer.reset(new(std::nothrow) uint8_t[SendDataSize]);
@@ -4725,28 +4724,28 @@ struct AppProvidedBuffers {
             return;
         }
 
-        if (StreamStartBuffersNum > 0) {
-            StreamStartBuffers.reset(new(std::nothrow) QUIC_BUFFER[StreamStartBuffersNum]);
+        if (Config.StreamStartBuffersNum > 0) {
+            StreamStartBuffers.reset(new(std::nothrow) QUIC_BUFFER[Config.StreamStartBuffersNum]);
             if (!StreamStartBuffers) {
                 return;
             }
 
-            for (auto i = 0u; i < StreamStartBuffersNum; ++i) {
-                StreamStartBuffers[i].Buffer = ReceiveDataBuffer.get() + i * StreamStartBuffersSize;
-                StreamStartBuffers[i].Length = StreamStartBuffersSize;
+            for (auto i = 0u; i < Config.StreamStartBuffersNum; ++i) {
+                StreamStartBuffers[i].Buffer = ReceiveDataBuffer.get() + i * Config.StreamStartBuffersSize;
+                StreamStartBuffers[i].Length = Config.StreamStartBuffersSize;
             }
         }
 
-        if (AdditionalBuffersNum > 0) {
-            AdditionalBuffers.reset(new(std::nothrow) QUIC_BUFFER[AdditionalBuffersNum]);
+        if (Config.AdditionalBuffersNum > 0) {
+            AdditionalBuffers.reset(new(std::nothrow) QUIC_BUFFER[Config.AdditionalBuffersNum]);
             if (!AdditionalBuffers) {
                 return;
             }
 
-            for (auto i = 0u; i < AdditionalBuffersNum; ++i) {
+            for (auto i = 0u; i < Config.AdditionalBuffersNum; ++i) {
                 AdditionalBuffers[i].Buffer = ReceiveDataBuffer.get() +
-                    StreamStartBuffersNum * StreamStartBuffersSize + i * AdditionalBuffersSize;
-                AdditionalBuffers[i].Length = AdditionalBuffersSize;
+                    Config.StreamStartBuffersNum * Config.StreamStartBuffersSize + i * Config.AdditionalBuffersSize;
+                AdditionalBuffers[i].Length = Config.AdditionalBuffersSize;
             }
         }
 
@@ -4760,17 +4759,12 @@ struct AppProvidedBuffers {
 
 void
 QuicTestStreamAppProvidedBuffers_ClientSend(
+    const AppProvidedBuffersConfig& BufferConfig
     )
 {
     // Client side sending data, server side receiving with app-provided buffers
 
-    const uint32_t StreamStartBuffersNum = 8;
-    const uint32_t StreamStartBuffersSize = 0x500;
-    const uint32_t AdditionalBuffersNum = 8;
-    const uint32_t AdditionalBuffersSize = 0x500;
-    AppProvidedBuffers Buffers{
-        StreamStartBuffersNum, StreamStartBuffersSize,
-        AdditionalBuffersNum, AdditionalBuffersSize };
+    AppProvidedBuffers Buffers{BufferConfig};
     TEST_TRUE(Buffers.IsValid());
 
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
@@ -4799,7 +4793,8 @@ QuicTestStreamAppProvidedBuffers_ClientSend(
     ReceiveContext.NumBuffersForStreamStarted = Buffers.NumStreamStartBuffers;
     ReceiveContext.BuffersForThreshold = Buffers.AdditionalBuffers.get();
     ReceiveContext.NumBuffersForThreshold = Buffers.NumAdditionalBuffers;
-    ReceiveContext.MoreBufferThreshold = StreamStartBuffersSize * StreamStartBuffersNum / 2;
+    ReceiveContext.MoreBufferThreshold =
+        BufferConfig.StreamStartBuffersSize * BufferConfig.StreamStartBuffersNum / 2;
     ReceiveContext.ReceivedBytesThreshold = ReceiveContext.MoreBufferThreshold;
 
     // Setup a listener
@@ -4841,17 +4836,12 @@ QuicTestStreamAppProvidedBuffers_ClientSend(
 
 void
 QuicTestStreamAppProvidedBuffers_ServerSend(
+    const AppProvidedBuffersConfig& BufferConfig
     )
 {
     // Sever side sending data, client side receiving with app-provided buffers
 
-    const uint32_t StreamStartBuffersNum = 8;
-    const uint32_t StreamStartBuffersSize = 0x2800;
-    const uint32_t AdditionalBuffersNum = 8;
-    const uint32_t AdditionalBuffersSize = 0x2800;
-    AppProvidedBuffers Buffers{
-        StreamStartBuffersNum, StreamStartBuffersSize,
-        AdditionalBuffersNum, AdditionalBuffersSize };
+    AppProvidedBuffers Buffers{ BufferConfig };
     TEST_TRUE(Buffers.IsValid());
 
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
@@ -4897,7 +4887,8 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
     // - an event will be signaled at that point to synchronize with the sender.
     ReceiveContext.BuffersForThreshold = Buffers.AdditionalBuffers.get();
     ReceiveContext.NumBuffersForThreshold = Buffers.NumAdditionalBuffers;
-    ReceiveContext.MoreBufferThreshold = StreamStartBuffersSize * StreamStartBuffersNum / 2;
+    ReceiveContext.MoreBufferThreshold =
+        BufferConfig.StreamStartBuffersSize * BufferConfig.StreamStartBuffersNum / 2;
     ReceiveContext.ReceivedBytesThreshold = ReceiveContext.MoreBufferThreshold;
 
     MsQuicStream ClientStream(
@@ -4935,18 +4926,12 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
 
 void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
+    const AppProvidedBuffersConfig& BufferConfig
     )
 {
     // Client side sending data - abort the stream on insufficient receive buffer notification
 
-    const uint32_t StreamStartBuffersNum = 10;
-    const uint32_t StreamStartBuffersSize = 100;
-    const uint32_t AdditionalBuffersNum = 1;
-    const uint32_t AdditionalBuffersSize = 100;
-
-    AppProvidedBuffers Buffers{
-        StreamStartBuffersNum, StreamStartBuffersSize,
-        AdditionalBuffersNum, AdditionalBuffersSize };
+    AppProvidedBuffers Buffers{BufferConfig};
     TEST_TRUE(Buffers.IsValid());
 
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
@@ -5012,18 +4997,12 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
 
 void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
+    const AppProvidedBuffersConfig& BufferConfig
     )
 {
     // Client side sending data - provide more buffer on insufficient receive buffer notification
 
-    const uint32_t StreamStartBuffersNum = 8;
-    const uint32_t StreamStartBuffersSize = 0x500;
-    const uint32_t AdditionalBuffersNum = 8;
-    const uint32_t AdditionalBuffersSize = 0x500;
-
-    AppProvidedBuffers Buffers{
-        StreamStartBuffersNum, StreamStartBuffersSize,
-        AdditionalBuffersNum, AdditionalBuffersSize };
+    AppProvidedBuffers Buffers{BufferConfig};
     TEST_TRUE(Buffers.IsValid());
 
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
@@ -5088,18 +5067,12 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
 
 void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
+    const AppProvidedBuffersConfig& BufferConfig
     )
 {
     // Server side sending data - abort the stream on insufficient receive buffer notification
 
-    const uint32_t StreamStartBuffersNum = 8;
-    const uint32_t StreamStartBuffersSize = 0x500;
-    const uint32_t AdditionalBuffersNum = 8;
-    const uint32_t AdditionalBuffersSize = 0x500;
-
-    AppProvidedBuffers Buffers{
-        StreamStartBuffersNum, StreamStartBuffersSize,
-        AdditionalBuffersNum, AdditionalBuffersSize };
+    AppProvidedBuffers Buffers{BufferConfig};
     TEST_TRUE(Buffers.IsValid());
 
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.
@@ -5174,18 +5147,12 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
 
 void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
+    const AppProvidedBuffersConfig& BufferConfig
     )
 {
     // Server side sending data - provide more buffer on insufficient receive buffer notification
 
-    const uint32_t StreamStartBuffersNum = 8;
-    const uint32_t StreamStartBuffersSize = 0x500;
-    const uint32_t AdditionalBuffersNum = 8;
-    const uint32_t AdditionalBuffersSize = 0x500;
-
-    AppProvidedBuffers Buffers{
-        StreamStartBuffersNum, StreamStartBuffersSize,
-        AdditionalBuffersNum, AdditionalBuffersSize };
+    AppProvidedBuffers Buffers{BufferConfig};
     TEST_TRUE(Buffers.IsValid());
 
     // Declare all contexts before the registration to ensure they outlive all MsQuic objects.

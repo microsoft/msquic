@@ -642,28 +642,41 @@ QuicTestEcn(
     const FamilyArgs& Params
     );
 
+struct AppProvidedBuffersConfig {
+    uint32_t StreamStartBuffersNum;
+    uint32_t StreamStartBuffersSize;
+    uint32_t AdditionalBuffersNum;
+    uint32_t AdditionalBuffersSize;
+};
+
 void
 QuicTestStreamAppProvidedBuffers_ClientSend(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
 void
 QuicTestStreamAppProvidedBuffers_ServerSend(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
 void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
 void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
 void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
 void
 QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
 //
