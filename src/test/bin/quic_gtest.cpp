@@ -2379,7 +2379,9 @@ TEST(Misc, StreamMultiReceive) {
 struct WithAppProvidedBuffersConfigArgs: public testing::TestWithParam<AppProvidedBuffersConfig> {
     static ::std::vector<AppProvidedBuffersConfig> Generate() {
         return {
-            { 8, 0x500, 8, 0x500}
+            { 8, 0x500, 8, 0x500}, // Base scenario
+            { 1, 100, 1, 100}, // Small buffers
+            { 150, 0x50, 150, 0x50}, // Many buffers
         };
     }
 };
