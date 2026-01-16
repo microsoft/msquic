@@ -1133,12 +1133,12 @@ CxPlatEventQSubmit(
 #if DEBUG
     CxPlatLockAcquire(&Queue->Lock);
     CXPLAT_DBG_ASSERT(--Queue->SqContentionCount == 0);
-    if (result > 0) {
+    if (result >= 0) {
         Queue->OutstandingSubmissions++;
     }
     CxPlatLockRelease(&Queue->Lock);
 #endif
-    return result > 0;
+    return result >= 0;
 }
 
 QUIC_INLINE
