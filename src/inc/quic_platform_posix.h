@@ -1115,6 +1115,13 @@ CxPlatEventGetSqe(
     CXPLAT_DBG_ASSERT(--Queue->SqContentionCount == 0);
     CxPlatLockRelease(&Queue->Lock);
 #endif
+    if (io_sqe == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "iouring_sqe",
+            sizeof(*io_sqe));
+    }
     return io_sqe;
 }
 
@@ -1131,6 +1138,7 @@ CxPlatEventQSubmit(
 #endif
     int result = io_uring_submit(&Queue->Ring);
 #if DEBUG
+    CXPLAT_DBG_ASSERT(result > 0);
     CxPlatLockAcquire(&Queue->Lock);
     CXPLAT_DBG_ASSERT(--Queue->SqContentionCount == 0);
     if (result >= 0) {
