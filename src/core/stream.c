@@ -977,7 +977,16 @@ QuicStreamSwitchToAppOwnedBuffers(
     )
 {
     //
-    // Reset the current receive buffer and preallocated chunk.
+    // Preserve the initial receive window size: it should not have changed
+    // since the stream's creation.
+    //
+    const uint32_t InitialControlFlow = Stream->RecvBuffer.VirtualBufferLength;
+    CXPLAT_DBG_ASSERT(
+        InitialControlFlow == Stream->Connection->Settings.StreamRecvWindowBidiRemoteDefault ||
+        InitialControlFlow == Stream->Connection->Settings.StreamRecvWindowUnidiDefault);
+
+    //
+    // Reset the current receive buffer
     //
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     if (Stream->RecvBuffer.PreallocatedChunk) {
@@ -991,7 +1000,7 @@ QuicStreamSwitchToAppOwnedBuffers(
     (void)QuicRecvBufferInitialize(
         &Stream->RecvBuffer,
         0,
-        0,
+        InitialControlFlow,
         QUIC_RECV_BUF_MODE_APP_OWNED,
         NULL);
     Stream->Flags.UseAppOwnedRecvBuffers = TRUE;
