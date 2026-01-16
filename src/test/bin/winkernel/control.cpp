@@ -762,8 +762,12 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamReliableResetMultipleSends);
 #endif
     RegisterTestFunction(QuicTestTlsHandshakeInfo);
-    RegisterTestFunction(QuicTestStreamAppProvidedBuffers);
-    RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffers_ClientSend);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffers_ServerSend);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer);
 
     // Fail if no function matched
     char Buffer[256];

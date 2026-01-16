@@ -10,6 +10,8 @@
 #include "quic_gtest.cpp.clog.h"
 #endif
 
+#include <MsQuicTests.h>
+
 #include <array>
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -2372,23 +2374,83 @@ TEST(Misc, StreamMultiReceive) {
     }
 }
 
-TEST(Misc, StreamAppProvidedBuffers) {
-    TestLogger Logger("StreamAppProvidedBuffers");
+// App-provided receive buffer tests
+
+struct WithAppProvidedBuffersConfigArgs: public testing::TestWithParam<AppProvidedBuffersConfig> {
+    static ::std::vector<AppProvidedBuffersConfig> Generate() {
+        return {
+            { 8, 0x500, 8, 0x500}, // Base scenario
+            { 1, 100, 1, 100}, // Small buffers
+            { 150, 0x50, 150, 0x50}, // Many buffers
+        };
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const AppProvidedBuffersConfig& args) {
+    return o <<
+        "Start:" << args.StreamStartBuffersNum << " buffers of" << args.StreamStartBuffersSize << "bytes," <<
+        "Additional:" << args.AdditionalBuffersNum << " buffers of " << args.AdditionalBuffersSize << "bytes.";
+}
+
+TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffers_ClientSend) {
+    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffers_ClientSend", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers)));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers_ClientSend), GetParam()));
     } else {
-        QuicTestStreamAppProvidedBuffers();
+        QuicTestStreamAppProvidedBuffers_ClientSend(GetParam());
     }
 }
 
-TEST(Misc, StreamAppProvidedBuffersOutOfSpace) {
-    TestLogger Logger("QuicTestStreamAppProvidedBuffersOutOfSpace");
+TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffers_ServerSend) {
+    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffers_ServerSend", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace)));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers_ServerSend), GetParam()));
     } else {
-        QuicTestStreamAppProvidedBuffersOutOfSpace();
+        QuicTestStreamAppProvidedBuffers_ServerSend(GetParam());
     }
 }
+
+TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream) {
+    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream), GetParam()));
+    } else {
+        QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(GetParam());
+    }
+}
+
+TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer) {
+    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer), GetParam()));
+    } else {
+        QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(GetParam());
+    }
+}
+
+TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream) {
+    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream), GetParam()));
+    } else {
+        QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(GetParam());
+    }
+}
+
+TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer) {
+    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer), GetParam()));
+    } else {
+        QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(GetParam());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithAppProvidedBuffersConfigArgs,
+    testing::ValuesIn(WithAppProvidedBuffersConfigArgs::Generate()));
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
