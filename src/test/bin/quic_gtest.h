@@ -60,87 +60,6 @@ std::ostream& operator << (std::ostream& o, const FamilyArgs& args) {
     return o << (args.Family == 4 ? "v4" : "v6");
 }
 
-struct HandshakeArgs1 {
-    int Family;
-    bool ServerStatelessRetry;
-    bool MultipleALPNs;
-    bool MultiPacketClientInitial;
-    bool GreaseQuicBitExtension;
-    static ::std::vector<HandshakeArgs1> Generate() {
-        ::std::vector<HandshakeArgs1> list;
-        for (int Family : { 4, 6})
-        for (bool ServerStatelessRetry : { false, true })
-        for (bool MultipleALPNs : { false, true })
-        for (bool MultiPacketClientInitial : { false, true })
-        for (bool GreaseQuicBitExtension : { false, true })
-            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial, GreaseQuicBitExtension });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs1& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
-        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN") << "/" <<
-        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
-        (args.GreaseQuicBitExtension ? "Grease" : "NoGrease");
-}
-
-class WithHandshakeArgs1 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs1> {
-};
-
-struct HandshakeArgs2 {
-    int Family;
-    bool ServerStatelessRetry;
-    static ::std::vector<HandshakeArgs2> Generate() {
-        ::std::vector<HandshakeArgs2> list;
-        for (int Family : { 4, 6})
-        for (bool ServerStatelessRetry : { false, true })
-            list.push_back({ Family, ServerStatelessRetry });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs2& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.ServerStatelessRetry ? "Retry" : "NoRetry");
-}
-
-class WithHandshakeArgs2 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs2> {
-};
-
-struct HandshakeArgs3 {
-    int Family;
-    bool ServerStatelessRetry;
-    bool MultipleALPNs;
-    bool DelayedAsyncConfig;
-    static ::std::vector<HandshakeArgs3> Generate() {
-        ::std::vector<HandshakeArgs3> list;
-        for (int Family : { 4, 6})
-        for (bool ServerStatelessRetry : { false, true })
-        for (bool MultipleALPNs : { false, true })
-        for (bool DelayedAsyncConfig : { false, true })
-            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, DelayedAsyncConfig });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs3& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
-        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN") << "/" <<
-        (args.DelayedAsyncConfig ? "DelayedAsyncConfig" : "AsyncConfig");
-}
-
-class WithHandshakeArgs3 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs3> {
-};
-
 struct HandshakeArgs4 {
     int Family;
     bool ServerStatelessRetry;
@@ -692,66 +611,8 @@ std::ostream& operator << (std::ostream& o, const ReceiveResumeNoDataArgs& args)
         (args.ShutdownType ? (args.ShutdownType == AbortShutdown ? "Abort" : "Graceful") : "NoShutdown");
 }
 
-class WithReceiveResumeNoDataArgs : public testing::Test,
-    public testing::WithParamInterface<ReceiveResumeNoDataArgs> {
-};
-
-std::ostream& operator << (std::ostream& o, const DatagramNegotiationArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.DatagramReceiveEnabled ? "DatagramReceiveEnabled" : "DatagramReceiveDisabled");
-}
-
-struct WithDatagramNegotiationArgs : public testing::Test,
-    public testing::WithParamInterface<DatagramNegotiationArgs> {
-
-    static ::std::vector<DatagramNegotiationArgs> Generate() {
-        ::std::vector<DatagramNegotiationArgs> list;
-        for (int Family : { 4, 6 })
-        for (bool DatagramReceiveEnabled : { false, true })
-            list.push_back({ Family, DatagramReceiveEnabled });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const DrillInitialPacketCidArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.SourceOrDest ? "SourceCid" : "DestCid") << "/" <<
-        (args.ActualCidLengthValid ? "Valid" : "Invalid") << "/" <<
-        (args.ShortCidLength ? "Short" : "Long") << "/" <<
-        (args.CidLengthFieldValid ? "Valid" : "Invalid") << " length";
-}
-
-struct WithDrillInitialPacketCidArgs: public testing::Test,
-    public testing::TestWithParam<DrillInitialPacketCidArgs> {
-
-    static ::std::vector<DrillInitialPacketCidArgs> Generate() {
-        ::std::vector<DrillInitialPacketCidArgs> list;
-        for (int Family : { 4, 6 })
-        for (bool SourceOrDest : { true, false })
-        for (bool ActualCidLengthValid : { true, false })
-        for (bool ShortCidLength : { true, false })
-        for (bool CidLengthFieldValid : { true, false })
-            list.push_back({ Family, SourceOrDest, ActualCidLengthValid, ShortCidLength, CidLengthFieldValid });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6");
-}
-
-struct WithDrillInitialPacketTokenArgs: public testing::Test,
-    public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
-
-    static ::std::vector<DrillInitialPacketTokenArgs> Generate() {
-        ::std::vector<DrillInitialPacketTokenArgs> list;
-        for (int Family : { 4, 6 })
-            list.push_back({ Family, });
-        return list;
-    }
+class WithReceiveResumeNoDataArgs :
+    public testing::TestWithParam<ReceiveResumeNoDataArgs> {
 };
 
 std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& args) {

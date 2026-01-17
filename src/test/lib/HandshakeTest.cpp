@@ -445,6 +445,168 @@ QuicTestConnect(
     }
 }
 
+void
+QuicTestConnect_Connect(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_DISABLED,
+        0 // RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_Resume(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_ENABLED,
+        0 // RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_ResumeAsync(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_ENABLED_ASYNC,
+        0 // RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_ResumeRejection(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_REJECTED,
+        0 // RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_ResumeRejectionByServerApp(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP,
+        0 // RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_ResumeRejectionByServerAppAsync(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC,
+        0 // RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_OldVersion(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        true,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_DISABLED,
+        0 // RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_AsyncSecurityConfig(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_ENABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_DISABLED,
+        0 // RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_AsyncSecurityConfig_Delayed(
+    const HandshakeArgs& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,
+        Params.MultipleALPNs,
+        Params.GreaseQuicBitExtension,
+        QUIC_TEST_ASYNC_CONFIG_DELAYED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_DISABLED,
+        0 // RandomLossPercentage
+        );
+}
+
 struct RebindContext {
     bool Connected {false};
     CxPlatEvent HandshakeCompleteEvent;
@@ -3673,90 +3835,6 @@ QuicTestCibirExtension(
     TEST_EQUAL(Connection.HandshakeComplete, ShouldConnnect);
 }
 
-void
-QuicTestResumptionAcrossVersions()
-{
-    MsQuicRegistration Registration;
-    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
-    uint32_t FirstClientVersions[] = {QUIC_VERSION_1_H};
-    uint32_t SecondClientVersions[] = {QUIC_VERSION_2_H};
-    MsQuicVersionSettings VersionSettings{};
-
-    MsQuicAlpn Alpn("MsQuicTest");
-
-    MsQuicSettings ServerSettings;
-    ServerSettings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
-
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
-    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, MsQuicCredentialConfig());
-    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
-
-    VersionSettings.SetAllVersionLists(FirstClientVersions, ARRAYSIZE(FirstClientVersions));
-    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
-
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
-    QUIC_BUFFER* ResumptionTicket = nullptr;
-
-    QuicTestPrimeResumption(QuicAddrFamily, Registration, ServerConfiguration, ClientConfiguration, &ResumptionTicket);
-    if (ResumptionTicket == nullptr) {
-        return;
-    }
-
-    {
-        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            Listener.Context = &ServerAcceptCtx;
-            {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
-                Client.SetSslKeyLogFilePath();
-
-                VersionSettings.SetAllVersionLists(SecondClientVersions, ARRAYSIZE(SecondClientVersions));
-                TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
-                TEST_QUIC_SUCCEEDED(Client.SetResumptionTicket(ResumptionTicket));
-                CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
-                Client.SetExpectedResumed(false);
-
-                if (UseDuoNic) {
-                    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
-                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
-                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
-                }
-
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        ServerLocalAddr.GetPort()));
-
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
-
-                TEST_NOT_EQUAL(nullptr, Server);
-                Server->SetSslKeyLogFilePath();
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
-                TEST_FALSE(Client.GetResumed());
-                TEST_FALSE(Server->GetResumed());
-            }
-        }
-    }
-}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
@@ -4099,7 +4177,7 @@ QuicTestVNTPOddSize(
 
 void
 QuicTestVNTPChosenVersionMismatch(
-    _In_ bool TestServer
+    const bool& TestServer
     )
 {
     const uint32_t VNTPSize = 8;
@@ -4120,7 +4198,7 @@ QuicTestVNTPChosenVersionMismatch(
 
 void
 QuicTestVNTPChosenVersionZero(
-    _In_ bool TestServer
+    const bool& TestServer
     )
 {
     const uint32_t VNTPSize = 3 * sizeof(uint32_t);
@@ -4153,7 +4231,7 @@ QuicTestVNTPChosenVersionZero(
 
 void
 QuicTestVNTPOtherVersionZero(
-    _In_ bool TestServer
+    const bool& TestServer
     )
 {
     const uint32_t VNTPSize = 3 * sizeof(uint32_t);

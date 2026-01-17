@@ -185,6 +185,59 @@ QuicTestConnect(
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
+struct HandshakeArgs {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultipleALPNs;
+    bool MultiPacketClientInitial;
+    bool GreaseQuicBitExtension;
+};
+
+void
+QuicTestConnect_Connect(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_Resume(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_ResumeAsync(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_ResumeRejection(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_ResumeRejectionByServerApp(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_ResumeRejectionByServerAppAsync(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_OldVersion(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_AsyncSecurityConfig(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_AsyncSecurityConfig_Delayed(
+    const HandshakeArgs& Params
+    );
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
@@ -305,11 +358,6 @@ QuicTestCibirExtension(
     );
 #endif
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-void
-QuicTestResumptionAcrossVersions();
-#endif
-
 void
 QuicTestChangeAlpn(
     void
@@ -388,17 +436,17 @@ QuicTestVNTPOddSize(
 
 void
 QuicTestVNTPChosenVersionMismatch(
-    _In_ bool TestServer
+    const bool& TestServer
     );
 
 void
 QuicTestVNTPChosenVersionZero(
-    _In_ bool TestServer
+    const bool& TestServer
     );
 
 void
 QuicTestVNTPOtherVersionZero(
-    _In_ bool TestServer
+    const bool& TestServer
     );
 
 void
@@ -576,15 +624,16 @@ QuicTestAckSendDelay(
     const FamilyArgs& Params
     );
 
-typedef enum QUIC_ABORT_RECEIVE_TYPE {
-    QUIC_ABORT_RECEIVE_PAUSED,
-    QUIC_ABORT_RECEIVE_PENDING,
-    QUIC_ABORT_RECEIVE_INCOMPLETE
-} QUIC_ABORT_RECEIVE_TYPE;
+void
+QuicTestAbortReceive_Paused(
+    );
 
 void
-QuicTestAbortReceive(
-    _In_ QUIC_ABORT_RECEIVE_TYPE Type
+QuicTestAbortReceive_Pending(
+    );
+
+void
+QuicTestAbortReceive_Incomplete(
     );
 
 void
@@ -632,8 +681,11 @@ QuicTestStreamMultiReceive(
     );
 
 void
-QuicTestStreamBlockUnblockConnFlowControl(
-    _In_ BOOLEAN Bidirectional
+QuicTestStreamBlockUnblockConnFlowControl_Unidi(
+    );
+
+void
+QuicTestStreamBlockUnblockConnFlowControl_Bidi(
     );
 
 void
