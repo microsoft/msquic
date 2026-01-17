@@ -302,22 +302,29 @@ QuicTestOneWayDelayNegotiation(
     );
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
+struct CustomCertValidationArgs {
+    bool AcceptCert;
+    bool AsyncValidation;
+};
+
 void
 QuicTestCustomServerCertificateValidation(
-    _In_ bool AcceptCert,
-    _In_ bool AsyncValidation
+    const CustomCertValidationArgs& Params
     );
 
 void
 QuicTestCustomClientCertificateValidation(
-    _In_ bool AcceptCert,
-    _In_ bool AsyncValidation
+    const CustomCertValidationArgs& Params
     );
+
+struct ClientCertificateArgs {
+    int Family;
+    bool UseClientCertificate;
+};
 
 void
 QuicTestConnectClientCertificate(
-    _In_ int Family,
-    _In_ bool UseClientCertificate
+    const ClientCertificateArgs& Params
     );
 
 void
@@ -351,10 +358,15 @@ QuicTestRetryMemoryLimitConnect(
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct CibirExtensionParams {
+    int Family;
+    uint8_t Mode; // server = &1, client = &2
+};
+
 void
 QuicTestCibirExtension(
-    _In_ int Family,
-    _In_ uint8_t Mode // server = &1, client = &2
+    const CibirExtensionParams& Params
     );
 #endif
 
@@ -428,10 +440,15 @@ QuicTestClientBlockedSourcePort(
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct OddSizeVnTpParams {
+    bool TestServer;
+    uint8_t VnTpSize;
+};
+
 void
 QuicTestVNTPOddSize(
-    _In_ bool TestServer,
-    _In_ uint16_t VNTPSize
+    const OddSizeVnTpParams& Params
     );
 
 void

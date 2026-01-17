@@ -1056,79 +1056,165 @@ TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation) {
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST_P(WithHandshakeArgs5, CustomServerCertificateValidation) {
+struct WithCustomCertificateValidationArgs :
+    public testing::TestWithParam<CustomCertValidationArgs> {
+
+    static ::std::vector<CustomCertValidationArgs> Generate() {
+        ::std::vector<CustomCertValidationArgs> list;
+        for (bool AcceptCert : { false, true })
+        for (bool AsyncValidation : { false, true })
+            list.push_back({ AcceptCert, AsyncValidation });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CustomCertValidationArgs& args) {
+    return o <<
+        (args.AcceptCert ? "Accept" : "Reject") << "/" <<
+        (args.AsyncValidation ? "Async" : "Sync");
+}
+
+
+TEST_P(WithCustomCertificateValidationArgs, CustomServerCertificateValidation) {
     TestLoggerT<ParamType> Logger("QuicTestCustomServerCertificateValidation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
-            GetParam().AcceptCert,
-            GetParam().AsyncValidation
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomServerCertificateValidation), GetParam()));
     } else {
-        QuicTestCustomServerCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+        QuicTestCustomServerCertificateValidation(GetParam());
     }
 }
 
-TEST_P(WithHandshakeArgs5, CustomClientCertificateValidation) {
+TEST_P(WithCustomCertificateValidationArgs, CustomClientCertificateValidation) {
     TestLoggerT<ParamType> Logger("QuicTestCustomClientCertificateValidation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
-            GetParam().AcceptCert,
-            GetParam().AsyncValidation
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomClientCertificateValidation), GetParam()));
     } else {
-        QuicTestCustomClientCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+        QuicTestCustomClientCertificateValidation(GetParam());
     }
 }
 
-TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithCustomCertificateValidationArgs,
+    testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
+
+struct WithClientCertificateArgs : 
+    public testing::TestWithParam<ClientCertificateArgs> {
+
+    static ::std::vector<ClientCertificateArgs> Generate() {
+        ::std::vector<ClientCertificateArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool UseClientCertificate : { false, true })
+            list.push_back({ Family, UseClientCertificate });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ClientCertificateArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.UseClientCertificate ? "Cert" : "NoCert");
+}
+
+TEST_P(WithClientCertificateArgs, ConnectClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_CLIENT_CERT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().UseClientCertificate
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectClientCertificate), GetParam()));
     } else {
-        QuicTestConnectClientCertificate(GetParam().Family, GetParam().UseClientCertificate);
+        QuicTestConnectClientCertificate(GetParam());
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithClientCertificateArgs,
+    testing::ValuesIn(WithClientCertificateArgs::Generate()));
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-TEST_P(WithHandshakeArgs7, CibirExtension) {
+
+
+struct WithCibirExtensionParams :
+    public testing::TestWithParam<CibirExtensionParams> {
+
+    static ::std::vector<CibirExtensionParams> Generate() {
+        ::std::vector<CibirExtensionParams> list;
+        for (int Family : { 4, 6 })
+        for (uint8_t Mode : { 0, 1, 2, 3 })
+            list.push_back({ Family, Mode });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CibirExtensionParams& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.Mode & 1 ? "Client/" : "") <<
+        (args.Mode & 2 ? "Server/" : "");
+}
+
+TEST_P(WithCibirExtensionParams, CibirExtension) {
     TestLoggerT<ParamType> Logger("QuicTestCibirExtension", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CIBIR_EXTENSION Params = {
-            GetParam().Family,
-            GetParam().Mode
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CIBIR_EXTENSION, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCibirExtension), GetParam()));
     } else {
-        QuicTestCibirExtension(GetParam().Family, GetParam().Mode);
+        QuicTestCibirExtension(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithCibirExtensionParams,
+    testing::ValuesIn(WithCibirExtensionParams::Generate()));
+
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #if QUIC_TEST_DISABLE_VNE_TP_GENERATION
-TEST_P(WithHandshakeArgs8, OddSizeVnTp) {
+
+struct WithOddSizeVnTpParams :
+    public testing::TestWithParam<OddSizeVnTpParams> {
+
+    static ::std::vector<OddSizeVnTpParams> Generate() {
+        ::std::vector<OddSizeVnTpParams> list;
+        for (bool TestServer : { false, true })
+        for (uint8_t VnTpSize: { 0, 2, 7, 9 })
+            list.push_back({TestServer, VnTpSize});
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const OddSizeVnTpParams& args) {
+    return o <<
+        (args.TestServer ? "server" : "client") << "/" <<
+        (int)args.VnTpSize;
+}
+
+TEST_P(WithOddSizeVnTpParams, OddSizeVnTp) {
     TestLoggerT<ParamType> Logger("QuicTestVNTPOddSize", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_VN_TP_ODD_SIZE_PARAMS Params = {
             GetParam().TestServer,
             GetParam().VnTpSize
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VN_TP_ODD_SIZE, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPOddSize), GetParam()));
     } else {
-        QuicTestVNTPOddSize(GetParam().TestServer, GetParam().VnTpSize);
+        QuicTestVNTPOddSize(GetParam());
     }
 }
 
-TEST_P(WithHandshakeArgs9, VnTpChosenVersionMismatch) {
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithOddSizeVnTpParams,
+    testing::ValuesIn(WithOddSizeVnTpParams::Generate()));
+
+class WithVpnVersionParams : public testing::Test,
+    public testing::WithParamInterface<bool> {
+};
+
+TEST_P(WithVpnVersionParams, VnTpChosenVersionMismatch) {
     TestLoggerT<ParamType> Logger("QuicTestVNTPChosenVersionMismatch", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPChosenVersionMismatch), GetParam()));
@@ -1137,7 +1223,7 @@ TEST_P(WithHandshakeArgs9, VnTpChosenVersionMismatch) {
     }
 }
 
-TEST_P(WithHandshakeArgs9, VnTpChosenVersionZero) {
+TEST_P(WithVpnVersionParams, VnTpChosenVersionZero) {
     TestLoggerT<ParamType> Logger("QuicTestVNTPChosenVersionZero", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPChosenVersionZero), GetParam()));
@@ -1146,7 +1232,7 @@ TEST_P(WithHandshakeArgs9, VnTpChosenVersionZero) {
     }
 }
 
-TEST_P(WithHandshakeArgs9, VnTpOtherVersionZero) {
+TEST_P(WithVpnVersionParams, VnTpOtherVersionZero) {
     TestLoggerT<ParamType> Logger("QuicTestVNTPOtherVersionZero", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPOtherVersionZero), GetParam()));
@@ -1154,6 +1240,12 @@ TEST_P(WithHandshakeArgs9, VnTpOtherVersionZero) {
         QuicTestVNTPOtherVersionZero(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithVpnVersionParams,
+    ::testing::Values(false, true));
+
 #endif
 #endif
 
@@ -2589,40 +2681,12 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif
 
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs5,
-    testing::ValuesIn(HandshakeArgs5::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs6,
-    testing::ValuesIn(HandshakeArgs6::Generate()));
-
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs7,
-    testing::ValuesIn(HandshakeArgs7::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithFeatureSupportArgs,
     testing::ValuesIn(WithFeatureSupportArgs::Generate()));
-#endif
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#if QUIC_TEST_DISABLE_VNE_TP_GENERATION
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs8,
-    testing::ValuesIn(HandshakeArgs8::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs9,
-    ::testing::Values(false, true));
-#endif
 #endif
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED

@@ -731,8 +731,13 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestReliableResetNegotiation);
     RegisterTestFunction(QuicTestOneWayDelayNegotiation);
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestCustomServerCertificateValidation);
+    RegisterTestFunction(QuicTestCustomClientCertificateValidation);
+    RegisterTestFunction(QuicTestConnectClientCertificate);
+    RegisterTestFunction(QuicTestCibirExtension);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #if QUIC_TEST_DISABLE_VNE_TP_GENERATION
+    RegisterTestFunction(QuicTestVNTPOddSize);
     RegisterTestFunction(QuicTestVNTPChosenVersionMismatch);
     RegisterTestFunction(QuicTestVNTPChosenVersionZero);
     RegisterTestFunction(QuicTestVNTPOtherVersionZero);
@@ -1108,22 +1113,6 @@ QuicTestCtlEvtIoDeviceControl(
                 FALSE));
         break;
 
-    case IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestCustomServerCertificateValidation(
-                Params->CustomCertValidationParams.AcceptCert,
-                Params->CustomCertValidationParams.AsyncValidation));
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestConnectClientCertificate(
-                Params->ConnectClientCertParams.Family,
-                Params->ConnectClientCertParams.UseClientCert));
-        break;
-
     case IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         //
@@ -1241,58 +1230,12 @@ QuicTestCtlEvtIoDeviceControl(
                 &Params->CredValidationParams.CredConfig));
         break;
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_CIBIR_EXTENSION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestCibirExtension(
-                Params->CibirParams.Family,
-                Params->CibirParams.Mode));
-        break;
-#endif
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case IOCTL_QUIC_RUN_VN_TP_ODD_SIZE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestVNTPOddSize(
-                Params->OddSizeVnTpParams.TestServer,
-                Params->OddSizeVnTpParams.VnTpSize));
-        break;
-
-    case IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_MISMATCH:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestVNTPChosenVersionMismatch(Params->TestServerVNTP != 0));
-        break;
-
-    case IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_ZERO:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestVNTPChosenVersionZero(Params->TestServerVNTP != 0));
-        break;
-
-    case IOCTL_QUIC_RUN_VN_TP_OTHER_VERSION_ZERO:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestVNTPOtherVersionZero(Params->TestServerVNTP != 0));
-        break;
-#endif
-
     case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestHandshakeSpecificLossPatterns(
                 Params->HandshakeLossParams.Family,
                 Params->HandshakeLossParams.CcAlgo));
-        break;
-
-    case IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestCustomClientCertificateValidation(
-                Params->CustomCertValidationParams.AcceptCert,
-                Params->CustomCertValidationParams.AsyncValidation));
         break;
 
     case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:

@@ -88,28 +88,6 @@ class WithHandshakeArgs4 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs4> {
 };
 
-struct HandshakeArgs5 {
-    bool AcceptCert;
-    bool AsyncValidation;
-    static ::std::vector<HandshakeArgs5> Generate() {
-        ::std::vector<HandshakeArgs5> list;
-        for (bool AcceptCert : { false, true })
-        for (bool AsyncValidation : { false, true })
-            list.push_back({ AcceptCert, AsyncValidation });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs5& args) {
-    return o <<
-        (args.AcceptCert ? "Accept" : "Reject") << "/" <<
-        (args.AsyncValidation ? "Async" : "Sync");
-}
-
-class WithHandshakeArgs5 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs5> {
-};
-
 std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
@@ -128,76 +106,6 @@ struct WithVersionNegotiationExtArgs : public testing::Test,
             list.push_back({ Family, DisableVNEClient, DisableVNEServer });
         return list;
     }
-};
-
-struct HandshakeArgs6 {
-    int Family;
-    bool UseClientCertificate;
-    static ::std::vector<HandshakeArgs6> Generate() {
-        ::std::vector<HandshakeArgs6> list;
-        for (int Family : { 4, 6 })
-        for (bool UseClientCertificate : { false, true })
-            list.push_back({ Family, UseClientCertificate });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs6& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.UseClientCertificate ? "Cert" : "NoCert");
-}
-
-class WithHandshakeArgs6 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs6> {
-};
-
-struct HandshakeArgs7 {
-    int Family;
-    uint8_t Mode;
-    static ::std::vector<HandshakeArgs7> Generate() {
-        ::std::vector<HandshakeArgs7> list;
-        for (int Family : { 4, 6 })
-        for (uint8_t Mode : { 0, 1, 2, 3 })
-            list.push_back({ Family, Mode });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs7& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (int)args.Mode;
-}
-
-class WithHandshakeArgs7 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs7> {
-};
-
-struct HandshakeArgs8 {
-    bool TestServer;
-    uint8_t VnTpSize;
-    static ::std::vector<HandshakeArgs8> Generate() {
-        ::std::vector<HandshakeArgs8> list;
-        for (bool TestServer : { false, true })
-        for (uint8_t VnTpSize: { 0, 2, 7, 9 })
-            list.push_back({TestServer, VnTpSize});
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs8& args) {
-    return o <<
-        (args.TestServer ? "server" : "client") << "/" <<
-        (int)args.VnTpSize;
-}
-
-class WithHandshakeArgs8 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs8> {
-};
-
-class WithHandshakeArgs9 : public testing::Test,
-    public testing::WithParamInterface<bool> {
 };
 
 struct HandshakeArgs10 {

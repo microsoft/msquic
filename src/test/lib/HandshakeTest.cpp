@@ -998,10 +998,12 @@ QuicTestConnectAndIdle(
 
 void
 QuicTestCustomServerCertificateValidation(
-    _In_ bool AcceptCert,
-    _In_ bool AsyncValidation
+    const CustomCertValidationArgs& Params
     )
 {
+    const bool AcceptCert = Params.AcceptCert;
+    const bool AsyncValidation = Params.AsyncValidation;
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -1096,10 +1098,12 @@ NewStreamCallbackTestFail(
 
 void
 QuicTestCustomClientCertificateValidation(
-    _In_ bool AcceptCert,
-    _In_ bool AsyncValidation
+    const CustomCertValidationArgs& Params
     )
 {
+    const bool AcceptCert = Params.AcceptCert;
+    const bool AsyncValidation = Params.AsyncValidation;
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -3020,10 +3024,12 @@ QuicTestCidUpdate(
 
 void
 QuicTestConnectClientCertificate(
-    _In_ int Family,
-    _In_ bool UseClientCertificate
+    const ClientCertificateArgs& Params
     )
 {
+    int Family = Params.Family;
+    bool UseClientCertificate = Params.UseClientCertificate;
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -3794,10 +3800,12 @@ QuicTestRetryMemoryLimitConnect(
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(
-    _In_ int Family,
-    _In_ uint8_t Mode // server = &1, client = &2
+    const CibirExtensionParams& Params
     )
 {
+    const int Family = Params.Family;
+    const uint8_t Mode = Params.Mode;
+
     const uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 1 };
     const uint8_t CibirIdLength = sizeof(CibirId);
     const bool ShouldConnnect = !!(Mode & 1) == !!(Mode & 2);
@@ -4147,10 +4155,11 @@ QuicTestCustomVNTP(
 
 void
 QuicTestVNTPOddSize(
-    _In_ bool TestServer,
-    _In_ uint16_t VNTPSize
+    _In_ const OddSizeVnTpParams& Params
     )
 {
+    const auto& TestServer = Params.TestServer;
+    const auto VNTPSize = Params.VnTpSize;
 
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
     TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
