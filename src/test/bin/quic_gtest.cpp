@@ -478,6 +478,20 @@ TEST(ParameterValidation, CloseConnBeforeStreamFlush) {
     }
 }
 
+struct WithValidateConnectionEventArgs :
+    public testing::TestWithParam<ValidateConnectionEventArgs> {
+    static ::std::vector<ValidateConnectionEventArgs> Generate() {
+        ::std::vector<ValidateConnectionEventArgs> list;
+        for (uint32_t Test = 0; Test < 3; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& args) {
+    return o << args.Test;
+}
+
 TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateConnectionEvents", GetParam());
     if (TestingKernelMode) {
@@ -486,6 +500,12 @@ TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
         QuicTestValidateConnectionEvents(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateConnectionEventArgs,
+    testing::ValuesIn(WithValidateConnectionEventArgs::Generate()));
+
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
@@ -1062,6 +1082,26 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
     }
 }
 
+struct WithFeatureSupportArgs : public testing::Test,
+    public testing::WithParamInterface<FeatureSupportArgs> {
+
+    static ::std::vector<FeatureSupportArgs> Generate() {
+        ::std::vector<FeatureSupportArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool ServerSupport : { false, true })
+        for (bool ClientSupport : { false, true })
+            list.push_back({ Family, ServerSupport, ClientSupport });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const FeatureSupportArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerSupport ? "Server Yes" : "Server No") << "/" <<
+        (args.ClientSupport ? "Client Yes" : "Client No");
+}
+
 TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation) {
     TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
     if (TestingKernelMode) {
@@ -1079,6 +1119,11 @@ TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation) {
         QuicTestOneWayDelayNegotiation(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithFeatureSupportArgs,
+    testing::ValuesIn(WithFeatureSupportArgs::Generate()));
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
@@ -2650,11 +2695,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithBool,
     ::testing::Values(false, true));
 
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    WithValidateConnectionEventArgs,
-    testing::ValuesIn(WithValidateConnectionEventArgs::Generate()));
-
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
@@ -2698,14 +2738,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs4,
     testing::ValuesIn(HandshakeArgs4::Generate()));
 
-#endif
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithFeatureSupportArgs,
-    testing::ValuesIn(WithFeatureSupportArgs::Generate()));
 #endif
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED

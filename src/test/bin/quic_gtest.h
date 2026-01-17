@@ -167,26 +167,6 @@ class WithHandshakeArgs12 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs12> {
 };
 
-std::ostream& operator << (std::ostream& o, const FeatureSupportArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.ServerSupport ? "Server Yes" : "Server No") << "/" <<
-        (args.ClientSupport ? "Client Yes" : "Client No");
-}
-
-struct WithFeatureSupportArgs : public testing::Test,
-    public testing::WithParamInterface<FeatureSupportArgs> {
-
-    static ::std::vector<FeatureSupportArgs> Generate() {
-        ::std::vector<FeatureSupportArgs> list;
-        for (int Family : { 4, 6 })
-        for (bool ServerSupport : { false, true })
-        for (bool ClientSupport : { false, true })
-            list.push_back({ Family, ServerSupport, ClientSupport });
-        return list;
-    }
-};
-
 struct SendArgs1 {
     int Family;
     uint64_t Length;
@@ -501,20 +481,6 @@ std::ostream& operator << (std::ostream& o, const ReceiveResumeNoDataArgs& args)
 
 class WithReceiveResumeNoDataArgs :
     public testing::TestWithParam<ReceiveResumeNoDataArgs> {
-};
-
-std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& args) {
-    return o << args.Test;
-}
-
-struct WithValidateConnectionEventArgs : public testing::Test,
-    public testing::WithParamInterface<ValidateConnectionEventArgs> {
-    static ::std::vector<ValidateConnectionEventArgs> Generate() {
-        ::std::vector<ValidateConnectionEventArgs> list;
-        for (uint32_t Test = 0; Test < 3; ++Test)
-            list.push_back({ Test });
-        return list;
-    }
 };
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
