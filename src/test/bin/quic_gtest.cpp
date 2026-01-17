@@ -964,6 +964,27 @@ INSTANTIATE_TEST_SUITE_P(
 // Version negociation tests
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct WithVersionNegotiationExtArgs : public testing::Test,
+    public testing::WithParamInterface<VersionNegotiationExtArgs> {
+
+    static ::std::vector<VersionNegotiationExtArgs> Generate() {
+        ::std::vector<VersionNegotiationExtArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool DisableVNEClient : { false, true })
+        for (bool DisableVNEServer : { false, true })
+            list.push_back({ Family, DisableVNEClient, DisableVNEServer });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.DisableVNEClient ? "DisableClient" : "EnableClient") << "/" <<
+        (args.DisableVNEServer ? "DisableServer" : "EnableServer");
+}
+
 TEST_P(WithFamilyArgs, VersionNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
     if (TestingKernelMode) {
@@ -1017,6 +1038,11 @@ TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient)
         QuicTestCompatibleVersionNegotiationDefaultClient(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithVersionNegotiationExtArgs,
+    testing::ValuesIn(WithVersionNegotiationExtArgs::Generate()));
 
 TEST_P(WithFamilyArgs, IncompatibleVersionNegotiation) {
     TestLoggerT<ParamType> Logger("IncompatibleVersionNegotiation", GetParam());
@@ -2664,13 +2690,6 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(RebindPaddingArgs::Generate()));
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-INSTANTIATE_TEST_SUITE_P(
-    Basic,
-    WithVersionNegotiationExtArgs,
-    testing::ValuesIn(WithVersionNegotiationExtArgs::Generate()));
-#endif
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
