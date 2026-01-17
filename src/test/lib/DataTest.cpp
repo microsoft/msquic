@@ -2470,6 +2470,12 @@ QuicTestAckSendDelay(
     MsQuic->ConnectionShutdown(ClientConnection.Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 }
 
+enum QUIC_ABORT_RECEIVE_TYPE {
+    QUIC_ABORT_RECEIVE_PAUSED,
+    QUIC_ABORT_RECEIVE_PENDING,
+    QUIC_ABORT_RECEIVE_INCOMPLETE
+};
+
 struct AbortRecvTestContext {
     QUIC_ABORT_RECEIVE_TYPE Type;
     CxPlatEvent ServerStreamRecv;
@@ -2557,6 +2563,27 @@ QuicTestAbortReceive(
     TEST_TRUE(RecvContext.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
     TEST_QUIC_SUCCEEDED(RecvContext.ServerStream->Shutdown(1));
     TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
+}
+
+void
+QuicTestAbortReceive_Paused(
+    )
+{
+    QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PAUSED);
+}
+
+void
+QuicTestAbortReceive_Pending(
+    )
+{
+    QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PENDING);
+}
+
+void
+QuicTestAbortReceive_Incomplete(
+    )
+{
+    QuicTestAbortReceive(QUIC_ABORT_RECEIVE_INCOMPLETE);
 }
 
 struct EcnTestContext {
@@ -4029,6 +4056,20 @@ QuicTestStreamBlockUnblockConnFlowControl(
     TEST_TRUE(Context.ClientStreamSendComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ServerStreamReceive.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.NeedsStreamCount == 2);
+}
+
+void
+QuicTestStreamBlockUnblockConnFlowControl_Unidi(
+    )
+{
+    QuicTestStreamBlockUnblockConnFlowControl(FALSE);
+}
+
+void
+QuicTestStreamBlockUnblockConnFlowControl_Bidi(
+    )
+{
+    QuicTestStreamBlockUnblockConnFlowControl(TRUE);
 }
 
 void
