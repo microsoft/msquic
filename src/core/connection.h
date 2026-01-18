@@ -1302,6 +1302,7 @@ QuicConnGetSourceCidFromSeq(
                     QuicBindingRemoveSourceConnectionID(
                         CID->Binding,
                         CID);
+                    CXPLAT_FREE(CID, QUIC_POOL_CIDHASH);
                 }
                 QuicTraceEvent(
                     ConnSourceCidRemoved,
