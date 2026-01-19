@@ -1280,7 +1280,6 @@ void FuzzReceivePath(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE* Route) {
             Stats.Print();
         }
         uint8_t FuzzMode = GetRandom<uint8_t>(32);
-        FuzzMode = 17; // For now, focus on 1-RTT fuzzing
         if (FuzzMode == 0) {
             FuzzInitial(Binding, Route);
         } else if (FuzzMode < 16) {
