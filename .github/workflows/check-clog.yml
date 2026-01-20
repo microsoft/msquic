@@ -3,7 +3,7 @@ name: CLOG
 on:
   push:
     branches:
-    - main
+    - seera-main
     - release/*
   pull_request:
     branches:

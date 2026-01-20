@@ -8,7 +8,7 @@ on:
     - .docker/ubuntu-22.04/*
     - .docker/ubuntu-24.04/*
   pull_request:
-    branches: [ seeramain ]
+    branches: [ seera-main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
     - .docker/ubuntu-22.04/*

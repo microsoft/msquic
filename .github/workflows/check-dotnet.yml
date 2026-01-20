@@ -3,11 +3,11 @@ name: CheckDotnet
 on:
   push:
     branches:
-    - main
+    - seera-main
     - release/*
   pull_request:
     branches:
-    - main
+    - seera-main
     - release/*
 
 permissions: read-all
