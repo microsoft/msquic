@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#pragma once
+
 //
 // For official releases, disable tests for preview features:
 // the official release test binary for a version is used for down-level compatibility testing
@@ -44,6 +46,14 @@ void QuicTestInitialize();
 void QuicTestUninitialize();
 
 //
+// Parameter structures used by many tests
+//
+
+struct FamilyArgs {
+    int Family;
+};
+
+//
 // Parameter Validation Tests
 //
 
@@ -52,7 +62,7 @@ void QuicTestValidateRegistration();
 void QuicTestValidateConfiguration();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
-void QuicTestValidateStream(bool Connect);
+void QuicTestValidateStream(const bool& Connect);
 void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
 void QuicTestCommonParam();
@@ -61,7 +71,7 @@ void QuicTestConfigurationParam();
 void QuicTestListenerParam();
 void QuicTestConnectionParam();
 void QuicTestTlsParam();
-void QuicTestTlsHandshakeInfo(_In_ bool EnableResumption);
+void QuicTestTlsHandshakeInfo(const bool& EnableResumption);
 void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
@@ -84,7 +94,7 @@ void QuicTestConnectionCloseBeforeStreamClose();
 //
 // Rejection Tests
 //
-void QuicTestConnectionRejection(bool RejectByClosing);
+void QuicTestConnectionRejection(const bool& RejectByClosing);
 
 //
 // Event Validation Tests
@@ -104,15 +114,15 @@ void QuicTestRegistrationOpenClose();
 void QuicTestCreateListener();
 void QuicTestStartListener();
 void QuicTestStartListenerMultiAlpns();
-void QuicTestStartListenerImplicit(_In_ int Family);
+void QuicTestStartListenerImplicit(const FamilyArgs& Params);
 void QuicTestStartTwoListeners();
 void QuicTestStartTwoListenersSameALPN();
-void QuicTestStartListenerExplicit(_In_ int Family);
+void QuicTestStartListenerExplicit(const FamilyArgs& Params);
 void QuicTestCreateConnection();
-void QuicTestBindConnectionImplicit(_In_ int Family);
-void QuicTestBindConnectionExplicit(_In_ int Family);
+void QuicTestBindConnectionImplicit(const FamilyArgs& Params);
+void QuicTestBindConnectionExplicit(const FamilyArgs& Params);
 void QuicTestConnectionCloseFromCallback();
-void QuicTestAddrFunctions(_In_ int Family);
+void QuicTestAddrFunctions(const FamilyArgs& Params);
 
 //
 // MTU tests
@@ -131,7 +141,7 @@ QuicTestMtuDiscovery(
 //
 void
 QuicTestLocalPathChanges(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
@@ -169,17 +179,17 @@ QuicTestConnect(
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestVersionNegotiationRetry(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestCompatibleVersionNegotiationRetry(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -205,12 +215,12 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
 
 void
 QuicTestIncompatibleVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestFailedVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -258,22 +268,22 @@ QuicTestInvalidAlpnLengths(
 
 void
 QuicTestLoadBalancedHandshake(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestClientSharedLocalPort(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestInterfaceBinding(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestRetryMemoryLimitConnect(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -311,7 +321,7 @@ QuicTestShutdownDuringHandshake(
 
 void
 QuicTestConnectUnreachable(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -320,17 +330,17 @@ QuicTestConnectInvalidAddress(
 
 void
 QuicTestConnectBadAlpn(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestConnectBadSni(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestConnectServerRejected(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -355,7 +365,7 @@ QuicTestConnectExpiredClientCertificate(
 
 void
 QuicTestClientBlockedSourcePort(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -408,12 +418,12 @@ QuicTestNatAddrRebind(
 
 void
 QuicTestPathValidationTimeout(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestChangeMaxStreamID(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
@@ -445,7 +455,7 @@ QuicTestConnectAndPing(
 
 void
 QuicTestConnectAndIdle(
-    _In_ bool EnableKeepAlive
+    const bool& EnableKeepAlive
     );
 
 void
@@ -460,7 +470,7 @@ QuicTestServerDisconnect(
 
 void
 QuicTestClientDisconnect(
-    bool StopListenerFirst
+    const bool& StopListenerFirst
     );
 
 void
@@ -470,12 +480,12 @@ QuicTestStatelessResetKey(
 
 void
 QuicTestForceKeyUpdate(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestKeyUpdate(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -550,13 +560,9 @@ QuicTestReceiveResumeNoData(
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     );
 
-struct FamilyArgs2 {
-    int Family;
-};
-
 void
 QuicTestAckSendDelay(
-    const FamilyArgs2& Params
+    const FamilyArgs& Params
     );
 
 typedef enum QUIC_ABORT_RECEIVE_TYPE {
@@ -633,13 +639,44 @@ QuicTestConnectionStreamStartSendPriority(
 
 void
 QuicTestEcn(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
-void QuicTestStreamAppProvidedBuffers(
+struct AppProvidedBuffersConfig {
+    uint32_t StreamStartBuffersNum;
+    uint32_t StreamStartBuffersSize;
+    uint32_t AdditionalBuffersNum;
+    uint32_t AdditionalBuffersSize;
+};
+
+void
+QuicTestStreamAppProvidedBuffers_ClientSend(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
-void QuicTestStreamAppProvidedBuffersOutOfSpace(
+void
+QuicTestStreamAppProvidedBuffers_ServerSend(
+    const AppProvidedBuffersConfig& BufferConfig
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
+    const AppProvidedBuffersConfig& BufferConfig
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
+    const AppProvidedBuffersConfig& BufferConfig
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
+    const AppProvidedBuffersConfig& BufferConfig
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
 //
@@ -684,12 +721,12 @@ QuicTestDatagramNegotiation(
 
 void
 QuicTestDatagramSend(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestDatagramDrop(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
