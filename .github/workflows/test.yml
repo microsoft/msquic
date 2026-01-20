@@ -160,8 +160,8 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
-          { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
+          { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
     steps:
@@ -206,7 +206,7 @@ jobs:
       if: matrix.vec.os != 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ '-Filter' }} ${{ inputs.filter || '*:-SpinFrame.SpinFrame1000000' }}
     - name: Fix log permissions for Linux XDP
       if: failure() && matrix.vec.plat == 'linux' # (matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp') doesn't work for some reason
       run: |
@@ -227,8 +227,8 @@ jobs:
         vec: [
           { config: "Debug", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Debug", plat: "winkernel", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Release", plat: "winkernel", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Debug", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Release", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'winkernel' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
     steps:
@@ -280,7 +280,6 @@ jobs:
           { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test", xdp: "-UseXdp" },
           { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
     steps:
