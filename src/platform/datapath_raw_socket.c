@@ -290,10 +290,9 @@ CxPlatDpRawParseIPv4(
     if (Length < IPTotalLength) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[data][%p] ERROR, bytes received < bytes advertised in the header: %u < %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Datapath,
             Length,
-            IPTotalLength,
             "unexpected IPv4 packet size");
         return;
     }
