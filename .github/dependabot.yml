@@ -7,12 +7,20 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "saturday"
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "cargo"
     directory: "/"
