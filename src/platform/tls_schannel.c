@@ -2308,7 +2308,7 @@ CxPlatTlsWriteDataToSchannel(
                         QUIC_CERT_BLOB_CONTEXT : QUIC_CERT_BLOB_NONE;
 #endif
             }
-            if (SecStatus == SEC_E_NO_CREDENTIALS &&
+            if ((SecStatus == SEC_E_NO_CREDENTIALS || SecStatus == SEC_E_INTERNAL_ERROR) &&
                 (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
                 //
                 // Ignore this case.
