@@ -815,6 +815,8 @@ TestConnection::HandleConnectionEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
+    auto LockScope = LockGuard{Lock};
+
     switch (Event->Type) {
 
     case QUIC_CONNECTION_EVENT_CONNECTED:
@@ -1017,12 +1019,14 @@ TestConnection::GetDestCidUpdateCount()
 const uint8_t*
 TestConnection::GetNegotiatedAlpn() const
 {
+    auto LockScope = LockGuard{Lock};
     return NegotiatedAlpn;
 }
 
 uint8_t
 TestConnection::GetNegotiatedAlpnLength() const
 {
+    auto LockScope = LockGuard{Lock};
     return NegotiatedAlpnLength;
 }
 

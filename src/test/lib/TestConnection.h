@@ -9,6 +9,12 @@ Abstract:
 
 --*/
 
+#pragma once
+
+#include "TestHelpers.h"
+#include "TestStream.h"
+#include "TestUtility.h"
+
 class TestConnection;
 
 enum NEW_STREAM_START_TYPE {
@@ -51,6 +57,9 @@ typedef CONN_SHUTDOWN_COMPLETE_CALLBACK *CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER
 class TestConnection
 {
     HQUIC QuicConnection;
+
+    // Lock protecting the TestConnection members used in the connection callback.
+    mutable CxPlatLock Lock{};
 
     bool IsServer           : 1;
     bool IsStarted          : 1;
@@ -118,7 +127,24 @@ class TestConnection
         )
     {
         TestConnection* Connection = (TestConnection*)Context;
-        return Connection->HandleConnectionEvent(Event);
+        const auto Status = Connection->HandleConnectionEvent(Event);
+
+        //
+        // Delete the test connection on shutdown complete if auto-delete is set.
+        // This is not done in `HandleConnectionEvent` as it is error prone to
+        // delete oneself in a method.
+        //
+        bool DeleteConnection = false;
+        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            auto LockScope = LockGuard{Connection->Lock};
+            DeleteConnection = Connection->AutoDelete;
+        }
+
+        if (DeleteConnection) {
+            delete Connection;
+        }
+
+        return Status;
     }
 
 public:
@@ -142,7 +168,10 @@ public:
 
     bool IsValid() const { return QuicConnection != nullptr; }
 
-    void SetAutoDelete() { AutoDelete = true; }
+    void SetAutoDelete() {
+        auto LockScope = LockGuard{Lock};
+        AutoDelete = true;
+    }
 
     void SetDeletedEvent(CXPLAT_EVENT* Event) { EventDeleted = Event; }
 
@@ -168,6 +197,7 @@ public:
         );
 
     uint32_t GetWaitTimeout() const {
+        auto LockScope = LockGuard{Lock};
         uint32_t WaitTime = TestWaitTimeout;
         if (HasRandomLoss) {
             WaitTime *= 20; // TODO - Enough?
@@ -184,6 +214,7 @@ public:
     bool WaitForPeerClose();
 
     void SetShutdownCompleteCallback(CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER Handler) {
+        auto LockScope = LockGuard{Lock};
         ShutdownCompleteCallback = Handler;
     }
 
@@ -194,51 +225,140 @@ public:
     void* Context; // Not used internally.
 
     HQUIC GetConnection() { return QuicConnection; }
-    bool GetIsServer() const { return IsServer; }
+    bool GetIsServer() const {
+        auto LockScope = LockGuard{Lock};
+        return IsServer;
+    }
     bool GetIsStarted() const { return IsStarted; }
-    bool GetIsConnected() const { return IsConnected; }
-    bool GetResumed() const { return Resumed; }
-    bool GetPeerAddrChanged() const { return PeerAddrChanged; }
-    bool GetPeerClosed() const { return PeerClosed; }
-    bool GetTransportClosed() const { return TransportClosed; }
-    bool GetIsShutdown() const { return IsShutdown; }
-    bool GetShutdownTimedOut() const { return ShutdownTimedOut; }
+    bool GetIsConnected() const {
+        auto LockScope = LockGuard{Lock};
+        return IsConnected;
+    }
+    bool GetResumed() const {
+        auto LockScope = LockGuard{Lock};
+        return Resumed;
+    }
+    bool GetPeerAddrChanged() const {
+        auto LockScope = LockGuard{Lock};
+        return PeerAddrChanged;
+    }
+    bool GetPeerClosed() const {
+        auto LockScope = LockGuard{Lock};
+        return PeerClosed;
+    }
+    bool GetTransportClosed() const {
+        auto LockScope = LockGuard{Lock};
+        return TransportClosed;
+    }
+    bool GetIsShutdown() const {
+        auto LockScope = LockGuard{Lock};
+        return IsShutdown;
+    }
+    bool GetShutdownTimedOut() const {
+        auto LockScope = LockGuard{Lock};
+        return ShutdownTimedOut;
+    }
 
-    bool GetExpectedResumed() const { return ExpectedResumed; };
-    void SetExpectedResumed(bool Value) { ExpectedResumed = Value; }
+    bool GetExpectedResumed() const {
+        auto LockScope = LockGuard{Lock};
+        return ExpectedResumed;
+    };
+    void SetExpectedResumed(bool Value) {
+        auto LockScope = LockGuard{Lock};
+        ExpectedResumed = Value;
+    }
 
-    bool GetHasRandomLoss() const { return HasRandomLoss; }
-    void SetHasRandomLoss(bool Value) { HasRandomLoss = Value; }
+    bool GetHasRandomLoss() const {
+        auto LockScope = LockGuard{Lock};
+        return HasRandomLoss;
+    }
+    void SetHasRandomLoss(bool Value) {
+        auto LockScope = LockGuard{Lock};
+        HasRandomLoss = Value;
+    }
 
-    QUIC_STATUS GetTransportCloseStatus() const { return TransportCloseStatus; };
-    QUIC_UINT62 GetPeerCloseErrorCode() const { return PeerCloseErrorCode; };
+    QUIC_STATUS GetTransportCloseStatus() const {
+        auto LockScope = LockGuard{Lock};
+        return TransportCloseStatus;
+    };
+    QUIC_UINT62 GetPeerCloseErrorCode() const {
+        auto LockScope = LockGuard{Lock};
+        return PeerCloseErrorCode;
+    };
 
-    QUIC_STATUS GetExpectedTransportCloseStatus() const { return ExpectedTransportCloseStatus; };
-    void SetExpectedTransportCloseStatus(QUIC_STATUS Status) { ExpectedTransportCloseStatus = Status; }
+    QUIC_STATUS GetExpectedTransportCloseStatus() const {
+        auto LockScope = LockGuard{Lock};
+        return ExpectedTransportCloseStatus;
+    };
+    void SetExpectedTransportCloseStatus(QUIC_STATUS Status) {
+        auto LockScope = LockGuard{Lock};
+        ExpectedTransportCloseStatus = Status;
+    }
 
-    QUIC_UINT62 GetExpectedPeerCloseErrorCode() const { return ExpectedPeerCloseErrorCode; };
-    void SetExpectedPeerCloseErrorCode(QUIC_UINT62 ErrorCode) { ExpectedPeerCloseErrorCode = ErrorCode; }
+    QUIC_UINT62 GetExpectedPeerCloseErrorCode() const {
+        auto LockScope = LockGuard{Lock};
+        return ExpectedPeerCloseErrorCode;
+    };
+    void SetExpectedPeerCloseErrorCode(QUIC_UINT62 ErrorCode) {
+        auto LockScope = LockGuard{Lock};
+        ExpectedPeerCloseErrorCode = ErrorCode;
+    }
 
-    QUIC_UINT62 GetExpectedCustomValidationResult() const { return ExpectedCustomValidationResult; };
-    void SetExpectedCustomValidationResult(bool AcceptCert) { CustomValidationResultSet = true; ExpectedCustomValidationResult = AcceptCert; }
-    void SetAsyncCustomValidationResult(bool Async) { AsyncCustomValidation = Async; }
-    void SetExpectedCustomTicketValidationResult(QUIC_STATUS Status) { ExpectedCustomTicketValidationResult = Status; }
+    QUIC_UINT62 GetExpectedCustomValidationResult() const {
+        auto LockScope = LockGuard{Lock};
+        return ExpectedCustomValidationResult;
+    };
+    void SetExpectedCustomValidationResult(bool AcceptCert) {
+        auto LockScope = LockGuard{Lock};
+        CustomValidationResultSet = true;
+        ExpectedCustomValidationResult = AcceptCert;
+    }
+    void SetAsyncCustomValidationResult(bool Async) {
+        auto LockScope = LockGuard{Lock};
+        AsyncCustomValidation = Async;
+    }
+    void SetExpectedCustomTicketValidationResult(QUIC_STATUS Status) {
+        auto LockScope = LockGuard{Lock};
+        ExpectedCustomTicketValidationResult = Status;
+    }
 
-    const QUIC_STATUS* GetExpectedClientCertValidationResult() const { return ExpectedClientCertValidationResult; }
+    const QUIC_STATUS* GetExpectedClientCertValidationResult() const {
+        auto LockScope = LockGuard{Lock};
+        return ExpectedClientCertValidationResult;
+    }
     void AddExpectedClientCertValidationResult(QUIC_STATUS Status) {
+        auto LockScope = LockGuard{Lock};
         CXPLAT_FRE_ASSERTMSG(
             ExpectedClientCertValidationResultCount < ARRAYSIZE(ExpectedClientCertValidationResult),
             "Only two expected values supported.");
         ExpectedClientCertValidationResult[ExpectedClientCertValidationResultCount++] = Status;
     }
 
-    void SetPeerCertEventReturnStatus(QUIC_STATUS Value) { PeerCertEventReturnStatus = Value; }
+    void SetPeerCertEventReturnStatus(QUIC_STATUS Value) {
+        auto LockScope = LockGuard{Lock};
+        PeerCertEventReturnStatus = Value;
+    }
 
-    uint32_t GetDatagramsSent() const { return DatagramsSent; }
-    uint32_t GetDatagramsCanceled() const { return DatagramsCanceled; }
-    uint32_t GetDatagramsSuspectLost() const { return DatagramsSuspectLost; }
-    uint32_t GetDatagramsLost() const { return DatagramsLost; }
-    uint32_t GetDatagramsAcknowledged() const { return DatagramsAcknowledged; }
+    uint32_t GetDatagramsSent() const {
+        auto LockScope = LockGuard{Lock};
+        return DatagramsSent;
+    }
+    uint32_t GetDatagramsCanceled() const {
+        auto LockScope = LockGuard{Lock};
+        return DatagramsCanceled;
+    }
+    uint32_t GetDatagramsSuspectLost() const {
+        auto LockScope = LockGuard{Lock};
+        return DatagramsSuspectLost;
+    }
+    uint32_t GetDatagramsLost() const {
+        auto LockScope = LockGuard{Lock};
+        return DatagramsLost;
+    }
+    uint32_t GetDatagramsAcknowledged() const {
+        auto LockScope = LockGuard{Lock};
+        return DatagramsAcknowledged;
+    }
 
     //
     // Parameters

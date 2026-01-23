@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#pragma once
+
 class TestStream;
 
 //
