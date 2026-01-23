@@ -186,6 +186,11 @@ jobs:
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       run: |
         sudo chmod -R 777 artifacts
+    - name: Setup .NET 10 SDK
+      if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.101'
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
