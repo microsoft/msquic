@@ -24,7 +24,7 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Checkout repository
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1
       shell: pwsh
