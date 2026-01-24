@@ -1,11 +1,11 @@
 [package]
-name = "msquic"
+name = "seera-msquic"
 version = "2.6.0-beta"
 edition = "2021"
-authors = ["Microsoft"]
-description = "Microsoft implementation of the IETF QUIC protocol"
+authors = ["Microsoft", "SEERA-Networks"]
+description = "SEERA-Networks fork of Microsoft implementation of the IETF QUIC protocol"
 readme = "README.md"
-repository = "https://github.com/microsoft/msquic/"
+repository = "https://github.com/seera-networks/msquic/"
 license = "MIT"
 categories = ["network-programming", "asynchronous"]
 keywords = ["quic", "network", "secure"]
