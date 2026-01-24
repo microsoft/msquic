@@ -679,6 +679,12 @@ if(WIN32)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
     endif()
 
+    # Add hotpatch support for Release ARM64 builds
+    if(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64" OR SYSTEM_PROCESSOR STREQUAL "arm64")
+        message(STATUS "Configuring hotpatch support for ARM64 Release builds")
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /hotpatchcompatible /profile /incremental:no /pdbinject:mapfile")
+    endif()
+
 else() #!WIN32
     # Custom build flags.
 
