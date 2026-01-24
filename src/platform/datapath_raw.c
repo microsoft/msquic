@@ -345,8 +345,8 @@ RawSocketSend(
     }
 
     QuicTraceEvent(
-        DatapathSend,
-        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        RawDatapathSend,
+        "[data][%p] Raw send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
         SendData->Buffer.Length,
         1,
