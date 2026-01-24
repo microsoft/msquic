@@ -4577,23 +4577,23 @@ public:
     CxPlatEvent SenderStreamClosed{};
 
     MsQuicStream* GetSenderStream() const {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         return SenderStream;
     }
 
     void SetSenderStream(MsQuicStream* Stream) {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         SenderStream = Stream;
         SenderStreamCreated.Set();
     }
 
     uint64_t GetPeerRecvAbortedError() const {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         return PeerRecvAbortedError;
     }
 
     void SetPeerRecvAbortedError(uint64_t Error) {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         PeerRecvAbortedError = Error;
     }
 
@@ -4657,47 +4657,47 @@ public:
 
     // Getters
     MsQuicStream* GetStream() const {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         return Stream;
     }
 
     uint64_t GetReceivedBytes() const {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         return ReceivedBytes;
     }
 
     // Setters
     void SetStream(MsQuicStream* Value) {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         Stream = Value;
     }
 
     void SetBuffersForStreamStarted(QUIC_BUFFER* Buffers, uint32_t NumBuffers) {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         BuffersForStreamStarted = Buffers;
         NumBuffersForStreamStarted = NumBuffers;
     }
 
     void SetBuffersForThreshold(QUIC_BUFFER* Buffers, uint32_t NumBuffers, uint64_t Threshold) {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         BuffersForThreshold = Buffers;
         NumBuffersForThreshold = NumBuffers;
         MoreBufferThreshold = Threshold;
     }
 
     void SetBuffersForInsufficientRecvBuffer(QUIC_BUFFER* Buffers, uint32_t NumBuffers) {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         BuffersForInsufficientRecvBuffer = Buffers;
         NumBuffersForInsufficientRecvBuffer = NumBuffers;
     }
 
     void SetShutdownOnInsufficientRecvBuffer(BOOLEAN Value) {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         ShutdownOnInsufficientRecvBuffer = Value;
     }
 
     void SetReceivedBytesThreshold(uint64_t Value) {
-        auto LockScope = LockGuard{Lock};
+        LockGuard LockScope{Lock};
         ReceivedBytesThreshold = Value;
     }
 
@@ -4706,7 +4706,7 @@ public:
         auto ReceiverContext = (AppBuffersReceiverContext*)Context;
 
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-            auto LockScope = LockGuard{ReceiverContext->Lock};
+            LockGuard LockScope{ReceiverContext->Lock};
             ReceiverContext->Stream = new(std::nothrow) MsQuicStream(
                 Event->PEER_STREAM_STARTED.Stream,
                 CleanUpAutoDelete,
@@ -4722,7 +4722,7 @@ public:
     static QUIC_STATUS StreamCallback(_In_ MsQuicStream* /* Stream */, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto ReceiverContext = (AppBuffersReceiverContext*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
-            auto LockScope = LockGuard{ReceiverContext->Lock};
+            LockGuard LockScope{ReceiverContext->Lock};
             ReceiverContext->ReceivedBytes += Event->RECEIVE.TotalBufferLength;
 
             if (ReceiverContext->MoreBufferThreshold > 0 &&
@@ -4740,7 +4740,7 @@ public:
                 ReceiverContext->ReceivedBytesThreshold = 0;
             }
         } else if (Event->Type == QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED) {
-            auto LockScope = LockGuard{ReceiverContext->Lock};
+            LockGuard LockScope{ReceiverContext->Lock};
             if (ReceiverContext->ShutdownOnInsufficientRecvBuffer) {
                 ReceiverContext->Stream->Shutdown(
                     1, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE | QUIC_STREAM_SHUTDOWN_FLAG_INLINE);
