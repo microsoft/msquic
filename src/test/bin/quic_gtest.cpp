@@ -33,6 +33,7 @@ const MsQuicApi* MsQuic;
 const char* OsRunner = nullptr;
 uint32_t Timeout = UINT32_MAX;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
+QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigSChannelResumption;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
@@ -134,7 +135,14 @@ public:
                 sizeof(BOOLEAN),
                 &Option)));
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
+            memcpy(&ServerSelfSignedCredConfigSChannelResumption, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            ServerSelfSignedCredConfigSChannelResumption.Flags |=
+                QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT;
+#endif
+
             ServerSelfSignedCredConfigClientAuth.Flags |=
                 QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
                 QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
@@ -830,6 +838,57 @@ TEST_P(WithHandshakeArgs1, Resume) {
     }
 }
 
+extern "C"
+BOOLEAN
+CxPlatSupportsTicketManagement();
+
+BOOLEAN
+CanRunExplicitResumptionTests()
+{
+    return CxPlatSupportsTicketManagement();
+}
+
+TEST_P(WithHandshakeArgs1, TrueResume) {
+    if (!CanRunExplicitResumptionTests()) {
+        GTEST_SKIP_("Explicit resumption tests not supported on this platform");
+    }
+
+#ifndef QUIC_API_ENABLE_PREVIEW_FEATURES
+    GTEST_SKIP_("Resumption ticket management is not supported in this build.");
+#else
+
+    TestLoggerT<ParamType> Logger("QuicTestConnect-TrueResume", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().ServerStatelessRetry,
+            0,  // ClientUsesOldVersion
+            (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            (uint8_t)GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_ENABLED,
+            0,   // RandomLossPercentage
+            true // True Resumption
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+    }
+    else {
+        QuicTestConnect(
+            GetParam().Family,
+            GetParam().ServerStatelessRetry,
+            false,  // ClientUsesOldVersion
+            GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_ENABLED,
+            0,      // RandomLossPercentage
+            true);  // True resumption
+    }
+#endif
+}
+
 TEST_P(WithHandshakeArgs1, ResumeAsync) {
 #ifdef QUIC_DISABLE_0RTT_TESTS
     GTEST_SKIP_("Schannel doesn't support 0RTT yet");
@@ -930,6 +989,7 @@ TEST_P(WithHandshakeArgs1, ResumeRejectionByServerAppAsync) {
 #ifdef QUIC_DISABLE_0RTT_TESTS
     GTEST_SKIP_("Schannel doesn't support 0RTT yet");
 #endif
+
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejectionByServerAppAsync", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {

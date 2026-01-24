@@ -6,6 +6,7 @@
 --*/
 
 #define _CRT_SECURE_NO_WARNINGS 1
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
 #include "main.h"
 #include "msquic.h"
 #include "quic_tls.h"
@@ -32,6 +33,26 @@ const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku
 
 bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
 bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
+uint8_t* AppSessionState = nullptr;
+uint32_t AllocatedAppSessionStateLength = 0;
+
+void ResizeAppSessionState(
+    _In_ uint32_t NewLength
+    )
+{
+    if (NewLength > AllocatedAppSessionStateLength) {
+        if (AppSessionState != nullptr) {
+            CXPLAT_FREE(AppSessionState, QUIC_POOL_TEST);
+        }
+        // Allocate a buffer of at least 1 byte length
+        AppSessionState = (uint8_t*)CXPLAT_ALLOC_NONPAGED(NewLength + 1, QUIC_POOL_TEST);
+        ASSERT_NE(nullptr, AppSessionState);
+        AllocatedAppSessionStateLength = NewLength;
+        for (uint32_t i = 0; i < NewLength; i++) {
+            AppSessionState[i] = i % 256;
+        }
+    }
+}
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -90,6 +111,21 @@ protected:
             _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
             _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
             ) {
+            Update(CredFlags, CipherFlags, TlsFlags);
+        }
+
+        // Update function to re-initialize the config with new parameters
+        void Update(
+            _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NONE,
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
+        )
+        {
+            // Clean up existing SecConfig if present
+            if (this->SecConfig) {
+                CxPlatTlsSecConfigDelete(this->SecConfig);
+                this->SecConfig = nullptr;
+            }
             SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | CredFlags;
             SelfSignedCertParams->AllowedCipherSuites = CipherFlags;
             Load(SelfSignedCertParams, TlsFlags);
@@ -102,6 +138,22 @@ protected:
             _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
             _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
             ) {
+            Update(CredFlags, CipherFlags, TlsFlags);
+        }
+
+        // Update function to re-initialize the config with new parameters
+        void Update(
+            _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
+        )
+        {
+            // Clean up existing SecConfig if present
+            if (this->SecConfig) {
+                CxPlatTlsSecConfigDelete(this->SecConfig);
+                this->SecConfig = nullptr;
+            }
+
             QUIC_CREDENTIAL_CONFIG CredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 QUIC_CREDENTIAL_FLAG_CLIENT,
@@ -260,11 +312,32 @@ protected:
             CertParamsFromFile = nullptr;
         }
 #endif
+        if (AppSessionState) {
+            CXPLAT_FREE(AppSessionState, QUIC_POOL_TEST);
+            AppSessionState = nullptr;
+        }
+        AllocatedAppSessionStateLength = 0;
     }
 
     void SetUp() override { }
 
     void TearDown() override { }
+
+    bool CompareAppSessionState(
+        _In_reads_(Length) const uint8_t* Buffer,
+        _In_ uint32_t Length
+    )
+    {
+        if (AppSessionState == nullptr || Length > AllocatedAppSessionStateLength) {
+            return false;
+        }
+        for (uint32_t i = 0; i < Length; i++) {
+            if (Buffer[i] != AppSessionState[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     struct TlsContext
     {
@@ -288,6 +361,7 @@ protected:
         BOOLEAN ExpectNullCertificate {FALSE};
 
         QUIC_BUFFER ReceivedSessionTicket {0, nullptr};
+        BOOLEAN SessionTicketReceived {FALSE};
 
         uint32_t ExpectedErrorFlags {0};
         QUIC_STATUS ExpectedValidationStatus {QUIC_STATUS_SUCCESS};
@@ -418,7 +492,8 @@ protected:
                 const uint8_t * Buffer,
             _In_ uint32_t * BufferLength,
             _In_ bool ExpectError,
-            _In_ CXPLAT_TLS_DATA_TYPE DataType
+            _In_ CXPLAT_TLS_DATA_TYPE DataType,
+            _In_ uint32_t AppSessionStateLength = 0
             )
         {
             EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
@@ -440,15 +515,36 @@ protected:
                 }
             }
 
+            const uint8_t* BufferActual = Buffer;
+            uint32_t OriginalBufferLen = *BufferLength;
+
+            if (DataType == CXPLAT_TLS_TICKET_DATA && OriginalBufferLen == 0) {
+                //
+                // Initial App Session data is supplied by the app. Synthetically generate
+                // and insert an app session state here to be included in the resumption ticket.
+                // We have to work around the buffer management in this test code to make this seamless.
+                //
+                ResizeAppSessionState(AppSessionStateLength);
+                BufferActual = static_cast<const uint8_t*>(AppSessionState);
+                *BufferLength = AppSessionStateLength;
+            }
+
             //std::cout << "Processing " << *BufferLength << " bytes of type " << DataType << std::endl;
 
             auto Result =
                 CxPlatTlsProcessData(
                     Ptr,
                     DataType,
-                    Buffer,
+                    BufferActual,
                     BufferLength,
                     &State);
+
+            if (DataType == CXPLAT_TLS_TICKET_DATA && OriginalBufferLen == 0) {
+                //
+                // Ensure that we dont advance pointers for the data buffers when we send session state ticket
+                //
+                *BufferLength = OriginalBufferLen;
+            }
 
             if (!ExpectError) {
                 EXPECT_TRUE((Result & CXPLAT_TLS_RESULT_ERROR) == 0);
@@ -465,7 +561,8 @@ protected:
             _In_ uint32_t BufferLength,
             _In_ uint32_t FragmentSize,
             _In_ bool ExpectError,
-            _In_ CXPLAT_TLS_DATA_TYPE DataType
+            _In_ CXPLAT_TLS_DATA_TYPE DataType,
+            _In_ uint32_t AppSessionStateLength = 0
             )
         {
             uint32_t Result = 0;
@@ -479,7 +576,13 @@ protected:
 
                 //std::cout << "Processing fragment of " << FragmentSize << " bytes of type " << DataType << std::endl;
 
-                Result |= (uint32_t)ProcessData(BufferKey, Buffer, &ConsumedBuffer, ExpectError, DataType);
+                Result |= (uint32_t)ProcessData(
+                    BufferKey,
+                    Buffer,
+                    &ConsumedBuffer,
+                    ExpectError,
+                    DataType,
+                    AppSessionStateLength);
 
                 if (ConsumedBuffer > 0) {
                     Buffer += ConsumedBuffer;
@@ -501,7 +604,8 @@ protected:
             _Inout_ CXPLAT_TLS_PROCESS_STATE* PeerState,
             _In_ uint32_t FragmentSize = DefaultFragmentSize,
             _In_ bool ExpectError = false,
-            _In_ CXPLAT_TLS_DATA_TYPE DataType = CXPLAT_TLS_CRYPTO_DATA
+            _In_ CXPLAT_TLS_DATA_TYPE DataType = CXPLAT_TLS_CRYPTO_DATA,
+            _In_ uint32_t AppSessionStateLength = 0
             )
         {
             if (PeerState == nullptr) {
@@ -547,7 +651,8 @@ protected:
                         BufferLength,
                         FragmentSize,
                         ExpectError,
-                        DataType);
+                        DataType,
+                        AppSessionStateLength);
 
                 PeerState->BufferLength -= BufferLength;
                 CxPlatMoveMemory(
@@ -584,17 +689,30 @@ protected:
         {
             //std::cout << "==RecvTicket==" << std::endl;
             auto Context = (TlsContext*)Connection;
-            if (Context->ReceivedSessionTicket.Buffer == nullptr) {
-                Context->ReceivedSessionTicket.Buffer = // N.B - Add one so we don't ever allocate zero bytes.
-                    (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength+1, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
-                Context->ReceivedSessionTicket.Length = TicketLength;
-                if (TicketLength != 0) {
-                    CxPlatCopyMemory(
-                        Context->ReceivedSessionTicket.Buffer,
-                        Ticket,
-                        TicketLength);
+            if (TicketLength == 0) {
+                if (Context->ReceivedSessionTicket.Buffer != nullptr) {
+                    CXPLAT_FREE(Context->ReceivedSessionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+                    Context->ReceivedSessionTicket.Buffer = nullptr;
                 }
             }
+            else {
+                if (TicketLength > Context->ReceivedSessionTicket.Length) {
+                    if (Context->ReceivedSessionTicket.Buffer != nullptr) {
+                        CXPLAT_FREE(Context->ReceivedSessionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+                        Context->ReceivedSessionTicket.Buffer = nullptr;
+                    }
+
+                    Context->ReceivedSessionTicket.Buffer = // N.B - Add one so we don't ever allocate zero bytes.
+                        (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength + 1, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+                }
+
+                CxPlatCopyMemory(
+                    Context->ReceivedSessionTicket.Buffer,
+                    Ticket,
+                    TicketLength);
+            }
+            Context->ReceivedSessionTicket.Length = TicketLength;
+            Context->SessionTicketReceived = TRUE;
             return Context->OnSessionTicketReceivedResult;
         }
 
@@ -715,13 +833,15 @@ protected:
 
     static
     void
-    DoHandshake(
-        TlsContext& ServerContext,
-        TlsContext& ClientContext,
-        uint32_t FragmentSize = DefaultFragmentSize,
-        bool SendResumptionTicket = false,
-        bool ServerResultError = false,
-        bool ClientResultError = false
+        DoHandshake(
+            TlsContext& ServerContext,
+            TlsContext& ClientContext,
+            uint32_t FragmentSize = DefaultFragmentSize,
+            uint32_t SendResumptionTicketCount = 0,
+            bool ServerResultError = false,
+            bool ClientResultError = false,
+            uint32_t AppSessionStateLength = 0,
+            bool ServerResumptionTxError = false
         )
     {
         //std::cout << "==DoHandshake==" << std::endl;
@@ -740,7 +860,8 @@ protected:
             // Bail, since there's no point in doing the server side.
             //
             return;
-        } else {
+        }
+        else {
             ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
             ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
             ASSERT_TRUE(ClientContext.State.HandshakeComplete);
@@ -750,18 +871,35 @@ protected:
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, ServerResultError);
         if (ServerResultError) {
             ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
-        } else {
+        }
+        else {
             ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
             ASSERT_TRUE(ServerContext.State.HandshakeComplete);
         }
 
-        if (SendResumptionTicket) {
+        for (uint32_t i = 0; i < SendResumptionTicketCount; i++) {
             //std::cout << "==PostHandshake==" << std::endl;
 
-            Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, false, CXPLAT_TLS_TICKET_DATA);
-            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+            Result = ServerContext.ProcessData(
+                &ClientContext.State,
+                FragmentSize,
+                ServerResumptionTxError,
+                CXPLAT_TLS_TICKET_DATA,
+                (AppSessionStateLength + i));
+
+            if (ServerResumptionTxError) {
+                ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+            }
+            else {
+                ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+            }
 
             Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
+            ASSERT_FALSE(Result & CXPLAT_TLS_RESULT_ERROR);
+        }
+
+        if (SendResumptionTicketCount) {
+            std::cout << "Completed sending " << SendResumptionTicketCount << " app session state tickets" << std::endl;
         }
     }
 
@@ -1151,15 +1289,183 @@ TEST_F(TlsTest, HandshakeParallel)
     }
 }
 
+BOOLEAN
+CanRunExcplicitResumptionTests()
+{
+    return CxPlatSupportsTicketManagement();
+}
+
+TEST_F(TlsTest, HandshakeResumptionSmallAppState)
+{
+    if (!CanRunExcplicitResumptionTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
+    TlsContext ServerContext3, ClientContext3;
+    ClientContext3.InitializeClient(ClientConfig);
+    ServerContext3.InitializeServer(ServerConfig);
+    // Send a 16 byte app session state to be included in the resumption ticket.
+    DoHandshake(ServerContext3, ClientContext3, DefaultFragmentSize, 1, false, false, 16);
+
+    ASSERT_NE(nullptr, ClientContext3.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext3.ReceivedSessionTicket.Length);
+
+    // Open a new connection and resume the session using the ticket received.
+    TlsContext ServerContext4, ClientContext4;
+    ClientContext4.InitializeClient(ClientConfig, false, 64, &ClientContext3.ReceivedSessionTicket);
+    ServerContext4.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext4, ClientContext4);
+
+    ASSERT_TRUE(ClientContext4.State.SessionResumed);
+    ASSERT_TRUE(ServerContext4.State.SessionResumed);
+
+    ASSERT_NE(nullptr, ServerContext4.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)16, ServerContext4.ReceivedSessionTicket.Length);
+    ASSERT_TRUE(ServerContext4.SessionTicketReceived);
+    ASSERT_TRUE(CompareAppSessionState(ServerContext4.ReceivedSessionTicket.Buffer, 16));
+}
+
+
+TEST_F(TlsTest, HandshakeResumptionRepeatAppStateUpdates)
+{
+    if (!CanRunExcplicitResumptionTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
+    TlsContext ServerContext3, ClientContext3;
+    ClientContext3.InitializeClient(ClientConfig);
+    ServerContext3.InitializeServer(ServerConfig);
+    // Send a 10 app state updates/new tickets from the server, starting at 16 byte app session state
+    DoHandshake(ServerContext3, ClientContext3, DefaultFragmentSize, 10, false, false, 16);
+
+    ASSERT_NE(nullptr, ClientContext3.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext3.ReceivedSessionTicket.Length);
+
+    // Open a new connection and resume the session using the ticket received.
+    TlsContext ServerContext4, ClientContext4;
+    ClientContext4.InitializeClient(ClientConfig, false, 64, &ClientContext3.ReceivedSessionTicket);
+    ServerContext4.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext4, ClientContext4);
+
+    ASSERT_TRUE(ClientContext4.State.SessionResumed);
+    ASSERT_TRUE(ServerContext4.State.SessionResumed);
+
+    ASSERT_NE(nullptr, ServerContext4.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)(16 + 10 - 1), ServerContext4.ReceivedSessionTicket.Length);
+    ASSERT_TRUE(ServerContext4.SessionTicketReceived);
+    ASSERT_TRUE(CompareAppSessionState(ServerContext4.ReceivedSessionTicket.Buffer, (16 + 10 - 1)));
+}
+
+
+TEST_F(TlsTest, HandshakeResumptionLargeAppState)
+{
+    if (!CanRunExcplicitResumptionTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
+    TlsContext ServerContext3, ClientContext3;
+    ClientContext3.InitializeClient(ClientConfig);
+    ServerContext3.InitializeServer(ServerConfig);
+    // Send the largest allowed app session state to be included in the resumption ticket.
+    DoHandshake(ServerContext3, ClientContext3, DefaultFragmentSize, 1, false, false, QUIC_MAX_RESUMPTION_APP_DATA_LENGTH);
+
+    ASSERT_NE(nullptr, ClientContext3.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext3.ReceivedSessionTicket.Length);
+
+    // Open a new connection and resume the session using the ticket received.
+    TlsContext ServerContext4, ClientContext4;
+    ClientContext4.InitializeClient(ClientConfig, false, 64, &ClientContext3.ReceivedSessionTicket);
+    ServerContext4.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext4, ClientContext4);
+
+    ASSERT_TRUE(ClientContext4.State.SessionResumed);
+    ASSERT_TRUE(ServerContext4.State.SessionResumed);
+
+    ASSERT_NE(nullptr, ServerContext4.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)QUIC_MAX_RESUMPTION_APP_DATA_LENGTH, ServerContext4.ReceivedSessionTicket.Length);
+    ASSERT_TRUE(ServerContext4.SessionTicketReceived);
+    ASSERT_TRUE(CompareAppSessionState(ServerContext4.ReceivedSessionTicket.Buffer, QUIC_MAX_RESUMPTION_APP_DATA_LENGTH));
+}
+
+TEST_F(TlsTest, HandshakeResumptionAppStateSizeLimit)
+{
+    if (!CanRunExcplicitResumptionTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
+#ifdef QUIC_TEST_OPENSSL_FLAGS
+
+    GTEST_SKIP() << "Skipping test for OpenSSL scenario";
+
+#else
+
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
+    TlsContext ServerContext3, ClientContext3;
+    ClientContext3.InitializeClient(ClientConfig);
+    ServerContext3.InitializeServer(ServerConfig);
+    // Send larger than permitted app session state to be included in the resumption ticket.
+    DoHandshake(ServerContext3, ClientContext3, DefaultFragmentSize, 1, false, false, QUIC_MAX_RESUMPTION_APP_DATA_LENGTH + 1, true);
+
+#endif
+}
+
 #ifndef QUIC_DISABLE_0RTT_TESTS
-TEST_F(TlsTest, HandshakeResumption)
+TEST_F(TlsTest, HandshakeResumptionZeroAppState)
 {
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
-    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+    // Send a zero-length app session state to be included in the resumption ticket.
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, 1);
 
     ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
     ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
@@ -1172,18 +1478,28 @@ TEST_F(TlsTest, HandshakeResumption)
     ASSERT_TRUE(ClientContext2.State.SessionResumed);
     ASSERT_TRUE(ServerContext2.State.SessionResumed);
 
-    ASSERT_NE(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
-    ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
+    // Zero length session ticket should be received.
+    ASSERT_EQ(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length);
+    ASSERT_TRUE(ServerContext2.SessionTicketReceived);
 }
 
 TEST_F(TlsTest, HandshakeResumptionRejection)
 {
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
-    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, 1);
 
     ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
     ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
@@ -1194,20 +1510,38 @@ TEST_F(TlsTest, HandshakeResumptionRejection)
     ServerContext2.OnSessionTicketReceivedResult = FALSE;
     DoHandshake(ServerContext2, ClientContext2);
 
-    ASSERT_FALSE(ClientContext2.State.SessionResumed);
-    ASSERT_FALSE(ServerContext2.State.SessionResumed);
+    if (CxPlatSupportsInline1RTTAppStateValidation()) {
+        ASSERT_FALSE(ClientContext2.State.SessionResumed);
+        ASSERT_FALSE(ServerContext2.State.SessionResumed);
+    } else {
+        std::cout << "Inline 1-RTT app state validation is not supported, so session resumption should succeed" << std::endl;
+        ASSERT_TRUE(ClientContext2.State.SessionResumed);
+        ASSERT_TRUE(ServerContext2.State.SessionResumed);
+    }
 
-    ASSERT_NE(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
+    ASSERT_TRUE(ServerContext2.SessionTicketReceived);
 }
+#endif
 
 TEST_F(TlsTest, HandshakeResumptionClientDisabled)
 {
+    if (!CanRunExcplicitResumptionTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
         QUIC_ALLOWED_CIPHER_SUITE_NONE,
         CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION);
     CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
@@ -1219,9 +1553,24 @@ TEST_F(TlsTest, HandshakeResumptionClientDisabled)
 
 TEST_F(TlsTest, HandshakeResumptionServerDisabled)
 {
+    if (!CanRunExcplicitResumptionTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
+    //
+    // Initial handshake involves resumption tickets enabled
+    //
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
@@ -1229,6 +1578,9 @@ TEST_F(TlsTest, HandshakeResumptionServerDisabled)
     ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
     ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
 
+    //
+    // Disable server support for resumption tickets and perform a second handshake
+    //
     CxPlatServerSecConfig ResumptionDisabledServerConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
         QUIC_ALLOWED_CIPHER_SUITE_NONE,
@@ -1244,7 +1596,6 @@ TEST_F(TlsTest, HandshakeResumptionServerDisabled)
     ASSERT_EQ(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
-#endif
 
 TEST_F(TlsTest, HandshakeMultiAlpnServer)
 {

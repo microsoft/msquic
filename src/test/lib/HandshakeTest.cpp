@@ -38,13 +38,17 @@ void QuicTestUninitialize()
     DatapathHooks::Instance = nullptr;
 }
 
+extern "C"
+BOOLEAN CxPlatNeedsExplicitAppStateResumptionConfig();
+
 void
 QuicTestPrimeResumption(
     _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,
     _In_ MsQuicRegistration& Registration,
     _In_ MsQuicConfiguration& ServerConfiguration,
     _In_ MsQuicConfiguration& ClientConfiguration,
-    _Out_ QUIC_BUFFER** ResumptionTicket
+    _Out_ QUIC_BUFFER** ResumptionTicket,
+    _In_ bool TrueResume
     )
 {
     TestScopeLogger logScope("PrimeResumption");
@@ -53,6 +57,7 @@ QuicTestPrimeResumption(
     struct PrimeResumption {
         CxPlatEvent ShutdownEvent;
         MsQuicConnection* Connection {nullptr};
+        bool TrueResume;
 
         static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
             PrimeResumption* Ctx = static_cast<PrimeResumption*>(Context);
@@ -61,13 +66,28 @@ QuicTestPrimeResumption(
                 Ctx->Connection = nullptr;
                 Ctx->ShutdownEvent.Set();
             } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
-                MsQuic->ConnectionSendResumptionTicket(Conn->Handle, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
+                uint8_t TicketBuffer[10] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A };
+                // We send an empty app ticket buffer if TrueResume is false
+                uint8_t* TicketBufferPtr = nullptr;
+                uint16_t TicketBufferLength = 0;
+
+                if (Ctx->TrueResume) {
+                    TicketBufferPtr = TicketBuffer;
+                    TicketBufferLength = sizeof(TicketBuffer);
+                }
+
+                MsQuic->ConnectionSendResumptionTicket(
+                    Conn->Handle,
+                    QUIC_SEND_RESUMPTION_FLAG_FINAL,
+                    TicketBufferLength,
+                    TicketBufferPtr);
             }
             return QUIC_STATUS_SUCCESS;
         }
     };
 
     PrimeResumption Context;
+    Context.TrueResume = TrueResume;
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PrimeResumption::ConnCallback, &Context);
     TEST_TRUE(Listener.IsValid());
 
@@ -91,11 +111,15 @@ QuicTestPrimeResumption(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                 QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                 ServerLocalAddr.GetPort()));
+
         if (Client.WaitForConnectionComplete()) {
             TEST_TRUE(Client.GetIsConnected());
             *ResumptionTicket = Client.WaitForResumptionTicket();
             if (*ResumptionTicket == nullptr) {
-                TEST_FAILURE("Failed to prime resumption ticket.");
+                TEST_FAILURE("Failed to receive resumption ticket from the server.");
+            }
+            else if (TrueResume && (*ResumptionTicket)->Length == 0) {
+                TEST_FAILURE("Resumption ticket is empty. Size: %u", (*ResumptionTicket)->Length);
             }
         }
 
@@ -164,7 +188,8 @@ QuicTestConnect(
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
-    _In_ uint8_t RandomLossPercentage
+    _In_ uint8_t RandomLossPercentage,
+    _In_ bool TrueResume
     )
 {
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
@@ -192,10 +217,23 @@ QuicTestConnect(
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
     }
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn2, Settings, ServerSelfSignedCredConfig);
+    QUIC_CREDENTIAL_CONFIG *ServerCredConfig = &ServerSelfSignedCredConfig;
+    if (TrueResume && CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ServerCredConfig = &ServerSelfSignedCredConfigSChannelResumption;
+    }
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn2, Settings, *ServerCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
+    if (TrueResume && CxPlatNeedsExplicitAppStateResumptionConfig()) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT;
+#else
+        TEST_FAILURE("Resumption ticket management is not supported in this build.");
+#endif
+    }
+
     MsQuicConfiguration ClientConfiguration(Registration, Alpn1, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
@@ -219,7 +257,8 @@ QuicTestConnect(
             Registration,
             ServerConfiguration,
             ClientConfiguration,
-            &ResumptionTicket);
+            &ResumptionTicket,
+            TrueResume);
         if (!ResumptionTicket) {
             return;
         }

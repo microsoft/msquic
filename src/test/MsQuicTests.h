@@ -30,6 +30,7 @@ Abstract:
 //#define QUIC_COMPARTMENT_TESTS 1
 
 extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
+extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigSChannelResumption;
 extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 extern QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 
@@ -173,7 +174,8 @@ QuicTestConnect(
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
-    _In_ uint8_t RandomLossPercentage // 0 to 100
+    _In_ uint8_t RandomLossPercentage, // 0 to 100
+    _In_ bool TrueResume = false
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -874,6 +876,7 @@ typedef struct {
     uint8_t MultiPacketClientInitial;
     uint8_t SessionResumption;
     uint8_t RandomLossPercentage;
+    bool TrueResume;
 } QUIC_RUN_CONNECT_PARAMS;
 
 #pragma pack(pop)

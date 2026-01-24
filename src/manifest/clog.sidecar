@@ -9651,6 +9651,38 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SchannelClientIgnoringTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client app rejected session ticket. Proceeding with the connection. Ticket size: %u bytes",
+      "UniqueId": "SchannelClientIgnoringTicket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "SchannelClientRxTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Resumption session ticket delivered. Ticket size: %u bytes",
+      "UniqueId": "SchannelClientRxTicket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "SchannelConsumedBytes": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Consumed %u bytes",
@@ -9830,6 +9862,84 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "SchannelServerIgnoringTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server app resumption state rejected. Proceeding with the connection. State size: %u bytes",
+      "UniqueId": "SchannelServerIgnoringTicket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "SchannelServerRxTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server app resumption state delivered. State size: %u bytes",
+      "UniqueId": "SchannelServerRxTicket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "SchannelServerTxTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Sending managed resumption ticket data, %u bytes",
+      "UniqueId": "SchannelServerTxTicket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "SchannelTlsInitVerbose": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] Explicit resumption ticket management enabled",
+      "UniqueId": "SchannelTlsInitVerbose",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SchannelTlsInitWarning": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] Explicit resumption ticket management enabled, but the feature is not supported on this platform",
+      "UniqueId": "SchannelTlsInitWarning",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "SchannelTlsProcessingData": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Processing %u TX or RX bytes",
+      "UniqueId": "SchannelTlsProcessingData",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "SchannelTransParamsBufferTooSmall": {
       "ModuleProperites": {},
@@ -16228,6 +16338,16 @@
         "EncodingString": "[ tls] Starting ACH worker"
       },
       {
+        "UniquenessHash": "d611563e-adf8-3676-937c-050a07776b5a",
+        "TraceID": "SchannelClientIgnoringTicket",
+        "EncodingString": "[conn][%p] Client app rejected session ticket. Proceeding with the connection. Ticket size: %u bytes"
+      },
+      {
+        "UniquenessHash": "367544ab-8c8e-55ea-c176-bedfd009da50",
+        "TraceID": "SchannelClientRxTicket",
+        "EncodingString": "[conn][%p] Resumption session ticket delivered. Ticket size: %u bytes"
+      },
+      {
         "UniquenessHash": "4fd0cb41-bb79-5d9a-c799-172bb467970d",
         "TraceID": "SchannelConsumedBytes",
         "EncodingString": "[conn][%p] Consumed %u bytes"
@@ -16286,6 +16406,36 @@
         "UniquenessHash": "eb856414-e192-4e49-572c-18139925d342",
         "TraceID": "SchannelReadHandshakeStart",
         "EncodingString": "[conn][%p] Reading Handshake data starts now"
+      },
+      {
+        "UniquenessHash": "a8d72eff-d7d1-ac08-d244-08014bf02807",
+        "TraceID": "SchannelServerIgnoringTicket",
+        "EncodingString": "[conn][%p] Server app resumption state rejected. Proceeding with the connection. State size: %u bytes"
+      },
+      {
+        "UniquenessHash": "be610b85-1a9e-306f-4276-80ef42a0f4ea",
+        "TraceID": "SchannelServerRxTicket",
+        "EncodingString": "[conn][%p] Server app resumption state delivered. State size: %u bytes"
+      },
+      {
+        "UniquenessHash": "34c6fb8c-3c4b-0bc9-cd6d-1b9df5e150f9",
+        "TraceID": "SchannelServerTxTicket",
+        "EncodingString": "[conn][%p] Sending managed resumption ticket data, %u bytes"
+      },
+      {
+        "UniquenessHash": "4d6e2891-5fa4-7c2c-ce87-0386f492abcc",
+        "TraceID": "SchannelTlsInitVerbose",
+        "EncodingString": "[ tls] Explicit resumption ticket management enabled"
+      },
+      {
+        "UniquenessHash": "c6aa7392-aa77-5486-a085-ce7b508209d2",
+        "TraceID": "SchannelTlsInitWarning",
+        "EncodingString": "[ tls] Explicit resumption ticket management enabled, but the feature is not supported on this platform"
+      },
+      {
+        "UniquenessHash": "03a407b8-1a4d-03c4-012a-1e0290d27277",
+        "TraceID": "SchannelTlsProcessingData",
+        "EncodingString": "[conn][%p] Processing %u TX or RX bytes"
       },
       {
         "UniquenessHash": "62985565-58a4-f934-c4ce-c12b8c6a19f9",
