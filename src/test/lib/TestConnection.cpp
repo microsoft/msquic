@@ -1009,7 +1009,7 @@ TestConnection::HandleConnectionEvent(
 
     default:
         // The shutdown event is handled before the switch.
-        ASSERT(Event->Type != QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE);
+        CXPLAT_DBG_ASSERT(Event->Type != QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE);
         break;
     }
 
