@@ -127,7 +127,6 @@ class TestConnection
         )
     {
         TestConnection* Connection = (TestConnection*)Context;
-        const auto Status = Connection->HandleConnectionEvent(Event);
 
         //
         // Delete the test connection on shutdown complete if auto-delete is set.
@@ -139,6 +138,8 @@ class TestConnection
             LockGuard LockScope{Connection->Lock};
             DeleteConnection = Connection->AutoDelete;
         }
+
+        const auto Status = Connection->HandleConnectionEvent(Event);
 
         if (DeleteConnection) {
             delete Connection;

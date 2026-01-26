@@ -877,9 +877,6 @@ TestConnection::HandleConnectionEvent(
         if (ShutdownCompleteCallback) {
             ShutdownCompleteCallback(this);
         }
-        if (AutoDelete) {
-            delete this;
-        }
         break;
 
     case QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED:
