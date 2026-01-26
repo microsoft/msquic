@@ -815,6 +815,32 @@ TestConnection::HandleConnectionEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
+    // Handle QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE separately: the connection may be deleted
+    // during this event (via callback or AutoDelete), we need to ensure nothing referencing the
+    // connection runs after its deletion.
+    if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+        CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER Callback = nullptr;
+        bool ShouldDelete = false;
+        {
+            LockGuard LockScope{Lock};
+            IsShutdown = TRUE;
+            ShutdownTimedOut = Event->SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown == FALSE;
+            Callback = ShutdownCompleteCallback;
+            ShouldDelete = AutoDelete;
+            CxPlatEventSet(EventShutdownComplete);
+        }
+
+        if (Callback) {
+            Callback(this);
+        }
+        if (ShouldDelete) {
+            delete this;
+        }
+        // No further reference to "this" is allowed after this point.
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    // Handle all other events under lock.
     LockGuard LockScope{Lock};
 
     switch (Event->Type) {
@@ -870,14 +896,6 @@ TestConnection::HandleConnectionEvent(
         CxPlatEventSet(EventPeerClosed);
         break;
 
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        IsShutdown = TRUE;
-        ShutdownTimedOut = Event->SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown == FALSE;
-        CxPlatEventSet(EventShutdownComplete);
-        if (ShutdownCompleteCallback) {
-            ShutdownCompleteCallback(this);
-        }
-        break;
 
     case QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED:
         PeerAddrChanged = true;
@@ -985,10 +1003,13 @@ TestConnection::HandleConnectionEvent(
             return PeerCertEventReturnStatus;
         }
         break;
+
     case QUIC_CONNECTION_EVENT_RESUMED:
         return ExpectedCustomTicketValidationResult;
 
     default:
+        // The shutdown event is handled before the switch.
+        ASSERT(Event->Type != QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE);
         break;
     }
 

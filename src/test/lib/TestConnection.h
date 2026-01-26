@@ -127,25 +127,7 @@ class TestConnection
         )
     {
         TestConnection* Connection = (TestConnection*)Context;
-
-        //
-        // Delete the test connection on shutdown complete if auto-delete is set.
-        // This is not done in `HandleConnectionEvent` as it is error prone to
-        // delete oneself in a method.
-        //
-        bool DeleteConnection = false;
-        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
-            LockGuard LockScope{Connection->Lock};
-            DeleteConnection = Connection->AutoDelete;
-        }
-
-        const auto Status = Connection->HandleConnectionEvent(Event);
-
-        if (DeleteConnection) {
-            delete Connection;
-        }
-
-        return Status;
+        return Connection->HandleConnectionEvent(Event);
     }
 
 public:
