@@ -1151,6 +1151,7 @@ CxPlatTryAddSocket(
                 // We previously created a datapath on the same local IP and port, but in fact
                 // not the same QTIP settings. This is not considered a "clash."
                 //
+                Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
                 continue;
             }
 
