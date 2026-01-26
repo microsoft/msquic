@@ -1130,6 +1130,12 @@ QuicAbortiveConnectionHandler(
             __fallthrough;
         case QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS:
             __fallthrough;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        case QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_PATH_VALIDATED:
+            __fallthrough;
+#endif
         case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
             return QUIC_STATUS_SUCCESS;
         default:
@@ -1825,6 +1831,12 @@ QuicRecvResumeConnectionHandler(
             __fallthrough;
         case QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS:
             __fallthrough;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        case QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_PATH_VALIDATED:
+            __fallthrough;
+#endif
         case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
             return QUIC_STATUS_SUCCESS;
         default:

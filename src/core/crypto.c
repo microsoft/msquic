@@ -486,6 +486,10 @@ QuicCryptoHandshakeConfirmed(
     )
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
+    if (Connection->State.HandshakeConfirmed) {
+        return;
+    }
     Connection->State.HandshakeConfirmed = TRUE;
 
     if (SignalBinding) {
@@ -494,11 +498,11 @@ QuicCryptoHandshakeConfirmed(
         QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
     }
 
+    QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
+
     if (QuicConnOpenNewPaths(Connection)) {
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
     }
-
-    QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2576,7 +2580,9 @@ QuicCryptoEncodeServerTicket(
         QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
         QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
         QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
-        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI);
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI |
+        QUIC_TP_FLAG_OBSERVED_ADDRESS |
+        QUIC_TP_FLAG_NAT_TRAVERSE);
 
     EncodedHSTP =
         QuicCryptoTlsEncodeTransportParameters(

@@ -249,22 +249,24 @@ tracepoint(CLOG_PACKET_C, AllocFailure , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnDropPacket
-// [conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.
+// [conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.
 // QuicTraceEvent(
             ConnDropPacket,
-            "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.",
             Owner,
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid),
             Reason);
 // arg2 = arg2 = Owner = arg2
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress) = arg3
 // arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress) = arg4
-// arg5 = arg5 = Reason = arg5
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid) = arg5
+// arg6 = arg6 = Reason = arg6
 ----------------------------------------------------------*/
-#ifndef _clog_8_ARGS_TRACE_ConnDropPacket
-#define _clog_8_ARGS_TRACE_ConnDropPacket(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len, arg5)\
-tracepoint(CLOG_PACKET_C, ConnDropPacket , arg2, arg3_len, arg3, arg4_len, arg4, arg5);\
+#ifndef _clog_10_ARGS_TRACE_ConnDropPacket
+#define _clog_10_ARGS_TRACE_ConnDropPacket(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len, arg5, arg5_len, arg6)\
+tracepoint(CLOG_PACKET_C, ConnDropPacket , arg2, arg3_len, arg3, arg4_len, arg4, arg5_len, arg5, arg6);\
 
 #endif
 
@@ -273,22 +275,24 @@ tracepoint(CLOG_PACKET_C, ConnDropPacket , arg2, arg3_len, arg3, arg4_len, arg4,
 
 /*----------------------------------------------------------
 // Decoder Ring for BindingDropPacket
-// [bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.
+// [bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.
 // QuicTraceEvent(
             BindingDropPacket,
-            "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.",
             Owner,
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid),
             Reason);
 // arg2 = arg2 = Owner = arg2
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress) = arg3
 // arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress) = arg4
-// arg5 = arg5 = Reason = arg5
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid) = arg5
+// arg6 = arg6 = Reason = arg6
 ----------------------------------------------------------*/
-#ifndef _clog_8_ARGS_TRACE_BindingDropPacket
-#define _clog_8_ARGS_TRACE_BindingDropPacket(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len, arg5)\
-tracepoint(CLOG_PACKET_C, BindingDropPacket , arg2, arg3_len, arg3, arg4_len, arg4, arg5);\
+#ifndef _clog_10_ARGS_TRACE_BindingDropPacket
+#define _clog_10_ARGS_TRACE_BindingDropPacket(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len, arg5, arg5_len, arg6)\
+tracepoint(CLOG_PACKET_C, BindingDropPacket , arg2, arg3_len, arg3, arg4_len, arg4, arg5_len, arg5, arg6);\
 
 #endif
 

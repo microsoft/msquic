@@ -79,7 +79,7 @@ include = [
 path = "src/rs/lib.rs"
 
 [features]
-default = ["src"]
+default = ["src", "preview-api"]
 # Build c code from source
 src = [ "dep:cmake" ]
 # Find prebuilt msquic. Use vcpkg installed location on Windows,

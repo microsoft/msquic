@@ -162,6 +162,8 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_TLS_AUX_DATA              '05cQ' // Qc50 - QUIC TLS Backing Aux data
 #define QUIC_POOL_TLS_RECORD_ENTRY          '15cQ' // Qc51 - QUIC TLS Backing Record storage
 #define QUIC_POOL_CIDSLIST                  '25cQ' // Qc52 - QUIC CID SLIST Entry
+#define QUIC_POOL_BOUND_ADDRESS_LIST        '35cQ' // Qc53 - QUIC Bound Address List
+#define QUIC_POOL_CANDIDATE_ADDRESS_LIST    '45cQ' // Qc54 - QUIC Candidate Address List
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,

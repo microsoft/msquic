@@ -1794,6 +1794,15 @@
                 outType="win:SocketAddress"
                 />
             <data
+                inType="win:UInt8"
+                name="DestCidLength"
+                />
+            <data
+                inType="win:Binary"
+                length="DestCidLength"
+                name="DestCid"
+                />
+            <data
                 inType="win:AnsiString"
                 name="Reason"
                 />
@@ -2274,6 +2283,42 @@
             <data
                 inType="win:UInt32"
                 name="Count2"
+                />
+          </template>
+          <template tid="tid_OBSERVED_ADDRESS">
+            <data
+                inType="win:Pointer"
+                name="Owner"
+                />
+            <data
+                inType="win:UInt8"
+                name="ObservedAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="ObservedAddrLength"
+                name="ObservedAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="BoundAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="BoundAddrLength"
+                name="BoundAddr"
+                outType="win:SocketAddress"
+                />
+          </template>
+          <template tid="tid_RELEASE_CHAIN">
+            <data
+                inType="win:Pointer"
+                name="Owner"
+                />
+            <data
+                inType="win:Pointer"
+                name="ReleaseChain"
                 />
           </template>
         </templates>
@@ -3449,6 +3494,42 @@
               template="tid_CONN"
               value="5195"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnBoundAddrAdd)"
+              opcode="Connection"
+              symbol="QuicConnBoundAddrAdded"
+              template="tid_CONN_IP_ADDR"
+              value="5196"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnObservedAddrAdd)"
+              opcode="Connection"
+              symbol="QuicConnObservedAddrAdded"
+              template="tid_OBSERVED_ADDRESS"
+              value="5197"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnObservedAddrRemove)"
+              opcode="Connection"
+              symbol="QuicConnObservedAddrRemoved"
+              template="tid_OBSERVED_ADDRESS"
+              value="5198"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnReleaseChain)"
+              opcode="Connection"
+              symbol="QuicConnReleaseChain"
+              template="tid_RELEASE_CHAIN"
+              value="5199"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume ut:RPS"
@@ -4043,6 +4124,22 @@
             value="[conn][%1] Send Blocked Flags: %2"
             />
         <string
+            id="Etw.ConnBoundAddrAdd"
+            value="[conn][%1] New Bound IP: %3"
+            />
+        <string
+            id="Etw.ConnObservedAddrAdd"
+            value="[conn][%1] New Observed IP: %3 for Bound IP: %5"
+            />
+        <string
+            id="Etw.ConnObservedAddrRemove"
+            value="[conn][%1] Removed Observed IP: %3 for Bound IP: %5"
+            />
+        <string
+            id="Etw.ConnReleaseChain"
+            value="[conn][%1] Released Chain: %2"
+            />
+        <string
             id="Etw.Cubic"
             value="[conn][%1] CUBIC: SlowStartThreshold=%2 K=%3 WindowMax=%4 WindowLastMax=%5"
             />
@@ -4076,7 +4173,7 @@
             />
         <string
             id="Etw.ConnDropPacket"
-            value="[conn][%1] DROP packet Dst=%3 Src=%5 Reason=%6."
+            value="[conn][%1] DROP packet Dst=%3 Src=%5 Dest CID=%7 Reason=%8."
             />
         <string
             id="Etw.ConnDropPacketEx"
@@ -4424,7 +4521,7 @@
             />
         <string
             id="Etw.BindingDropPacket"
-            value="[bind][%1] DROP packet Dst=%3 Src=%5 Reason=%6."
+            value="[bind][%1] DROP packet Dst=%3 Src=%5 Dest CID=%7 Reason=%8."
             />
         <string
             id="Etw.BindingDropPacketEx"

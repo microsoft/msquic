@@ -144,3 +144,22 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathQeoDisabled,
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicatePathValidated
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_VALIDATED
+// QuicTraceLogConnVerbose(
+        IndicatePathValidated,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PATH_VALIDATED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PATH_C, IndicatePathValidated,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)

@@ -95,6 +95,14 @@ typedef enum QUIC_LOAD_BALANCING_MODE {
                                                 // MUST BE LAST
 } QUIC_LOAD_BALANCING_MODE;
 
+typedef enum QUIC_ADD_ADDRESS_MODE {
+    QUIC_ADD_ADDRESS_AUTO,                      // Automatically create path for the address
+    QUIC_ADD_ADDRESS_MANUAL,                    // Indicate to app that address is being added
+    QUIC_ADD_ADDRESS_NAT_TRAVERSAL,             // Automatically send Punch Me Now for the address 
+    QUIC_ADD_ADDRESS_COUNT,                     // The number of supported handling add adddress modes
+                                                // MUST BE LAST
+} QUIC_ADD_ADDRESS_MODE;
+
 typedef enum QUIC_TLS_ALERT_CODES {
     QUIC_TLS_ALERT_CODE_SUCCESS = 0xFFFF,       // Not a real TlsAlert
     QUIC_TLS_ALERT_CODE_UNEXPECTED_MESSAGE = 10,
@@ -660,6 +668,21 @@ typedef struct QUIC_NETWORK_STATISTICS
 #define QUIC_STATISTICS_V2_SIZE_3   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendEcnCongestionCount) // MsQuic v2.2 final size
 #define QUIC_STATISTICS_V2_SIZE_4   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, RttVariance)            // MsQuic v2.5 final size
 
+typedef struct QUIC_ADD_OBSERVED_ADDRESS {
+    QUIC_ADDR* LocalAddress;
+    QUIC_ADDR* ObservedAddress;
+} QUIC_ADD_OBSERVED_ADDRESS;
+
+typedef struct QUIC_PATH_PARAM {
+    QUIC_ADDR* LocalAddress;
+    QUIC_ADDR* RemoteAddress;
+} QUIC_PATH_PARAM;
+
+typedef struct QUIC_CANDIDATE_ADDRESS {
+    QUIC_ADDR* HostAddress;
+    QUIC_ADDR* ObservedAddress;
+} QUIC_CANDIDATE_ADDRESS;
+
 typedef struct QUIC_LISTENER_STATISTICS {
 
     uint64_t TotalAcceptedConnections;
@@ -786,7 +809,10 @@ typedef struct QUIC_SETTINGS {
             uint64_t XdpEnabled                             : 1;
             uint64_t QTIPEnabled                            : 1;
             uint64_t ReservedRioEnabled                     : 1;
-            uint64_t RESERVED                               : 18;
+            uint64_t ServerMigrationEnabled                 : 1;
+            uint64_t AddAddressMode                         : 1;
+            uint64_t IgnoreUnreachable                      : 1;
+            uint64_t RESERVED                               : 15;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -840,7 +866,9 @@ typedef struct QUIC_SETTINGS {
             uint64_t XdpEnabled                : 1;
             uint64_t QTIPEnabled               : 1;
             uint64_t ReservedRioEnabled        : 1;
-            uint64_t ReservedFlags             : 55;
+            uint64_t ServerMigrationEnabled    : 1;
+            uint64_t IgnoreUnreachable         : 1;
+            uint64_t ReservedFlags             : 53;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -849,6 +877,7 @@ typedef struct QUIC_SETTINGS {
     uint32_t StreamRecvWindowBidiLocalDefault;
     uint32_t StreamRecvWindowBidiRemoteDefault;
     uint32_t StreamRecvWindowUnidiDefault;
+    uint8_t AddAddressMode;                     // QUIC_ADD_ADDRESS_MODE
 
 } QUIC_SETTINGS;
 
@@ -1041,8 +1070,14 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONN_NETWORK_STATISTICS              0x05000020  // struct QUIC_NETWORK_STATISTICS
 #define QUIC_PARAM_CONN_CLOSE_ASYNC                     0x0500001A  // uint8_t
-#define QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS               0x0500001B  // QUIC_ADDR
-#define QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS            0x0500001C  // QUIC_ADDR
+#define QUIC_PARAM_CONN_ADD_BOUND_ADDRESS               0x0500001B  // QUIC_ADDR
+#define QUIC_PARAM_CONN_ADD_OBSERVED_ADDRESS            0x0500001C  // QUIC_ADD_OBSERVED_ADDRESS
+#define QUIC_PARAM_CONN_REMOVE_BOUND_ADDRESS            0x0500001D  // QUIC_ADDR
+#define QUIC_PARAM_CONN_ADD_PATH                        0x0500001E  // QUIC_PATH_PARAM
+#define QUIC_PARAM_CONN_ACTIVATE_PATH                   0x0500001F  // QUIC_PATH_PARAM
+#define QUIC_PARAM_CONN_REMOVE_PATH                     0x05000021  // QUIC_PATH_PARAM
+#define QUIC_PARAM_CONN_ADD_CANDIDATE_ADDRESS           0x05000022  // QUIC_CANDIDATE_ADDRESS
+#define QUIC_PARAM_CONN_REMOVE_CANDIDATE_ADDRESS        0x05000023  // QUIC_CANDIDATE_ADDRESS
 #endif
 
 //
@@ -1339,6 +1374,10 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
     QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
     QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+    QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS           = 19,
+    QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED       = 20,   // Only indicated if QUIC_SETTINGS.AddAddressMode is MANUAL
+    QUIC_CONNECTION_EVENT_PATH_VALIDATED                    = 21,
+    QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED     = 22,   // Only indicated if QUIC_SETTINGS.AddAddressMode is MANUAL
 #endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
@@ -1422,6 +1461,21 @@ typedef struct QUIC_CONNECTION_EVENT {
             BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
         } ONE_WAY_DELAY_NEGOTIATED;
         QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
+        struct {
+            QUIC_ADDR *LocalAddress;
+            QUIC_ADDR *ObservedAddress;
+        } NOTIFY_OBSERVED_ADDRESS;
+        struct {
+            QUIC_ADDR *Address;
+            QUIC_UINT62 SequenceNumber;
+        } NOTIFY_REMOTE_ADDRESS_ADDED;
+        struct {
+            QUIC_ADDR *LocalAddress;
+            QUIC_ADDR *RemoteAddress;
+        } PATH_VALIDATED;
+        struct {
+            QUIC_UINT62 SequenceNumber;
+        } NOTIFY_REMOTE_ADDRESS_REMOVED;
 #endif
     };
 } QUIC_CONNECTION_EVENT;

@@ -44,6 +44,14 @@ namespace Microsoft.Quic
         COUNT,
     }
 
+    internal enum QUIC_ADD_ADDRESS_MODE
+    {
+        QUIC_ADD_ADDRESS_AUTO,
+        QUIC_ADD_ADDRESS_MANUAL,
+        QUIC_ADD_ADDRESS_NAT_TRAVERSAL,
+        QUIC_ADD_ADDRESS_COUNT,
+    }
+
     internal enum QUIC_TLS_ALERT_CODES
     {
         SUCCESS = 0xFFFF,
@@ -947,6 +955,33 @@ namespace Microsoft.Quic
         internal ulong Bandwidth;
     }
 
+    internal unsafe partial struct QUIC_ADD_OBSERVED_ADDRESS
+    {
+        [NativeTypeName("QUIC_ADDR *")]
+        internal QuicAddr* LocalAddress;
+
+        [NativeTypeName("QUIC_ADDR *")]
+        internal QuicAddr* ObservedAddress;
+    }
+
+    internal unsafe partial struct QUIC_PATH_PARAM
+    {
+        [NativeTypeName("QUIC_ADDR *")]
+        internal QuicAddr* LocalAddress;
+
+        [NativeTypeName("QUIC_ADDR *")]
+        internal QuicAddr* RemoteAddress;
+    }
+
+    internal unsafe partial struct QUIC_CANDIDATE_ADDRESS
+    {
+        [NativeTypeName("QUIC_ADDR *")]
+        internal QuicAddr* HostAddress;
+
+        [NativeTypeName("QUIC_ADDR *")]
+        internal QuicAddr* ObservedAddress;
+    }
+
     internal partial struct QUIC_LISTENER_STATISTICS
     {
         [NativeTypeName("uint64_t")]
@@ -1320,6 +1355,9 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint StreamRecvWindowUnidiDefault;
 
+        [NativeTypeName("uint8_t")]
+        internal byte AddAddressMode;
+
         internal ref ulong IsSetFlags
         {
             get
@@ -1458,6 +1496,32 @@ namespace Microsoft.Quic
             set
             {
                 Anonymous2.Anonymous.ReservedRioEnabled = value;
+            }
+        }
+
+        internal ulong ServerMigrationEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.ServerMigrationEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.ServerMigrationEnabled = value;
+            }
+        }
+
+        internal ulong IgnoreUnreachable
+        {
+            get
+            {
+                return Anonymous2.Anonymous.IgnoreUnreachable;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.IgnoreUnreachable = value;
             }
         }
 
@@ -2133,17 +2197,59 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 18")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong ServerMigrationEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 46) & 0x3FFFFUL;
+                        return (_bitfield >> 46) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFUL << 46)) | ((value & 0x3FFFFUL) << 46);
+                        _bitfield = (_bitfield & ~(0x1UL << 46)) | ((value & 0x1UL) << 46);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong AddAddressMode
+                {
+                    get
+                    {
+                        return (_bitfield >> 47) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 47)) | ((value & 0x1UL) << 47);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong IgnoreUnreachable
+                {
+                    get
+                    {
+                        return (_bitfield >> 48) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 48)) | ((value & 0x1UL) << 48);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 15")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 49) & 0x7FFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x7FFFUL << 49)) | ((value & 0x7FFFUL) << 49);
                     }
                 }
             }
@@ -2290,17 +2396,45 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 55")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong ServerMigrationEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 9) & 0x7FFFFFUL;
+                        return (_bitfield >> 9) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x7FFFFFUL << 9)) | ((value & 0x7FFFFFUL) << 9);
+                        _bitfield = (_bitfield & ~(0x1UL << 9)) | ((value & 0x1UL) << 9);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong IgnoreUnreachable
+                {
+                    get
+                    {
+                        return (_bitfield >> 10) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 10)) | ((value & 0x1UL) << 10);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 53")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 11) & 0x1FFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFUL << 11)) | ((value & 0x1FFFFFUL) << 11);
                     }
                 }
             }
@@ -2651,6 +2785,10 @@ namespace Microsoft.Quic
         RELIABLE_RESET_NEGOTIATED = 16,
         ONE_WAY_DELAY_NEGOTIATED = 17,
         NETWORK_STATISTICS = 18,
+        NOTIFY_OBSERVED_ADDRESS = 19,
+        NOTIFY_REMOTE_ADDRESS_ADDED = 20,
+        PATH_VALIDATED = 21,
+        NOTIFY_REMOTE_ADDRESS_REMOVED = 22,
     }
 
     internal partial struct QUIC_CONNECTION_EVENT
@@ -2812,6 +2950,38 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._NOTIFY_OBSERVED_ADDRESS_e__Struct NOTIFY_OBSERVED_ADDRESS
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.NOTIFY_OBSERVED_ADDRESS, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._NOTIFY_REMOTE_ADDRESS_ADDED_e__Struct NOTIFY_REMOTE_ADDRESS_ADDED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.NOTIFY_REMOTE_ADDRESS_ADDED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._PATH_VALIDATED_e__Struct PATH_VALIDATED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PATH_VALIDATED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._NOTIFY_REMOTE_ADDRESS_REMOVED_e__Struct NOTIFY_REMOTE_ADDRESS_REMOVED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.NOTIFY_REMOTE_ADDRESS_REMOVED, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2889,6 +3059,22 @@ namespace Microsoft.Quic
 
             [FieldOffset(0)]
             internal QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _NOTIFY_OBSERVED_ADDRESS_e__Struct NOTIFY_OBSERVED_ADDRESS;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _NOTIFY_REMOTE_ADDRESS_ADDED_e__Struct NOTIFY_REMOTE_ADDRESS_ADDED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _PATH_VALIDATED_e__Struct PATH_VALIDATED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _NOTIFY_REMOTE_ADDRESS_REMOVED_e__Struct NOTIFY_REMOTE_ADDRESS_REMOVED;
 
             internal unsafe partial struct _CONNECTED_e__Struct
             {
@@ -3078,6 +3264,39 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("BOOLEAN")]
                 internal byte ReceiveNegotiated;
+            }
+
+            internal unsafe partial struct _NOTIFY_OBSERVED_ADDRESS_e__Struct
+            {
+                [NativeTypeName("QUIC_ADDR *")]
+                internal QuicAddr* LocalAddress;
+
+                [NativeTypeName("QUIC_ADDR *")]
+                internal QuicAddr* ObservedAddress;
+            }
+
+            internal unsafe partial struct _NOTIFY_REMOTE_ADDRESS_ADDED_e__Struct
+            {
+                [NativeTypeName("QUIC_ADDR *")]
+                internal QuicAddr* Address;
+
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong SequenceNumber;
+            }
+
+            internal unsafe partial struct _PATH_VALIDATED_e__Struct
+            {
+                [NativeTypeName("QUIC_ADDR *")]
+                internal QuicAddr* LocalAddress;
+
+                [NativeTypeName("QUIC_ADDR *")]
+                internal QuicAddr* RemoteAddress;
+            }
+
+            internal partial struct _NOTIFY_REMOTE_ADDRESS_REMOVED_e__Struct
+            {
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong SequenceNumber;
             }
         }
     }
@@ -3771,11 +3990,29 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_ASYNC 0x0500001A")]
         internal const uint QUIC_PARAM_CONN_CLOSE_ASYNC = 0x0500001A;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS 0x0500001B")]
-        internal const uint QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS = 0x0500001B;
+        [NativeTypeName("#define QUIC_PARAM_CONN_ADD_BOUND_ADDRESS 0x0500001B")]
+        internal const uint QUIC_PARAM_CONN_ADD_BOUND_ADDRESS = 0x0500001B;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS 0x0500001C")]
-        internal const uint QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS = 0x0500001C;
+        [NativeTypeName("#define QUIC_PARAM_CONN_ADD_OBSERVED_ADDRESS 0x0500001C")]
+        internal const uint QUIC_PARAM_CONN_ADD_OBSERVED_ADDRESS = 0x0500001C;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_REMOVE_BOUND_ADDRESS 0x0500001D")]
+        internal const uint QUIC_PARAM_CONN_REMOVE_BOUND_ADDRESS = 0x0500001D;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_ADD_PATH 0x0500001E")]
+        internal const uint QUIC_PARAM_CONN_ADD_PATH = 0x0500001E;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_ACTIVATE_PATH 0x0500001F")]
+        internal const uint QUIC_PARAM_CONN_ACTIVATE_PATH = 0x0500001F;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_REMOVE_PATH 0x05000021")]
+        internal const uint QUIC_PARAM_CONN_REMOVE_PATH = 0x05000021;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_ADD_CANDIDATE_ADDRESS 0x05000022")]
+        internal const uint QUIC_PARAM_CONN_ADD_CANDIDATE_ADDRESS = 0x05000022;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_REMOVE_CANDIDATE_ADDRESS 0x05000023")]
+        internal const uint QUIC_PARAM_CONN_REMOVE_CANDIDATE_ADDRESS = 0x05000023;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;

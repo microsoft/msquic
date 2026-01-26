@@ -31,6 +31,7 @@ typedef enum QUIC_OPERATION_TYPE {
     QUIC_OPER_TYPE_TIMER_EXPIRED,       // A timer expired.
     QUIC_OPER_TYPE_TRACE_RUNDOWN,       // A trace rundown was triggered.
     QUIC_OPER_TYPE_ROUTE_COMPLETION,    // Process route completion event.
+    QUIC_OPER_TYPE_REMOVE_ADDRESS,      // Process remove address frame.
 
     //
     // All stateless operations follow.
@@ -184,6 +185,7 @@ typedef enum QUIC_CONN_TIMER_TYPE {
     QUIC_CONN_TIMER_KEEP_ALIVE,
     QUIC_CONN_TIMER_IDLE,
     QUIC_CONN_TIMER_SHUTDOWN,
+    QUIC_CONN_TIMER_PROBE_AFTER_PUNCH,
 
     QUIC_CONN_TIMER_COUNT
 
@@ -248,6 +250,9 @@ typedef struct QUIC_OPERATION {
             uint8_t PathId;
             BOOLEAN Succeeded;
         } ROUTE;
+        struct {
+            QUIC_VAR_INT SequenceNumber;
+        } REMOVE_ADDRESS;
     };
 
 } QUIC_OPERATION;

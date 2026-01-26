@@ -159,6 +159,25 @@ pub enum ConnectionEvent<'a> {
     // ReliableResetNegotiated, // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
     // OneWayDelayNegotiated,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
     // NetworkStatistics,       // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+    #[cfg(feature = "preview-api")]
+    NotifyObservedAddress {
+        local_address: &'a crate::Addr,
+        observed_address: &'a crate::Addr,
+    },
+    #[cfg(feature = "preview-api")]
+    NotifyRemoteAddressAdded {
+        address: &'a crate::Addr,
+        sequence_number: crate::u62,
+    },
+    #[cfg(feature = "preview-api")]
+    PathValidated {
+        local_address: &'a crate::Addr,
+        remote_address: &'a crate::Addr,
+    },
+    #[cfg(feature = "preview-api")]
+    NotifyRemoteAddressRemoved {
+        sequence_number: crate::u62,
+    },
 }
 
 impl<'a> From<&'a QUIC_CONNECTION_EVENT> for ConnectionEvent<'a> {
@@ -241,6 +260,31 @@ impl<'a> From<&'a QUIC_CONNECTION_EVENT> for ConnectionEvent<'a> {
                 deferred_status: crate::Status(ev.DeferredStatus),
                 chain: ev.Chain
               }
+            }
+            #[cfg(feature = "preview-api")]
+            crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS => {
+              let ev = unsafe { value.__bindgen_anon_1.NOTIFY_OBSERVED_ADDRESS };
+              let local_addr = ev.LocalAddress as *const crate::Addr;
+              let observed_addr = ev.ObservedAddress as *const crate::Addr;
+              Self::NotifyObservedAddress { local_address: unsafe { local_addr.as_ref().unwrap() }, observed_address: unsafe { observed_addr.as_ref().unwrap() } }
+            }
+            #[cfg(feature = "preview-api")]
+            crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED => {
+              let ev = unsafe { value.__bindgen_anon_1.NOTIFY_REMOTE_ADDRESS_ADDED };
+              let addr = ev.Address as *const crate::Addr;
+              Self::NotifyRemoteAddressAdded { address: unsafe { addr.as_ref().unwrap() }, sequence_number: ev.SequenceNumber }
+            }
+            #[cfg(feature = "preview-api")]
+            crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PATH_VALIDATED => {
+              let ev = unsafe { value.__bindgen_anon_1.PATH_VALIDATED };
+              let local_addr = ev.LocalAddress as *const crate::Addr;
+              let remote_addr = ev.RemoteAddress as *const crate::Addr;
+              Self::PathValidated { local_address: unsafe { local_addr.as_ref().unwrap() }, remote_address: unsafe { remote_addr.as_ref().unwrap() } }
+            }
+            #[cfg(feature = "preview-api")]
+            crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED => {
+              let ev = unsafe { value.__bindgen_anon_1.NOTIFY_REMOTE_ADDRESS_REMOVED };
+              Self::NotifyRemoteAddressRemoved { sequence_number: ev.SequenceNumber }
             }
             _ => {
                 todo!("unknown event. maybe preview feature.")

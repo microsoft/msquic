@@ -64,6 +64,19 @@ typedef struct QUIC_SENT_FRAME_METADATA {
         struct {
             QUIC_VAR_INT Sequence;
         } ACK_FREQUENCY;
+        struct {
+            QUIC_VAR_INT Sequence;
+        } OBSERVED_ADDRESS;
+        struct {
+            QUIC_VAR_INT Sequence;
+        } ADD_ADDRESS;
+        struct {
+            QUIC_VAR_INT Round;
+        } PUNCH_ME_NOW;
+        struct {
+            QUIC_VAR_INT Sequence;
+        } REMOVE_ADDRESS;
+
     };
     //
     // The following to fields are for STREAM. However, if they were in stream
@@ -75,7 +88,7 @@ typedef struct QUIC_SENT_FRAME_METADATA {
     //
     uint64_t StreamOffset;
     uint16_t StreamLength;
-    uint16_t Type; // QUIC_FRAME_*
+    uint32_t Type; // QUIC_FRAME_*
     uint8_t Flags; // QUIC_SENT_FRAME_FLAG_*
 
 } QUIC_SENT_FRAME_METADATA;

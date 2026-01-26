@@ -281,7 +281,7 @@
     },
     "BindingDropPacket": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+      "TraceString": "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.",
       "UniqueId": "BindingDropPacket",
       "splitArgs": [
         {
@@ -297,8 +297,12 @@
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "s",
+          "DefinationEncoding": "!CID!",
           "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -1043,6 +1047,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnBoundAddrAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] New Bound IP: %!ADDR!",
+      "UniqueId": "ConnBoundAddrAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnCongestionV2": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Congestion event: IsEcn=%hu",
@@ -1173,7 +1193,7 @@
     },
     "ConnDropPacket": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+      "TraceString": "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.",
       "UniqueId": "ConnDropPacket",
       "splitArgs": [
         {
@@ -1189,8 +1209,12 @@
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "s",
+          "DefinationEncoding": "!CID!",
           "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -1611,6 +1635,46 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnObservedAddrAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] New Observed IP: %!ADDR! for Bound IP: %!ADDR!",
+      "UniqueId": "ConnObservedAddrAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnObservedAddrRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Removed Observed IP: %!ADDR! for Bound IP: %!ADDR!",
+      "UniqueId": "ConnObservedAddrRemoved",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnOutFlowBlocked": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Send Blocked Flags: %hhu",
@@ -1919,10 +1983,42 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnReleaseChain": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] ReleaseChain: %p",
+      "UniqueId": "ConnReleaseChain",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnRemoteAddrAdded": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] New Remote IP: %!ADDR!",
       "UniqueId": "ConnRemoteAddrAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnRemoteAddrRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Removed Remote IP: %!ADDR!",
+      "UniqueId": "ConnRemoteAddrRemoved",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -3407,6 +3503,50 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DecodeTPNatTraverseClient": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: NAT Traverse (%llu)",
+      "UniqueId": "DecodeTPNatTraverseClient",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "DecodeTPNatTraverseServer": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: NAT Traverse",
+      "UniqueId": "DecodeTPNatTraverseServer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "DecodeTPObservedAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Observed Address (%u)",
+      "UniqueId": "DecodeTPObservedAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPOriginalDestinationCID": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Original Connection Destination ID (%s)",
@@ -3479,6 +3619,18 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "DecodeTPServerMigration": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Server Migration",
+      "UniqueId": "DecodeTPServerMigration",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -3942,6 +4094,50 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "EncodeTPNatTraverseClient": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: NAT Traverse",
+      "UniqueId": "EncodeTPNatTraverseClient",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPNatTraverseServer": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: NAT Traverse (%llu)",
+      "UniqueId": "EncodeTPNatTraverseServer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPObservedAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Observed Address (%u)",
+      "UniqueId": "EncodeTPObservedAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "EncodeTPOriginalCID": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Initial Source Connection ID (%s)",
@@ -4010,6 +4206,18 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPServerMigration": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Server Migration",
+      "UniqueId": "EncodeTPServerMigration",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -4511,6 +4719,54 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogAddAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   ADD_ADDRESS %llu %s",
+      "UniqueId": "FrameLogAddAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogAddAddressInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   ADD_ADDRESS [Invalid]",
+      "UniqueId": "FrameLogAddAddressInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogConnectionClose": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   CONN_CLOSE ErrorCode:0x%llX FrameType:%llu",
@@ -4999,6 +5255,54 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogObservedAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   OBSERVED_ADDRESS %llu  %s",
+      "UniqueId": "FrameLogObservedAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogObservedAddressInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   OBSERVED_ADDRESS [Invalid]",
+      "UniqueId": "FrameLogObservedAddressInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogPadding": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   PADDING Len:%hu",
@@ -5131,6 +5435,58 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogPunchMeNow": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PUNCH_ME_NOW %llu %llu %s",
+      "UniqueId": "FrameLogPunchMeNow",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPunchMeNowInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PUNCH_ME_NOW [Invalid]",
+      "UniqueId": "FrameLogPunchMeNowInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogReliableResetStream": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu",
@@ -5171,6 +5527,50 @@
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]",
       "UniqueId": "FrameLogReliableResetStreamInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogRemoveAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   REMOVE_ADDRESS %llu",
+      "UniqueId": "FrameLogRemoveAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogRemoveAddressInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   REMOVE_ADDRESS [Invalid]",
+      "UniqueId": "FrameLogRemoveAddressInvalid",
       "splitArgs": [
         {
           "DefinationEncoding": "c",
@@ -5891,6 +6291,42 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "IndicateNotifyObservedAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS",
+      "UniqueId": "IndicateNotifyObservedAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicateNotifyRemoteAddressAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED",
+      "UniqueId": "IndicateNotifyRemoteAddressAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicateNotifyRemoteAddressRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED",
+      "UniqueId": "IndicateNotifyRemoteAddressRemoved",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "IndicateOneWayDelayNegotiated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
@@ -5907,6 +6343,18 @@
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicatePathValidated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_VALIDATED",
+      "UniqueId": "IndicatePathValidated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -6846,6 +7294,42 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LocalAddressAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Added local address %!ADDR!",
+      "UniqueId": "LocalAddressAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "LocalAddressRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Local address %!ADDR! (observed %!ADDR!) removed",
+      "UniqueId": "LocalAddressRemoved",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "LocalCloseStopSending": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Closed locally (stop sending)",
@@ -7497,6 +7981,26 @@
         }
       ],
       "macroName": "QuicTraceLogStreamWarning"
+    },
+    "ObservedAddressAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Added Observed address %!ADDR! for Local address %!ADDR!",
+      "UniqueId": "ObservedAddressAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
     },
     "OpenSsl1RttDataStart": {
       "ModuleProperites": {},
@@ -10295,6 +10799,18 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "SettingAddAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] AddAddressMode         = %hhu",
+      "UniqueId": "SettingAddAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingCongestionControlAlgorithm": {
       "ModuleProperites": {},
       "TraceString": "[sett] CongestionControlAlgorithm = %hu",
@@ -10907,6 +11423,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingIgnoreUnreachable": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] IgnoreUnreachable      = %hhu",
+      "UniqueId": "SettingIgnoreUnreachable",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingNetStatsEventEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] NetStatsEventEnabled   = %hhu",
@@ -10947,6 +11475,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] ReliableResetEnabled   = %hhu",
       "UniqueId": "SettingReliableResetEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingServerMigrationEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] ServerMigrationEnabled = %hhu",
+      "UniqueId": "SettingServerMigrationEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -13393,9 +13933,9 @@
         "EncodingString": "[bind][%p] Destroyed"
       },
       {
-        "UniquenessHash": "aff4ab67-a70e-f05b-c51d-9b97628c141e",
+        "UniquenessHash": "f123e82e-9cb4-1189-c129-c8883ff3a93c",
         "TraceID": "BindingDropPacket",
-        "EncodingString": "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s."
+        "EncodingString": "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s."
       },
       {
         "UniquenessHash": "262f6b18-033f-5ef9-44eb-b2bebae16084",
@@ -13623,6 +14163,11 @@
         "EncodingString": "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u"
       },
       {
+        "UniquenessHash": "8ca8c762-a3ec-dffb-e56d-9561e24bec75",
+        "TraceID": "ConnBoundAddrAdded",
+        "EncodingString": "[conn][%p] New Bound IP: %!ADDR!"
+      },
+      {
         "UniquenessHash": "631f94ef-27ad-9be6-98cf-966dbce8bad9",
         "TraceID": "ConnCongestionV2",
         "EncodingString": "[conn][%p] Congestion event: IsEcn=%hu"
@@ -13658,9 +14203,9 @@
         "EncodingString": "[conn][%p] Destroyed"
       },
       {
-        "UniquenessHash": "946d7a4f-ca9f-b676-8fef-1661da5703cd",
+        "UniquenessHash": "4e266614-2e20-b11f-67be-1824de4008e1",
         "TraceID": "ConnDropPacket",
-        "EncodingString": "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s."
+        "EncodingString": "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s."
       },
       {
         "UniquenessHash": "7b8fcbcd-b097-9b8b-3d56-a2ca2d8b5cb8",
@@ -13783,6 +14328,16 @@
         "EncodingString": "[conn][%p] No Listener for IP address: %!ADDR!"
       },
       {
+        "UniquenessHash": "bfa65629-7bfc-76cd-752a-aa5e8e61f016",
+        "TraceID": "ConnObservedAddrAdded",
+        "EncodingString": "[conn][%p] New Observed IP: %!ADDR! for Bound IP: %!ADDR!"
+      },
+      {
+        "UniquenessHash": "8d463c5d-b01f-d44c-e2df-3b6a08892f75",
+        "TraceID": "ConnObservedAddrRemoved",
+        "EncodingString": "[conn][%p] Removed Observed IP: %!ADDR! for Bound IP: %!ADDR!"
+      },
+      {
         "UniquenessHash": "11964356-1a57-bc4d-0637-9300c14e0cb9",
         "TraceID": "ConnOutFlowBlocked",
         "EncodingString": "[conn][%p] Send Blocked Flags: %hhu"
@@ -13853,9 +14408,19 @@
         "EncodingString": "[conn][%p] Registered with %p"
       },
       {
+        "UniquenessHash": "9549fc4a-6b0a-8e2c-514e-946f9638d374",
+        "TraceID": "ConnReleaseChain",
+        "EncodingString": "[conn][%p] ReleaseChain: %p"
+      },
+      {
         "UniquenessHash": "57df3cb1-120c-282b-ea2a-f9ff854b5a76",
         "TraceID": "ConnRemoteAddrAdded",
         "EncodingString": "[conn][%p] New Remote IP: %!ADDR!"
+      },
+      {
+        "UniquenessHash": "1944d511-df0a-c314-2cde-d03579c95a89",
+        "TraceID": "ConnRemoteAddrRemoved",
+        "EncodingString": "[conn][%p] Removed Remote IP: %!ADDR!"
       },
       {
         "UniquenessHash": "9ba874f3-1fe6-aef6-6d3b-5c9b8b9d8720",
@@ -14323,6 +14888,21 @@
         "EncodingString": "[conn][%p] TP: Min ACK Delay (%llu us)"
       },
       {
+        "UniquenessHash": "b74dc4c4-8f7e-862f-01bb-eb243a183d0f",
+        "TraceID": "DecodeTPNatTraverseClient",
+        "EncodingString": "[conn][%p] TP: NAT Traverse (%llu)"
+      },
+      {
+        "UniquenessHash": "629768b5-eeb6-9349-f241-680c2a1f6f97",
+        "TraceID": "DecodeTPNatTraverseServer",
+        "EncodingString": "[conn][%p] TP: NAT Traverse"
+      },
+      {
+        "UniquenessHash": "e8aec38b-688c-f6de-a6c4-61cb54fb8551",
+        "TraceID": "DecodeTPObservedAddress",
+        "EncodingString": "[conn][%p] TP: Observed Address (%u)"
+      },
+      {
         "UniquenessHash": "0f20e85c-c2f2-44e2-9762-7044995c647d",
         "TraceID": "DecodeTPOriginalDestinationCID",
         "EncodingString": "[conn][%p] TP: Original Connection Destination ID (%s)"
@@ -14346,6 +14926,11 @@
         "UniquenessHash": "f9c309de-adae-2892-8f3b-5ecb036737c9",
         "TraceID": "DecodeTPRetrySourceCID",
         "EncodingString": "[conn][%p] TP: Retry Source Connection ID (%s)"
+      },
+      {
+        "UniquenessHash": "1eaccc9d-a323-5231-fae2-08d49a235937",
+        "TraceID": "DecodeTPServerMigration",
+        "EncodingString": "[conn][%p] TP: Server Migration"
       },
       {
         "UniquenessHash": "822613a7-cc7e-334a-8e53-483b30217cea",
@@ -14498,6 +15083,21 @@
         "EncodingString": "[conn][%p] TP: Min ACK Delay (%llu us)"
       },
       {
+        "UniquenessHash": "19cc103a-19dd-e348-77bd-5b3f17ef9376",
+        "TraceID": "EncodeTPNatTraverseClient",
+        "EncodingString": "[conn][%p] TP: NAT Traverse"
+      },
+      {
+        "UniquenessHash": "1051c984-9857-1a9d-9f52-b6d0306b1a7b",
+        "TraceID": "EncodeTPNatTraverseServer",
+        "EncodingString": "[conn][%p] TP: NAT Traverse (%llu)"
+      },
+      {
+        "UniquenessHash": "3d6f007d-1c27-e409-b019-19aab1d0b893",
+        "TraceID": "EncodeTPObservedAddress",
+        "EncodingString": "[conn][%p] TP: Observed Address (%u)"
+      },
+      {
         "UniquenessHash": "a10dde76-0ba2-2458-5f43-805105fa2127",
         "TraceID": "EncodeTPOriginalCID",
         "EncodingString": "[conn][%p] TP: Initial Source Connection ID (%s)"
@@ -14521,6 +15121,11 @@
         "UniquenessHash": "214be45a-42ba-44e1-05c2-f82f3200e671",
         "TraceID": "EncodeTPRetrySourceCID",
         "EncodingString": "[conn][%p] TP: Retry Source Connection ID (%s)"
+      },
+      {
+        "UniquenessHash": "074ad871-9212-a391-d497-b5e8d6b85828",
+        "TraceID": "EncodeTPServerMigration",
+        "EncodingString": "[conn][%p] TP: Server Migration"
       },
       {
         "UniquenessHash": "0e57e530-870c-7ba0-5b7b-5da31f55dc03",
@@ -14668,6 +15273,16 @@
         "EncodingString": "[%c][%cX][%llu]     %llu"
       },
       {
+        "UniquenessHash": "8768ea28-fc4b-ac6f-94a2-46f6e7efb88f",
+        "TraceID": "FrameLogAddAddress",
+        "EncodingString": "[%c][%cX][%llu]   ADD_ADDRESS %llu %s"
+      },
+      {
+        "UniquenessHash": "1b80f8cb-e5e7-5753-a786-6e0887adfa1b",
+        "TraceID": "FrameLogAddAddressInvalid",
+        "EncodingString": "[%c][%cX][%llu]   ADD_ADDRESS [Invalid]"
+      },
+      {
         "UniquenessHash": "39592ea2-35f5-d3d5-efb2-d330fb4c400b",
         "TraceID": "FrameLogConnectionClose",
         "EncodingString": "[%c][%cX][%llu]   CONN_CLOSE ErrorCode:0x%llX FrameType:%llu"
@@ -14773,6 +15388,16 @@
         "EncodingString": "[%c][%cX][%llu]   NEW_TOKEN [Invalid]"
       },
       {
+        "UniquenessHash": "ca48a549-3a71-4238-4f0b-9c86f112cd2e",
+        "TraceID": "FrameLogObservedAddress",
+        "EncodingString": "[%c][%cX][%llu]   OBSERVED_ADDRESS %llu  %s"
+      },
+      {
+        "UniquenessHash": "4466cb8b-c272-75d6-71f3-4bfd8dd953fc",
+        "TraceID": "FrameLogObservedAddressInvalid",
+        "EncodingString": "[%c][%cX][%llu]   OBSERVED_ADDRESS [Invalid]"
+      },
+      {
         "UniquenessHash": "a6b615ee-e5e9-f437-c21a-c3c502f86000",
         "TraceID": "FrameLogPadding",
         "EncodingString": "[%c][%cX][%llu]   PADDING Len:%hu"
@@ -14803,6 +15428,16 @@
         "EncodingString": "[%c][%cX][%llu]   PING"
       },
       {
+        "UniquenessHash": "774dad6d-3177-3ab1-66e6-7030f74d2254",
+        "TraceID": "FrameLogPunchMeNow",
+        "EncodingString": "[%c][%cX][%llu]   PUNCH_ME_NOW %llu %llu %s"
+      },
+      {
+        "UniquenessHash": "56046983-0319-fcfc-22d9-90c484d66a6d",
+        "TraceID": "FrameLogPunchMeNowInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PUNCH_ME_NOW [Invalid]"
+      },
+      {
         "UniquenessHash": "114e293d-3c55-bda4-2768-2c68d7b2e75e",
         "TraceID": "FrameLogReliableResetStream",
         "EncodingString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu"
@@ -14811,6 +15446,16 @@
         "UniquenessHash": "45b5711e-3b1c-297d-8352-5cc3ceb82dfd",
         "TraceID": "FrameLogReliableResetStreamInvalid",
         "EncodingString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]"
+      },
+      {
+        "UniquenessHash": "7d3eb397-7c75-08c1-cd5e-ff3b1927f722",
+        "TraceID": "FrameLogRemoveAddress",
+        "EncodingString": "[%c][%cX][%llu]   REMOVE_ADDRESS %llu"
+      },
+      {
+        "UniquenessHash": "c355d466-5c71-d497-5321-97d4abfe0ea7",
+        "TraceID": "FrameLogRemoveAddressInvalid",
+        "EncodingString": "[%c][%cX][%llu]   REMOVE_ADDRESS [Invalid]"
       },
       {
         "UniquenessHash": "47de738b-e1df-210a-5eff-181b82072815",
@@ -14988,9 +15633,29 @@
         "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu"
       },
       {
+        "UniquenessHash": "27e4602e-c0fc-694a-ed69-7578cd1d81ae",
+        "TraceID": "IndicateNotifyObservedAddress",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS"
+      },
+      {
+        "UniquenessHash": "e4cf02f2-f063-2abb-5980-591bc4cd9145",
+        "TraceID": "IndicateNotifyRemoteAddressAdded",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED"
+      },
+      {
+        "UniquenessHash": "bdbec039-5ae3-5e4c-78a1-a9ccb45482fe",
+        "TraceID": "IndicateNotifyRemoteAddressRemoved",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED"
+      },
+      {
         "UniquenessHash": "f3e73807-c52c-8b02-e3e2-9db446cb267c",
         "TraceID": "IndicateOneWayDelayNegotiated",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]"
+      },
+      {
+        "UniquenessHash": "b7f5143d-068d-377b-034b-2277f9f6604b",
+        "TraceID": "IndicatePathValidated",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_VALIDATED"
       },
       {
         "UniquenessHash": "446a0073-26fb-eed7-4ed4-fa9838fbd654",
@@ -15338,6 +16003,16 @@
         "EncodingString": "[list][%p] Stopped"
       },
       {
+        "UniquenessHash": "c69a0176-016d-40da-9165-e2fec2133faf",
+        "TraceID": "LocalAddressAdded",
+        "EncodingString": "[conn][%p] Added local address %!ADDR!"
+      },
+      {
+        "UniquenessHash": "cbc6e749-fe1b-7e87-2ced-3debaf4401cd",
+        "TraceID": "LocalAddressRemoved",
+        "EncodingString": "[conn][%p] Local address %!ADDR! (observed %!ADDR!) removed"
+      },
+      {
         "UniquenessHash": "3d930671-e549-968b-fcba-6e7691ee9678",
         "TraceID": "LocalCloseStopSending",
         "EncodingString": "[strm][%p] Closed locally (stop sending)"
@@ -15501,6 +16176,11 @@
         "UniquenessHash": "48b0b691-89c1-4bb2-1ba4-5bc91586b2b3",
         "TraceID": "NotAccepted",
         "EncodingString": "[strm][%p] New stream wasn't accepted, 0x%x"
+      },
+      {
+        "UniquenessHash": "54127702-4524-3b09-8f09-0120d9c82718",
+        "TraceID": "ObservedAddressAdded",
+        "EncodingString": "[conn][%p] Added Observed address %!ADDR! for Local address %!ADDR!"
       },
       {
         "UniquenessHash": "eaede67a-124b-3b3f-95ba-363d08546d2a",
@@ -16393,6 +17073,11 @@
         "EncodingString": "[strm][%p] Setting flags 0x%x (existing flags: 0x%x)"
       },
       {
+        "UniquenessHash": "3f75ae7e-7a36-39a6-df62-7821aaca5bd5",
+        "TraceID": "SettingAddAddress",
+        "EncodingString": "[sett] AddAddressMode         = %hhu"
+      },
+      {
         "UniquenessHash": "8a9548eb-5ed9-abe8-6008-94b545f099d7",
         "TraceID": "SettingCongestionControlAlgorithm",
         "EncodingString": "[sett] CongestionControlAlgorithm = %hu"
@@ -16643,6 +17328,11 @@
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
       },
       {
+        "UniquenessHash": "77ab1610-2ec3-cabb-48c6-b873e735a6c3",
+        "TraceID": "SettingIgnoreUnreachable",
+        "EncodingString": "[sett] IgnoreUnreachable      = %hhu"
+      },
+      {
         "UniquenessHash": "b2b7c2a6-35c7-4b14-47f2-dca7aad8817a",
         "TraceID": "SettingNetStatsEventEnabled",
         "EncodingString": "[sett] NetStatsEventEnabled   = %hhu"
@@ -16661,6 +17351,11 @@
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
         "TraceID": "SettingReliableResetEnabled",
         "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
+      },
+      {
+        "UniquenessHash": "efb76d23-a243-d5cb-a1cc-2dc5dba5454b",
+        "TraceID": "SettingServerMigrationEnabled",
+        "EncodingString": "[sett] ServerMigrationEnabled = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",

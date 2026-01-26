@@ -843,12 +843,44 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingNetStatsEventEnabled,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SettingsStreamMultiReceiveEnabled
-// [sett] StreamMultiReceiveEnabled= %hhu
-// QuicTraceLogVerbose(SettingsStreamMultiReceiveEnabled,  "[sett] StreamMultiReceiveEnabled= %hhu", Settings->StreamMultiReceiveEnabled);
-// arg2 = arg2 = Settings->StreamMultiReceiveEnabled = arg2
+// Decoder Ring for SettingServerMigrationEnabled
+// [sett] ServerMigrationEnabled = %hhu
+// QuicTraceLogVerbose(SettingServerMigrationEnabled,      "[sett] ServerMigrationEnabled = %hhu", Settings->ServerMigrationEnabled);
+// arg2 = arg2 = Settings->ServerMigrationEnabled = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsStreamMultiReceiveEnabled,
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingServerMigrationEnabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingAddAddress
+// [sett] AddAddressMode         = %hhu
+// QuicTraceLogVerbose(SettingAddAddress,                  "[sett] AddAddressMode         = %hhu", Settings->AddAddressMode);
+// arg2 = arg2 = Settings->AddAddressMode = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingAddAddress,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingIgnoreUnreachable
+// [sett] IgnoreUnreachable      = %hhu
+// QuicTraceLogVerbose(SettingIgnoreUnreachable,           "[sett] IgnoreUnreachable      = %hhu", Settings->IgnoreUnreachable);
+// arg2 = arg2 = Settings->IgnoreUnreachable = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingIgnoreUnreachable,
     TP_ARGS(
         unsigned char, arg2), 
     TP_FIELDS(

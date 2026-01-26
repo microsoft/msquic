@@ -1013,6 +1013,11 @@ NdisSetThreadObjectCompartmentId(
 
 #define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
 
+#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
+                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
+                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
+
 #if defined(__cplusplus)
 }
 #endif

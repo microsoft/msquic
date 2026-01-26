@@ -814,19 +814,21 @@ QuicPacketLogDrop(
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             ConnDropPacket,
-            "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.",
             Owner,
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid),
             Reason);
     } else {
         InterlockedIncrement64((int64_t*)&((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             BindingDropPacket,
-            "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.",
             Owner,
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid),
             Reason);
     }
     QuicPerfCounterIncrement(

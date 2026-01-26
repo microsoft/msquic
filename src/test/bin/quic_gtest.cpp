@@ -1767,37 +1767,94 @@ TEST_P(WithProbePathArgs, ProbePath) {
     }
 }
 
+TEST_P(WithProbePathFailedArgs, ProbePathFailed) {
+    TestLoggerT<ParamType> Logger("QuicTestProbePathFailed", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_PROBE_PATH_PARAMS Params = {
+            GetParam().Family,
+            GetParam().ShareBinding
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PROBE_PATH_FAILED, Params));
+    } else {
+        QuicTestProbePathFailed(
+            GetParam().Family,
+            GetParam().ShareBinding);
+    }
+}
+
 TEST_P(WithMigrationArgs, Migration) {
     TestLoggerT<ParamType> Logger("QuicTestMigration", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_MIGRATION_PARAMS Params = {
             GetParam().Family,
             GetParam().ShareBinding,
+            GetParam().AddressType,
             GetParam().Type
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MIGRATION, Params));
     } else {
-        QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().Type);
+        QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().AddressType, GetParam().Type);
     }
 }
 
-TEST_P(WithProbePathArgs, MultipleLocalAddresses) {
-    TestLoggerT<ParamType> Logger("QuicTestMultipleLocalAddresses", GetParam());
+TEST_P(WithAddPathBeforeStartArgs, AddPathBeforeStart) {
+    TestLoggerT<ParamType> Logger("QuicTestAddPathBeforeStart", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_ADD_PATH_BEFORE_START_PARAMS Params = {
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DeferConnIDGen
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ADD_PATH_BEFORE_START, Params));
+    } else {
+        QuicTestAddPathBeforeStart(
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DeferConnIDGen);
+    }
+}
+
+TEST_P(WithFamilyArgs, AddressDiscovery) {
+    TestLoggerT<ParamType> Logger("QuicTestAddressDiscovery", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ADDRESS_DISCOVERY, GetParam().Family));
+    } else {
+        QuicTestAddressDiscovery(GetParam().Family);
+    }
+}
+
+TEST_P(WithServerProbePathArgs, ServerProbePath) {
+    TestLoggerT<ParamType> Logger("QuicTestServerProbePath", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_PROBE_PATH_PARAMS Params = {
             GetParam().Family,
-            GetParam().ShareBinding,
+            TRUE,
             GetParam().DeferConnIDGen,
             GetParam().DropPacketCount
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PROBE_PATH, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SERVER_PROBE_PATH, Params));
     } else {
-        QuicTestMultipleLocalAddresses(GetParam().Family,
-            GetParam().ShareBinding,
+        QuicTestServerProbePath(GetParam().Family,
             GetParam().DeferConnIDGen,
             GetParam().DropPacketCount);
     }
 }
+
+TEST_P(WithServerMigrationArgs, ServerMigration) {
+    TestLoggerT<ParamType> Logger("QuicTestServerMigration", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_MIGRATION_PARAMS Params = {
+            GetParam().Family,
+            TRUE,
+            GetParam().AddressType,
+            GetParam().Type
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SERVER_MIGRATION, Params));
+    } else {
+        QuicTestServerMigration(GetParam().Family, GetParam().AddressType, GetParam().Type);
+    }
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
@@ -2732,8 +2789,28 @@ INSTANTIATE_TEST_SUITE_P(
 
 INSTANTIATE_TEST_SUITE_P(
     Basic,
+    WithProbePathFailedArgs,
+    ::testing::ValuesIn(ProbePathFailedArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
     WithMigrationArgs,
     ::testing::ValuesIn(MigrationArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithAddPathBeforeStartArgs,
+    ::testing::ValuesIn(AddPathBeforeStartArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithServerProbePathArgs,
+    ::testing::ValuesIn(ServerProbePathArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithServerMigrationArgs,
+    ::testing::ValuesIn(ServerMigrationArgs::Generate()));
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 

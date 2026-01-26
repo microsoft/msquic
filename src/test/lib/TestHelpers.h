@@ -821,13 +821,15 @@ struct MtuDropHelper : public DatapathHook
 
 struct PathProbeHelper : public DatapathHook
 {
-    uint16_t ClientProbePort;
+    uint16_t ProbePort;
+    BOOLEAN RemoteNew;
     CxPlatEvent ServerReceiveProbeEvent;
     CxPlatEvent ClientReceiveProbeEvent;
     uint32_t ClientDropPacketCount;
     uint32_t ServerDropPacketCount;
-    PathProbeHelper(uint16_t ClientPort, uint32_t ClientCount = 0, uint32_t ServerCount = 0) :
-        ClientProbePort(ClientPort),
+    PathProbeHelper(uint16_t Port, uint32_t ClientCount = 0, uint32_t ServerCount = 0, BOOLEAN RemoteNew = FALSE) :
+        ProbePort(Port),
+        RemoteNew(RemoteNew),
         ClientDropPacketCount(ClientCount),
         ServerDropPacketCount(ServerCount) {
         DatapathHooks::Instance->AddHook(this);
@@ -842,7 +844,9 @@ struct PathProbeHelper : public DatapathHook
     Receive(
         _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
-        if (QuicAddrGetPort(&Datagram->Route->RemoteAddress) == ClientProbePort) {
+        if ((RemoteNew ?
+                QuicAddrGetPort(&Datagram->Route->LocalAddress) :
+                QuicAddrGetPort(&Datagram->Route->RemoteAddress)) == ProbePort) {
             if (ClientDropPacketCount == 0) {
                 ServerReceiveProbeEvent.Set();
             } else {
@@ -850,7 +854,9 @@ struct PathProbeHelper : public DatapathHook
                 return TRUE;
             }
         }
-        if (QuicAddrGetPort(&Datagram->Route->LocalAddress) == ClientProbePort) {
+        if ((RemoteNew ?
+                QuicAddrGetPort(&Datagram->Route->RemoteAddress) :
+                QuicAddrGetPort(&Datagram->Route->LocalAddress)) == ProbePort) {
             if (ServerDropPacketCount == 0) {
                 ClientReceiveProbeEvent.Set();
             } else {

@@ -1520,6 +1520,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateNotifyObservedAddress
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS
+// QuicTraceLogConnVerbose(
+                IndicateNotifyObservedAddress,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateNotifyObservedAddress,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerAddrChanged
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED
 // QuicTraceLogConnVerbose(
@@ -1579,6 +1598,44 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvDeferred,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicateNotifyRemoteAddressAdded
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED
+// QuicTraceLogConnVerbose(
+            IndicateNotifyRemoteAddressAdded,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateNotifyRemoteAddressAdded,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicateNotifyRemoteAddressRemoved
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED
+// QuicTraceLogConnVerbose(
+            IndicateNotifyRemoteAddressRemoved,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateNotifyRemoteAddressRemoved,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -2461,17 +2518,121 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRecvUdpDatagrams,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnReleaseChain
+// [conn][%p] ReleaseChain: %p
+// QuicTraceEvent(
+        ConnReleaseChain,
+        "[conn][%p] ReleaseChain: %p",
+        Connection,
+        ReleaseChain);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = ReleaseChain = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnReleaseChain,
+    TP_ARGS(
+        const void *, arg2,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnBoundAddrAdded
+// [conn][%p] New Bound IP: %!ADDR!
+// QuicTraceEvent(
+        ConnBoundAddrAdded,
+        "[conn][%p] New Bound IP: %!ADDR!",
+        Connection,
+        CASTED_CLOG_BYTEARRAY(sizeof(Bound->Address), &Bound->Address));
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Bound->Address), &Bound->Address) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnBoundAddrAdded,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnObservedAddrAdded
+// [conn][%p] New Observed IP: %!ADDR! for Bound IP: %!ADDR!
+// QuicTraceEvent(
+        ConnObservedAddrAdded,
+        "[conn][%p] New Observed IP: %!ADDR! for Bound IP: %!ADDR!",
+        Connection,
+        CASTED_CLOG_BYTEARRAY(sizeof(Bound->ObservedAddress), &Bound->ObservedAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Bound->Address), &Bound->Address));
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Bound->ObservedAddress), &Bound->ObservedAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Bound->Address), &Bound->Address) = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnObservedAddrAdded,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3,
+        unsigned int, arg4_len,
+        const void *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+        ctf_integer(unsigned int, arg4_len, arg4_len)
+        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnLocalAddrRemoved
 // [conn][%p] Removed Local IP: %!ADDR!
 // QuicTraceEvent(
-                ConnLocalAddrRemoved,
-                "[conn][%p] Removed Local IP: %!ADDR!",
-                Connection,
-                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
+            ConnLocalAddrRemoved,
+            "[conn][%p] Removed Local IP: %!ADDR!",
+            Connection,
+            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrRemoved,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnRemoteAddrRemoved
+// [conn][%p] Removed Remote IP: %!ADDR!
+// QuicTraceEvent(
+            ConnRemoteAddrRemoved,
+            "[conn][%p] Removed Remote IP: %!ADDR!",
+            Connection,
+            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.RemoteAddress), &Connection->Paths[0].Route.RemoteAddress));
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.RemoteAddress), &Connection->Paths[0].Route.RemoteAddress) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRemoteAddrRemoved,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,

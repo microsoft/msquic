@@ -623,11 +623,6 @@ typedef struct CX_PLATFORM {
 
 } CX_PLATFORM;
 
-#define IS_LOOPBACK(Address) ((Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET &&        \
-                               Address.Ipv4.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) || \
-                              (Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6 &&       \
-                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
-
 #else
 
 #error "Unsupported Platform"
@@ -696,11 +691,6 @@ CxPlatConvertFromMappedV6(
     }
 }
 #pragma warning(pop)
-
-#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
-                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
-                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
 #endif // _WIN32
 

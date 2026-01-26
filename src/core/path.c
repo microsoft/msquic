@@ -28,6 +28,11 @@ QuicPathInitialize(
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->InUse = TRUE;
+    Path->RemoteAddressSequenceNumberValid = FALSE;
+    Path->RemoteAddressSequenceNumber = QUIC_VAR_INT_MAX;
+    Path->PunchMeNowRoundValid = FALSE;
+    Path->PunchMeNowRound = QUIC_VAR_INT_MAX;
+    Path->SendObservedAddress = TRUE;
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = Connection->Settings.MinimumMtu;
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
@@ -150,6 +155,16 @@ QuicPathSetValid(
         Path->ID,
         ReasonStrings[Reason]);
 
+    QUIC_CONNECTION_EVENT Event;
+    Event.Type = QUIC_CONNECTION_EVENT_PATH_VALIDATED;
+    Event.PATH_VALIDATED.LocalAddress = &Path->Route.LocalAddress;
+    Event.PATH_VALIDATED.RemoteAddress = &Path->Route.RemoteAddress;
+    QuicTraceLogConnVerbose(
+        IndicatePathValidated,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PATH_VALIDATED");
+    (void)QuicConnIndicateEvent(Connection, &Event);
+
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
 
@@ -230,7 +245,8 @@ QuicConnGetPathForPacket(
         return &Connection->Paths[i];
     }
 
-    if (!QuicConnIsServer(Connection)) {
+    if (!((QuicConnIsClient(Connection) && Connection->State.ServerMigrationNegotiated) ||
+          (QuicConnIsServer(Connection) && !Connection->State.ServerMigrationNegotiated))) {
         // Client doesn't create a new path.
         return NULL;
     }
@@ -261,7 +277,30 @@ QuicConnGetPathForPacket(
         }
     }
 
-    if (!QuicLibraryTryAddRefBinding(Connection->Paths[0].Binding)) {
+
+    QUIC_BOUND_ADDRESS_LIST_ENTRY* Bound = NULL;
+    for (CXPLAT_LIST_ENTRY* Entry = Connection->BoundAddresses.Flink;
+            Entry != &Connection->BoundAddresses;
+            Entry = Entry->Flink) {
+        Bound =
+            CXPLAT_CONTAINING_RECORD(
+                Entry,
+                QUIC_BOUND_ADDRESS_LIST_ENTRY,
+                Link);
+        if (QuicAddrCompare(&Packet->Route->LocalAddress, &Bound->Address)) {
+            break;
+        }
+        Bound = NULL;
+    }
+    if (Bound == NULL || Bound->Removing) {
+        //
+        // No matching local address found.
+        //
+        return NULL;
+    }
+
+    CXPLAT_DBG_ASSERT(Bound->Binding != NULL);
+    if (!QuicLibraryTryAddRefBinding(Bound->Binding)) {
         return NULL;
     }
 
@@ -283,8 +322,11 @@ QuicConnGetPathForPacket(
     if (Connection->Paths[0].DestCid->CID.Length == 0) {
         Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
     }
-    Path->Binding = Connection->Paths[0].Binding;
+    Path->Binding = Bound->Binding;
     QuicCopyRouteInfo(&Path->Route, Packet->Route);
+    Path->Route.State = RouteUnresolved;
+    Path->Route.Queue = NULL;
+
     QuicPathValidate(Path);
 
     return Path;
@@ -321,6 +363,19 @@ QuicPathSetActive(
 
         Connection->Paths[0] = *Path;
         *Path = PrevActivePath;
+    }
+
+    //
+    // When changing path, we need to increment the sequence number for observed
+    // address.
+    //
+    if (Path->SendObservedAddress) {
+        Connection->ObservedAddressSequenceNumber++;
+        if (Connection->State.ObservedAddressNegotiated) {
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS);
+        }
     }
 
     QuicTraceLogConnInfo(

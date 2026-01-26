@@ -2189,7 +2189,7 @@ TEST(RecvBufferResetReadTest, ResetClearsPendingAndExternalReference_SingleMode)
     EXPECT_TRUE(FirstChunk->ExternalReference);
     EXPECT_FALSE(RecvBuf.HasUnreadData());
 
-    // 4. Call the function under test – should reset read bookkeeping.
+    // 4. Call the function under test - should reset read bookkeeping.
     QuicRecvBufferResetRead(&RecvBuf.RecvBuf);
 
     // 5. Validate state was restored.

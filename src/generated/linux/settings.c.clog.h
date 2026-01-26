@@ -813,14 +813,44 @@ tracepoint(CLOG_SETTINGS_C, SettingNetStatsEventEnabled , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SettingsStreamMultiReceiveEnabled
-// [sett] StreamMultiReceiveEnabled= %hhu
-// QuicTraceLogVerbose(SettingsStreamMultiReceiveEnabled,  "[sett] StreamMultiReceiveEnabled= %hhu", Settings->StreamMultiReceiveEnabled);
-// arg2 = arg2 = Settings->StreamMultiReceiveEnabled = arg2
+// Decoder Ring for SettingServerMigrationEnabled
+// [sett] ServerMigrationEnabled = %hhu
+// QuicTraceLogVerbose(SettingServerMigrationEnabled,      "[sett] ServerMigrationEnabled = %hhu", Settings->ServerMigrationEnabled);
+// arg2 = arg2 = Settings->ServerMigrationEnabled = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_SettingsStreamMultiReceiveEnabled
-#define _clog_3_ARGS_TRACE_SettingsStreamMultiReceiveEnabled(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_SETTINGS_C, SettingsStreamMultiReceiveEnabled , arg2);\
+#ifndef _clog_3_ARGS_TRACE_SettingServerMigrationEnabled
+#define _clog_3_ARGS_TRACE_SettingServerMigrationEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingServerMigrationEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingAddAddress
+// [sett] AddAddressMode         = %hhu
+// QuicTraceLogVerbose(SettingAddAddress,                  "[sett] AddAddressMode         = %hhu", Settings->AddAddressMode);
+// arg2 = arg2 = Settings->AddAddressMode = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingAddAddress
+#define _clog_3_ARGS_TRACE_SettingAddAddress(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingAddAddress , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingIgnoreUnreachable
+// [sett] IgnoreUnreachable      = %hhu
+// QuicTraceLogVerbose(SettingIgnoreUnreachable,           "[sett] IgnoreUnreachable      = %hhu", Settings->IgnoreUnreachable);
+// arg2 = arg2 = Settings->IgnoreUnreachable = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingIgnoreUnreachable
+#define _clog_3_ARGS_TRACE_SettingIgnoreUnreachable(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingIgnoreUnreachable , arg2);\
 
 #endif
 

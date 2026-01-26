@@ -28,6 +28,10 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
     QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
     QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+    QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS           = 19,
+    QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED       = 20,   // Only indicated if QUIC_SETTINGS.AddAddressMode is MANUAL
+    QUIC_CONNECTION_EVENT_PATH_VALIDATED                    = 21,
+    QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED     = 22,   // Only indicated if QUIC_SETTINGS.AddAddressMode is MANUAL
 #endif
 
 } QUIC_CONNECTION_EVENT_TYPE;
@@ -113,6 +117,21 @@ typedef struct QUIC_CONNECTION_EVENT {
             BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
         } ONE_WAY_DELAY_NEGOTIATED;
         QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
+        struct {
+            QUIC_ADDR *LocalAddress;
+            QUIC_ADDR *ObservedAddress;
+        } NOTIFY_OBSERVED_ADDRESS;
+        struct {
+            QUIC_ADDR *Address;
+            QUIC_UINT62 SequenceNumber;
+        } NOTIFY_REMOTE_ADDRESS_ADDED;
+        struct {
+            QUIC_ADDR *LocalAddress;
+            QUIC_ADDR *RemoteAddress;
+        } PATH_VALIDATED;
+        struct {
+            QUIC_UINT62 SequenceNumber;
+        } NOTIFY_REMOTE_ADDRESS_REMOVED;
 #endif
 
     };
@@ -468,6 +487,70 @@ Congestion Window
 `Bandwidth`
 
 Estimated bandwidth
+
+# QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event indicates the content of an OBSERVED_ADDRESS frame.
+
+## NOTIFY_OBSERVED_ADDRESS
+Both Observed address and local address are passed in the `NOTIFY_OBSERVED_ADDRESS` struct/union.
+
+`LocalAddress`
+
+The local IP address.
+
+`ObservedAddress`
+
+The observed IP address.
+
+# QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event is only indicated if QUIC_SETTINGS.AddAddressMode is MANUAL. This event indicates the content of an ADD_ADDRESS frame.
+
+## NOTIFY_REMOTE_ADDRESS_ADDED
+The contents of ADD_ADDRESS frame are passed in the `NOTIFY_REMOTE_ADDRESS_ADDED` struct/union.
+
+`Address`
+
+The new Remote IP address.
+
+`SequenceNumber`
+
+The Sequence Number of the added address.
+
+# QUIC_CONNECTION_EVENT_PATH_VALIDATED
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event is delivered when a path has been validated.
+
+## PATH_VALIDATED
+Both the Local IP address and the Remote IP address are  passed in the `PATH_VALIDATED` struct/union.
+
+`LocalAddress`
+
+The Local IP address of a path.
+
+`RemoteAddress`
+
+The Remote IP address of a path.
+
+# QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event is only indicated if QUIC_SETTINGS.AddAddressMode is MANUAL. This event indicates the content of a REMOVE_ADDRESS frame.
+
+## NOTIFY_REMOTE_ADDRESS_REMOVED
+The content of REMOVE_ADDRESS frame is passed in the `NOTIFY_REMOTE_ADDRESS_REMOVED` struct/union.
+
+`SequenceNumber`
+
+The Sequence Number of the removed address.
 
 
 # See Also

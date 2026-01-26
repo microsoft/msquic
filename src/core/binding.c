@@ -1362,6 +1362,34 @@ QuicBindingCreateConnection(
     BindingRefAdded = TRUE;
     NewConnection->Paths[0].Binding = Binding;
 
+    // Add the local address to the connection's list of bound addresses.
+    QUIC_BOUND_ADDRESS_LIST_ENTRY* Bound =
+        (QUIC_BOUND_ADDRESS_LIST_ENTRY*)
+        CXPLAT_ALLOC_NONPAGED(
+            sizeof(QUIC_BOUND_ADDRESS_LIST_ENTRY),
+            QUIC_POOL_BOUND_ADDRESS_LIST);
+    if (Bound == NULL) {
+        QuicPacketLogDrop(Binding, Packet, "Failed to allocate local address");
+        goto Exit;
+    }
+
+    if (!QuicLibraryTryAddRefBinding(Binding)) {
+        QuicPacketLogDrop(Binding, Packet, "Clean up in progress");
+        CXPLAT_FREE(Bound, QUIC_POOL_BOUND_ADDRESS_LIST);
+        goto Exit;
+    }
+
+    CxPlatCopyMemory(&Bound->Address, &Packet->Route->LocalAddress, sizeof(QUIC_ADDR));
+    Bound->SequenceNumber = QUIC_VAR_INT_MAX;
+    Bound->SequenceNumberValid = FALSE;
+    Bound->ObservedAddressSet = FALSE;
+    Bound->SendAddAddress = FALSE;
+    Bound->Removing = FALSE;
+    Bound->SendRemoveAddress = FALSE;
+    Bound->Binding = Binding;
+
+    CxPlatListInsertTail(&NewConnection->BoundAddresses, &Bound->Link);
+
     if (!QuicLookupAddRemoteHash(
             &Binding->Lookup,
             NewConnection,

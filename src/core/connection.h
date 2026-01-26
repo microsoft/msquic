@@ -192,6 +192,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN TimestampRecvNegotiated : 1;
 
         //
+        // Indicates that the peer supports the Observed Address feature.
+        //
+        BOOLEAN ObservedAddressNegotiated : 1;
+
+        //
         // Indicates we received APPLICATION_ERROR transport error and are checking also
         // later packets in case they contain CONNECTION_CLOSE frame with application-layer error.
         //
@@ -219,6 +224,10 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN DisableConnIDGen : 1;
 #endif
+        BOOLEAN ServerMigrationNegotiated : 1;
+
+        BOOLEAN NatTraverseNegotiated : 1;
+
     };
 } QUIC_CONNECTION_STATE;
 
@@ -438,6 +447,12 @@ typedef struct QUIC_CONNECTION {
     uint8_t PathsCount;
 
     //
+    // Number of local addresses the connection is currently tracking.
+    //
+    _Field_range_(0, QUIC_MAX_LOCAL_ADDRESS_COUNT)
+    uint8_t BoundAddressesCount;
+
+    //
     // The next identifier to use for a new path.
     //
     uint8_t NextPathId;
@@ -511,6 +526,26 @@ typedef struct QUIC_CONNECTION {
     QUIC_VAR_INT NextSourceCidSequenceNumber;
 
     //
+    // The sequence number to use for sending a new observed address.
+    //
+    QUIC_VAR_INT ObservedAddressSequenceNumber;
+
+    //
+    // The concurrency limit of nat traverse attempts.
+    //
+    QUIC_VAR_INT NatTraverseConcurrencyLimit;
+
+    //
+    // The sequence number to use for sending an add address.
+    //
+    QUIC_VAR_INT AddAddressSequenceNumber;
+
+    //
+    // The sequence number to use for sending an punch me now.
+    //
+    QUIC_VAR_INT PunchMeNowSequenceNumber;
+
+    //
     // The most recent Retire Prior To field received in a NEW_CONNECTION_ID
     // frame.
     //
@@ -522,6 +557,10 @@ typedef struct QUIC_CONNECTION {
     // used.
     //
     QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
+
+    CXPLAT_LIST_ENTRY BoundAddresses;
+
+    CXPLAT_LIST_ENTRY CandidateAddresses;
 
     //
     // The list of connection IDs used for receiving.
@@ -711,6 +750,29 @@ typedef struct QUIC_CONNECTION {
     } BlockedTimings;
 
 } QUIC_CONNECTION;
+
+typedef struct QUIC_BOUND_ADDRESS_LIST_ENTRY {
+
+    CXPLAT_LIST_ENTRY Link;
+    QUIC_ADDR Address;
+    QUIC_ADDR ObservedAddress;
+    QUIC_BINDING* Binding;
+    QUIC_VAR_INT SequenceNumber;
+    BOOLEAN SequenceNumberValid : 1;
+    BOOLEAN ObservedAddressSet : 1;
+    BOOLEAN SendAddAddress : 1;
+    BOOLEAN SendRemoveAddress : 1;
+    BOOLEAN Removing : 1;
+
+} QUIC_BOUND_ADDRESS_LIST_ENTRY;
+
+typedef struct QUIC_CANDIDATE_ADDRESS_LIST_ENTRY {
+
+    CXPLAT_LIST_ENTRY Link;
+    QUIC_ADDR Address;
+    QUIC_ADDR ObservedAddress;
+
+} QUIC_CANDIDATE_ADDRESS_LIST_ENTRY;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
 
@@ -1686,6 +1748,28 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnOpenNewPaths(
     _In_ QUIC_CONNECTION* Connection
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnProcessAddAddress(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_ADD_ADDRESS_EX* Frame
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnProcessRemoveAddress(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_REMOVE_ADDRESS_EX* Frame
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnSendPunchProbe(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_BOUND_ADDRESS_LIST_ENTRY* Bound,
+    _In_ QUIC_ADDR* RemoteAddress
     );
 
 //

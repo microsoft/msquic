@@ -152,6 +152,8 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     uint32_t VersionInfoLength;
     const uint8_t* VersionInfo;
 
+    QUIC_VAR_INT NatTraverseConcurrencyLimit;
+
 } QUIC_TRANSPORT_PARAMETERS;
 
 //

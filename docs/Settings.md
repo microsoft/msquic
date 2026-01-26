@@ -67,6 +67,9 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Stream Multi Receive               | uint8_t    | StreamMultiReceiveEnabled   |         0 (FALSE) | Enable multi receive support                                                                                                  |
 | XDP                                | uint8_t    | XdpEnabled                  |         0 (FALSE) | Enable XDP. |
 | QTIP                               | uint8_t    | QTIPEnabled                 |         0 (FALSE) | Enable QTIP. XDP must be used. Clients will only send/recv QTIP xor UDP traffic, listeners accept both. [More info](./QTIP.md)|
+| Server Initiated Migration         | uint8_t    | ServerMigrationEnabled      |         0 (FALSE) | Enable Server Initiated Migration. |
+| ADD_ADDRESS handling mode          | uint8_t    | AddAddressMode              |         0 (AUTO)  | Control handling of ADD_ADDRESS Frame |
+| IgnoreUnreachable                  | uint8_t    | IgnoreUnreachable           |         0 (FALSE) | Ignore Unreachable during the Handshake |
 
 The types map to registry types as follows:
   - `uint64_t` is a `REG_QWORD`.
@@ -207,6 +210,15 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_SEND_DSCP` <br> 25               | uint8_t                       | Both      | The DiffServ Code Point put in the DiffServ field (formerly TypeOfService/TrafficClass) on packets sent from this connection. |
 | `QUIC_PARAM_CONN_NETWORK_STATISTICS` <br> 32      | QUIC_NETWORK_STATISTICS       | Get-only  | Returns Connection level network statistics |
 | `QUIC_PARAM_CONN_CLOSE_ASYNC` <br> 26      | uint8_t (BOOLEAN)      | Both  | The desired connection close behavior. Defaults to false (synchronous). |
+| `QUIC_PARAM_CONN_ADD_BOUND_ADDRESS` <br> 27       | QUIC_ADDR                     | Set-only  | Add a bound address. Server only. |
+| `QUIC_PARAM_CONN_ADD_OBSERVED_ADDRESS` <br> 28    | QUIC_ADD_OBSERVED_ADDRESS     | Set-only  | Set an observed address for a bound address. Server only. |
+| `QUIC_PARAM_CONN_REMOVE_BOUND_ADDRESS` <br> 29    | QUIC_ADDR                     | Set-only  | Remove a bound address. Server only. |
+| `QUIC_PARAM_CONN_ADD_PATH` <br> 30                | QUIC_PATH_PARAM               | Set-only  | Add a path. Client only. |
+| `QUIC_PARAM_CONN_ACTIVATE_PATH` <br> 31           | QUIC_PATH_PARAM               | Set-only  | Activate a path. Client only. |
+| `QUIC_PARAM_CONN_REMOVE_PATH` <br> 32             | QUIC_PATH_PARAM               | Set-only  | Remove a path. Client only. |
+| `QUIC_PARAM_CONN_ADD_CANDIDATE_ADDRESS` <br> 33   | QUIC_CANDIDATE_ADDRESS        | Set-only  | Add a candidate address. Client only. |
+| `QUIC_PARAM_CONN_REMOVE_CANDIDATE_ADDRESS` <br> 34| QUIC_CANDIDATE_ADDRESS        | Set-only  | Remove a candidate address. Client only. |
+
 
 ### QUIC_PARAM_CONN_STATISTICS_V2
 

@@ -1104,6 +1104,58 @@ tracepoint(CLOG_FRAME_C, FrameLogHandshakeDone , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FrameLogReliableResetStreamInvalid
+// [%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogReliableResetStreamInvalid,
+                "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogReliableResetStreamInvalid
+#define _clog_5_ARGS_TRACE_FrameLogReliableResetStreamInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogReliableResetStreamInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogReliableResetStream
+// [%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu
+// QuicTraceLogVerbose(
+            FrameLogReliableResetStream,
+            "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.StreamID,
+            Frame.ErrorCode,
+            Frame.FinalSize,
+            Frame.ReliableSize);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.StreamID = arg5
+// arg6 = arg6 = Frame.ErrorCode = arg6
+// arg7 = arg7 = Frame.FinalSize = arg7
+// arg8 = arg8 = Frame.ReliableSize = arg8
+----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_FrameLogReliableResetStream
+#define _clog_9_ARGS_TRACE_FrameLogReliableResetStream(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8)\
+tracepoint(CLOG_FRAME_C, FrameLogReliableResetStream , arg2, arg3, arg4, arg5, arg6, arg7, arg8);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FrameLogDatagramInvalid
 // [%c][%cX][%llu]   DATAGRAM [Invalid]
 // QuicTraceLogVerbose(
@@ -1270,11 +1322,11 @@ tracepoint(CLOG_FRAME_C, FrameLogTimestamp , arg2, arg3, arg4, arg5);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for FrameLogReliableResetStreamInvalid
-// [%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]
+// Decoder Ring for FrameLogObservedAddressInvalid
+// [%c][%cX][%llu]   OBSERVED_ADDRESS [Invalid]
 // QuicTraceLogVerbose(
-                FrameLogReliableResetStreamInvalid,
-                "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]",
+                FrameLogObservedAddressInvalid,
+                "[%c][%cX][%llu]   OBSERVED_ADDRESS [Invalid]",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
@@ -1282,9 +1334,9 @@ tracepoint(CLOG_FRAME_C, FrameLogTimestamp , arg2, arg3, arg4, arg5);\
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_FrameLogReliableResetStreamInvalid
-#define _clog_5_ARGS_TRACE_FrameLogReliableResetStreamInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_FRAME_C, FrameLogReliableResetStreamInvalid , arg2, arg3, arg4);\
+#ifndef _clog_5_ARGS_TRACE_FrameLogObservedAddressInvalid
+#define _clog_5_ARGS_TRACE_FrameLogObservedAddressInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogObservedAddressInvalid , arg2, arg3, arg4);\
 
 #endif
 
@@ -1292,29 +1344,169 @@ tracepoint(CLOG_FRAME_C, FrameLogReliableResetStreamInvalid , arg2, arg3, arg4);
 
 
 /*----------------------------------------------------------
-// Decoder Ring for FrameLogReliableResetStream
-// [%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu
+// Decoder Ring for FrameLogObservedAddress
+// [%c][%cX][%llu]   OBSERVED_ADDRESS %llu  %s
 // QuicTraceLogVerbose(
-            FrameLogReliableResetStream,
-            "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu",
+            FrameLogObservedAddress,
+            "[%c][%cX][%llu]   OBSERVED_ADDRESS %llu  %s",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
-            Frame.StreamID,
-            Frame.ErrorCode,
-            Frame.FinalSize,
-            Frame.ReliableSize);
+            Frame.SequenceNumber,
+            ObservedAddrStr.Address);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
-// arg5 = arg5 = Frame.StreamID = arg5
-// arg6 = arg6 = Frame.ErrorCode = arg6
-// arg7 = arg7 = Frame.FinalSize = arg7
-// arg8 = arg8 = Frame.ReliableSize = arg8
+// arg5 = arg5 = Frame.SequenceNumber = arg5
+// arg6 = arg6 = ObservedAddrStr.Address = arg6
 ----------------------------------------------------------*/
-#ifndef _clog_9_ARGS_TRACE_FrameLogReliableResetStream
-#define _clog_9_ARGS_TRACE_FrameLogReliableResetStream(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8)\
-tracepoint(CLOG_FRAME_C, FrameLogReliableResetStream , arg2, arg3, arg4, arg5, arg6, arg7, arg8);\
+#ifndef _clog_7_ARGS_TRACE_FrameLogObservedAddress
+#define _clog_7_ARGS_TRACE_FrameLogObservedAddress(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
+tracepoint(CLOG_FRAME_C, FrameLogObservedAddress , arg2, arg3, arg4, arg5, arg6);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogAddAddressInvalid
+// [%c][%cX][%llu]   ADD_ADDRESS [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogAddAddressInvalid,
+                "[%c][%cX][%llu]   ADD_ADDRESS [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogAddAddressInvalid
+#define _clog_5_ARGS_TRACE_FrameLogAddAddressInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogAddAddressInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogAddAddress
+// [%c][%cX][%llu]   ADD_ADDRESS %llu %s
+// QuicTraceLogVerbose(
+            FrameLogAddAddress,
+            "[%c][%cX][%llu]   ADD_ADDRESS %llu %s",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.SequenceNumber,
+            AddedAddrStr.Address);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.SequenceNumber = arg5
+// arg6 = arg6 = AddedAddrStr.Address = arg6
+----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_FrameLogAddAddress
+#define _clog_7_ARGS_TRACE_FrameLogAddAddress(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
+tracepoint(CLOG_FRAME_C, FrameLogAddAddress , arg2, arg3, arg4, arg5, arg6);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPunchMeNowInvalid
+// [%c][%cX][%llu]   PUNCH_ME_NOW [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogPunchMeNowInvalid,
+                "[%c][%cX][%llu]   PUNCH_ME_NOW [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogPunchMeNowInvalid
+#define _clog_5_ARGS_TRACE_FrameLogPunchMeNowInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogPunchMeNowInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPunchMeNow
+// [%c][%cX][%llu]   PUNCH_ME_NOW %llu %llu %s
+// QuicTraceLogVerbose(
+            FrameLogPunchMeNow,
+            "[%c][%cX][%llu]   PUNCH_ME_NOW %llu %llu %s",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.Round,
+            Frame.PairedSequenceNumber,
+            PunchedAddrStr.Address);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.Round = arg5
+// arg6 = arg6 = Frame.PairedSequenceNumber = arg6
+// arg7 = arg7 = PunchedAddrStr.Address = arg7
+----------------------------------------------------------*/
+#ifndef _clog_8_ARGS_TRACE_FrameLogPunchMeNow
+#define _clog_8_ARGS_TRACE_FrameLogPunchMeNow(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7)\
+tracepoint(CLOG_FRAME_C, FrameLogPunchMeNow , arg2, arg3, arg4, arg5, arg6, arg7);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogRemoveAddressInvalid
+// [%c][%cX][%llu]   REMOVE_ADDRESS [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogRemoveAddressInvalid,
+                "[%c][%cX][%llu]   REMOVE_ADDRESS [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogRemoveAddressInvalid
+#define _clog_5_ARGS_TRACE_FrameLogRemoveAddressInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogRemoveAddressInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogRemoveAddress
+// [%c][%cX][%llu]   REMOVE_ADDRESS %llu
+// QuicTraceLogVerbose(
+            FrameLogRemoveAddress,
+            "[%c][%cX][%llu]   REMOVE_ADDRESS %llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.SequenceNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.SequenceNumber = arg5
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_FrameLogRemoveAddress
+#define _clog_6_ARGS_TRACE_FrameLogRemoveAddress(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_FRAME_C, FrameLogRemoveAddress , arg2, arg3, arg4, arg5);\
 
 #endif
 

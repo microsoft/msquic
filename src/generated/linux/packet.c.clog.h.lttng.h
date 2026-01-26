@@ -307,18 +307,20 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, AllocFailure,
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnDropPacket
-// [conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.
+// [conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.
 // QuicTraceEvent(
             ConnDropPacket,
-            "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.",
             Owner,
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid),
             Reason);
 // arg2 = arg2 = Owner = arg2
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress) = arg3
 // arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress) = arg4
-// arg5 = arg5 = Reason = arg5
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid) = arg5
+// arg6 = arg6 = Reason = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacket,
     TP_ARGS(
@@ -327,14 +329,18 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacket,
         const void *, arg3,
         unsigned int, arg4_len,
         const void *, arg4,
-        const char *, arg5), 
+        unsigned int, arg5_len,
+        const void *, arg5,
+        const char *, arg6), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
         ctf_integer(unsigned int, arg4_len, arg4_len)
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-        ctf_string(arg5, arg5)
+        ctf_integer(unsigned int, arg5_len, arg5_len)
+        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
+        ctf_string(arg6, arg6)
     )
 )
 
@@ -342,18 +348,20 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacket,
 
 /*----------------------------------------------------------
 // Decoder Ring for BindingDropPacket
-// [bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.
+// [bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.
 // QuicTraceEvent(
             BindingDropPacket,
-            "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Dest CID=%!CID! Reason=%s.",
             Owner,
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid),
             Reason);
 // arg2 = arg2 = Owner = arg2
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress) = arg3
 // arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress) = arg4
-// arg5 = arg5 = Reason = arg5
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid) = arg5
+// arg6 = arg6 = Reason = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacket,
     TP_ARGS(
@@ -362,14 +370,18 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacket,
         const void *, arg3,
         unsigned int, arg4_len,
         const void *, arg4,
-        const char *, arg5), 
+        unsigned int, arg5_len,
+        const void *, arg5,
+        const char *, arg6), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
         ctf_integer(unsigned int, arg4_len, arg4_len)
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-        ctf_string(arg5, arg5)
+        ctf_integer(unsigned int, arg5_len, arg5_len)
+        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
+        ctf_string(arg6, arg6)
     )
 )
 

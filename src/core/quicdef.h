@@ -374,6 +374,11 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_MAX_PATH_COUNT                     4
 
 //
+// The maximum number of local addresses a single connection will keep track of.
+//
+#define QUIC_MAX_LOCAL_ADDRESS_COUNT            128
+
+//
 // Maximum number of connection IDs accepted from the peer.
 //
 #define QUIC_ACTIVE_CONNECTION_ID_LIMIT         4
@@ -571,6 +576,26 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_CONN_ID_GENERATION_DISABLED     FALSE
 
 //
+// The default settings for permitting server migration.
+//
+#define QUIC_DEFAULT_SERVER_MIGRATION_ENABLED        FALSE
+
+//
+// The concurrency limit for NAT traverse attempts.
+//
+#define QUIC_NAT_TRAVERSE_CONCURRENCY_LIMIT          2
+
+//
+// The default settings for mode of processing added addresses.
+//
+#define QUIC_DEFAULT_ADD_ADDRESS_MODE                QUIC_ADD_ADDRESS_AUTO
+
+//
+// The default settings for ignore unreachable addresses.
+//
+#define QUIC_DEFAULT_IGNORE_UNREACHABLE              FALSE
+
+//
 // The number of rounds in Cubic Slow Start to sample RTT.
 //
 #define QUIC_HYSTART_DEFAULT_N_SAMPLING             8
@@ -627,6 +652,9 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED                 0x01000000
 #define QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED                 0x02000000
 #define QUIC_TP_FLAG_TIMESTAMP_SHIFT                        24
+#define QUIC_TP_FLAG_OBSERVED_ADDRESS                       0x04000000
+#define QUIC_TP_FLAG_SERVER_MIGRATION                       0x08000000
+#define QUIC_TP_FLAG_NAT_TRAVERSE                           0x10000000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
@@ -679,6 +707,10 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_ONE_WAY_DELAY_ENABLED          "OneWayDelayEnabled"
 #define QUIC_SETTING_NET_STATS_EVENT_ENABLED        "NetStatsEventEnabled"
 #define QUIC_SETTING_STREAM_MULTI_RECEIVE_ENABLED   "StreamMultiReceiveEnabled"
+#define QUIC_SETTING_SERVER_MIGRATION_ENABLED       "ServerMigrationEnabled"
+#define QUIC_SETTING_ADD_ADDRESS_MODE               "AddAddressMode"
+#define QUIC_SETTING_IGNORE_UNREACHABLE             "IgnoreUnreachable"
+
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"

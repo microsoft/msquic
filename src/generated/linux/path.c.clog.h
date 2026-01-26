@@ -18,6 +18,10 @@
 #define _clog_MACRO_QuicTraceLogConnInfo  1
 #define QuicTraceLogConnInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceLogConnVerbose
+#define _clog_MACRO_QuicTraceLogConnVerbose  1
+#define QuicTraceLogConnVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -139,6 +143,24 @@ tracepoint(CLOG_PATH_C, PathQeoEnabled , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_PathQeoDisabled
 #define _clog_4_ARGS_TRACE_PathQeoDisabled(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_PATH_C, PathQeoDisabled , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicatePathValidated
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_VALIDATED
+// QuicTraceLogConnVerbose(
+        IndicatePathValidated,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PATH_VALIDATED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePathValidated
+#define _clog_3_ARGS_TRACE_IndicatePathValidated(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_PATH_C, IndicatePathValidated , arg1);\
 
 #endif
 

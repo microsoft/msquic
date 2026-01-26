@@ -429,13 +429,14 @@ ServerConnectionCallback(
 {
     UNREFERENCED_PARAMETER(Context);
     switch (Event->Type) {
-    case QUIC_CONNECTION_EVENT_CONNECTED:
+    case QUIC_CONNECTION_EVENT_CONNECTED: {
         //
         // The handshake has completed for the connection.
         //
         printf("[conn][%p] Connected\n", Connection);
         MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL);
         break;
+    }
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //
         // The connection has been shut down by the transport. Generally, this
@@ -875,6 +876,19 @@ ClientConnectionCallback(
             Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor,
             Event->IDEAL_PROCESSOR_CHANGED.PartitionIndex);
         break;
+    case QUIC_CONNECTION_EVENT_NOTIFY_OBSERVED_ADDRESS: {
+        QUIC_ADDR_STR AddrStr = {0};
+        QUIC_ADDR_STR AddrStr1 = {0};
+        if (QuicAddrToString(Event->NOTIFY_OBSERVED_ADDRESS.LocalAddress, &AddrStr) &&
+            QuicAddrToString(Event->NOTIFY_OBSERVED_ADDRESS.ObservedAddress, &AddrStr1)) {
+            printf(
+                "[conn][%p] Local Address: %s Observed Address: %s\n",
+                Connection,
+                AddrStr.Address,
+                AddrStr1.Address);
+        }
+        break;
+    }
     default:
         break;
     }

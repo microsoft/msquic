@@ -117,6 +117,31 @@ typedef struct QUIC_PATH {
     BOOLEAN EncryptionOffloading : 1;
 
     //
+    // Indicates whether this path needs to send an observed address.
+    //
+    BOOLEAN SendObservedAddress : 1;
+
+    //
+    // Indicates whether the remote address sequence number is valid.
+    //
+    BOOLEAN RemoteAddressSequenceNumberValid : 1;
+
+    //
+    // Indicates whether we tries to do NAT traversal
+    //
+    BOOLEAN NatTraversal : 1;
+
+    //
+    // The add address needs to be sent out.
+    //
+    BOOLEAN SendPunchMeNow : 1;
+
+    //
+    // Indicates whether the punch me now round number is valid.
+    //
+    BOOLEAN PunchMeNowRoundValid : 1;
+
+    //
     // The ending time of ECN validation testing state in microseconds.
     //
     uint64_t EcnTestingEndingTime;
@@ -145,6 +170,10 @@ typedef struct QUIC_PATH {
     // The network route.
     //
     CXPLAT_ROUTE Route;
+
+    QUIC_VAR_INT RemoteAddressSequenceNumber;
+
+    QUIC_VAR_INT PunchMeNowRound;
 
     //
     // The destination CID used for sending on this path.
@@ -199,7 +228,7 @@ typedef struct QUIC_PATH {
 #endif
 
 CXPLAT_STATIC_ASSERT(
-    sizeof(QUIC_PATH) < 256,
+    sizeof(QUIC_PATH) < 512,
     "Ensure path struct stays small since we prealloc them");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -1726,6 +1726,11 @@ CxPlatConvertFromMappedV6(
 
 #define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
 
+#define IS_LOOPBACK(Address) ((Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET &&        \
+                               Address.Ipv4.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) || \
+                              (Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6 &&       \
+                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
+
 #if defined(__cplusplus)
 }
 #endif

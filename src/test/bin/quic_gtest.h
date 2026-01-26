@@ -967,16 +967,63 @@ class WithProbePathArgs : public testing::Test,
     public testing::WithParamInterface<ProbePathArgs> {
 };
 
+struct ProbePathFailedArgs {
+    int Family;
+    BOOLEAN ShareBinding;
+    static ::std::vector<ProbePathFailedArgs> Generate() {
+        ::std::vector<ProbePathFailedArgs> list;
+        for (int Family : { 4, 6 })
+        for (BOOLEAN ShareBinding : { TRUE, FALSE })
+            list.push_back({ Family, ShareBinding });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ProbePathFailedArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << (args.ShareBinding ? "ShareBinding" : "not ShareBinding");
+}
+
+class WithProbePathFailedArgs : public testing::Test,
+    public testing::WithParamInterface<ProbePathFailedArgs> {
+};
+
+struct AddPathBeforeStartArgs {
+    int Family;
+    BOOLEAN ShareBinding;
+    BOOLEAN DeferConnIDGen;
+    static ::std::vector<AddPathBeforeStartArgs> Generate() {
+        ::std::vector<AddPathBeforeStartArgs> list;
+        for (int Family : { 4, 6 })
+        for (BOOLEAN ShareBinding : { TRUE, FALSE })
+        for (BOOLEAN DeferConnIDGen : { TRUE, FALSE })
+            list.push_back({ Family, ShareBinding, DeferConnIDGen });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const AddPathBeforeStartArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << (args.ShareBinding ? "ShareBinding" : "not ShareBinding") << "/"
+        << (args.DeferConnIDGen ? "DeferConnIDGen" : "not DeferConnIDGen");
+}
+
+class WithAddPathBeforeStartArgs : public testing::Test,
+    public testing::WithParamInterface<AddPathBeforeStartArgs> {
+};
+
 struct MigrationArgs {
     int Family;
     BOOLEAN ShareBinding;
+    QUIC_MIGRATION_ADDRESS_TYPE AddressType;
     QUIC_MIGRATION_TYPE Type;
     static ::std::vector<MigrationArgs> Generate() {
         ::std::vector<MigrationArgs> list;
         for (int Family : { 4, 6 })
         for (BOOLEAN ShareBinding : { TRUE, FALSE })
+        for (QUIC_MIGRATION_ADDRESS_TYPE AddressType : { NewLocalAddress, NewRemoteAddress, NewBothAddresses })
         for (QUIC_MIGRATION_TYPE Type : { MigrateWithProbe, MigrateWithoutProbe, DeleteAndMigrate })
-            list.push_back({ Family, ShareBinding, Type });
+            list.push_back({ Family, ShareBinding, AddressType, Type });
         return list;
     }
 };
@@ -984,10 +1031,60 @@ struct MigrationArgs {
 std::ostream& operator << (std::ostream& o, const MigrationArgs& args) {
     return o << (args.Family == 4 ? "v4" : "v6") << "/"
         << (args.ShareBinding ? "ShareBinding" : "not ShareBinding") << "/"
+        << (args.AddressType ? (args.AddressType == NewRemoteAddress ? "New Remote Address" : "New Both Remote and Local Addresses") : "New Local Address") << "/"
         << (args.Type ? (args.Type == MigrateWithoutProbe ? "Migrate without Probe" : "Delete and Migrate") : "Migrate with Probe");
 }
 
 class WithMigrationArgs : public testing::Test,
     public testing::WithParamInterface<MigrationArgs> {
 };
+
+struct ServerProbePathArgs {
+    int Family;
+    BOOLEAN DeferConnIDGen;
+    uint32_t DropPacketCount;
+    static ::std::vector<ServerProbePathArgs> Generate() {
+        ::std::vector<ServerProbePathArgs> list;
+        for (int Family : { 4, 6 })
+        for (BOOLEAN DeferConnIDGen : { TRUE, FALSE })
+        for (uint32_t DropPacketCount : { 0, 1 })
+            list.push_back({ Family, DeferConnIDGen, DropPacketCount });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ServerProbePathArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << (args.DeferConnIDGen ? "DeferConnIDGen" : "not DeferConnIDGen") << "/"
+        << "DropPacketCount: " << args.DropPacketCount;
+}
+
+class WithServerProbePathArgs : public testing::Test,
+    public testing::WithParamInterface<ServerProbePathArgs> {
+};
+
+struct ServerMigrationArgs {
+    int Family;
+    QUIC_MIGRATION_ADDRESS_TYPE AddressType;
+    QUIC_MIGRATION_TYPE Type;
+    static ::std::vector<ServerMigrationArgs> Generate() {
+        ::std::vector<ServerMigrationArgs> list;
+        for (int Family : { 4, 6 })
+        for (QUIC_MIGRATION_ADDRESS_TYPE AddressType : { NewLocalAddress, NewRemoteAddress, NewBothAddresses })
+        for (QUIC_MIGRATION_TYPE Type : { MigrateWithProbe, MigrateWithoutProbe, DeleteAndMigrate })
+            list.push_back({ Family, AddressType, Type });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ServerMigrationArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << (args.AddressType ? (args.AddressType == NewRemoteAddress ? "New Remote Address" : "New Both Remote and Local Addresses") : "New Local Address") << "/"
+        << (args.Type ? (args.Type == MigrateWithoutProbe ? "Migrate without Probe" : "Delete and Migrate") : "Migrate with Probe");
+}
+
+class WithServerMigrationArgs : public testing::Test,
+    public testing::WithParamInterface<ServerMigrationArgs> {
+};
+
 #endif

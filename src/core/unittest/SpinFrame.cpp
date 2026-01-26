@@ -35,6 +35,7 @@ union QuicV1Frames {
     QUIC_ACK_FREQUENCY_EX AckFrequencyFrame;
     QUIC_RELIABLE_RESET_STREAM_EX ReliableResetStreamFrame;
     QUIC_TIMESTAMP_EX TimestampFrame;
+    QUIC_OBSERVED_ADDRESS_EX ObservedAddressFrame;
 };
 
 TEST(SpinFrame, SpinFrame1000000)
@@ -49,11 +50,7 @@ TEST(SpinFrame, SpinFrame1000000)
     BOOLEAN InvalidFrame;
     uint8_t Buffer[255];
     uint8_t BufferLength = 0;
-
-    uint16_t FrameType;
-    CXPLAT_STATIC_ASSERT(
-        QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT16_MAX,
-        "Tests below assumes frames fit in 16-bits");
+    uint64_t FrameType;
 
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);
 
@@ -236,6 +233,14 @@ TEST(SpinFrame, SpinFrame1000000)
                 break;
             case QUIC_FRAME_TIMESTAMP:
                 if (QuicTimestampFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.TimestampFrame)) {
+                    SuccessfulDecodes++;
+                } else {
+                    FailedDecodes++;
+                }
+                break;
+            case QUIC_FRAME_OBSERVED_ADDRESS_V4:
+            case QUIC_FRAME_OBSERVED_ADDRESS_V6:
+                if (QuicObservedAddressFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &DecodedFrame.ObservedAddressFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;

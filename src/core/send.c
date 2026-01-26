@@ -661,6 +661,223 @@ QuicSendWriteFrames(
             }
         }
 
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS) {
+            // TODO - Support sending on more than just active path
+            if (Connection->Paths[0].SendObservedAddress) {
+                QUIC_OBSERVED_ADDRESS_EX Frame;
+                Frame.SequenceNumber = Connection->ObservedAddressSequenceNumber;
+                Frame.Address = Connection->Paths[0].Route.RemoteAddress;
+
+                if (QuicObservedAddressFrameEncode(
+                        &Frame,
+                        &Builder->DatagramLength,
+                        AvailableBufferLength,
+                        Builder->Datagram->Buffer)) {
+
+                    Connection->Paths[0].SendObservedAddress = FALSE;
+                    Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS;
+                    Builder->Metadata->Frames[
+                        Builder->Metadata->FrameCount].OBSERVED_ADDRESS.Sequence =
+                            Connection->ObservedAddressSequenceNumber++;
+                    if (QuicPacketBuilderAddFrame(
+                            Builder,
+                            QuicAddrGetFamily(&Connection->Paths[0].Route.RemoteAddress) == QUIC_ADDRESS_FAMILY_INET ?
+                                QUIC_FRAME_OBSERVED_ADDRESS_V4 : QUIC_FRAME_OBSERVED_ADDRESS_V6,
+                            TRUE)) {
+                        return TRUE;
+                    }
+                } else {
+                    RanOutOfRoom = TRUE;
+                }
+            } else {
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS;
+            }
+        }
+
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_ADD_ADDRESS) {
+
+            CXPLAT_LIST_ENTRY* Entry;
+            for (Entry = Connection->BoundAddresses.Flink;
+                    Entry != &Connection->BoundAddresses;
+                    Entry = Entry->Flink) {
+                QUIC_BOUND_ADDRESS_LIST_ENTRY* Bound =
+                    CXPLAT_CONTAINING_RECORD(
+                        Entry,
+                        QUIC_BOUND_ADDRESS_LIST_ENTRY,
+                        Link);
+
+                if (!Bound->SendAddAddress) {
+                    continue;
+                }
+                CXPLAT_DBG_ASSERT(Bound->ObservedAddressSet);
+                if (IS_LOOPBACK(Bound->ObservedAddress)) {
+                    //
+                    // Don't send ADD_ADDRESS frames for loopback addresses.
+                    //
+                    Bound->SendAddAddress = FALSE;
+                    continue;
+                }
+                QUIC_ADD_ADDRESS_EX Frame = { 0 };
+                Frame.SequenceNumber = Bound->SequenceNumber;
+                Frame.Address = Bound->ObservedAddress;
+
+                if (QuicAddAddressFrameEncode(
+                        &Frame,
+                        &Builder->DatagramLength,
+                        AvailableBufferLength,
+                        Builder->Datagram->Buffer)) {
+
+                    Bound->SendAddAddress = FALSE;
+                    Builder->Metadata->Frames[
+                        Builder->Metadata->FrameCount].ADD_ADDRESS.Sequence =
+                            Bound->SequenceNumber;
+                    if (QuicPacketBuilderAddFrame(
+                            Builder,
+                            QuicAddrGetFamily(&Bound->ObservedAddress) == QUIC_ADDRESS_FAMILY_INET ?
+                                QUIC_FRAME_ADD_ADDRESS_V4 : QUIC_FRAME_ADD_ADDRESS_V6,
+                            TRUE)) {
+                        return TRUE;
+                    }
+                } else {
+                    RanOutOfRoom = TRUE;
+                    break;
+                }
+            }
+
+            if (Entry == &Connection->BoundAddresses) {
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ADD_ADDRESS;
+            }
+
+            if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+                return TRUE;
+            }
+        }
+
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_REMOVE_ADDRESS) {
+
+            CXPLAT_LIST_ENTRY* Entry;
+            for (Entry = Connection->BoundAddresses.Flink;
+                    Entry != &Connection->BoundAddresses;
+                    Entry = Entry->Flink) {
+                QUIC_BOUND_ADDRESS_LIST_ENTRY* Bound =
+                    CXPLAT_CONTAINING_RECORD(
+                        Entry,
+                        QUIC_BOUND_ADDRESS_LIST_ENTRY,
+                        Link);
+
+                if (!Bound->SendRemoveAddress) {
+                    continue;
+                }
+                CXPLAT_DBG_ASSERT(Bound->SequenceNumberValid);
+                QUIC_REMOVE_ADDRESS_EX Frame = { 0 };
+                Frame.SequenceNumber = Bound->SequenceNumber;
+
+                if (QuicRemoveAddressFrameEncode(
+                        &Frame,
+                        &Builder->DatagramLength,
+                        AvailableBufferLength,
+                        Builder->Datagram->Buffer)) {
+
+                    Bound->SendRemoveAddress = FALSE;
+                    Builder->Metadata->Frames[
+                        Builder->Metadata->FrameCount].REMOVE_ADDRESS.Sequence =
+                            Bound->SequenceNumber;
+                    if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_REMOVE_ADDRESS, TRUE)) {
+                        return TRUE;
+                    }
+                } else {
+                    RanOutOfRoom = TRUE;
+                    break;
+                }
+            }
+
+            if (Entry == &Connection->BoundAddresses) {
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_REMOVE_ADDRESS;
+            }
+
+            if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+                return TRUE;
+            }
+        }
+
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PUNCH_ME_NOW) {
+            uint8_t i;
+            for (i = 0; i < Connection->PathsCount; ++i) {
+                QUIC_PATH* TempPath = &Connection->Paths[i];
+                if (!TempPath->SendPunchMeNow) {
+                    continue;
+                }
+
+                CXPLAT_DBG_ASSERT(TempPath->NatTraversal &&
+                    TempPath->RemoteAddressSequenceNumberValid);
+
+                QUIC_CANDIDATE_ADDRESS_LIST_ENTRY* Candidate = NULL;
+                for (CXPLAT_LIST_ENTRY* Entry = Connection->CandidateAddresses.Flink;
+                        Entry != &Connection->CandidateAddresses;
+                        Entry = Entry->Flink) {
+                    Candidate = CXPLAT_CONTAINING_RECORD(
+                        Entry,
+                        QUIC_CANDIDATE_ADDRESS_LIST_ENTRY,
+                        Link);
+                    if (QuicAddrCompare(&Candidate->Address, &TempPath->Route.LocalAddress)) {
+                        break;
+                    }
+                    Candidate = NULL;
+                }
+
+                if (Candidate == NULL) {
+                    TempPath->SendPunchMeNow = FALSE;
+                    continue;
+                }
+
+                if (IS_LOOPBACK(Candidate->ObservedAddress)) {
+                    //
+                    // Don't send PUNCH_ME_NOW frames for loopback addresses.
+                    //
+                    TempPath->SendPunchMeNow = FALSE;
+                    continue;
+                }
+
+                QUIC_PUNCH_ME_NOW_EX Frame = { 0 };
+                Frame.Round = Connection->PunchMeNowSequenceNumber++;
+                Frame.PairedSequenceNumber = TempPath->RemoteAddressSequenceNumber;
+                Frame.Address = Candidate->ObservedAddress;
+
+                if (QuicPunchMeNowFrameEncode(
+                        &Frame,
+                        &Builder->DatagramLength,
+                        AvailableBufferLength,
+                        Builder->Datagram->Buffer)) {
+
+                    TempPath->PunchMeNowRound = Frame.Round;
+                    TempPath->PunchMeNowRoundValid = TRUE;
+                    TempPath->SendPunchMeNow = FALSE;
+                    Builder->Metadata->Frames[
+                        Builder->Metadata->FrameCount].PUNCH_ME_NOW.Round =
+                            Frame.Round;
+                    if (QuicPacketBuilderAddFrame(
+                            Builder,
+                            QuicAddrGetFamily(&TempPath->Route.LocalAddress) == QUIC_ADDRESS_FAMILY_INET ?
+                                QUIC_FRAME_PUNCH_ME_NOW_V4 : QUIC_FRAME_PUNCH_ME_NOW_V6,
+                            TRUE)) {
+                        return TRUE;
+                    }
+                } else {
+                    RanOutOfRoom = TRUE;
+                    break;
+                }
+            }
+
+            if (i == Connection->PathsCount) {
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PUNCH_ME_NOW;
+            }
+
+            if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+                return TRUE;
+            }
+        }
+
+
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATA_BLOCKED) {
 
             QUIC_DATA_BLOCKED_EX Frame = { Send->OrderedStreamBytesSent };
