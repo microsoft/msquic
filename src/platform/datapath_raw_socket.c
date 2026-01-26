@@ -1149,7 +1149,7 @@ CxPlatTryAddSocket(
             if (Temp->ReserveAuxTcpSock != Socket->ReserveAuxTcpSock) {
                 //
                 // We previously created a datapath on the same local IP and port, but in fact
-                // not the same QTIP settings. This is not considered a "clash."
+                // not the same QTIP settings. This is not considered a collision.
                 //
                 Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
                 continue;
