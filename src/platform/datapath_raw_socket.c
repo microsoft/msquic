@@ -1155,10 +1155,6 @@ CxPlatTryAddSocket(
                 continue;
             }
 
-            //
-            // Redundant datapath. We already created one with the same IP port for local/remote AND QTIP settings.
-            // Will skip plumbing XDP rules and silently fall back to using normal OS sockets (though likely XDP will steal that traffic).
-            //
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;
         }
