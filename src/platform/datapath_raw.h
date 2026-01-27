@@ -344,12 +344,13 @@ CxPlatSocketCompare(
     }
 
     //
-    // Make sure the local IP matches and the full remote address matches.
+    // Make sure the local IP matches and the full remote address matches along with QTIP settings.
     //
     CXPLAT_DBG_ASSERT(Socket->Connected);
     return
         QuicAddrCompareIp(&Socket->LocalAddress, LocalAddress) &&
-        QuicAddrCompare(&Socket->RemoteAddress, RemoteAddress);
+        QuicAddrCompare(&Socket->RemoteAddress, RemoteAddress) &&
+        Socket->ReserveAuxTcpSock == UseQtip;
 }
 
 //
