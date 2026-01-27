@@ -1,6 +1,6 @@
 [package]
 name = "seera-msquic"
-version = "2.6.0-beta"
+version = "2.6.0-beta2"
 edition = "2021"
 authors = ["Microsoft", "SEERA-Networks"]
 description = "SEERA-Networks fork of Microsoft implementation of the IETF QUIC protocol"
