@@ -51,7 +51,8 @@ CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     )
 {
     CXPLAT_SOCKET_RAW* Socket = NULL;
@@ -61,7 +62,7 @@ CxPlatGetSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
-        if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
+        if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress, UseQtip)) {
             if (CxPlatRundownAcquire(&Temp->RawRundown)) {
                 Socket = Temp;
             }
@@ -1138,23 +1139,10 @@ CxPlatTryAddSocket(
         }
     }
 
-    //
-    // Look up all previously established datapaths bound to a specific port,
-    // and determine if this new datapath is redundant or not.
-    //
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
-        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
-            if (Temp->ReserveAuxTcpSock != Socket->ReserveAuxTcpSock) {
-                //
-                // We previously created a datapath on the same local IP and port, but in fact
-                // not the same QTIP settings. This is not considered a collision.
-                //
-                Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
-                continue;
-            }
-
+        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress, Socket->ReserveAuxTcpSock)) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;
         }

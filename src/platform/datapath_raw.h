@@ -334,12 +334,13 @@ BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     )
 {
     CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
-    if (Socket->Wildcard) {
-        return TRUE; // The local port match is all that is needed.
+    if (Socket->Wildcard && Socket->ReserveAuxTcpSock == UseQtip) {
+        return TRUE; // The local port match and QTIP settings is all that is needed.
     }
 
     //
@@ -358,7 +359,8 @@ CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     );
 
 QUIC_STATUS
