@@ -2308,13 +2308,17 @@ CxPlatTlsWriteDataToSchannel(
                         QUIC_CERT_BLOB_CONTEXT : QUIC_CERT_BLOB_NONE;
 #endif
             }
-            if (SecStatus == SEC_E_NO_CREDENTIALS &&
+            if ((SecStatus == SEC_E_NO_CREDENTIALS || SecStatus == SEC_E_INTERNAL_ERROR) &&
                 (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
                 //
-                // Ignore this case.
+                // Certificate validation is being deferred to the application:
+                // indicate no certificate is present but let the application decide if this is a
+                // failure.
+                // SEC_E_INTERNAL_ERROR can be returned on SECPKG_ATTR_REMOTE_CERT_CONTEXT if no
+                // certificate is found, normalize to SEC_E_NO_CREDENTIALS.
                 //
                 PeerCertBlob.Type = QUIC_CERT_BLOB_NONE;
-                CertValidationResult.hrVerifyChainStatus = SecStatus;
+                CertValidationResult.hrVerifyChainStatus = SEC_E_NO_CREDENTIALS;
             } else if (SecStatus == SEC_E_OK &&
                 !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
                 (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
