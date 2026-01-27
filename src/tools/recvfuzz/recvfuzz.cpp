@@ -682,7 +682,7 @@ void WriteClientPacket(
                 &PayloadLength,
                 BufferSize,
                 Buffer + *HeaderLength);
-        } else if (PacketParams->FrameTypes[i] >= 0x08 && PacketParams->FrameTypes[i] <= 0x0f) {
+        } else if (PacketParams->FrameTypes[i] >= QUIC_FRAME_STREAM && PacketParams->FrameTypes[i] <= QUIC_FRAME_STREAM_7) {
             // STREAM frame (types 0x08-0x0f)
             WriteStreamFrame(
                 &PayloadLength,
@@ -1088,18 +1088,18 @@ bool CompleteHandshake(
     )
 {
     //
-    // Send initial packet to start handshake
+    // Keep sending the packet until we receive a response or the time runs out.
     //
     do {
         BuildAndSendPackets(Binding, Route, PacketParams, ClientContext, false);
     } while (!RecvPacketEvent.WaitTimeout(250) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
 
     //
-    // Process handshake packets
+    // Proceed with the rest of the handshake.
     //
     uint8_t CryptoBuffer[8192];
     uint32_t CryptoBufferOffset = 0;
-    while (PacketQueue != nullptr) {
+    while (PacketQueue != nullptr) { // TODO - Handle race conditions where packets aren't all here yet
         QUIC_RX_PACKET* Packet = PacketQueue;
         PacketScope PacketScope(Packet);
         PacketQueueLock.Acquire();
@@ -1111,7 +1111,7 @@ bool CompleteHandshake(
 
         if (!Packet->DestCidLen ||
             memcmp(Packet->DestCid, &CurrSrcCid, sizeof(uint64_t)) != 0) {
-            continue;
+            continue; // Packet doesn't match our current connection
         }
 
         if (Packet->LH->Type == QUIC_INITIAL_V1) {
@@ -1131,7 +1131,7 @@ bool CompleteHandshake(
         while (PayloadOffset < PayloadLength) {
             QUIC_VAR_INT FrameType INIT_NO_SAL(0);
             CXPLAT_FRE_ASSERT(QuicVarIntDecode(PayloadLength, Payload, &PayloadOffset, &FrameType));
-            if (FrameType == QUIC_FRAME_ACK) {
+            if (FrameType == QUIC_FRAME_ACK) { // Just ignore all ACK frame payload
                 QUIC_VAR_INT temp INIT_NO_SAL(0);
                 for (int i = 0; i < 4; i++) {
                     CXPLAT_FRE_ASSERT(
@@ -1169,11 +1169,14 @@ bool CompleteHandshake(
 
                 CryptoBufferOffset += RecvBufferLength;
                 if (Packet->LH->Type == QUIC_INITIAL_V1) {
+                    //
+                    // Send the initial packet ACK.
+                    //
                     PacketParams->NumFrames = 1;
                     PacketParams->FrameTypes[0] = QUIC_FRAME_ACK;
                     PacketParams->PacketType = QUIC_INITIAL_V1;
                     BuildAndSendPackets(Binding, Route, PacketParams, ClientContext, false);
-                    CryptoBufferOffset = 0;
+                    CryptoBufferOffset = 0; // Reset to zero for handshake data
                 }
             }
         }
@@ -1201,7 +1204,7 @@ void FuzzHandshake(
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
     PacketParams.Mode = 1;
     GetRandomBytes(sizeof(uint64_t), &PacketParams.SourceCid);
-    memcpy(&CurrSrcCid, PacketParams.SourceCid, sizeof(uint64_t));
+    memcpy(&CurrSrcCid, PacketParams.SourceCid, sizeof(uint64_t)); // Save for receive path
 
     TlsContext ClientContext;
     ClientContext.CreateContext(PacketParams.SourceCid);
@@ -1236,7 +1239,7 @@ void Fuzz1Rtt(
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
     PacketParams.Mode = 2;
     GetRandomBytes(sizeof(uint64_t), &PacketParams.SourceCid);
-    memcpy(&CurrSrcCid, PacketParams.SourceCid, sizeof(uint64_t));
+    memcpy(&CurrSrcCid, PacketParams.SourceCid, sizeof(uint64_t)); // Save for receive path
 
     TlsContext ClientContext;
     ClientContext.CreateContext(PacketParams.SourceCid);
