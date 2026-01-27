@@ -38,6 +38,7 @@
     <ClInclude Include="KArray.h" />
     <ClInclude Include="precomp.h" />
     <ClInclude Include="TestHelpers.h" />
+    <ClInclude Include="TestUtility.h" />
     <ClInclude Include="..\MsQuicTests.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -85,6 +85,7 @@
 ../src/core/stream.h
 ../src/core/connection.h
 ../src/test/lib/TestHelpers.h
+../src/test/lib/TestUtility.h
 ../src/test/lib/TestStream.cpp
 ../src/test/lib/DataTest.cpp
 ../src/test/lib/PathTest.cpp
