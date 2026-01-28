@@ -230,6 +230,19 @@ if ($UseXdp) {
     $DuoNic = $true
 }
 
+if ($UseQtip -and $IsWindows) {
+    # Disable RSC on DuoNic adapters for QTIP tests.
+    # RSC (Receive Segment Coalescing) can coalesce TCP segments and update the
+    # IP TotalLength field to a value larger than the actual buffer delivered,
+    # causing packet parsing failures.
+    Write-Host "Disabling RSC on DuoNic adapters for QTIP..."
+    try {
+        Get-NetAdapterRsc -Name "duo*" -ErrorAction SilentlyContinue | Disable-NetAdapterRsc -ErrorAction SilentlyContinue
+    } catch {
+        Write-Warning "Failed to disable RSC: $_"
+    }
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
