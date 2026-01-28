@@ -340,10 +340,18 @@ CxPlatSocketCompare(
 {
     CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
     if (Socket->Wildcard) {
-        return TRUE; // The local port match is all that is needed.
+        //
+        // For a listener socket,
+        // always match if the listener Socket has enabled QTIP.
+        // Otherwise, perhaps another client connection on this machine has enabled QTIP,
+        // and it just so happens that client connection has the same local socket port as this listener
+        // socket. Then this listener should not steal their traffic.
+        //
+        return Socket->ReserveAuxTcpSock || !UseQtip;
     }
 
     //
+    // For a client socket,
     // Make sure the local IP matches and the full remote address matches along with QTIP settings.
     //
     CXPLAT_DBG_ASSERT(Socket->Connected);
