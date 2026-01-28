@@ -744,21 +744,16 @@ typedef struct CXPLAT_SQE {
     HANDLE WaitCompletionPacket;    // Wait completion packet bound to Event
 } CXPLAT_SQE;
 
-#define IO_WAIT_COMPLETION_PACKET_MODIFY_STATE 0x0001
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtCreateWaitCompletionPacket (
+//
+// Wait Completion Packet functions from ntdll.dll.
+//
+typedef NTSTATUS (NTAPI *FuncNtCreateWaitCompletionPacket)(
     _Out_ PHANDLE WaitCompletionPacketHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtAssociateWaitCompletionPacket (
+typedef NTSTATUS (NTAPI *FuncNtAssociateWaitCompletionPacket)(
     _In_ HANDLE WaitCompletionPacketHandle,
     _In_ HANDLE IoCompletionHandle,
     _In_ HANDLE TargetObjectHandle,
@@ -769,14 +764,15 @@ NtAssociateWaitCompletionPacket (
     _Out_opt_ PBOOLEAN TargetApcInvoked
     );
 
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtCancelWaitCompletionPacket (
+typedef NTSTATUS (NTAPI *FuncNtCancelWaitCompletionPacket)(
     _In_ HANDLE WaitCompletionPacketHandle,
     _In_ BOOLEAN RemoveSignaledPacket
     );
 
+// Global function pointers (initialized in CxPlatInitialize)
+extern FuncNtCreateWaitCompletionPacket CxPlatNtCreateWaitCompletionPacket;
+extern FuncNtAssociateWaitCompletionPacket CxPlatNtAssociateWaitCompletionPacket;
+extern FuncNtCancelWaitCompletionPacket CxPlatNtCancelWaitCompletionPacket;
 
 QUIC_INLINE
 BOOLEAN
@@ -819,11 +815,10 @@ CxPlatEventQEnqueue(
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
     if (!PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped)){
-        if (sqe->WcpEvent){
-            SetEvent(sqe->WcpEvent);
+        if (sqe->WcpEvent) {
+            CxPlatEventSet(sqe->WcpEvent);
             return TRUE;
-        }
-        else {
+        } else {
             return FALSE;
         }
     }
@@ -856,7 +851,9 @@ CxPlatEventQDequeue(
     )
 {
     ULONG out_count = 0;
-    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return 0;
+    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) {
+        return 0;
+    }
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
 #if DEBUG
@@ -866,7 +863,7 @@ CxPlatEventQDequeue(
         }
     }
 #endif
-    return (uint32_t)out_count;
+    return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
 }
 
 QUIC_INLINE
@@ -893,32 +890,35 @@ CxPlatSqeInitialize(
     sqe->Completion = completion;
 
     if (sqe->WcpEvent == NULL) {
-        sqe->WcpEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-        CXPLAT_DBG_ASSERT(sqe->WcpEvent != NULL);
+        CxPlatEventInitialize(&sqe->WcpEvent, TRUE, FALSE);
+    }
+    if (sqe->WcpEvent == NULL) {
+        return FALSE;
     }
 
-    NTSTATUS status = NtCreateWaitCompletionPacket(&sqe->WaitCompletionPacket,
-                                                  IO_WAIT_COMPLETION_PACKET_MODIFY_STATE,
+    NTSTATUS status = CxPlatNtCreateWaitCompletionPacket(&sqe->WaitCompletionPacket,
+                                                  GENERIC_ALL,
                                                   NULL);
     if (!NT_SUCCESS(status)) {
         CloseHandle(sqe->WcpEvent);
         return FALSE;
     }
 
-    status = NtAssociateWaitCompletionPacket(
+    status = CxPlatNtAssociateWaitCompletionPacket(
         sqe->WaitCompletionPacket,
         *queue,
         sqe->WcpEvent,
-        sqe,
         NULL,
+        sqe,
         0,          // IoStatus STATUS_SUCCESS
         0,
         NULL);
 
     if (!NT_SUCCESS(status)) {
-        NtCancelWaitCompletionPacket(
+        NTSTATUS CancelStatus = CxPlatNtCancelWaitCompletionPacket(
                 sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
                 TRUE);              // RemoveSignaledPacket
+        CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
         CloseHandle(sqe->WaitCompletionPacket);
         CloseHandle(sqe->WcpEvent);
         return FALSE;
@@ -950,9 +950,10 @@ CxPlatSqeCleanup(
 {
     if (sqe->WcpEvent)
     {
-        NtCancelWaitCompletionPacket(
+        NTSTATUS CancelStatus = CxPlatNtCancelWaitCompletionPacket(
             sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
             TRUE);              // RemoveSignaledPacket
+        CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
         CloseHandle(sqe->WaitCompletionPacket);
         CloseHandle(sqe->WcpEvent);
     }
@@ -966,9 +967,6 @@ CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    if (cqe->lpOverlapped == NULL) {
-        return (CXPLAT_SQE*)cqe->lpCompletionKey;
-    }
     return CONTAINING_RECORD(cqe->lpOverlapped, CXPLAT_SQE, Overlapped);
 }
 

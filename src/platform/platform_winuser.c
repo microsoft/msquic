@@ -36,6 +36,11 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 //
 typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
 
+// Global function pointers (initialized in CxPlatInitialize)
+FuncNtCreateWaitCompletionPacket CxPlatNtCreateWaitCompletionPacket = NULL;
+FuncNtAssociateWaitCompletionPacket CxPlatNtAssociateWaitCompletionPacket = NULL;
+FuncNtCancelWaitCompletionPacket CxPlatNtCancelWaitCompletionPacket = NULL;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSystemLoad(
@@ -266,6 +271,15 @@ CxPlatInitialize(
                 SuccessfullySetVersion = TRUE;
             }
         }
+
+        // Load Wait Completion Packet functions (available on Windows 11+)
+        CxPlatNtCreateWaitCompletionPacket =
+            (FuncNtCreateWaitCompletionPacket)GetProcAddress(NtDllHandle, "NtCreateWaitCompletionPacket");
+        CxPlatNtAssociateWaitCompletionPacket =
+            (FuncNtAssociateWaitCompletionPacket)GetProcAddress(NtDllHandle, "NtAssociateWaitCompletionPacket");
+        CxPlatNtCancelWaitCompletionPacket =
+            (FuncNtCancelWaitCompletionPacket)GetProcAddress(NtDllHandle, "NtCancelWaitCompletionPacket");
+
         FreeLibrary(NtDllHandle);
     }
     CXPLAT_DBG_ASSERT(SuccessfullySetVersion); // TODO: Is the assert here enough or is there an appropriate QUIC_STATUS we return?
