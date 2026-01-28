@@ -740,7 +740,39 @@ typedef struct CXPLAT_SQE {
 #if DEBUG
     BOOLEAN IsQueued; // Debug flag to catch double queueing.
 #endif
+    HANDLE WcpEvent;      // Manual-reset event for wake packets
+    HANDLE WaitCompletionPacket;    // Wait completion packet bound to Event
 } CXPLAT_SQE;
+
+//
+// Wait Completion Packet functions from ntdll.dll.
+//
+typedef NTSTATUS (NTAPI *FuncNtCreateWaitCompletionPacket)(
+    _Out_ PHANDLE WaitCompletionPacketHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+typedef NTSTATUS (NTAPI *FuncNtAssociateWaitCompletionPacket)(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TargetObjectHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _Out_opt_ PBOOLEAN TargetApcInvoked
+    );
+
+typedef NTSTATUS (NTAPI *FuncNtCancelWaitCompletionPacket)(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ BOOLEAN RemoveSignaledPacket
+    );
+
+// Global function pointers (initialized in CxPlatInitialize)
+extern FuncNtCreateWaitCompletionPacket CxPlatNtCreateWaitCompletionPacket;
+extern FuncNtAssociateWaitCompletionPacket CxPlatNtAssociateWaitCompletionPacket;
+extern FuncNtCancelWaitCompletionPacket CxPlatNtCancelWaitCompletionPacket;
 
 QUIC_INLINE
 BOOLEAN
@@ -782,7 +814,15 @@ CxPlatEventQEnqueue(
     sqe->IsQueued;
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
-    return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
+    if (!PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped)){
+        if (sqe->WcpEvent) {
+            CxPlatEventSet(sqe->WcpEvent);
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 QUIC_INLINE
@@ -811,7 +851,9 @@ CxPlatEventQDequeue(
     )
 {
     ULONG out_count = 0;
-    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return 0;
+    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) {
+        return 0;
+    }
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
 #if DEBUG
@@ -846,6 +888,42 @@ CxPlatSqeInitialize(
     UNREFERENCED_PARAMETER(queue);
     CxPlatZeroMemory(sqe, sizeof(*sqe));
     sqe->Completion = completion;
+
+    if (sqe->WcpEvent == NULL) {
+        CxPlatEventInitialize(&sqe->WcpEvent, TRUE, FALSE);
+    }
+    if (sqe->WcpEvent == NULL) {
+        return FALSE;
+    }
+
+    NTSTATUS status = CxPlatNtCreateWaitCompletionPacket(&sqe->WaitCompletionPacket,
+                                                  GENERIC_ALL,
+                                                  NULL);
+    if (!NT_SUCCESS(status)) {
+        CloseHandle(sqe->WcpEvent);
+        return FALSE;
+    }
+
+    status = CxPlatNtAssociateWaitCompletionPacket(
+        sqe->WaitCompletionPacket,
+        *queue,
+        sqe->WcpEvent,
+        NULL,
+        sqe,
+        0,          // IoStatus STATUS_SUCCESS
+        0,
+        NULL);
+
+    if (!NT_SUCCESS(status)) {
+        NTSTATUS CancelStatus = CxPlatNtCancelWaitCompletionPacket(
+                sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
+                TRUE);              // RemoveSignaledPacket
+        CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
+        CloseHandle(sqe->WaitCompletionPacket);
+        CloseHandle(sqe->WcpEvent);
+        return FALSE;
+    }
+
     return TRUE;
 }
 
@@ -870,6 +948,15 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     )
 {
+    if (sqe->WcpEvent)
+    {
+        NTSTATUS CancelStatus = CxPlatNtCancelWaitCompletionPacket(
+            sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
+            TRUE);              // RemoveSignaledPacket
+        CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
+        CloseHandle(sqe->WaitCompletionPacket);
+        CloseHandle(sqe->WcpEvent);
+    }
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(sqe);
 }
