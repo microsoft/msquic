@@ -339,8 +339,8 @@ CxPlatSocketCompare(
     )
 {
     CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
-    if (Socket->Wildcard && Socket->ReserveAuxTcpSock == UseQtip) {
-        return TRUE; // The local port match and QTIP settings is all that is needed.
+    if (Socket->Wildcard) {
+        return TRUE; // The local port match is all that is needed.
     }
 
     //
