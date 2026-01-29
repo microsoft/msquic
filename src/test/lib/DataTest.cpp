@@ -1538,9 +1538,10 @@ QuicCancelOnLossConnectionHandler(
 
 void
 QuicCancelOnLossSend(
-    _In_ bool DropPackets
+    const CancelOnLossArgs& Params
     )
 {
+    bool DropPackets = Params.DropPackets;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 

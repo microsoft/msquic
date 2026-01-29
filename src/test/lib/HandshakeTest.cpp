@@ -2924,10 +2924,11 @@ QuicTestKeyUpdate(
 
 void
 QuicTestCidUpdate(
-    _In_ int Family,
-    _In_ uint16_t Iterations
+    const CidUpdateArgs& Params
     )
 {
+    int Family = Params.Family;
+    uint16_t Iterations = Params.Iterations;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 

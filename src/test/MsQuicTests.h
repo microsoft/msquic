@@ -597,15 +597,23 @@ QuicAbortiveTransfers(
     _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
     );
 
+struct CancelOnLossArgs {
+    bool DropPackets;
+};
+
 void
 QuicCancelOnLossSend(
-    _In_ bool DropPackets
+    const CancelOnLossArgs& Params
     );
+
+struct CidUpdateArgs {
+    int Family;
+    uint16_t Iterations;
+};
 
 void
 QuicTestCidUpdate(
-    _In_ int Family,
-    _In_ uint16_t Iterations
+    const CidUpdateArgs& Params
     );
 
 typedef enum QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE {

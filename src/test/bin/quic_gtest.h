@@ -387,46 +387,6 @@ class WithAbortiveArgs : public testing::Test,
     public testing::WithParamInterface<AbortiveArgs> {
 };
 
-struct CancelOnLossArgs {
-    bool DropPackets;
-    static ::std::vector<CancelOnLossArgs> Generate() {
-        ::std::vector<CancelOnLossArgs> list;
-        for (bool DropPackets : {false, true})
-            list.push_back({ DropPackets });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
-    return o << "DropPackets: " << (args.DropPackets ? "true" : "false");
-}
-
-class WithCancelOnLossArgs : public testing::Test,
-    public testing::WithParamInterface<CancelOnLossArgs> {
-};
-
-struct CidUpdateArgs {
-    int Family;
-    uint16_t Iterations;
-    static ::std::vector<CidUpdateArgs> Generate() {
-        ::std::vector<CidUpdateArgs> list;
-        for (int Family : { 4, 6 })
-        for (int Iterations : { 1, 2, 4 })
-            list.push_back({ Family, (uint16_t)Iterations });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const CidUpdateArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        args.Iterations;
-}
-
-class WithCidUpdateArgs : public testing::Test,
-    public testing::WithParamInterface<CidUpdateArgs> {
-};
-
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs& args) {
     return o << args.Test;

@@ -755,6 +755,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestChangeMaxStreamID);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestLoadBalancedHandshake);
+    RegisterTestFunction(QuicCancelOnLossSend);
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestConnectAndIdle);
     RegisterTestFunction(QuicTestConnectAndIdleForDestCidChange);
@@ -763,6 +764,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStatelessResetKey);
     RegisterTestFunction(QuicTestForceKeyUpdate);
     RegisterTestFunction(QuicTestKeyUpdate);
+    RegisterTestFunction(QuicTestCidUpdate);
     RegisterTestFunction(QuicTestAckSendDelay);
     RegisterTestFunction(QuicTestReceiveResume);
     RegisterTestFunction(QuicTestReceiveResumeNoData);
@@ -1070,14 +1072,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params4.Flags));
         break;
 
-    case IOCTL_QUIC_RUN_CID_UPDATE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestCidUpdate(
-                Params->Params5.Family,
-                Params->Params5.Iterations));
-        break;
-
     case IOCTL_QUIC_RUN_NAT_PORT_REBIND:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1218,11 +1212,6 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestHandshakeSpecificLossPatterns(
                 Params->HandshakeLossParams.Family,
                 Params->HandshakeLossParams.CcAlgo));
-        break;
-
-    case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
         break;
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN:

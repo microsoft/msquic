@@ -2181,31 +2181,69 @@ TEST_P(WithAbortiveArgs, AbortiveShutdown) {
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+struct WithCancelOnLossArgs :
+    public testing::TestWithParam<CancelOnLossArgs> {
+
+    static ::std::vector<CancelOnLossArgs> Generate() {
+        ::std::vector<CancelOnLossArgs> list;
+        for (bool DropPackets : {false, true})
+            list.push_back({ DropPackets });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
+    return o << "DropPackets: " << (args.DropPackets ? "true" : "false");
+}
+
 TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
     TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params = {
-            GetParam().DropPackets
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CANCEL_ON_LOSS, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicCancelOnLossSend), GetParam()));
     } else {
-        QuicCancelOnLossSend(GetParam().DropPackets);
+        QuicCancelOnLossSend(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithCancelOnLossArgs,
+    testing::ValuesIn(WithCancelOnLossArgs::Generate()));
+
 #endif
+
+struct WithCidUpdateArgs :
+    public testing::TestWithParam<CidUpdateArgs> {
+
+    static ::std::vector<CidUpdateArgs> Generate() {
+        ::std::vector<CidUpdateArgs> list;
+        for (int Family : { 4, 6 })
+        for (int Iterations : { 1, 2, 4 })
+            list.push_back({ Family, (uint16_t)Iterations });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CidUpdateArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Iterations;
+}
 
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CID_UPDATE_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Iterations
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CID_UPDATE, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCidUpdate), GetParam()));
     } else {
-        QuicTestCidUpdate(GetParam().Family, GetParam().Iterations);
+        QuicTestCidUpdate(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithCidUpdateArgs,
+    testing::ValuesIn(WithCidUpdateArgs::Generate()));
 
 struct WithReceiveResumeArgs :
     public testing::TestWithParam<ReceiveResumeArgs> {
@@ -2833,20 +2871,6 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithAbortiveArgs,
     testing::ValuesIn(AbortiveArgs::Generate()));
-
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithCancelOnLossArgs,
-    testing::ValuesIn(CancelOnLossArgs::Generate()));
-
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithCidUpdateArgs,
-    testing::ValuesIn(CidUpdateArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
