@@ -756,11 +756,17 @@ ExecuteTestRequest(
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestLoadBalancedHandshake);
     RegisterTestFunction(QuicCancelOnLossSend);
+    RegisterTestFunction(QuicTestConnect_RandomLoss);
+#ifndef QUIC_DISABLE_RESUMPTION
+    RegisterTestFunction(QuicTestConnect_RandomLossResume);
+    RegisterTestFunction(QuicTestConnect_RandomLossResumeRejection);
+#endif // QUIC_DISABLE_RESUMPTION
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestConnectAndIdle);
     RegisterTestFunction(QuicTestConnectAndIdleForDestCidChange);
     RegisterTestFunction(QuicTestServerDisconnect);
     RegisterTestFunction(QuicTestClientDisconnect);
+    RegisterTestFunction(QuicAbortiveTransfers);
     RegisterTestFunction(QuicTestStatelessResetKey);
     RegisterTestFunction(QuicTestForceKeyUpdate);
     RegisterTestFunction(QuicTestKeyUpdate);
@@ -1062,14 +1068,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params2.FifoScheduling != 0,
                 Params->Params2.SendUdpToQtipListener != 0
                 ));
-        break;
-
-    case IOCTL_QUIC_RUN_ABORTIVE_SHUTDOWN:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicAbortiveTransfers(
-                Params->Params4.Family,
-                Params->Params4.Flags));
         break;
 
     case IOCTL_QUIC_RUN_NAT_PORT_REBIND:

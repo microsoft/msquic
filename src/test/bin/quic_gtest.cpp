@@ -1513,95 +1513,66 @@ TEST(CredValidation, ConnectValidClientCertificate) {
 #endif // QUIC_TEST_FAILING_TEST_CERTIFICATES
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+struct WithHandshakeArgs4 :
+    public testing::TestWithParam<HandshakeArgs4> {
+
+    static ::std::vector<HandshakeArgs4> Generate() {
+        ::std::vector<HandshakeArgs4> list;
+        for (int Family : { 4, 6})
+        for (bool ServerStatelessRetry : { false, true })
+        for (bool MultiPacketClientInitial : { false, true })
+        for (uint8_t RandomLossPercentage : { 1, 5, 10 })
+            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, RandomLossPercentage });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
+        (uint32_t)args.RandomLossPercentage << "% loss";
+}
+
 TEST_P(WithHandshakeArgs4, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_PARAMS Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_DISABLED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnect_RandomLoss), GetParam()));
     } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_DISABLED,
-            GetParam().RandomLossPercentage);
+        QuicTestConnect_RandomLoss(GetParam());
     }
 }
+
 #ifndef QUIC_DISABLE_RESUMPTION
 TEST_P(WithHandshakeArgs4, RandomLossResume) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResume", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_PARAMS Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_ENABLED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnect_RandomLossResume), GetParam()));
     } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_ENABLED,
-            GetParam().RandomLossPercentage);
+        QuicTestConnect_RandomLossResume(GetParam());
     }
 }
+
 TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResumeRejection", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_PARAMS Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_REJECTED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnect_RandomLossResumeRejection), GetParam()));
     } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_REJECTED,
-            GetParam().RandomLossPercentage);
+        QuicTestConnect_RandomLossResumeRejection(GetParam());
     }
 }
 #endif // QUIC_DISABLE_RESUMPTION
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs4,
+    testing::ValuesIn(WithHandshakeArgs4::Generate()));
+
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithFamilyArgs, Unreachable) {
@@ -2167,18 +2138,53 @@ TEST_P(WithKeyUpdateArgs2, RandomLoss) {
 }
 #endif
 
+struct WithAbortiveArgs :
+    public testing::TestWithParam<AbortiveArgs> {
+
+    static ::std::vector<AbortiveArgs> Generate() {
+        ::std::vector<AbortiveArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint32_t DelayStreamCreation : { 0, 1 })
+        for (uint32_t SendDataOnStream : { 0, 1 })
+        for (uint32_t ClientShutdown : { 0, 1 })
+        for (uint32_t DelayClientShutdown : { 0, 1 })
+        for (uint32_t WaitForStream : { 1 })
+        for (uint32_t ShutdownDirection : { 0, 1, 2 })
+        for (uint32_t UnidirectionStream : { 0, 1 })
+        for (uint32_t PauseReceive : { 0, 1 })
+        for (uint32_t PendReceive : { 0, 1 })
+            list.push_back({ Family, {{ DelayStreamCreation, SendDataOnStream, ClientShutdown, DelayClientShutdown, WaitForStream, ShutdownDirection, UnidirectionStream, PauseReceive, PendReceive }} });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const AbortiveArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Flags.DelayStreamCreation << "/" <<
+        args.Flags.SendDataOnStream << "/" <<
+        args.Flags.ClientShutdown << "/" <<
+        args.Flags.DelayClientShutdown << "/" <<
+        args.Flags.WaitForStream << "/" <<
+        args.Flags.ShutdownDirection << "/" <<
+        args.Flags.UnidirectionalStream << "/" <<
+        args.Flags.PauseReceive << "/" <<
+        args.Flags.PendReceive;
+}
+
 TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Flags
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORTIVE_SHUTDOWN, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicAbortiveTransfers), GetParam()));
     } else {
-        QuicAbortiveTransfers(GetParam().Family, GetParam().Flags);
+        QuicAbortiveTransfers(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithAbortiveArgs,
+    testing::ValuesIn(WithAbortiveArgs::Generate()));
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
@@ -2801,15 +2807,6 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs4,
-    testing::ValuesIn(HandshakeArgs4::Generate()));
-
-#endif
-
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -2866,11 +2863,6 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(KeyUpdateArgs2::Generate()));
 
 #endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithAbortiveArgs,
-    testing::ValuesIn(AbortiveArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

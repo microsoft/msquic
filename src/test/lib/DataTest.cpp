@@ -1172,10 +1172,11 @@ QuicAbortiveListenerHandler(
 
 void
 QuicAbortiveTransfers(
-    _In_ int Family,
-    _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
+    const AbortiveArgs& Params
     )
 {
+    int Family = Params.Family;
+    QUIC_ABORTIVE_TRANSFER_FLAGS Flags = Params.Flags;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;

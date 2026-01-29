@@ -228,6 +228,28 @@ QuicTestConnect_OldVersion(
     const HandshakeArgs& Params
     );
 
+struct HandshakeArgs4 {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultiPacketClientInitial;
+    uint8_t RandomLossPercentage;
+};
+
+void
+QuicTestConnect_RandomLoss(
+    const HandshakeArgs4& Params
+    );
+
+void
+QuicTestConnect_RandomLossResume(
+    const HandshakeArgs4& Params
+    );
+
+void
+QuicTestConnect_RandomLossResumeRejection(
+    const HandshakeArgs4& Params
+    );
+
 void
 QuicTestConnect_AsyncSecurityConfig(
     const HandshakeArgs& Params
@@ -591,10 +613,14 @@ typedef union QUIC_ABORTIVE_TRANSFER_FLAGS {
     uint32_t IntValue;
 } QUIC_ABORTIVE_TRANSFER_FLAGS;
 
+struct AbortiveArgs {
+    int Family;
+    QUIC_ABORTIVE_TRANSFER_FLAGS Flags;
+};
+
 void
 QuicAbortiveTransfers(
-    _In_ int Family,
-    _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
+    const AbortiveArgs& Params
     );
 
 struct CancelOnLossArgs {

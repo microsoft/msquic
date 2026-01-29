@@ -60,34 +60,6 @@ std::ostream& operator << (std::ostream& o, const FamilyArgs& args) {
     return o << (args.Family == 4 ? "v4" : "v6");
 }
 
-struct HandshakeArgs4 {
-    int Family;
-    bool ServerStatelessRetry;
-    bool MultiPacketClientInitial;
-    uint8_t RandomLossPercentage;
-    static ::std::vector<HandshakeArgs4> Generate() {
-        ::std::vector<HandshakeArgs4> list;
-        for (int Family : { 4, 6})
-        for (bool ServerStatelessRetry : { false, true })
-        for (bool MultiPacketClientInitial : { false, true })
-        for (uint8_t RandomLossPercentage : { 1, 5, 10 })
-            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, RandomLossPercentage });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
-        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
-        (uint32_t)args.RandomLossPercentage << "% loss";
-}
-
-class WithHandshakeArgs4 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs4> {
-};
-
 struct HandshakeArgs10 {
     int Family;
     QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo;
@@ -347,44 +319,6 @@ std::ostream& operator << (std::ostream& o, const KeyUpdateArgs2& args) {
 
 class WithKeyUpdateArgs2 : public testing::Test,
     public testing::WithParamInterface<KeyUpdateArgs2> {
-};
-
-struct AbortiveArgs {
-    int Family;
-    QUIC_ABORTIVE_TRANSFER_FLAGS Flags;
-    static ::std::vector<AbortiveArgs> Generate() {
-        ::std::vector<AbortiveArgs> list;
-        for (int Family : { 4, 6 })
-        for (uint32_t DelayStreamCreation : { 0, 1 })
-        for (uint32_t SendDataOnStream : { 0, 1 })
-        for (uint32_t ClientShutdown : { 0, 1 })
-        for (uint32_t DelayClientShutdown : { 0, 1 })
-        for (uint32_t WaitForStream : { 1 })
-        for (uint32_t ShutdownDirection : { 0, 1, 2 })
-        for (uint32_t UnidirectionStream : { 0, 1 })
-        for (uint32_t PauseReceive : { 0, 1 })
-        for (uint32_t PendReceive : { 0, 1 })
-            list.push_back({ Family, {{ DelayStreamCreation, SendDataOnStream, ClientShutdown, DelayClientShutdown, WaitForStream, ShutdownDirection, UnidirectionStream, PauseReceive, PendReceive }} });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const AbortiveArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        args.Flags.DelayStreamCreation << "/" <<
-        args.Flags.SendDataOnStream << "/" <<
-        args.Flags.ClientShutdown << "/" <<
-        args.Flags.DelayClientShutdown << "/" <<
-        args.Flags.WaitForStream << "/" <<
-        args.Flags.ShutdownDirection << "/" <<
-        args.Flags.UnidirectionalStream << "/" <<
-        args.Flags.PauseReceive << "/" <<
-        args.Flags.PendReceive;
-}
-
-class WithAbortiveArgs : public testing::Test,
-    public testing::WithParamInterface<AbortiveArgs> {
 };
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)

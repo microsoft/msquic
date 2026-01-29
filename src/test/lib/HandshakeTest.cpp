@@ -572,6 +572,60 @@ QuicTestConnect_OldVersion(
 }
 
 void
+QuicTestConnect_RandomLoss(
+    const HandshakeArgs4& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,  // ClientUsesOldVersion
+        false,  // MultipleALPNs
+        false,  // GreaseQuicBitExtension
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_DISABLED,
+        Params.RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_RandomLossResume(
+    const HandshakeArgs4& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,  // ClientUsesOldVersion
+        false,  // MultipleALPNs
+        false,  // GreaseQuicBitExtension
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_ENABLED,
+        Params.RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_RandomLossResumeRejection(
+    const HandshakeArgs4& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,  // ClientUsesOldVersion
+        false,  // MultipleALPNs
+        false,  // GreaseQuicBitExtension
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_REJECTED,
+        Params.RandomLossPercentage
+        );
+}
+
+void
 QuicTestConnect_AsyncSecurityConfig(
     const HandshakeArgs& Params
     )
