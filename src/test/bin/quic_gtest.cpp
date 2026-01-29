@@ -2207,45 +2207,77 @@ TEST_P(WithCidUpdateArgs, CidUpdate) {
     }
 }
 
+struct WithReceiveResumeArgs :
+    public testing::TestWithParam<ReceiveResumeArgs> {
+
+    static ::std::vector<ReceiveResumeArgs> Generate() {
+        ::std::vector<ReceiveResumeArgs> list;
+        for (int SendBytes : { 100 })
+        for (int Family : { 4, 6 })
+        for (bool PauseFirst : { false, true })
+        for (int ConsumeBytes : { 0, 1, 99 })
+        for (QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType : { NoShutdown, GracefulShutdown, AbortShutdown })
+        for (QUIC_RECEIVE_RESUME_TYPE PauseType : { ReturnConsumedBytes, ReturnStatusPending, ReturnStatusContinue })
+            list.push_back({ Family, SendBytes, ConsumeBytes, ShutdownType, PauseType, PauseFirst });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ReceiveResumeArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.SendBytes << "/" <<
+        args.ConsumeBytes << "/" <<
+        (args.ShutdownType ? (args.ShutdownType == AbortShutdown ? "Abort" : "Graceful") : "NoShutdown") << "/" <<
+        (args.PauseType ? (args.PauseType == ReturnStatusPending ? "ReturnPending" : "ReturnContinue") : "ConsumePartial") << "/" <<
+        (args.PauseFirst ? "PauseBeforeSend" : "PauseAfterSend");
+}
+
 TEST_P(WithReceiveResumeArgs, ReceiveResume) {
     TestLoggerT<ParamType> Logger("QuicTestReceiveResume", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_RECEIVE_RESUME_PARAMS Params = {
-            GetParam().Family,
-            GetParam().SendBytes,
-            GetParam().ConsumeBytes,
-            GetParam().ShutdownType,
-            GetParam().PauseType,
-            (uint8_t)GetParam().PauseFirst
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RECEIVE_RESUME, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReceiveResume), GetParam()));
     } else {
-        QuicTestReceiveResume(
-            GetParam().Family,
-            GetParam().SendBytes,
-            GetParam().ConsumeBytes,
-            GetParam().ShutdownType,
-            GetParam().PauseType,
-            GetParam().PauseFirst);
+        QuicTestReceiveResume(GetParam());
     }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithReceiveResumeArgs,
+    testing::ValuesIn(WithReceiveResumeArgs::Generate()));
+
+struct WithReceiveResumeNoDataArgs :
+    public testing::TestWithParam<ReceiveResumeNoDataArgs> {
+
+    static ::std::vector<ReceiveResumeNoDataArgs> Generate() {
+        ::std::vector<ReceiveResumeNoDataArgs> list;
+        for (int Family : { 4, 6 })
+        for (QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType : { GracefulShutdown, AbortShutdown })
+            list.push_back({ Family, ShutdownType });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ReceiveResumeNoDataArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ShutdownType ? (args.ShutdownType == AbortShutdown ? "Abort" : "Graceful") : "NoShutdown");
 }
 
 TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     TestLoggerT<ParamType> Logger("QuicTestReceiveResumeNoData", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_RECEIVE_RESUME_PARAMS Params = {
-            GetParam().Family,
-            0,
-            0,
-            GetParam().ShutdownType,
-            ReturnConsumedBytes,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RECEIVE_RESUME_NO_DATA, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReceiveResumeNoData), GetParam()));
     } else {
-        QuicTestReceiveResumeNoData(GetParam().Family, GetParam().ShutdownType);
+        QuicTestReceiveResumeNoData(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithReceiveResumeNoDataArgs,
+    testing::ValuesIn(WithReceiveResumeNoDataArgs::Generate()));
 
 TEST_P(WithFamilyArgs, AckSendDelay) {
     TestLogger Logger("QuicTestAckSendDelay");
@@ -2815,16 +2847,6 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithCidUpdateArgs,
     testing::ValuesIn(CidUpdateArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithReceiveResumeArgs,
-    testing::ValuesIn(ReceiveResumeArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithReceiveResumeNoDataArgs,
-    testing::ValuesIn(ReceiveResumeNoDataArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

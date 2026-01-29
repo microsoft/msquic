@@ -620,20 +620,28 @@ typedef enum QUIC_RECEIVE_RESUME_TYPE {
     ReturnStatusContinue
 } QUIC_RECEIVE_RESUME_TYPE;
 
+struct ReceiveResumeArgs {
+    int Family;
+    int SendBytes;
+    int ConsumeBytes;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType;
+    QUIC_RECEIVE_RESUME_TYPE PauseType;
+    bool PauseFirst;
+};
+
 void
 QuicTestReceiveResume(
-    _In_ int Family,
-    _In_ int SendBytes,
-    _In_ int ConsumeBytes,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType,
-    _In_ QUIC_RECEIVE_RESUME_TYPE PauseType,
-    _In_ bool PauseFirst
+    const ReceiveResumeArgs& Params
     );
+
+struct ReceiveResumeNoDataArgs {
+    int Family;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType;
+};
 
 void
 QuicTestReceiveResumeNoData(
-    _In_ int Family,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
+    const ReceiveResumeNoDataArgs& Params
     );
 
 void

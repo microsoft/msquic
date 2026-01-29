@@ -1867,14 +1867,15 @@ QuicRecvResumeListenerHandler(
 
 void
 QuicTestReceiveResume(
-    _In_ int Family,
-    _In_ int SendBytes,
-    _In_ int ConsumeBytes,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType,
-    _In_ QUIC_RECEIVE_RESUME_TYPE PauseType,
-    _In_ bool PauseFirst
+    const ReceiveResumeArgs& Params
     )
 {
+    int Family = Params.Family;
+    int SendBytes = Params.SendBytes;
+    int ConsumeBytes = Params.ConsumeBytes;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType = Params.ShutdownType;
+    QUIC_RECEIVE_RESUME_TYPE PauseType = Params.PauseType;
+    bool PauseFirst = Params.PauseFirst;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
@@ -2099,10 +2100,11 @@ QuicTestReceiveResume(
 
 void
 QuicTestReceiveResumeNoData(
-    _In_ int Family,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
+    const ReceiveResumeNoDataArgs& Params
     )
 {
+    int Family = Params.Family;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType = Params.ShutdownType;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;

@@ -764,6 +764,8 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestForceKeyUpdate);
     RegisterTestFunction(QuicTestKeyUpdate);
     RegisterTestFunction(QuicTestAckSendDelay);
+    RegisterTestFunction(QuicTestReceiveResume);
+    RegisterTestFunction(QuicTestReceiveResumeNoData);
     RegisterTestFunction(QuicTestAbortReceive_Paused);
     RegisterTestFunction(QuicTestAbortReceive_Pending);
     RegisterTestFunction(QuicTestAbortReceive_Incomplete);
@@ -1074,26 +1076,6 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestCidUpdate(
                 Params->Params5.Family,
                 Params->Params5.Iterations));
-        break;
-
-    case IOCTL_QUIC_RUN_RECEIVE_RESUME:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestReceiveResume(
-                Params->Params6.Family,
-                Params->Params6.SendBytes,
-                Params->Params6.ConsumeBytes,
-                Params->Params6.ShutdownType,
-                Params->Params6.PauseType,
-                Params->Params6.PauseFirst));
-        break;
-
-    case IOCTL_QUIC_RUN_RECEIVE_RESUME_NO_DATA:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestReceiveResumeNoData(
-                Params->Params6.Family,
-                Params->Params6.ShutdownType));
         break;
 
     case IOCTL_QUIC_RUN_NAT_PORT_REBIND:
