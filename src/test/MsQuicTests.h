@@ -501,17 +501,30 @@ QuicTestConnectionPoolCreate(
 // Post Handshake Tests
 //
 
+struct RebindPaddingArgs {
+    int Family;
+    uint16_t Padding;
+};
+
 void
-QuicTestNatPortRebind(
-    _In_ int Family,
-    _In_ uint16_t KeepAlivePaddingSize
+QuicTestNatPortRebind_NoPadding(
+    const FamilyArgs& Params
+    );
+
+
+void
+QuicTestNatPortRebind_WithPadding(
+    const RebindPaddingArgs& Params
     );
 
 void
-QuicTestNatAddrRebind(
-    _In_ int Family,
-    _In_ uint16_t KeepAlivePaddingSize,
-    _In_ bool RebindDatapathAddr
+QuicTestNatAddrRebind_WithPadding(
+    const RebindPaddingArgs& Params
+    );
+
+void
+QuicTestNatAddrRebind_NoPadding(
+    const FamilyArgs& Params
     );
 
 void

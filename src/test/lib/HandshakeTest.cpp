@@ -788,6 +788,38 @@ QuicTestNatAddrRebind(
 }
 
 void
+QuicTestNatPortRebind_NoPadding(
+    const FamilyArgs& Params
+    )
+{
+    QuicTestNatPortRebind(Params.Family, 0);
+}
+
+void
+QuicTestNatPortRebind_WithPadding(
+    const RebindPaddingArgs& Params
+    )
+{
+    QuicTestNatPortRebind(Params.Family, Params.Padding);
+}
+
+void
+QuicTestNatAddrRebind_NoPadding(
+    const FamilyArgs& Params
+    )
+{
+    QuicTestNatAddrRebind(Params.Family, 0, FALSE);
+}
+
+void
+QuicTestNatAddrRebind_WithPadding(
+    const RebindPaddingArgs& Params
+    )
+{
+    QuicTestNatAddrRebind(Params.Family, Params.Padding, FALSE);
+}
+
+void
 QuicTestPathValidationTimeout(
     const FamilyArgs& Params
     )

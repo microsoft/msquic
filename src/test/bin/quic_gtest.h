@@ -169,27 +169,6 @@ struct WithValidateStreamEventArgs : public testing::Test,
     }
 };
 
-struct RebindPaddingArgs {
-    int Family;
-    uint16_t Padding;
-    static ::std::vector<RebindPaddingArgs> Generate() {
-        ::std::vector<RebindPaddingArgs> list;
-        for (int Family : { 4, 6 })
-        for (uint16_t Padding = 1; Padding < 75; ++Padding)
-            list.push_back({ Family, Padding });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const RebindPaddingArgs& args) {
-    return o << (args.Family == 4 ? "v4" : "v6") << "/"
-        << args.Padding;
-}
-
-class WithRebindPaddingArgs : public testing::Test,
-    public testing::WithParamInterface<RebindPaddingArgs> {
-};
-
 struct TlsConfigArgs {
 
     QUIC_CREDENTIAL_TYPE CredType;

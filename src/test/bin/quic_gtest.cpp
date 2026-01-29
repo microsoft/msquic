@@ -1640,16 +1640,29 @@ TEST_P(WithFamilyArgs, RebindPort) {
         return;
     }
 #endif
-    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind_NoPadding", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_REBIND_PARAMS Params = {
-            GetParam().Family,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatPortRebind_NoPadding), GetParam()));
     } else {
-        QuicTestNatPortRebind(GetParam().Family, 0);
+        QuicTestNatPortRebind_NoPadding(GetParam());
     }
+}
+
+struct WithRebindPaddingArgs :
+    public testing::TestWithParam<RebindPaddingArgs> {
+
+    static ::std::vector<RebindPaddingArgs> Generate() {
+        ::std::vector<RebindPaddingArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint16_t Padding = 1; Padding < 75; ++Padding)
+            list.push_back({ Family, Padding });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const RebindPaddingArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << args.Padding;
 }
 
 TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
@@ -1661,17 +1674,18 @@ TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
         return;
     }
 #endif
-    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind_WithPadding", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_REBIND_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Padding
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatPortRebind_WithPadding), GetParam()));
     } else {
-        QuicTestNatPortRebind(GetParam().Family, GetParam().Padding);
+        QuicTestNatPortRebind_WithPadding(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithRebindPaddingArgs,
+    ::testing::ValuesIn(WithRebindPaddingArgs::Generate()));
 
 TEST_P(WithFamilyArgs, RebindAddr) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
@@ -1682,15 +1696,11 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         return;
     }
 #endif
-    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind_NoPadding", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_REBIND_PARAMS Params = {
-            GetParam().Family,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatAddrRebind_NoPadding), GetParam()));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, 0, FALSE);
+        QuicTestNatAddrRebind_NoPadding(GetParam());
     }
 }
 
@@ -1718,15 +1728,11 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
         return;
     }
 #endif
-    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind_WithPadding", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_REBIND_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Padding
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatAddrRebind_WithPadding), GetParam()));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding, FALSE);
+        QuicTestNatAddrRebind_WithPadding(GetParam());
     }
 }
 
@@ -2810,11 +2816,6 @@ INSTANTIATE_TEST_SUITE_P(
     Mtu,
     WithMtuArgs,
     ::testing::ValuesIn(WithMtuArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Basic,
-    WithRebindPaddingArgs,
-    ::testing::ValuesIn(RebindPaddingArgs::Generate()));
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 

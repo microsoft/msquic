@@ -751,6 +751,10 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestClientBlockedSourcePort);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestPathValidationTimeout);
+    RegisterTestFunction(QuicTestNatPortRebind_NoPadding);
+    RegisterTestFunction(QuicTestNatPortRebind_WithPadding);
+    RegisterTestFunction(QuicTestNatAddrRebind_NoPadding);
+    RegisterTestFunction(QuicTestNatAddrRebind_WithPadding);
 #endif
     RegisterTestFunction(QuicTestChangeMaxStreamID);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
