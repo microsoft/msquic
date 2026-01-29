@@ -2561,7 +2561,7 @@ SendFrame(
         return Status;
     }
 
-    return TryUntil(100, 1000, [&]() {
+    return TryUntil(100, 2000, [&]() {
         const auto PeerCount = Receiver.GetLocalBidiStreamCount();
         return PeerCount == NewStreamCount ? QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
     });
@@ -2573,6 +2573,8 @@ QuicTestKeyUpdateRandomLoss(
     _In_ uint8_t RandomLossPercentage
     )
 {
+    TestScopeLogger LogScope("QuicTestKeyUpdateRandomLoss");
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -2585,8 +2587,6 @@ QuicTestKeyUpdateRandomLoss(
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
-
-    const int Iterations = 10;
 
     TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
     TEST_TRUE(Listener.IsValid());
@@ -2630,7 +2630,9 @@ QuicTestKeyUpdateRandomLoss(
 
     CxPlatSleep(100);
 
+    const int Iterations = 10;
     for (uint16_t i = 0; i < Iterations; ++i) {
+        TestScopeLogger IterationScope("QuicTestKeyUpdateRandomLoss - Iteration");
 
         //
         // We don't care if this call succeeds, we just want to trigger it every time
