@@ -387,6 +387,52 @@ NewPingConnection(
 }
 
 void
+QuicTestConnectAndPing_Send0Rtt(
+    const Send0RttArgs1& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        Params.ConnectionCount,
+        Params.StreamCount,
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        true,   // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        Params.UnidirectionalStreams,
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_Reject0Rtt(
+    const Send0RttArgs2& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        true,   // ClientZeroRtt
+        true,   // ServerRejectZeroRtt
+        false,  // UseSendBuffer
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
 QuicTestConnectAndPing(
     _In_ int Family,
     _In_ uint64_t Length,

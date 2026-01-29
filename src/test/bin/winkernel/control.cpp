@@ -770,6 +770,9 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStatelessResetKey);
     RegisterTestFunction(QuicTestForceKeyUpdate);
     RegisterTestFunction(QuicTestKeyUpdate);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    RegisterTestFunction(QuicTestKeyUpdateRandomLoss);
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestCidUpdate);
     RegisterTestFunction(QuicTestAckSendDelay);
     RegisterTestFunction(QuicTestReceiveResume);
@@ -778,6 +781,10 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestAbortReceive_Pending);
     RegisterTestFunction(QuicTestAbortReceive_Incomplete);
     RegisterTestFunction(QuicTestSlowReceive);
+#ifndef QUIC_DISABLE_0RTT_TESTS
+    RegisterTestFunction(QuicTestConnectAndPing_Send0Rtt);
+    RegisterTestFunction(QuicTestConnectAndPing_Reject0Rtt);
+#endif // QUIC_DISABLE_0RTT_TESTS
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
 #ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
     RegisterTestFunction(QuicTestNthAllocFail);
@@ -1171,14 +1178,6 @@ QuicTestCtlEvtIoDeviceControl(
                 &Params->CredValidationParams.CredConfig));
         break;
 
-
-    case IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestKeyUpdateRandomLoss(
-                Params->KeyUpdateRandomLossParams.Family,
-                Params->KeyUpdateRandomLossParams.RandomLossPercentage))
-        break;
 
     case IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);

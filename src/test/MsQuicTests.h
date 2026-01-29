@@ -547,6 +547,30 @@ QuicTestConnectAndPing(
     _In_ bool SendUdpToQtipListener
     );
 
+struct Send0RttArgs1 {
+    int Family;
+    uint64_t Length;
+    uint32_t ConnectionCount;
+    uint32_t StreamCount;
+    bool UseSendBuffer;
+    bool UnidirectionalStreams;
+};
+
+void
+QuicTestConnectAndPing_Send0Rtt(
+    const Send0RttArgs1& Params
+    );
+
+struct Send0RttArgs2 {
+    int Family;
+    uint64_t Length;
+};
+
+void
+QuicTestConnectAndPing_Reject0Rtt(
+    const Send0RttArgs2& Params
+    );
+
 //
 // Other Data Tests
 //
@@ -586,10 +610,14 @@ QuicTestKeyUpdate(
     const FamilyArgs& Params
     );
 
+struct KeyUpdateRandomLossArgs {
+    int Family;
+    uint8_t RandomLossPercentage;
+};
+
 void
 QuicTestKeyUpdateRandomLoss(
-    _In_ int Family,
-    _In_ uint8_t RandomLossPercentage
+    const KeyUpdateRandomLossArgs& Params
     );
 
 typedef enum QUIC_ABORTIVE_TRANSFER_DIRECTION {

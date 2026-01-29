@@ -2623,10 +2623,11 @@ SendFrame(
 
 void
 QuicTestKeyUpdateRandomLoss(
-    _In_ int Family,
-    _In_ uint8_t RandomLossPercentage
+    const KeyUpdateRandomLossArgs& Params
     )
 {
+    int Family = Params.Family;
+    uint8_t RandomLossPercentage = Params.RandomLossPercentage;
     TestScopeLogger LogScope("QuicTestKeyUpdateRandomLoss");
 
     MsQuicRegistration Registration;
