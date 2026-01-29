@@ -785,6 +785,9 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnectAndPing_Send0Rtt);
     RegisterTestFunction(QuicTestConnectAndPing_Reject0Rtt);
 #endif // QUIC_DISABLE_0RTT_TESTS
+    RegisterTestFunction(QuicTestConnectAndPing_SendLarge);
+    RegisterTestFunction(QuicTestConnectAndPing_SendIntermittently);
+    RegisterTestFunction(QuicTestConnectAndPing_Send);
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
 #ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
     RegisterTestFunction(QuicTestNthAllocFail);

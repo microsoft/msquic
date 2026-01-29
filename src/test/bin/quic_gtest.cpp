@@ -1806,49 +1806,50 @@ TEST_P(WithHandshakeArgs12, ConnectionPoolCreate) {
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST_P(WithSendArgs1, Send) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
+struct WithSendArgs :
+    public testing::TestWithParam<SendArgs> {
+
+    static ::std::vector<SendArgs> Generate() {
+        ::std::vector<SendArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint64_t Length : { 0, 1000, 10000 })
+        for (uint32_t ConnectionCount : { 1, 2, 4 })
+        for (uint32_t StreamCount : { 1, 2, 4 })
+        for (bool UseSendBuffer : { false, true })
+        for (bool UnidirectionalStreams : { false, true })
+        for (bool ServerInitiatedStreams : { false, true })
+            list.push_back({ Family, Length, ConnectionCount, StreamCount, UseSendBuffer, UnidirectionalStreams, ServerInitiatedStreams });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const SendArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Length << "/" <<
+        args.ConnectionCount << "/" <<
+        args.StreamCount << "/" <<
+        (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer") << "/" <<
+        (args.UnidirectionalStreams ? "Uni" : "Bidi") << "/" <<
+        (args.ServerInitiatedStreams ? "Server" : "Client");
+}
+
+TEST_P(WithSendArgs, Send) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_Send", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            0,  // ClientZeroRtt
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            (uint8_t)GetParam().UnidirectionalStreams,
-            (uint8_t)GetParam().ServerInitiatedStreams,
-            0,   // FifoScheduling
-            0    // SendUdpToQtipListener
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_Send), GetParam()));
     } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            false,  // ClientZeroRtt
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            GetParam().UnidirectionalStreams,
-            GetParam().ServerInitiatedStreams,
-            false,  // FifoScheduling
-            false); // SendUdpToQtipListener
+        QuicTestConnectAndPing_Send(GetParam());
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    AppData,
+    WithSendArgs,
+    testing::ValuesIn(WithSendArgs::Generate()));
+
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-TEST_P(WithSendArgs1, SendQtip) {
+TEST_P(WithSendArgs, SendQtip) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPingOverQtip", GetParam());
     if (!TestingKernelMode && UseQTIP) {
         QuicTestConnectAndPing(
@@ -1871,87 +1872,88 @@ TEST_P(WithSendArgs1, SendQtip) {
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST_P(WithSendArgs2, SendLarge) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
+struct WithSendLargeArgs :
+    public testing::TestWithParam<SendLargeArgs> {
+
+    static ::std::vector<SendLargeArgs> Generate() {
+        ::std::vector<SendLargeArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool UseSendBuffer : { false, true })
+#ifndef QUIC_DISABLE_0RTT_TESTS
+        for (bool UseZeroRtt : { false, true })
+#else
+        for (bool UseZeroRtt : { false })
+#endif
+        {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (UseQTIP && UseZeroRtt) {
+                continue;
+            }
+#endif
+            list.push_back({ Family, UseSendBuffer, UseZeroRtt });
+        }
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const SendLargeArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer") << "/" <<
+        (args.UseZeroRtt ? "0-RTT" : "1-RTT");
+}
+
+TEST_P(WithSendLargeArgs, SendLarge) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_SendLarge", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
-            GetParam().Family,
-            100000000llu,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            (uint8_t)GetParam().UseZeroRtt,
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            0,  // UnidirectionalStreams
-            0,  // ServerInitiatedStreams
-            1,  // FifoScheduling
-            0   // SendUdpToQtipListener
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_SendLarge), GetParam()));
     } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            100000000llu,
-            1,      // ConnectionCount
-            1,      // StreamCount
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            GetParam().UseZeroRtt,
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            false,  // UnidirectionalStreams
-            false,  // ServerInitiatedStreams
-            true,   // FifoScheduling
-            false); // SendUdpToQtipListener
+        QuicTestConnectAndPing_SendLarge(GetParam());
     }
 }
 
-TEST_P(WithSendArgs3, SendIntermittently) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
+INSTANTIATE_TEST_SUITE_P(
+    AppData,
+    WithSendLargeArgs,
+    testing::ValuesIn(WithSendLargeArgs::Generate()));
+
+struct WithSendIntermittentlyArgs :
+    public testing::TestWithParam<SendIntermittentlyArgs> {
+
+    static ::std::vector<SendIntermittentlyArgs> Generate() {
+        ::std::vector<SendIntermittentlyArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint64_t Length : { 1000, 10000 })
+        for (uint32_t BurstCount : { 2, 4, 8 })
+        for (uint32_t BurstDelay : { 100, 500, 1000 })
+        for (bool UseSendBuffer : { false, true })
+            list.push_back({ Family, Length, BurstCount, BurstDelay, UseSendBuffer });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const SendIntermittentlyArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Length << "/" <<
+        args.BurstCount << "/" <<
+        args.BurstDelay << "ms/" <<
+        (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer");
+}
+
+TEST_P(WithSendIntermittentlyArgs, SendIntermittently) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_SendIntermittently", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Length,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            GetParam().BurstCount,
-            GetParam().BurstDelay,
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            0,  // ClientZeroRtt
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            0,  // UnidirectionalStreams
-            0,  // ServerInitiatedStreams
-            0,  // FifoScheduling
-            0   // SendUdpToQtipListener
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_SendIntermittently), GetParam()));
     } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            GetParam().BurstCount,
-            GetParam().BurstDelay,
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            false,  // ClientZeroRtt
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            false,  // UnidirectionalStreams
-            false,  // ServerInitiatedStreams
-            false,  // FifoScheduling
-            false); // SendUdpToQtipListener
+        QuicTestConnectAndPing_SendIntermittently(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    AppData,
+    WithSendIntermittentlyArgs,
+    testing::ValuesIn(WithSendIntermittentlyArgs::Generate()));
 
 #ifndef QUIC_DISABLE_0RTT_TESTS
 
@@ -2834,21 +2836,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs12,
     testing::ValuesIn(HandshakeArgs12::Generate()));
 #endif
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs1,
-    testing::ValuesIn(SendArgs1::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs2,
-    testing::ValuesIn(SendArgs2::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs3,
-    testing::ValuesIn(SendArgs3::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

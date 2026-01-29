@@ -433,6 +433,75 @@ QuicTestConnectAndPing_Reject0Rtt(
 }
 
 void
+QuicTestConnectAndPing_Send(
+    const SendArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        Params.ConnectionCount,
+        Params.StreamCount,
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        false,  // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        Params.UnidirectionalStreams,
+        Params.ServerInitiatedStreams,
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_SendLarge(
+    const SendLargeArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        100000000llu,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        Params.UseZeroRtt,
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        true,   // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_SendIntermittently(
+    const SendIntermittentlyArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        Params.BurstCount,
+        Params.BurstDelay,
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        false,  // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
 QuicTestConnectAndPing(
     _In_ int Family,
     _In_ uint64_t Length,

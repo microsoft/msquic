@@ -571,6 +571,45 @@ QuicTestConnectAndPing_Reject0Rtt(
     const Send0RttArgs2& Params
     );
 
+struct SendLargeArgs {
+    int Family;
+    bool UseSendBuffer;
+    bool UseZeroRtt;
+};
+
+void
+QuicTestConnectAndPing_SendLarge(
+    const SendLargeArgs& Params
+    );
+
+struct SendIntermittentlyArgs {
+    int Family;
+    uint64_t Length;
+    uint32_t BurstCount;
+    uint32_t BurstDelay;
+    bool UseSendBuffer;
+};
+
+void
+QuicTestConnectAndPing_SendIntermittently(
+    const SendIntermittentlyArgs& Params
+    );
+
+struct SendArgs {
+    int Family;
+    uint64_t Length;
+    uint32_t ConnectionCount;
+    uint32_t StreamCount;
+    bool UseSendBuffer;
+    bool UnidirectionalStreams;
+    bool ServerInitiatedStreams;
+};
+
+void
+QuicTestConnectAndPing_Send(
+    const SendArgs& Params
+    );
+
 //
 // Other Data Tests
 //
