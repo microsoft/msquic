@@ -2239,9 +2239,9 @@ QuicLibraryLookupBinding(
         } else {
             //
             // For server (unconnected/listening) bindings we always use wildcard
-            // addresses, so we simply need to match on local port and QTIP settings.
+            // addresses, so we simply need to match on local port.
             //
-            if (QuicAddrGetPort(&BindingLocalAddr) == QuicAddrGetPort(LocalAddress) && QuicBindingGetQtipSettings(Binding) == UseQtip) {
+            if (QuicAddrGetPort(&BindingLocalAddr) == QuicAddrGetPort(LocalAddress)) {
                 //
                 // Note: We don't check the remote address, because we want to
                 // return a match even if the caller is looking for a connected
@@ -2314,7 +2314,8 @@ SharedEphemeralRetry:
         if (!ShareBinding || Binding->Exclusive ||
             (ServerOwned != Binding->ServerOwned) ||
             (Partitioned != Binding->Partitioned) ||
-            (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex)) {
+            (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex) ||
+            (!Binding->Connected && QuicBindingGetQtipSettings(Binding) != UseQtip)) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.

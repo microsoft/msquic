@@ -342,10 +342,8 @@ CxPlatSocketCompare(
     if (Socket->Wildcard) {
         //
         // For a listener socket,
-        // always match if the listener Socket has enabled QTIP.
-        // Otherwise, perhaps another client connection on this machine has enabled QTIP,
-        // and it just so happens that client connection has the same local socket port as this listener
-        // socket. Then this listener should not steal their traffic.
+        // always give a match if the listener Socket has enabled QTIP (can accept both UDP/QTIP traffic).
+        // Otherwise, we want to NOT match if UseQtip is TRUE but the listener socket does not enable QTIP.
         //
         return Socket->ReserveAuxTcpSock || !UseQtip;
     }
