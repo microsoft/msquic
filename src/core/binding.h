@@ -342,6 +342,15 @@ QuicBindingGetRemoteAddress(
     );
 
 //
+// Queries the QTIP settings of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingGetQtipSettings(
+    _In_ QUIC_BINDING* Binding
+    );
+
+//
 // Looks up the listener based on the ALPN list. Optionally, outputs the
 // first ALPN that matches.
 //

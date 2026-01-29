@@ -2202,7 +2202,8 @@ QuicLibraryLookupBinding(
     _In_ QUIC_COMPARTMENT_ID CompartmentId,
 #endif
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ const QUIC_ADDR* RemoteAddress
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     )
 {
     for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
@@ -2224,13 +2225,13 @@ QuicLibraryLookupBinding(
         if (Binding->Connected) {
             //
             // For client/connected bindings we need to match on both local and
-            // remote addresses/ports.
+            // remote addresses/ports, along with QTIP settings.
             //
             if (RemoteAddress &&
                 QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
                 QUIC_ADDR BindingRemoteAddr;
                 QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
-                if (QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
+                if (QuicAddrCompare(RemoteAddress, &BindingRemoteAddr) && QuicBindingGetQtipSettings(Binding) == UseQtip) {
                     return Binding;
                 }
             }
@@ -2270,6 +2271,7 @@ QuicLibraryGetBinding(
     const BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
     const BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
     const BOOLEAN Partitioned = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED);
+    const BOOLEAN UseQtip = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_QTIP);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //
@@ -2300,19 +2302,20 @@ SharedEphemeralRetry:
 
     Status = QUIC_STATUS_NOT_FOUND;
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
-
     Binding =
         QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
             UdpConfig->CompartmentId,
 #endif
             UdpConfig->LocalAddress,
-            UdpConfig->RemoteAddress);
+            UdpConfig->RemoteAddress,
+            UseQtip);
     if (Binding != NULL) {
         if (!ShareBinding || Binding->Exclusive ||
             (ServerOwned != Binding->ServerOwned) ||
             (Partitioned != Binding->Partitioned) ||
-            (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex)) {
+            (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex) ||
+            (!Binding->Connected && QuicBindingGetQtipSettings(Binding) != UseQtip)) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
@@ -2390,7 +2393,8 @@ NewBinding:
                 UdpConfig->CompartmentId,
 #endif
                 &NewLocalAddress,
-                UdpConfig->RemoteAddress);
+                UdpConfig->RemoteAddress,
+                UseQtip);
     } else {
         //
         // The datapath does not supports multiple connected sockets on the same
@@ -2403,7 +2407,8 @@ NewBinding:
                 UdpConfig->CompartmentId,
 #endif
                 &NewLocalAddress,
-                NULL);
+                NULL,
+                UseQtip);
     }
 
     if (Binding != NULL) {
