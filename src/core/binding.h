@@ -346,8 +346,8 @@ QuicBindingGetRemoteAddress(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicBindingGetQtipSettings(
-    _In_ QUIC_BINDING* Binding
+QuicBindingGetQtipEnabled(
+    _In_ const QUIC_BINDING* Binding
     );
 
 //

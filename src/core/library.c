@@ -2198,14 +2198,13 @@ MsQuicClose(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_BINDING*
 QuicLibraryLookupBinding(
-#ifdef QUIC_COMPARTMENT_ID
-    _In_ QUIC_COMPARTMENT_ID CompartmentId,
-#endif
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_ const BOOLEAN UseQtip
+    _In_ const CXPLAT_UDP_CONFIG* UdpConfig
     )
 {
+    const QUIC_ADDR* LocalAddress = UdpConfig->LocalAddress;
+    const QUIC_ADDR* RemoteAddress = UdpConfig->RemoteAddress;
+    BOOLEAN UseQtip = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_QTIP);
+
     for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
         Link != &MsQuicLib.Bindings;
         Link = Link->Flink) {
@@ -2214,7 +2213,7 @@ QuicLibraryLookupBinding(
             CXPLAT_CONTAINING_RECORD(Link, QUIC_BINDING, Link);
 
 #ifdef QUIC_COMPARTMENT_ID
-        if (CompartmentId != Binding->CompartmentId) {
+        if (UdpConfig->CompartmentId != Binding->CompartmentId) {
             continue;
         }
 #endif
@@ -2234,7 +2233,8 @@ QuicLibraryLookupBinding(
                 QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
                 QUIC_ADDR BindingRemoteAddr;
                 QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
-                if (QuicAddrCompare(RemoteAddress, &BindingRemoteAddr) && QuicBindingGetQtipSettings(Binding) == UseQtip) {
+                if (QuicAddrCompare(RemoteAddress, &BindingRemoteAddr) &&
+                    QuicBindingGetQtipEnabled(Binding) == UseQtip) {
                     return Binding;
                 }
             }
@@ -2308,19 +2308,13 @@ SharedEphemeralRetry:
     Status = QUIC_STATUS_NOT_FOUND;
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
     Binding =
-        QuicLibraryLookupBinding(
-#ifdef QUIC_COMPARTMENT_ID
-            UdpConfig->CompartmentId,
-#endif
-            UdpConfig->LocalAddress,
-            UdpConfig->RemoteAddress,
-            UseQtip);
+        QuicLibraryLookupBinding(UdpConfig);
     if (Binding != NULL) {
         if (!ShareBinding || Binding->Exclusive ||
             (ServerOwned != Binding->ServerOwned) ||
             (Partitioned != Binding->Partitioned) ||
             (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex) ||
-            (!Binding->Connected && QuicBindingGetQtipSettings(Binding) != UseQtip)) {
+            (!Binding->Connected && QuicBindingGetQtipEnabled(Binding) != UseQtip)) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
@@ -2392,28 +2386,26 @@ NewBinding:
         // tuple, so we need to do collision detection based on the whole
         // 4-tuple.
         //
+        CXPLAT_UDP_CONFIG Config = {0};
+        Config.CompartmentId = UdpConfig->CompartmentId;
+        Config.LocalAddress = &NewLocalAddress;
+        Config.RemoteAddress = UdpConfig->RemoteAddress;
+        Config.Flags = UdpConfig->Flags;
         Binding =
-            QuicLibraryLookupBinding(
-#ifdef QUIC_COMPARTMENT_ID
-                UdpConfig->CompartmentId,
-#endif
-                &NewLocalAddress,
-                UdpConfig->RemoteAddress,
-                UseQtip);
+            QuicLibraryLookupBinding(&Config);
     } else {
         //
         // The datapath does not supports multiple connected sockets on the same
         // local tuple, so we just do collision detection based on the local
         // tuple.
         //
+        CXPLAT_UDP_CONFIG Config = {0};
+        Config.CompartmentId = UdpConfig->CompartmentId;
+        Config.LocalAddress = &NewLocalAddress;
+        Config.RemoteAddress = NULL;
+        Config.Flags = UdpConfig->Flags;
         Binding =
-            QuicLibraryLookupBinding(
-#ifdef QUIC_COMPARTMENT_ID
-                UdpConfig->CompartmentId,
-#endif
-                &NewLocalAddress,
-                NULL,
-                UseQtip);
+            QuicLibraryLookupBinding(&Config);
     }
 
     if (Binding != NULL) {
