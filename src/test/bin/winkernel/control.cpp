@@ -765,7 +765,12 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnect_RandomLossResume);
     RegisterTestFunction(QuicTestConnect_RandomLossResumeRejection);
 #endif // QUIC_DISABLE_RESUMPTION
+    RegisterTestFunction(QuicTestHandshakeSpecificLossPatterns);
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    RegisterTestFunction(QuicTestShutdownDuringHandshake);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestConnectionPoolCreate);
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestConnectAndIdle);
     RegisterTestFunction(QuicTestConnectAndIdleForDestCidChange);
     RegisterTestFunction(QuicTestServerDisconnect);
@@ -1084,14 +1089,6 @@ QuicTestCtlEvtIoDeviceControl(
                 ));
         break;
 
-    case IOCTL_QUIC_RUN_NAT_PORT_REBIND:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestNatPortRebind(
-                Params->RebindParams.Family,
-                Params->RebindParams.Padding));
-        break;
-
     case IOCTL_QUIC_RUN_NAT_ADDR_REBIND:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1210,36 +1207,10 @@ QuicTestCtlEvtIoDeviceControl(
                 &Params->CredValidationParams.CredConfig));
         break;
 
-    case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestHandshakeSpecificLossPatterns(
-                Params->HandshakeLossParams.Family,
-                Params->HandshakeLossParams.CcAlgo));
-        break;
-
-    case IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestShutdownDuringHandshake(Params->ClientShutdown));
-        break;
-
     case IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE:
         QuicTestCtlRun(QuicTestStreamMultiReceive());
 
         break;
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
-    case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestConnectionPoolCreate(
-                Params->ConnPoolCreateParams.Family,
-                Params->ConnPoolCreateParams.NumberOfConnections,
-                Params->ConnPoolCreateParams.XdpSupported,
-                Params->ConnPoolCreateParams.TestCibirSupport));
-        break;
-#endif
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

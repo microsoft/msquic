@@ -397,15 +397,23 @@ QuicTestChangeAlpn(
     void
     );
 
+struct HandshakeLossPatternsArgs {
+    int Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo;
+};
+
 void
 QuicTestHandshakeSpecificLossPatterns(
-    _In_ int Family,
-    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
+    const HandshakeLossPatternsArgs& Params
     );
+
+struct ShutdownDuringHandshakeArgs {
+    bool ClientShutdown;
+};
 
 void
 QuicTestShutdownDuringHandshake(
-    _In_ bool ClientShutdown
+    const ShutdownDuringHandshakeArgs& Params
     );
 
 //
@@ -488,12 +496,16 @@ QuicTestVNTPOtherVersionZero(
     const bool& TestServer
     );
 
+struct ConnectionPoolCreateArgs {
+    int Family;
+    uint16_t NumberOfConnections;
+    bool XdpSupported;
+    bool TestCibirSupport;
+};
+
 void
 QuicTestConnectionPoolCreate(
-    _In_ int Family,
-    _In_ uint16_t NumberOfConnections,
-    _In_ bool XdpSupported,
-    _In_ bool TestCibirSupport
+    const ConnectionPoolCreateArgs& Params
     );
 #endif
 
@@ -525,6 +537,13 @@ QuicTestNatAddrRebind_WithPadding(
 void
 QuicTestNatAddrRebind_NoPadding(
     const FamilyArgs& Params
+    );
+
+void
+QuicTestNatAddrRebind(
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize,
+    _In_ bool RebindDatapathAddr
     );
 
 void

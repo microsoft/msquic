@@ -1282,9 +1282,11 @@ QuicTestCustomClientCertificateValidation(
 
 void
 QuicTestShutdownDuringHandshake(
-    _In_ bool ClientShutdown
+    const ShutdownDuringHandshakeArgs& Params
     )
 {
+    bool ClientShutdown = Params.ClientShutdown;
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -4357,10 +4359,12 @@ QuicTestVNTPOtherVersionZero(
 
 void
 QuicTestHandshakeSpecificLossPatterns(
-    _In_ int Family,
-    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
+    const HandshakeLossPatternsArgs& Params
     )
 {
+    int Family = Params.Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo = Params.CcAlgo;
+
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -4436,12 +4440,14 @@ struct ConnectionPoolConnectionContext {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestConnectionPoolCreate(
-    _In_ int Family,
-    _In_ uint16_t NumberOfConnections,
-    _In_ bool XdpSupported,
-    _In_ bool TestCibirSupport
+    const ConnectionPoolCreateArgs& Params
     )
 {
+    int Family = Params.Family;
+    uint16_t NumberOfConnections = Params.NumberOfConnections;
+    bool XdpSupported = Params.XdpSupported;
+    bool TestCibirSupport = Params.TestCibirSupport;
+
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     const uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 1 };
     const uint8_t CibirIdLength = sizeof(CibirId);
@@ -4565,4 +4571,5 @@ QuicTestConnectionPoolCreate(
         }
     }
 }
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

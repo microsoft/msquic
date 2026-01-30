@@ -1768,48 +1768,116 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
     }
 }
 
-TEST_P(WithHandshakeArgs10, HandshakeSpecificLossPatterns) {
+struct WithHandshakeLossPatternsArgs :
+    public testing::TestWithParam<HandshakeLossPatternsArgs> {
+
+    static ::std::vector<HandshakeLossPatternsArgs> Generate() {
+        ::std::vector<HandshakeLossPatternsArgs> list;
+        for (int Family : { 4, 6 })
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR })
+#else
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC })
+#endif
+            list.push_back({ Family, CcAlgo });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeLossPatternsArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.CcAlgo == QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ? "cubic" : "bbr");
+}
+
+TEST_P(WithHandshakeLossPatternsArgs, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
     if (TestingKernelMode) {
-        QUIC_HANDSHAKE_LOSS_PARAMS Params = {
-            GetParam().Family,
-            GetParam().CcAlgo
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestHandshakeSpecificLossPatterns), GetParam()));
     } else {
-        QuicTestHandshakeSpecificLossPatterns(GetParam().Family, GetParam().CcAlgo);
+        QuicTestHandshakeSpecificLossPatterns(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeLossPatternsArgs,
+    testing::ValuesIn(WithHandshakeLossPatternsArgs::Generate()));
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-TEST_P(WithHandshakeArgs11, ShutdownDuringHandshake) {
+struct WithShutdownDuringHandshakeArgs :
+    public testing::TestWithParam<ShutdownDuringHandshakeArgs> {
+
+    static ::std::vector<ShutdownDuringHandshakeArgs> Generate() {
+        ::std::vector<ShutdownDuringHandshakeArgs> list;
+        for (bool ClientShutdown : { false, true })
+            list.push_back({ ClientShutdown });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ShutdownDuringHandshakeArgs& args) {
+    return o << (args.ClientShutdown ? "Client" : "Server");
+}
+
+TEST_P(WithShutdownDuringHandshakeArgs, ShutdownDuringHandshake) {
     TestLoggerT<ParamType> Logger("QuicTestShutdownDuringHandshake", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN, GetParam().ClientShutdown ? TRUE : FALSE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestShutdownDuringHandshake), GetParam()));
     } else {
-        QuicTestShutdownDuringHandshake(GetParam().ClientShutdown);
+        QuicTestShutdownDuringHandshake(GetParam());
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithShutdownDuringHandshakeArgs,
+    testing::ValuesIn(WithShutdownDuringHandshakeArgs::Generate()));
+
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-TEST_P(WithHandshakeArgs12, ConnectionPoolCreate) {
+
+struct WithConnectionPoolCreateArgs :
+    public testing::TestWithParam<ConnectionPoolCreateArgs> {
+
+    static ::std::vector<ConnectionPoolCreateArgs> Generate() {
+        ::std::vector<ConnectionPoolCreateArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint16_t NumberOfConnections : { 1, 2, 4 })
+        for (bool TestCibir : { false, true })
+        for (bool XdpSupported : { false, true }) {
+#if !defined(_WIN32)
+            if (XdpSupported) continue;
+#endif
+            if (!UseDuoNic && XdpSupported) {
+                continue;
+            }
+            list.push_back({ Family, NumberOfConnections, XdpSupported, TestCibir });
+        }
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ConnectionPoolCreateArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.NumberOfConnections << "/" <<
+        (args.XdpSupported ? "XDP" : "NoXDP") << "/" <<
+        (args.TestCibirSupport ? "TestCibir" : "NoCibir");
+}
+
+TEST_P(WithConnectionPoolCreateArgs, ConnectionPoolCreate) {
     TestLoggerT<ParamType> Logger("QuicTestConnectionPoolCreate", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS Params = {
-            GetParam().Family,
-            GetParam().NumberOfConnections,
-            GetParam().XdpSupported,
-            GetParam().TestCibirSupport
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionPoolCreate), GetParam()));
     } else {
-        QuicTestConnectionPoolCreate(
-            GetParam().Family,
-            GetParam().NumberOfConnections,
-            GetParam().XdpSupported,
-            GetParam().TestCibirSupport);
+        QuicTestConnectionPoolCreate(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithConnectionPoolCreateArgs,
+    testing::ValuesIn(WithConnectionPoolCreateArgs::Generate()));
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct WithSendArgs :
@@ -2818,25 +2886,6 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(WithMtuArgs::Generate()));
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs10,
-    testing::ValuesIn(HandshakeArgs10::Generate()));
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs11,
-    testing::ValuesIn(HandshakeArgs11::Generate()));
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs12,
-    testing::ValuesIn(HandshakeArgs12::Generate()));
-#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
