@@ -1,6 +1,9 @@
 ---
 description: Summarize the latest 10 commits and count new features, updates, and bug fixes.
 on:
+  push:
+    branches:
+      - 'meiyang/**'
   workflow_dispatch:
 permissions: read-all
 tools:
