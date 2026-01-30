@@ -2203,7 +2203,7 @@ QuicLibraryLookupBinding(
 {
     const QUIC_ADDR* LocalAddress = UdpConfig->LocalAddress;
     const QUIC_ADDR* RemoteAddress = UdpConfig->RemoteAddress;
-    BOOLEAN UseQtip = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_QTIP);
+    BOOLEAN EnableQtip = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_QTIP);
 
     for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
         Link != &MsQuicLib.Bindings;
@@ -2234,7 +2234,7 @@ QuicLibraryLookupBinding(
                 QUIC_ADDR BindingRemoteAddr;
                 QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
                 if (QuicAddrCompare(RemoteAddress, &BindingRemoteAddr) &&
-                    QuicBindingGetQtipEnabled(Binding) == UseQtip) {
+                    QuicBindingGetQtipEnabled(Binding) == EnableQtip) {
                     return Binding;
                 }
             }
@@ -2276,7 +2276,7 @@ QuicLibraryGetBinding(
     const BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
     const BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
     const BOOLEAN Partitioned = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED);
-    const BOOLEAN UseQtip = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_QTIP);
+    const BOOLEAN EnableQtip = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_QTIP);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //
@@ -2314,7 +2314,7 @@ SharedEphemeralRetry:
             (ServerOwned != Binding->ServerOwned) ||
             (Partitioned != Binding->Partitioned) ||
             (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex) ||
-            (!Binding->Connected && QuicBindingGetQtipEnabled(Binding) != UseQtip)) {
+            (!Binding->Connected && QuicBindingGetQtipEnabled(Binding) != EnableQtip)) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
