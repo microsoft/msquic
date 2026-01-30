@@ -2387,7 +2387,9 @@ NewBinding:
         // 4-tuple.
         //
         CXPLAT_UDP_CONFIG Config = {0};
+        #ifdef QUIC_COMPARTMENT_ID
         Config.CompartmentId = UdpConfig->CompartmentId;
+        #endif
         Config.LocalAddress = &NewLocalAddress;
         Config.RemoteAddress = UdpConfig->RemoteAddress;
         Config.Flags = UdpConfig->Flags;
@@ -2400,7 +2402,9 @@ NewBinding:
         // tuple.
         //
         CXPLAT_UDP_CONFIG Config = {0};
+        #ifdef QUIC_COMPARTMENT_ID
         Config.CompartmentId = UdpConfig->CompartmentId;
+        #endif
         Config.LocalAddress = &NewLocalAddress;
         Config.RemoteAddress = NULL;
         Config.Flags = UdpConfig->Flags;
