@@ -1693,16 +1693,11 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
 
 // Generic IOCTL for invoking functions 
 
-#pragma pack(push)
-#pragma pack(1)
-
 struct QUIC_RUN_TEST_REQUEST {
     char FunctionName[256];
     uint32_t ParameterSize;
     // Followed by ParameterSize bytes of parameters
 };
-
-#pragma pack(pop)
 
 #define IOCTL_QUIC_RUN_TEST \
     QUIC_CTL_CODE(0x0fff, METHOD_BUFFERED, FILE_WRITE_DATA)

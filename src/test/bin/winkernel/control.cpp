@@ -854,7 +854,8 @@ ExecuteTestRequest(
 
     // Fail if no function matched
     char Buffer[256];
-    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, "Unknown function name in IOCTL test request: %s", Request->FunctionName);
+    char* FunctionName = (char*)Request;
+    (void)_snprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, "Unknown function name in IOCTL test request: %s", FunctionName);
 
     QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", Buffer);
 
