@@ -3292,7 +3292,7 @@ QuicTestValidAlpnLengths(
 
 void
 QuicTestConnectExpiredServerCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     )
 {
     MsQuicRegistration Registration;
@@ -3303,7 +3303,7 @@ QuicTestConnectExpiredServerCertificate(
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, *Config);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, Config.CredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -3359,7 +3359,7 @@ QuicTestConnectExpiredServerCertificate(
 
 void
 QuicTestConnectValidServerCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     )
 {
     MsQuicRegistration Registration;
@@ -3370,7 +3370,7 @@ QuicTestConnectValidServerCertificate(
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, *Config);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, Config.CredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -3424,7 +3424,7 @@ QuicTestConnectValidServerCertificate(
 
 void
 QuicTestConnectValidClientCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     )
 {
     MsQuicRegistration Registration;
@@ -3439,7 +3439,7 @@ QuicTestConnectValidClientCertificate(
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, *Config);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, Config.CredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
@@ -3489,7 +3489,7 @@ QuicTestConnectValidClientCertificate(
 
 void
 QuicTestConnectExpiredClientCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     )
 {
     MsQuicRegistration Registration;
@@ -3504,7 +3504,7 @@ QuicTestConnectExpiredClientCertificate(
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, *Config);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, Config.CredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;

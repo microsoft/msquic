@@ -553,7 +553,7 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
         GetParam().CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         GTEST_SKIP_("Cert Context not supported in kernel mode");
     }
-    QUIC_RUN_CRED_VALIDATION Arg;
+    QUIC_CREDENTIAL_BLOB Arg;
     CxPlatZeroMemory(&Arg, sizeof(Arg));
     ASSERT_TRUE(
         CxPlatGetTestCertificate(
@@ -561,11 +561,11 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
             TestingKernelMode ? CXPLAT_SELF_SIGN_CERT_MACHINE : CXPLAT_SELF_SIGN_CERT_USER,
             GetParam().CredType,
             &Arg.CredConfig,
-            &Arg.CertHash,
-            &Arg.CertHashStore,
-            &Arg.CertFile,
-            &Arg.CertFileProtected,
-            &Arg.Pkcs12,
+            &Arg.Storage.CertHash,
+            &Arg.Storage.CertHashStore,
+            &Arg.Storage.CertFile,
+            &Arg.Storage.CertFileProtected,
+            &Arg.Storage.Pkcs12,
             NULL));
     Arg.CredConfig.Flags =
         GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT ?
@@ -575,9 +575,9 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
         GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT);
 
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION, Arg));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCredentialLoad), Arg));
     } else {
-        QuicTestCredentialLoad(&Arg.CredConfig);
+        QuicTestCredentialLoad(Arg);
     }
 
     CxPlatFreeTestCert(&Arg.CredConfig);
@@ -1322,7 +1322,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
-    QUIC_RUN_CRED_VALIDATION Params;
+    QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_EXPIRED_SERVER,
@@ -1331,16 +1331,16 @@ TEST(CredValidation, ConnectExpiredServerCertificate) {
                 CXPLAT_SELF_SIGN_CERT_USER,
             CredType,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT, Params));
+            ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectExpiredServerCertificate), Params));
         } else {
-            QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
+            QuicTestConnectExpiredServerCertificate(Params);
         }
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -1355,19 +1355,19 @@ TEST(CredValidation, ConnectExpiredServerCertificate) {
             CXPLAT_SELF_SIGN_CERT_USER,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
-        QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
+            (char*)Params.Storage.PrincipalString));
+        QuicTestConnectExpiredServerCertificate(Params);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
 
 TEST(CredValidation, ConnectValidServerCertificate) {
-    QUIC_RUN_CRED_VALIDATION Params;
+    QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_VALID_SERVER,
@@ -1376,16 +1376,16 @@ TEST(CredValidation, ConnectValidServerCertificate) {
                 CXPLAT_SELF_SIGN_CERT_USER,
             CredType,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_SERVER_CERT, Params));
+            ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectValidServerCertificate), Params));
         } else {
-            QuicTestConnectValidServerCertificate(&Params.CredConfig);
+            QuicTestConnectValidServerCertificate(Params);
         }
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -1399,19 +1399,19 @@ TEST(CredValidation, ConnectValidServerCertificate) {
             CXPLAT_SELF_SIGN_CERT_USER,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
-        QuicTestConnectValidServerCertificate(&Params.CredConfig);
+            (char*)Params.Storage.PrincipalString));
+        QuicTestConnectValidServerCertificate(Params);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
 
 TEST(CredValidation, ConnectExpiredClientCertificate) {
-    QUIC_RUN_CRED_VALIDATION Params;
+    QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_EXPIRED_CLIENT,
@@ -1420,19 +1420,19 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
                 CXPLAT_SELF_SIGN_CERT_USER,
             CredType,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         Params.CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 
         if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT, Params));
+            ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectExpiredClientCertificate), Params));
         } else {
-            QuicTestConnectExpiredClientCertificate(&Params.CredConfig);
+            QuicTestConnectExpiredClientCertificate(Params);
         }
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -1446,15 +1446,15 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
             CXPLAT_SELF_SIGN_CERT_USER,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         Params.CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-        QuicTestConnectExpiredClientCertificate(&Params.CredConfig);
+        QuicTestConnectExpiredClientCertificate(Params);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
@@ -1463,7 +1463,7 @@ TEST(CredValidation, ConnectValidClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022() || IsWindows2025()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
-    QUIC_RUN_CRED_VALIDATION Params;
+    QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_VALID_CLIENT,
@@ -1472,19 +1472,19 @@ TEST(CredValidation, ConnectValidClientCertificate) {
                 CXPLAT_SELF_SIGN_CERT_USER,
             CredType,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         Params.CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 
         if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_CLIENT_CERT, Params));
+            ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectValidClientCertificate), Params));
         } else {
-            QuicTestConnectValidClientCertificate(&Params.CredConfig);
+            QuicTestConnectValidClientCertificate(Params);
         }
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -1498,15 +1498,15 @@ TEST(CredValidation, ConnectValidClientCertificate) {
             CXPLAT_SELF_SIGN_CERT_USER,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         Params.CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-        QuicTestConnectValidClientCertificate(&Params.CredConfig);
+        QuicTestConnectValidClientCertificate(Params);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }

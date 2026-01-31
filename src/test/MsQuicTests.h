@@ -53,6 +53,18 @@ struct FamilyArgs {
     int Family;
 };
 
+struct QUIC_CREDENTIAL_BLOB {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash;
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        QUIC_CERTIFICATE_FILE CertFile;
+        QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
+        QUIC_CERTIFICATE_PKCS12 Pkcs12;
+        char PrincipalString[100];
+    } Storage;
+};
+
 //
 // Parameter Validation Tests
 //
@@ -76,7 +88,7 @@ void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
-void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
+void QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config);
 void QuicTestValidateConnectionPoolCreate();
 void QuicTestValidateExecutionContext();
 void QuicTestValidatePartition();
@@ -446,22 +458,22 @@ QuicTestConnectServerRejected(
 
 void
 QuicTestConnectExpiredServerCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     );
 
 void
 QuicTestConnectValidServerCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     );
 
 void
 QuicTestConnectValidClientCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     );
 
 void
 QuicTestConnectExpiredClientCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     );
 
 void
@@ -1364,18 +1376,6 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS \
     QUIC_CTL_CODE(58, METHOD_BUFFERED, FILE_WRITE_DATA)
-
-typedef struct {
-    QUIC_CREDENTIAL_CONFIG CredConfig;
-    union {
-        QUIC_CERTIFICATE_HASH CertHash;
-        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
-        QUIC_CERTIFICATE_FILE CertFile;
-        QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
-        QUIC_CERTIFICATE_PKCS12 Pkcs12;
-        char PrincipalString[100];
-    };
-} QUIC_RUN_CRED_VALIDATION;
 
 #define IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT \
     QUIC_CTL_CODE(59, METHOD_BUFFERED, FILE_WRITE_DATA)
