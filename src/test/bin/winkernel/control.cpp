@@ -1057,58 +1057,6 @@ QuicTestCtlEvtIoDeviceControl(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case IOCTL_QUIC_RUN_CONNECT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestConnect(
-                Params->Params1.Family,
-                Params->Params1.ServerStatelessRetry != 0,
-                Params->Params1.ClientUsesOldVersion != 0,
-                Params->Params1.MultipleALPNs != 0,
-                Params->Params1.GreaseQuicBitExtension != 0,
-                (QUIC_TEST_ASYNC_CONFIG_MODE)Params->Params1.AsyncConfiguration,
-                Params->Params1.MultiPacketClientInitial != 0,
-                (QUIC_TEST_RESUMPTION_MODE)Params->Params1.SessionResumption,
-                Params->Params1.RandomLossPercentage
-                ));
-        break;
-
-    case IOCTL_QUIC_RUN_CONNECT_AND_PING:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestConnectAndPing(
-                Params->Params2.Family,
-                Params->Params2.Length,
-                Params->Params2.ConnectionCount,
-                Params->Params2.StreamCount,
-                Params->Params2.StreamBurstCount,
-                Params->Params2.StreamBurstDelayMs,
-                Params->Params2.ServerStatelessRetry != 0,
-                Params->Params2.ClientRebind != 0,
-                Params->Params2.ClientZeroRtt != 0,
-                Params->Params2.ServerRejectZeroRtt != 0,
-                Params->Params2.UseSendBuffer != 0,
-                Params->Params2.UnidirectionalStreams != 0,
-                Params->Params2.ServerInitiatedStreams != 0,
-                Params->Params2.FifoScheduling != 0,
-                Params->Params2.SendUdpToQtipListener != 0
-                ));
-        break;
-
-    case IOCTL_QUIC_RUN_NAT_ADDR_REBIND:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestNatAddrRebind(
-                Params->RebindParams.Family,
-                Params->RebindParams.Padding,
-                FALSE));
-        break;
-
-    case IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE:
-        QuicTestCtlRun(QuicTestStreamMultiReceive());
-
-        break;
-
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

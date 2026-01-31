@@ -508,6 +508,21 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct WithValidateNetStatsConnEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
+    static ::std::vector<ValidateNetStatsConnEventArgs> Generate() {
+        ::std::vector<ValidateNetStatsConnEventArgs> list;
+        for (uint32_t Test = 0; Test < 2; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs& args) {
+    return o << args.Test;
+}
+
 TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
     TestLoggerT<ParamType> Logger("QuicTestValidateNetStatsConnEvent", GetParam());
     if (TestingKernelMode) {
@@ -516,7 +531,27 @@ TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
         QuicTestValidateNetStatsConnEvent(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateNetStatsConnEventArgs,
+    testing::ValuesIn(WithValidateNetStatsConnEventArgs::Generate()));
+
 #endif
+
+struct WithValidateStreamEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateStreamEventArgs> {
+    static ::std::vector<ValidateStreamEventArgs> Generate() {
+        ::std::vector<ValidateStreamEventArgs> list;
+        for (uint32_t Test = 0; Test < 9; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateStreamEventArgs& args) {
+    return o << args.Test;
+}
 
 TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStreamEvents", GetParam());
@@ -526,6 +561,11 @@ TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
         QuicTestValidateStreamEvents(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateStreamEventArgs,
+    testing::ValuesIn(WithValidateStreamEventArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateVersionSettings) {
@@ -547,14 +587,88 @@ TEST(ParameterValidation, ValidateParamApi) {
     }
 }
 
+struct TlsConfigArgs {
+    QUIC_CREDENTIAL_TYPE CredType;
+    CXPLAT_TEST_CERT_TYPE CertType;
+};
+
+std::ostream& operator << (std::ostream& o, const CXPLAT_TEST_CERT_TYPE& type) {
+    switch (type) {
+    case CXPLAT_TEST_CERT_VALID_SERVER:
+        return o << "Valid Server";
+    case CXPLAT_TEST_CERT_VALID_CLIENT:
+        return o << "Valid Client";
+    case CXPLAT_TEST_CERT_EXPIRED_SERVER:
+        return o << "Expired Server";
+    case CXPLAT_TEST_CERT_EXPIRED_CLIENT:
+        return o << "Expired Client";
+    case CXPLAT_TEST_CERT_SELF_SIGNED_SERVER:
+        return o << "Self-signed Server";
+    case CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT:
+        return o << "Self-signed Client";
+    default:
+        return o << "Unknown";
+    }
+}
+
+std::ostream& operator << (std::ostream& o, const QUIC_CREDENTIAL_TYPE& type) {
+    switch (type) {
+    case QUIC_CREDENTIAL_TYPE_NONE:
+        return o << "None";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+        return o << "Hash";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+        return o << "HashStore";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+        return o << "Context";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
+        return o << "File";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED:
+        return o << "FileProtected";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12:
+        return o << "Pkcs12";
+    default:
+        return o << "Unknown";
+    }
+}
+
+std::ostream& operator << (std::ostream& o, const TlsConfigArgs& args) {
+    return o << args.CredType << "/" << args.CertType;
+}
+
+struct WithValidateTlsConfigArgs :
+    public testing::TestWithParam<TlsConfigArgs> {
+
+    static ::std::vector<TlsConfigArgs> Generate() {
+        ::std::vector<TlsConfigArgs> List;
+        for (auto CredType : {
+#ifdef _WIN32
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
+#else
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12
+#endif
+        })
+        for (auto CertType : {CXPLAT_TEST_CERT_SELF_SIGNED_SERVER, CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT}) {
+            List.push_back({CredType, CertType});
+        }
+        return List;
+    }
+};
+
 TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
     TestLogger Logger("QuicTestCredentialLoad");
+
     if (TestingKernelMode &&
         GetParam().CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         GTEST_SKIP_("Cert Context not supported in kernel mode");
     }
-    QUIC_CREDENTIAL_BLOB Arg;
-    CxPlatZeroMemory(&Arg, sizeof(Arg));
+
+    QUIC_CREDENTIAL_BLOB Arg{};
+
     ASSERT_TRUE(
         CxPlatGetTestCertificate(
             GetParam().CertType,
@@ -567,12 +681,11 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
             &Arg.Storage.CertFileProtected,
             &Arg.Storage.Pkcs12,
             NULL));
+
     Arg.CredConfig.Flags =
         GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT ?
             QUIC_CREDENTIAL_FLAG_CLIENT :
             QUIC_CREDENTIAL_FLAG_NONE;
-    ASSERT_TRUE(GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ||
-        GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT);
 
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCredentialLoad), Arg));
@@ -582,6 +695,11 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
 
     CxPlatFreeTestCert(&Arg.CredConfig);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateTlsConfigArgs,
+    testing::ValuesIn(WithValidateTlsConfigArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Basic, RegistrationOpenClose) {
@@ -712,6 +830,24 @@ TEST(Mtu, Settings) {
     }
 }
 
+struct WithMtuArgs : public testing::Test,
+    public testing::WithParamInterface<MtuArgs> {
+    static ::std::vector<MtuArgs> Generate() {
+        ::std::vector<MtuArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint8_t DropMode : {0, 1, 2, 3})
+        for (uint8_t RaiseMinimum : {0, 1})
+            list.push_back({ Family, DropMode, RaiseMinimum });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const MtuArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.DropMode << "/" << args.RaiseMinimum << "/";
+}
+
 TEST_P(WithMtuArgs, MtuDiscovery) {
     TestLoggerT<ParamType> Logger("QuicTestMtuDiscovery", GetParam());
     if (TestingKernelMode) {
@@ -721,6 +857,11 @@ TEST_P(WithMtuArgs, MtuDiscovery) {
         QuicTestMtuDiscovery(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Mtu,
+    WithMtuArgs,
+    ::testing::ValuesIn(WithMtuArgs::Generate()));
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
@@ -1266,10 +1407,6 @@ std::ostream& operator << (std::ostream& o, const OddSizeVnTpParams& args) {
 TEST_P(WithOddSizeVnTpParams, OddSizeVnTp) {
     TestLoggerT<ParamType> Logger("QuicTestVNTPOddSize", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_VN_TP_ODD_SIZE_PARAMS Params = {
-            GetParam().TestServer,
-            GetParam().VnTpSize
-        };
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPOddSize), GetParam()));
     } else {
         QuicTestVNTPOddSize(GetParam());
@@ -2713,6 +2850,11 @@ TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    Drill,
+    WithDrillInitialPacketCidArgs,
+    testing::ValuesIn(WithDrillInitialPacketCidArgs::Generate()));
+
 struct WithDrillInitialPacketTokenArgs:
     public testing::TestWithParam<DrillInitialPacketTokenArgs> {
 
@@ -2756,6 +2898,11 @@ TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake) {
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    Drill,
+    WithDrillInitialPacketTokenArgs,
+    testing::ValuesIn(WithDrillInitialPacketTokenArgs::Generate()));
+
 struct WithDatagramNegotiationArgs :
     public testing::TestWithParam<DatagramNegotiationArgs> {
 
@@ -2782,6 +2929,11 @@ TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
         QuicTestDatagramNegotiation(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithDatagramNegotiationArgs,
+    testing::ValuesIn(WithDatagramNegotiationArgs::Generate()));
 
 TEST_P(WithFamilyArgs, DatagramSend) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramSend", GetParam());
@@ -2851,56 +3003,19 @@ TEST(ParameterValidation, RetryConfigSetting)
 
 #endif // _WIN32
 
+//
+// Instantiate test suites with common parameters.
+//
+
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithBool,
     ::testing::Values(false, true));
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    WithValidateNetStatsConnEventArgs,
-    testing::ValuesIn(WithValidateNetStatsConnEventArgs::Generate()));
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    WithValidateStreamEventArgs,
-    testing::ValuesIn(WithValidateStreamEventArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    WithValidateTlsConfigArgs,
-    testing::ValuesIn(TlsConfigArgs::Generate()));
-
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
     ::testing::ValuesIn(WithFamilyArgs::Generate()));
-
-#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Mtu,
-    WithMtuArgs,
-    ::testing::ValuesIn(WithMtuArgs::Generate()));
-
-#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithDatagramNegotiationArgs,
-    testing::ValuesIn(WithDatagramNegotiationArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Drill,
-    WithDrillInitialPacketCidArgs,
-    testing::ValuesIn(WithDrillInitialPacketCidArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Drill,
-    WithDrillInitialPacketTokenArgs,
-    testing::ValuesIn(WithDrillInitialPacketTokenArgs::Generate()));
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
