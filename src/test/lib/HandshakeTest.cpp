@@ -572,6 +572,60 @@ QuicTestConnect_OldVersion(
 }
 
 void
+QuicTestConnect_RandomLoss(
+    const HandshakeArgs4& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,  // ClientUsesOldVersion
+        false,  // MultipleALPNs
+        false,  // GreaseQuicBitExtension
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_DISABLED,
+        Params.RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_RandomLossResume(
+    const HandshakeArgs4& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,  // ClientUsesOldVersion
+        false,  // MultipleALPNs
+        false,  // GreaseQuicBitExtension
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_ENABLED,
+        Params.RandomLossPercentage
+        );
+}
+
+void
+QuicTestConnect_RandomLossResumeRejection(
+    const HandshakeArgs4& Params
+    )
+{
+    QuicTestConnect(
+        Params.Family,
+        Params.ServerStatelessRetry,
+        false,  // ClientUsesOldVersion
+        false,  // MultipleALPNs
+        false,  // GreaseQuicBitExtension
+        QUIC_TEST_ASYNC_CONFIG_DISABLED,
+        Params.MultiPacketClientInitial,
+        QUIC_TEST_RESUMPTION_REJECTED,
+        Params.RandomLossPercentage
+        );
+}
+
+void
 QuicTestConnect_AsyncSecurityConfig(
     const HandshakeArgs& Params
     )
@@ -731,6 +785,38 @@ QuicTestNatAddrRebind(
     TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &Context.PeerAddr.SockAddr));
 
     Connection.Shutdown(1);
+}
+
+void
+QuicTestNatPortRebind_NoPadding(
+    const FamilyArgs& Params
+    )
+{
+    QuicTestNatPortRebind(Params.Family, 0);
+}
+
+void
+QuicTestNatPortRebind_WithPadding(
+    const RebindPaddingArgs& Params
+    )
+{
+    QuicTestNatPortRebind(Params.Family, Params.Padding);
+}
+
+void
+QuicTestNatAddrRebind_NoPadding(
+    const FamilyArgs& Params
+    )
+{
+    QuicTestNatAddrRebind(Params.Family, 0, FALSE);
+}
+
+void
+QuicTestNatAddrRebind_WithPadding(
+    const RebindPaddingArgs& Params
+    )
+{
+    QuicTestNatAddrRebind(Params.Family, Params.Padding, FALSE);
 }
 
 void
@@ -1196,9 +1282,11 @@ QuicTestCustomClientCertificateValidation(
 
 void
 QuicTestShutdownDuringHandshake(
-    _In_ bool ClientShutdown
+    const ShutdownDuringHandshakeArgs& Params
     )
 {
+    bool ClientShutdown = Params.ClientShutdown;
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -2569,10 +2657,11 @@ SendFrame(
 
 void
 QuicTestKeyUpdateRandomLoss(
-    _In_ int Family,
-    _In_ uint8_t RandomLossPercentage
+    const KeyUpdateRandomLossArgs& Params
     )
 {
+    int Family = Params.Family;
+    uint8_t RandomLossPercentage = Params.RandomLossPercentage;
     TestScopeLogger LogScope("QuicTestKeyUpdateRandomLoss");
 
     MsQuicRegistration Registration;
@@ -2924,10 +3013,11 @@ QuicTestKeyUpdate(
 
 void
 QuicTestCidUpdate(
-    _In_ int Family,
-    _In_ uint16_t Iterations
+    const CidUpdateArgs& Params
     )
 {
+    int Family = Params.Family;
+    uint16_t Iterations = Params.Iterations;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -3202,7 +3292,7 @@ QuicTestValidAlpnLengths(
 
 void
 QuicTestConnectExpiredServerCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     )
 {
     MsQuicRegistration Registration;
@@ -3213,7 +3303,7 @@ QuicTestConnectExpiredServerCertificate(
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, *Config);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, Config.CredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -3269,7 +3359,7 @@ QuicTestConnectExpiredServerCertificate(
 
 void
 QuicTestConnectValidServerCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     )
 {
     MsQuicRegistration Registration;
@@ -3280,7 +3370,7 @@ QuicTestConnectValidServerCertificate(
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, *Config);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, Config.CredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -3334,7 +3424,7 @@ QuicTestConnectValidServerCertificate(
 
 void
 QuicTestConnectValidClientCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     )
 {
     MsQuicRegistration Registration;
@@ -3349,7 +3439,7 @@ QuicTestConnectValidClientCertificate(
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, *Config);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, Config.CredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
@@ -3399,7 +3489,7 @@ QuicTestConnectValidClientCertificate(
 
 void
 QuicTestConnectExpiredClientCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     )
 {
     MsQuicRegistration Registration;
@@ -3414,7 +3504,7 @@ QuicTestConnectExpiredClientCertificate(
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, *Config);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, Config.CredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
@@ -4269,10 +4359,12 @@ QuicTestVNTPOtherVersionZero(
 
 void
 QuicTestHandshakeSpecificLossPatterns(
-    _In_ int Family,
-    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
+    const HandshakeLossPatternsArgs& Params
     )
 {
+    int Family = Params.Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo = Params.CcAlgo;
+
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -4348,12 +4440,14 @@ struct ConnectionPoolConnectionContext {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestConnectionPoolCreate(
-    _In_ int Family,
-    _In_ uint16_t NumberOfConnections,
-    _In_ bool XdpSupported,
-    _In_ bool TestCibirSupport
+    const ConnectionPoolCreateArgs& Params
     )
 {
+    int Family = Params.Family;
+    uint16_t NumberOfConnections = Params.NumberOfConnections;
+    bool XdpSupported = Params.XdpSupported;
+    bool TestCibirSupport = Params.TestCibirSupport;
+
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     const uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 1 };
     const uint8_t CibirIdLength = sizeof(CibirId);
@@ -4477,4 +4571,5 @@ QuicTestConnectionPoolCreate(
         }
     }
 }
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

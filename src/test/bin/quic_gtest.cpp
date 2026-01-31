@@ -508,6 +508,21 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct WithValidateNetStatsConnEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
+    static ::std::vector<ValidateNetStatsConnEventArgs> Generate() {
+        ::std::vector<ValidateNetStatsConnEventArgs> list;
+        for (uint32_t Test = 0; Test < 2; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs& args) {
+    return o << args.Test;
+}
+
 TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
     TestLoggerT<ParamType> Logger("QuicTestValidateNetStatsConnEvent", GetParam());
     if (TestingKernelMode) {
@@ -516,7 +531,27 @@ TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
         QuicTestValidateNetStatsConnEvent(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateNetStatsConnEventArgs,
+    testing::ValuesIn(WithValidateNetStatsConnEventArgs::Generate()));
+
 #endif
+
+struct WithValidateStreamEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateStreamEventArgs> {
+    static ::std::vector<ValidateStreamEventArgs> Generate() {
+        ::std::vector<ValidateStreamEventArgs> list;
+        for (uint32_t Test = 0; Test < 9; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateStreamEventArgs& args) {
+    return o << args.Test;
+}
 
 TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStreamEvents", GetParam());
@@ -526,6 +561,11 @@ TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
         QuicTestValidateStreamEvents(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateStreamEventArgs,
+    testing::ValuesIn(WithValidateStreamEventArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateVersionSettings) {
@@ -547,41 +587,119 @@ TEST(ParameterValidation, ValidateParamApi) {
     }
 }
 
+struct TlsConfigArgs {
+    QUIC_CREDENTIAL_TYPE CredType;
+    CXPLAT_TEST_CERT_TYPE CertType;
+};
+
+std::ostream& operator << (std::ostream& o, const CXPLAT_TEST_CERT_TYPE& type) {
+    switch (type) {
+    case CXPLAT_TEST_CERT_VALID_SERVER:
+        return o << "Valid Server";
+    case CXPLAT_TEST_CERT_VALID_CLIENT:
+        return o << "Valid Client";
+    case CXPLAT_TEST_CERT_EXPIRED_SERVER:
+        return o << "Expired Server";
+    case CXPLAT_TEST_CERT_EXPIRED_CLIENT:
+        return o << "Expired Client";
+    case CXPLAT_TEST_CERT_SELF_SIGNED_SERVER:
+        return o << "Self-signed Server";
+    case CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT:
+        return o << "Self-signed Client";
+    default:
+        return o << "Unknown";
+    }
+}
+
+std::ostream& operator << (std::ostream& o, const QUIC_CREDENTIAL_TYPE& type) {
+    switch (type) {
+    case QUIC_CREDENTIAL_TYPE_NONE:
+        return o << "None";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+        return o << "Hash";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+        return o << "HashStore";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+        return o << "Context";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
+        return o << "File";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED:
+        return o << "FileProtected";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12:
+        return o << "Pkcs12";
+    default:
+        return o << "Unknown";
+    }
+}
+
+std::ostream& operator << (std::ostream& o, const TlsConfigArgs& args) {
+    return o << args.CredType << "/" << args.CertType;
+}
+
+struct WithValidateTlsConfigArgs :
+    public testing::TestWithParam<TlsConfigArgs> {
+
+    static ::std::vector<TlsConfigArgs> Generate() {
+        ::std::vector<TlsConfigArgs> List;
+        for (auto CredType : {
+#ifdef _WIN32
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
+#else
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12
+#endif
+        })
+        for (auto CertType : {CXPLAT_TEST_CERT_SELF_SIGNED_SERVER, CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT}) {
+            List.push_back({CredType, CertType});
+        }
+        return List;
+    }
+};
+
 TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
     TestLogger Logger("QuicTestCredentialLoad");
+
     if (TestingKernelMode &&
         GetParam().CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         GTEST_SKIP_("Cert Context not supported in kernel mode");
     }
-    QUIC_RUN_CRED_VALIDATION Arg;
-    CxPlatZeroMemory(&Arg, sizeof(Arg));
+
+    QUIC_CREDENTIAL_BLOB Arg{};
+
     ASSERT_TRUE(
         CxPlatGetTestCertificate(
             GetParam().CertType,
             TestingKernelMode ? CXPLAT_SELF_SIGN_CERT_MACHINE : CXPLAT_SELF_SIGN_CERT_USER,
             GetParam().CredType,
             &Arg.CredConfig,
-            &Arg.CertHash,
-            &Arg.CertHashStore,
-            &Arg.CertFile,
-            &Arg.CertFileProtected,
-            &Arg.Pkcs12,
+            &Arg.Storage.CertHash,
+            &Arg.Storage.CertHashStore,
+            &Arg.Storage.CertFile,
+            &Arg.Storage.CertFileProtected,
+            &Arg.Storage.Pkcs12,
             NULL));
+
     Arg.CredConfig.Flags =
         GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT ?
             QUIC_CREDENTIAL_FLAG_CLIENT :
             QUIC_CREDENTIAL_FLAG_NONE;
-    ASSERT_TRUE(GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ||
-        GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT);
 
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION, Arg));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCredentialLoad), Arg));
     } else {
-        QuicTestCredentialLoad(&Arg.CredConfig);
+        QuicTestCredentialLoad(Arg);
     }
 
     CxPlatFreeTestCert(&Arg.CredConfig);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateTlsConfigArgs,
+    testing::ValuesIn(WithValidateTlsConfigArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Basic, RegistrationOpenClose) {
@@ -712,6 +830,24 @@ TEST(Mtu, Settings) {
     }
 }
 
+struct WithMtuArgs : public testing::Test,
+    public testing::WithParamInterface<MtuArgs> {
+    static ::std::vector<MtuArgs> Generate() {
+        ::std::vector<MtuArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint8_t DropMode : {0, 1, 2, 3})
+        for (uint8_t RaiseMinimum : {0, 1})
+            list.push_back({ Family, DropMode, RaiseMinimum });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const MtuArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.DropMode << "/" << args.RaiseMinimum << "/";
+}
+
 TEST_P(WithMtuArgs, MtuDiscovery) {
     TestLoggerT<ParamType> Logger("QuicTestMtuDiscovery", GetParam());
     if (TestingKernelMode) {
@@ -721,6 +857,11 @@ TEST_P(WithMtuArgs, MtuDiscovery) {
         QuicTestMtuDiscovery(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Mtu,
+    WithMtuArgs,
+    ::testing::ValuesIn(WithMtuArgs::Generate()));
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
@@ -1266,10 +1407,6 @@ std::ostream& operator << (std::ostream& o, const OddSizeVnTpParams& args) {
 TEST_P(WithOddSizeVnTpParams, OddSizeVnTp) {
     TestLoggerT<ParamType> Logger("QuicTestVNTPOddSize", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_VN_TP_ODD_SIZE_PARAMS Params = {
-            GetParam().TestServer,
-            GetParam().VnTpSize
-        };
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPOddSize), GetParam()));
     } else {
         QuicTestVNTPOddSize(GetParam());
@@ -1322,7 +1459,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
-    QUIC_RUN_CRED_VALIDATION Params;
+    QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_EXPIRED_SERVER,
@@ -1331,16 +1468,16 @@ TEST(CredValidation, ConnectExpiredServerCertificate) {
                 CXPLAT_SELF_SIGN_CERT_USER,
             CredType,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT, Params));
+            ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectExpiredServerCertificate), Params));
         } else {
-            QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
+            QuicTestConnectExpiredServerCertificate(Params);
         }
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -1355,19 +1492,19 @@ TEST(CredValidation, ConnectExpiredServerCertificate) {
             CXPLAT_SELF_SIGN_CERT_USER,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
-        QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
+            (char*)Params.Storage.PrincipalString));
+        QuicTestConnectExpiredServerCertificate(Params);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
 
 TEST(CredValidation, ConnectValidServerCertificate) {
-    QUIC_RUN_CRED_VALIDATION Params;
+    QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_VALID_SERVER,
@@ -1376,16 +1513,16 @@ TEST(CredValidation, ConnectValidServerCertificate) {
                 CXPLAT_SELF_SIGN_CERT_USER,
             CredType,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_SERVER_CERT, Params));
+            ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectValidServerCertificate), Params));
         } else {
-            QuicTestConnectValidServerCertificate(&Params.CredConfig);
+            QuicTestConnectValidServerCertificate(Params);
         }
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -1399,19 +1536,19 @@ TEST(CredValidation, ConnectValidServerCertificate) {
             CXPLAT_SELF_SIGN_CERT_USER,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
-        QuicTestConnectValidServerCertificate(&Params.CredConfig);
+            (char*)Params.Storage.PrincipalString));
+        QuicTestConnectValidServerCertificate(Params);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
 
 TEST(CredValidation, ConnectExpiredClientCertificate) {
-    QUIC_RUN_CRED_VALIDATION Params;
+    QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_EXPIRED_CLIENT,
@@ -1420,19 +1557,19 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
                 CXPLAT_SELF_SIGN_CERT_USER,
             CredType,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         Params.CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 
         if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT, Params));
+            ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectExpiredClientCertificate), Params));
         } else {
-            QuicTestConnectExpiredClientCertificate(&Params.CredConfig);
+            QuicTestConnectExpiredClientCertificate(Params);
         }
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -1446,15 +1583,15 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
             CXPLAT_SELF_SIGN_CERT_USER,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         Params.CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-        QuicTestConnectExpiredClientCertificate(&Params.CredConfig);
+        QuicTestConnectExpiredClientCertificate(Params);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
@@ -1463,7 +1600,7 @@ TEST(CredValidation, ConnectValidClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022() || IsWindows2025()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
-    QUIC_RUN_CRED_VALIDATION Params;
+    QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_VALID_CLIENT,
@@ -1472,19 +1609,19 @@ TEST(CredValidation, ConnectValidClientCertificate) {
                 CXPLAT_SELF_SIGN_CERT_USER,
             CredType,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         Params.CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 
         if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_CLIENT_CERT, Params));
+            ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectValidClientCertificate), Params));
         } else {
-            QuicTestConnectValidClientCertificate(&Params.CredConfig);
+            QuicTestConnectValidClientCertificate(Params);
         }
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -1498,110 +1635,81 @@ TEST(CredValidation, ConnectValidClientCertificate) {
             CXPLAT_SELF_SIGN_CERT_USER,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
             &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
+            &Params.Storage.CertHash,
+            &Params.Storage.CertHashStore,
             NULL,
             NULL,
             NULL,
-            (char*)Params.PrincipalString));
+            (char*)Params.Storage.PrincipalString));
         Params.CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-        QuicTestConnectValidClientCertificate(&Params.CredConfig);
+        QuicTestConnectValidClientCertificate(Params);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
 #endif // QUIC_TEST_FAILING_TEST_CERTIFICATES
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+struct WithHandshakeArgs4 :
+    public testing::TestWithParam<HandshakeArgs4> {
+
+    static ::std::vector<HandshakeArgs4> Generate() {
+        ::std::vector<HandshakeArgs4> list;
+        for (int Family : { 4, 6})
+        for (bool ServerStatelessRetry : { false, true })
+        for (bool MultiPacketClientInitial : { false, true })
+        for (uint8_t RandomLossPercentage : { 1, 5, 10 })
+            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, RandomLossPercentage });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
+        (uint32_t)args.RandomLossPercentage << "% loss";
+}
+
 TEST_P(WithHandshakeArgs4, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_PARAMS Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_DISABLED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnect_RandomLoss), GetParam()));
     } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_DISABLED,
-            GetParam().RandomLossPercentage);
+        QuicTestConnect_RandomLoss(GetParam());
     }
 }
+
 #ifndef QUIC_DISABLE_RESUMPTION
 TEST_P(WithHandshakeArgs4, RandomLossResume) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResume", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_PARAMS Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_ENABLED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnect_RandomLossResume), GetParam()));
     } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_ENABLED,
-            GetParam().RandomLossPercentage);
+        QuicTestConnect_RandomLossResume(GetParam());
     }
 }
+
 TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResumeRejection", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_PARAMS Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_REJECTED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnect_RandomLossResumeRejection), GetParam()));
     } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // GreaseQuicBitExtension
-            QUIC_TEST_ASYNC_CONFIG_DISABLED,
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_REJECTED,
-            GetParam().RandomLossPercentage);
+        QuicTestConnect_RandomLossResumeRejection(GetParam());
     }
 }
 #endif // QUIC_DISABLE_RESUMPTION
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs4,
+    testing::ValuesIn(WithHandshakeArgs4::Generate()));
+
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithFamilyArgs, Unreachable) {
@@ -1669,16 +1777,29 @@ TEST_P(WithFamilyArgs, RebindPort) {
         return;
     }
 #endif
-    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind_NoPadding", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_REBIND_PARAMS Params = {
-            GetParam().Family,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatPortRebind_NoPadding), GetParam()));
     } else {
-        QuicTestNatPortRebind(GetParam().Family, 0);
+        QuicTestNatPortRebind_NoPadding(GetParam());
     }
+}
+
+struct WithRebindPaddingArgs :
+    public testing::TestWithParam<RebindPaddingArgs> {
+
+    static ::std::vector<RebindPaddingArgs> Generate() {
+        ::std::vector<RebindPaddingArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint16_t Padding = 1; Padding < 75; ++Padding)
+            list.push_back({ Family, Padding });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const RebindPaddingArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << args.Padding;
 }
 
 TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
@@ -1690,17 +1811,18 @@ TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
         return;
     }
 #endif
-    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind_WithPadding", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_REBIND_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Padding
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatPortRebind_WithPadding), GetParam()));
     } else {
-        QuicTestNatPortRebind(GetParam().Family, GetParam().Padding);
+        QuicTestNatPortRebind_WithPadding(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithRebindPaddingArgs,
+    ::testing::ValuesIn(WithRebindPaddingArgs::Generate()));
 
 TEST_P(WithFamilyArgs, RebindAddr) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
@@ -1711,15 +1833,11 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         return;
     }
 #endif
-    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind_NoPadding", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_REBIND_PARAMS Params = {
-            GetParam().Family,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatAddrRebind_NoPadding), GetParam()));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, 0, FALSE);
+        QuicTestNatAddrRebind_NoPadding(GetParam());
     }
 }
 
@@ -1747,15 +1865,11 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
         return;
     }
 #endif
-    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind_WithPadding", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_REBIND_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Padding
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatAddrRebind_WithPadding), GetParam()));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding, FALSE);
+        QuicTestNatAddrRebind_WithPadding(GetParam());
     }
 }
 
@@ -1791,93 +1905,162 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
     }
 }
 
-TEST_P(WithHandshakeArgs10, HandshakeSpecificLossPatterns) {
+struct WithHandshakeLossPatternsArgs :
+    public testing::TestWithParam<HandshakeLossPatternsArgs> {
+
+    static ::std::vector<HandshakeLossPatternsArgs> Generate() {
+        ::std::vector<HandshakeLossPatternsArgs> list;
+        for (int Family : { 4, 6 })
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR })
+#else
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC })
+#endif
+            list.push_back({ Family, CcAlgo });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeLossPatternsArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.CcAlgo == QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ? "cubic" : "bbr");
+}
+
+TEST_P(WithHandshakeLossPatternsArgs, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
     if (TestingKernelMode) {
-        QUIC_HANDSHAKE_LOSS_PARAMS Params = {
-            GetParam().Family,
-            GetParam().CcAlgo
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestHandshakeSpecificLossPatterns), GetParam()));
     } else {
-        QuicTestHandshakeSpecificLossPatterns(GetParam().Family, GetParam().CcAlgo);
+        QuicTestHandshakeSpecificLossPatterns(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeLossPatternsArgs,
+    testing::ValuesIn(WithHandshakeLossPatternsArgs::Generate()));
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-TEST_P(WithHandshakeArgs11, ShutdownDuringHandshake) {
+struct WithShutdownDuringHandshakeArgs :
+    public testing::TestWithParam<ShutdownDuringHandshakeArgs> {
+
+    static ::std::vector<ShutdownDuringHandshakeArgs> Generate() {
+        ::std::vector<ShutdownDuringHandshakeArgs> list;
+        for (bool ClientShutdown : { false, true })
+            list.push_back({ ClientShutdown });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ShutdownDuringHandshakeArgs& args) {
+    return o << (args.ClientShutdown ? "Client" : "Server");
+}
+
+TEST_P(WithShutdownDuringHandshakeArgs, ShutdownDuringHandshake) {
     TestLoggerT<ParamType> Logger("QuicTestShutdownDuringHandshake", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN, GetParam().ClientShutdown ? TRUE : FALSE));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestShutdownDuringHandshake), GetParam()));
     } else {
-        QuicTestShutdownDuringHandshake(GetParam().ClientShutdown);
+        QuicTestShutdownDuringHandshake(GetParam());
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithShutdownDuringHandshakeArgs,
+    testing::ValuesIn(WithShutdownDuringHandshakeArgs::Generate()));
+
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-TEST_P(WithHandshakeArgs12, ConnectionPoolCreate) {
+
+struct WithConnectionPoolCreateArgs :
+    public testing::TestWithParam<ConnectionPoolCreateArgs> {
+
+    static ::std::vector<ConnectionPoolCreateArgs> Generate() {
+        ::std::vector<ConnectionPoolCreateArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint16_t NumberOfConnections : { 1, 2, 4 })
+        for (bool TestCibir : { false, true })
+        for (bool XdpSupported : { false, true }) {
+#if !defined(_WIN32)
+            if (XdpSupported) continue;
+#endif
+            if (!UseDuoNic && XdpSupported) {
+                continue;
+            }
+            list.push_back({ Family, NumberOfConnections, XdpSupported, TestCibir });
+        }
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ConnectionPoolCreateArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.NumberOfConnections << "/" <<
+        (args.XdpSupported ? "XDP" : "NoXDP") << "/" <<
+        (args.TestCibirSupport ? "TestCibir" : "NoCibir");
+}
+
+TEST_P(WithConnectionPoolCreateArgs, ConnectionPoolCreate) {
     TestLoggerT<ParamType> Logger("QuicTestConnectionPoolCreate", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS Params = {
-            GetParam().Family,
-            GetParam().NumberOfConnections,
-            GetParam().XdpSupported,
-            GetParam().TestCibirSupport
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionPoolCreate), GetParam()));
     } else {
-        QuicTestConnectionPoolCreate(
-            GetParam().Family,
-            GetParam().NumberOfConnections,
-            GetParam().XdpSupported,
-            GetParam().TestCibirSupport);
+        QuicTestConnectionPoolCreate(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithConnectionPoolCreateArgs,
+    testing::ValuesIn(WithConnectionPoolCreateArgs::Generate()));
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST_P(WithSendArgs1, Send) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
+struct WithSendArgs :
+    public testing::TestWithParam<SendArgs> {
+
+    static ::std::vector<SendArgs> Generate() {
+        ::std::vector<SendArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint64_t Length : { 0, 1000, 10000 })
+        for (uint32_t ConnectionCount : { 1, 2, 4 })
+        for (uint32_t StreamCount : { 1, 2, 4 })
+        for (bool UseSendBuffer : { false, true })
+        for (bool UnidirectionalStreams : { false, true })
+        for (bool ServerInitiatedStreams : { false, true })
+            list.push_back({ Family, Length, ConnectionCount, StreamCount, UseSendBuffer, UnidirectionalStreams, ServerInitiatedStreams });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const SendArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Length << "/" <<
+        args.ConnectionCount << "/" <<
+        args.StreamCount << "/" <<
+        (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer") << "/" <<
+        (args.UnidirectionalStreams ? "Uni" : "Bidi") << "/" <<
+        (args.ServerInitiatedStreams ? "Server" : "Client");
+}
+
+TEST_P(WithSendArgs, Send) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_Send", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            0,  // ClientZeroRtt
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            (uint8_t)GetParam().UnidirectionalStreams,
-            (uint8_t)GetParam().ServerInitiatedStreams,
-            0,   // FifoScheduling
-            0    // SendUdpToQtipListener
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_Send), GetParam()));
     } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            false,  // ClientZeroRtt
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            GetParam().UnidirectionalStreams,
-            GetParam().ServerInitiatedStreams,
-            false,  // FifoScheduling
-            false); // SendUdpToQtipListener
+        QuicTestConnectAndPing_Send(GetParam());
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    AppData,
+    WithSendArgs,
+    testing::ValuesIn(WithSendArgs::Generate()));
+
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-TEST_P(WithSendArgs1, SendQtip) {
+TEST_P(WithSendArgs, SendQtip) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPingOverQtip", GetParam());
     if (!TestingKernelMode && UseQTIP) {
         QuicTestConnectAndPing(
@@ -1900,89 +2083,116 @@ TEST_P(WithSendArgs1, SendQtip) {
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST_P(WithSendArgs2, SendLarge) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
+struct WithSendLargeArgs :
+    public testing::TestWithParam<SendLargeArgs> {
+
+    static ::std::vector<SendLargeArgs> Generate() {
+        ::std::vector<SendLargeArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool UseSendBuffer : { false, true })
+#ifndef QUIC_DISABLE_0RTT_TESTS
+        for (bool UseZeroRtt : { false, true })
+#else
+        for (bool UseZeroRtt : { false })
+#endif
+        {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (UseQTIP && UseZeroRtt) {
+                continue;
+            }
+#endif
+            list.push_back({ Family, UseSendBuffer, UseZeroRtt });
+        }
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const SendLargeArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer") << "/" <<
+        (args.UseZeroRtt ? "0-RTT" : "1-RTT");
+}
+
+TEST_P(WithSendLargeArgs, SendLarge) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_SendLarge", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
-            GetParam().Family,
-            100000000llu,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            (uint8_t)GetParam().UseZeroRtt,
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            0,  // UnidirectionalStreams
-            0,  // ServerInitiatedStreams
-            1,  // FifoScheduling
-            0   // SendUdpToQtipListener
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_SendLarge), GetParam()));
     } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            100000000llu,
-            1,      // ConnectionCount
-            1,      // StreamCount
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            GetParam().UseZeroRtt,
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            false,  // UnidirectionalStreams
-            false,  // ServerInitiatedStreams
-            true,   // FifoScheduling
-            false); // SendUdpToQtipListener
+        QuicTestConnectAndPing_SendLarge(GetParam());
     }
 }
 
-TEST_P(WithSendArgs3, SendIntermittently) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
+INSTANTIATE_TEST_SUITE_P(
+    AppData,
+    WithSendLargeArgs,
+    testing::ValuesIn(WithSendLargeArgs::Generate()));
+
+struct WithSendIntermittentlyArgs :
+    public testing::TestWithParam<SendIntermittentlyArgs> {
+
+    static ::std::vector<SendIntermittentlyArgs> Generate() {
+        ::std::vector<SendIntermittentlyArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint64_t Length : { 1000, 10000 })
+        for (uint32_t BurstCount : { 2, 4, 8 })
+        for (uint32_t BurstDelay : { 100, 500, 1000 })
+        for (bool UseSendBuffer : { false, true })
+            list.push_back({ Family, Length, BurstCount, BurstDelay, UseSendBuffer });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const SendIntermittentlyArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Length << "/" <<
+        args.BurstCount << "/" <<
+        args.BurstDelay << "ms/" <<
+        (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer");
+}
+
+TEST_P(WithSendIntermittentlyArgs, SendIntermittently) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_SendIntermittently", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Length,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            GetParam().BurstCount,
-            GetParam().BurstDelay,
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            0,  // ClientZeroRtt
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            0,  // UnidirectionalStreams
-            0,  // ServerInitiatedStreams
-            0,  // FifoScheduling
-            0   // SendUdpToQtipListener
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_SendIntermittently), GetParam()));
     } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            GetParam().BurstCount,
-            GetParam().BurstDelay,
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            false,  // ClientZeroRtt
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            false,  // UnidirectionalStreams
-            false,  // ServerInitiatedStreams
-            false,  // FifoScheduling
-            false); // SendUdpToQtipListener
+        QuicTestConnectAndPing_SendIntermittently(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    AppData,
+    WithSendIntermittentlyArgs,
+    testing::ValuesIn(WithSendIntermittentlyArgs::Generate()));
 
 #ifndef QUIC_DISABLE_0RTT_TESTS
+
+struct WithSend0RttArgs1 :
+    public testing::TestWithParam<Send0RttArgs1> {
+
+    static ::std::vector<Send0RttArgs1> Generate() {
+        ::std::vector<Send0RttArgs1> list;
+        for (int Family : { 4, 6 })
+        for (uint64_t Length : { 0, 100, 1000, 2000 })
+        for (uint32_t ConnectionCount : { 1, 2, 4 })
+        for (uint32_t StreamCount : { 1, 2, 4 })
+        for (bool UseSendBuffer : { false, true })
+        for (bool UnidirectionalStreams : { false, true })
+            list.push_back({ Family, Length, ConnectionCount, StreamCount, UseSendBuffer, UnidirectionalStreams });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const Send0RttArgs1& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Length << "/" <<
+        args.ConnectionCount << "/" <<
+        args.StreamCount << "/" <<
+        (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer") << "/" <<
+        (args.UnidirectionalStreams ? "Uni" : "Bidi");
+}
 
 TEST_P(WithSend0RttArgs1, Send0Rtt) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
@@ -1997,42 +2207,33 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
 
     TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            1,  // ClientZeroRtt,
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            (uint8_t)GetParam().UnidirectionalStreams,
-            0,  // ServerInitiatedStreams
-            0,  // FifoScheduling
-            0   // SendUdpToQtipListener
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_Send0Rtt), GetParam()));
     } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            true,   // ClientZeroRtt
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            GetParam().UnidirectionalStreams,
-            false,  // ServerInitiatedStreams
-            false,  // FifoScheduling
-            false); // SendUdpToQtipListener
+        QuicTestConnectAndPing_Send0Rtt(GetParam());
     }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    AppData,
+    WithSend0RttArgs1,
+    testing::ValuesIn(WithSend0RttArgs1::Generate()));
+
+struct WithSend0RttArgs2 :
+    public testing::TestWithParam<Send0RttArgs2> {
+
+    static ::std::vector<Send0RttArgs2> Generate() {
+        ::std::vector<Send0RttArgs2> list;
+        for (int Family : { 4, 6 })
+        for (uint64_t Length : { 0, 1000, 10000, 20000 })
+            list.push_back({ Family, Length });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const Send0RttArgs2& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Length;
 }
 
 TEST_P(WithSend0RttArgs2, Reject0Rtt) {
@@ -2047,43 +2248,16 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
 #endif
     TestLoggerT<ParamType> Logger("Reject0Rtt", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Length,
-            1,  // StreamCount
-            1,  // StreamBurstCount
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            1,  // ClientZeroRtt,
-            1,  // ServerRejectZeroRtt
-            0,  // UseSendBuffer
-            0,  // UnidirectionalStreams
-            0,  // ServerInitiatedStreams
-            0,  // FifoScheduling
-            0   // SendUdpToQtipListener
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_Reject0Rtt), GetParam()));
     } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            1,      // StreamCount
-            1,      // StreamBurstCount
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            true,   // ClientZeroRtt
-            true,   // ServerRejectZeroRtt
-            false,  // UseSendBuffer
-            false,  // UnidirectionalStreams
-            false,  // ServerInitiatedStreams
-            false,  // FifoScheduling
-            false); // SendUdpToQtipListener
+        QuicTestConnectAndPing_Reject0Rtt(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    AppData,
+    WithSend0RttArgs2,
+    testing::ValuesIn(WithSend0RttArgs2::Generate()));
 
 #endif // QUIC_DISABLE_0RTT_TESTS
 
@@ -2151,101 +2325,225 @@ TEST_P(WithFamilyArgs, KeyUpdate) {
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-TEST_P(WithKeyUpdateArgs2, RandomLoss) {
+
+struct WithKeyUpdateRandomLossArgs :
+    public testing::TestWithParam<KeyUpdateRandomLossArgs> {
+
+    static ::std::vector<KeyUpdateRandomLossArgs> Generate() {
+        ::std::vector<KeyUpdateRandomLossArgs> list;
+        for (int Family : { 4, 6 })
+        for (int RandomLossPercentage : { 1, 5, 10 })
+            list.push_back({ Family, (uint8_t)RandomLossPercentage });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const KeyUpdateRandomLossArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.RandomLossPercentage;
+}
+
+TEST_P(WithKeyUpdateRandomLossArgs, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestKeyUpdateRandomLoss", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS Params = {
-            GetParam().Family,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestKeyUpdateRandomLoss), GetParam()));
     } else {
-        QuicTestKeyUpdateRandomLoss(
-            GetParam().Family,
-            GetParam().RandomLossPercentage);
+        QuicTestKeyUpdateRandomLoss(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithKeyUpdateRandomLossArgs,
+    testing::ValuesIn(WithKeyUpdateRandomLossArgs::Generate()));
+
 #endif
+
+struct WithAbortiveArgs :
+    public testing::TestWithParam<AbortiveArgs> {
+
+    static ::std::vector<AbortiveArgs> Generate() {
+        ::std::vector<AbortiveArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint32_t DelayStreamCreation : { 0, 1 })
+        for (uint32_t SendDataOnStream : { 0, 1 })
+        for (uint32_t ClientShutdown : { 0, 1 })
+        for (uint32_t DelayClientShutdown : { 0, 1 })
+        for (uint32_t WaitForStream : { 1 })
+        for (uint32_t ShutdownDirection : { 0, 1, 2 })
+        for (uint32_t UnidirectionStream : { 0, 1 })
+        for (uint32_t PauseReceive : { 0, 1 })
+        for (uint32_t PendReceive : { 0, 1 })
+            list.push_back({ Family, {{ DelayStreamCreation, SendDataOnStream, ClientShutdown, DelayClientShutdown, WaitForStream, ShutdownDirection, UnidirectionStream, PauseReceive, PendReceive }} });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const AbortiveArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Flags.DelayStreamCreation << "/" <<
+        args.Flags.SendDataOnStream << "/" <<
+        args.Flags.ClientShutdown << "/" <<
+        args.Flags.DelayClientShutdown << "/" <<
+        args.Flags.WaitForStream << "/" <<
+        args.Flags.ShutdownDirection << "/" <<
+        args.Flags.UnidirectionalStream << "/" <<
+        args.Flags.PauseReceive << "/" <<
+        args.Flags.PendReceive;
+}
 
 TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Flags
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORTIVE_SHUTDOWN, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicAbortiveTransfers), GetParam()));
     } else {
-        QuicAbortiveTransfers(GetParam().Family, GetParam().Flags);
+        QuicAbortiveTransfers(GetParam());
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithAbortiveArgs,
+    testing::ValuesIn(WithAbortiveArgs::Generate()));
+
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+struct WithCancelOnLossArgs :
+    public testing::TestWithParam<CancelOnLossArgs> {
+
+    static ::std::vector<CancelOnLossArgs> Generate() {
+        ::std::vector<CancelOnLossArgs> list;
+        for (bool DropPackets : {false, true})
+            list.push_back({ DropPackets });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
+    return o << "DropPackets: " << (args.DropPackets ? "true" : "false");
+}
+
 TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
     TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params = {
-            GetParam().DropPackets
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CANCEL_ON_LOSS, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicCancelOnLossSend), GetParam()));
     } else {
-        QuicCancelOnLossSend(GetParam().DropPackets);
+        QuicCancelOnLossSend(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithCancelOnLossArgs,
+    testing::ValuesIn(WithCancelOnLossArgs::Generate()));
+
 #endif
+
+struct WithCidUpdateArgs :
+    public testing::TestWithParam<CidUpdateArgs> {
+
+    static ::std::vector<CidUpdateArgs> Generate() {
+        ::std::vector<CidUpdateArgs> list;
+        for (int Family : { 4, 6 })
+        for (int Iterations : { 1, 2, 4 })
+            list.push_back({ Family, (uint16_t)Iterations });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CidUpdateArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Iterations;
+}
 
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CID_UPDATE_PARAMS Params = {
-            GetParam().Family,
-            GetParam().Iterations
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CID_UPDATE, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCidUpdate), GetParam()));
     } else {
-        QuicTestCidUpdate(GetParam().Family, GetParam().Iterations);
+        QuicTestCidUpdate(GetParam());
     }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithCidUpdateArgs,
+    testing::ValuesIn(WithCidUpdateArgs::Generate()));
+
+struct WithReceiveResumeArgs :
+    public testing::TestWithParam<ReceiveResumeArgs> {
+
+    static ::std::vector<ReceiveResumeArgs> Generate() {
+        ::std::vector<ReceiveResumeArgs> list;
+        for (int SendBytes : { 100 })
+        for (int Family : { 4, 6 })
+        for (bool PauseFirst : { false, true })
+        for (int ConsumeBytes : { 0, 1, 99 })
+        for (QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType : { NoShutdown, GracefulShutdown, AbortShutdown })
+        for (QUIC_RECEIVE_RESUME_TYPE PauseType : { ReturnConsumedBytes, ReturnStatusPending, ReturnStatusContinue })
+            list.push_back({ Family, SendBytes, ConsumeBytes, ShutdownType, PauseType, PauseFirst });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ReceiveResumeArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.SendBytes << "/" <<
+        args.ConsumeBytes << "/" <<
+        (args.ShutdownType ? (args.ShutdownType == AbortShutdown ? "Abort" : "Graceful") : "NoShutdown") << "/" <<
+        (args.PauseType ? (args.PauseType == ReturnStatusPending ? "ReturnPending" : "ReturnContinue") : "ConsumePartial") << "/" <<
+        (args.PauseFirst ? "PauseBeforeSend" : "PauseAfterSend");
 }
 
 TEST_P(WithReceiveResumeArgs, ReceiveResume) {
     TestLoggerT<ParamType> Logger("QuicTestReceiveResume", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_RECEIVE_RESUME_PARAMS Params = {
-            GetParam().Family,
-            GetParam().SendBytes,
-            GetParam().ConsumeBytes,
-            GetParam().ShutdownType,
-            GetParam().PauseType,
-            (uint8_t)GetParam().PauseFirst
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RECEIVE_RESUME, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReceiveResume), GetParam()));
     } else {
-        QuicTestReceiveResume(
-            GetParam().Family,
-            GetParam().SendBytes,
-            GetParam().ConsumeBytes,
-            GetParam().ShutdownType,
-            GetParam().PauseType,
-            GetParam().PauseFirst);
+        QuicTestReceiveResume(GetParam());
     }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithReceiveResumeArgs,
+    testing::ValuesIn(WithReceiveResumeArgs::Generate()));
+
+struct WithReceiveResumeNoDataArgs :
+    public testing::TestWithParam<ReceiveResumeNoDataArgs> {
+
+    static ::std::vector<ReceiveResumeNoDataArgs> Generate() {
+        ::std::vector<ReceiveResumeNoDataArgs> list;
+        for (int Family : { 4, 6 })
+        for (QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType : { GracefulShutdown, AbortShutdown })
+            list.push_back({ Family, ShutdownType });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ReceiveResumeNoDataArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ShutdownType ? (args.ShutdownType == AbortShutdown ? "Abort" : "Graceful") : "NoShutdown");
 }
 
 TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     TestLoggerT<ParamType> Logger("QuicTestReceiveResumeNoData", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_RECEIVE_RESUME_PARAMS Params = {
-            GetParam().Family,
-            0,
-            0,
-            GetParam().ShutdownType,
-            ReturnConsumedBytes,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RECEIVE_RESUME_NO_DATA, Params));
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReceiveResumeNoData), GetParam()));
     } else {
-        QuicTestReceiveResumeNoData(GetParam().Family, GetParam().ShutdownType);
+        QuicTestReceiveResumeNoData(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithReceiveResumeNoDataArgs,
+    testing::ValuesIn(WithReceiveResumeNoDataArgs::Generate()));
 
 TEST_P(WithFamilyArgs, AckSendDelay) {
     TestLogger Logger("QuicTestAckSendDelay");
@@ -2552,6 +2850,11 @@ TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    Drill,
+    WithDrillInitialPacketCidArgs,
+    testing::ValuesIn(WithDrillInitialPacketCidArgs::Generate()));
+
 struct WithDrillInitialPacketTokenArgs:
     public testing::TestWithParam<DrillInitialPacketTokenArgs> {
 
@@ -2595,6 +2898,11 @@ TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake) {
     }
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    Drill,
+    WithDrillInitialPacketTokenArgs,
+    testing::ValuesIn(WithDrillInitialPacketTokenArgs::Generate()));
+
 struct WithDatagramNegotiationArgs :
     public testing::TestWithParam<DatagramNegotiationArgs> {
 
@@ -2621,6 +2929,11 @@ TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
         QuicTestDatagramNegotiation(GetParam());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithDatagramNegotiationArgs,
+    testing::ValuesIn(WithDatagramNegotiationArgs::Generate()));
 
 TEST_P(WithFamilyArgs, DatagramSend) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramSend", GetParam());
@@ -2690,156 +3003,19 @@ TEST(ParameterValidation, RetryConfigSetting)
 
 #endif // _WIN32
 
+//
+// Instantiate test suites with common parameters.
+//
+
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithBool,
     ::testing::Values(false, true));
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    WithValidateNetStatsConnEventArgs,
-    testing::ValuesIn(WithValidateNetStatsConnEventArgs::Generate()));
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    WithValidateStreamEventArgs,
-    testing::ValuesIn(WithValidateStreamEventArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    WithValidateTlsConfigArgs,
-    testing::ValuesIn(TlsConfigArgs::Generate()));
-
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
     ::testing::ValuesIn(WithFamilyArgs::Generate()));
-
-#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Mtu,
-    WithMtuArgs,
-    ::testing::ValuesIn(WithMtuArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Basic,
-    WithRebindPaddingArgs,
-    ::testing::ValuesIn(RebindPaddingArgs::Generate()));
-
-#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs4,
-    testing::ValuesIn(HandshakeArgs4::Generate()));
-
-#endif
-
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs10,
-    testing::ValuesIn(HandshakeArgs10::Generate()));
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs11,
-    testing::ValuesIn(HandshakeArgs11::Generate()));
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs12,
-    testing::ValuesIn(HandshakeArgs12::Generate()));
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs1,
-    testing::ValuesIn(SendArgs1::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs2,
-    testing::ValuesIn(SendArgs2::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs3,
-    testing::ValuesIn(SendArgs3::Generate()));
-
-#ifndef QUIC_DISABLE_0RTT_TESTS
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSend0RttArgs1,
-    testing::ValuesIn(Send0RttArgs1::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSend0RttArgs2,
-    testing::ValuesIn(Send0RttArgs2::Generate()));
-
-#endif
-
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithKeyUpdateArgs2,
-    testing::ValuesIn(KeyUpdateArgs2::Generate()));
-
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithAbortiveArgs,
-    testing::ValuesIn(AbortiveArgs::Generate()));
-
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithCancelOnLossArgs,
-    testing::ValuesIn(CancelOnLossArgs::Generate()));
-
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithCidUpdateArgs,
-    testing::ValuesIn(CidUpdateArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithReceiveResumeArgs,
-    testing::ValuesIn(ReceiveResumeArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithReceiveResumeNoDataArgs,
-    testing::ValuesIn(ReceiveResumeNoDataArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithDatagramNegotiationArgs,
-    testing::ValuesIn(WithDatagramNegotiationArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Drill,
-    WithDrillInitialPacketCidArgs,
-    testing::ValuesIn(WithDrillInitialPacketCidArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Drill,
-    WithDrillInitialPacketTokenArgs,
-    testing::ValuesIn(WithDrillInitialPacketTokenArgs::Generate()));
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
