@@ -676,6 +676,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestVersionSettings);
 #endif
     RegisterTestFunction(QuicTestValidateParamApi);
+    RegisterTestFunction(QuicTestCredentialLoad);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestRegistrationOpenClose);
 #endif
