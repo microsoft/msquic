@@ -2092,6 +2092,17 @@ CxPlatSocketSend(
         FALSE);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketGetQtipSettings(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    CXPLAT_DBG_ASSERT(Socket != NULL);
+    return FALSE;
+}
+
 uint16_t
 CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket,
