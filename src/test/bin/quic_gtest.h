@@ -19,12 +19,16 @@
 #include "quic_gtest.h.clog.h"
 #endif
 
-extern bool TestingKernelMode;
-extern bool UseDuoNic;
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-extern bool UseQTIP;
-#endif
+//
+// Common test parameters.
+//
+// The test parameters below are used broadly across many tests.
+// Define test parameters specific to a test scenario directly above the test itself.
+//
 
+// A boolean test parameter.
+// Should generally be avoided in favor or a more specific parameter
+// or two independent tests.
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
