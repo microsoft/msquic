@@ -38,23 +38,20 @@ DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NA
 DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceSymLink, L"\\DosDevices\\" QUIC_DRIVER_NAME);
 #endif
 
-typedef struct QUIC_DEVICE_EXTENSION {
+struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
 
     _Guarded_by_(Lock)
     LIST_ENTRY ClientList;
     ULONG ClientListSize;
-
-} QUIC_DEVICE_EXTENSION;
+};
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicTestCtlGetDeviceContext);
 
-typedef struct QUIC_TEST_CLIENT
-{
+struct QUIC_TEST_CLIENT {
     LIST_ENTRY Link;
     bool TestFailure;
-
-} QUIC_TEST_CLIENT;
+};
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_TEST_CLIENT, QuicTestCtlGetFileContext);
 
@@ -398,189 +395,6 @@ error:
     WdfRequestComplete(Request, Status);
 }
 
-size_t QUIC_IOCTL_BUFFER_SIZES[] =
-{
-    sizeof(QUIC_TEST_CONFIGURATION_PARAMS),
-    sizeof(QUIC_RUN_CERTIFICATE_PARAMS),
-    0,
-    0,
-    0,
-    0,
-    sizeof(UINT8),
-    0,
-    0,
-    sizeof(INT32),
-    0,
-    0,
-    sizeof(INT32),
-    0,
-    sizeof(INT32),
-    sizeof(INT32),
-    sizeof(QUIC_RUN_CONNECT_PARAMS),
-    sizeof(QUIC_RUN_CONNECT_AND_PING_PARAMS),
-    sizeof(UINT8),
-    sizeof(QUIC_CERTIFICATE_HASH_STORE),
-    sizeof(INT32),
-    sizeof(INT32),
-    sizeof(INT32),
-    0,
-    sizeof(UINT8),
-    sizeof(uint32_t),
-    sizeof(uint32_t),
-    sizeof(INT32),
-    sizeof(INT32),
-    0,
-    sizeof(INT32),
-    sizeof(QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS),
-    sizeof(QUIC_RUN_CID_UPDATE_PARAMS),
-    sizeof(QUIC_RUN_RECEIVE_RESUME_PARAMS),
-    sizeof(QUIC_RUN_RECEIVE_RESUME_PARAMS),
-    0,
-    sizeof(QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS),
-    sizeof(INT32),
-    0,
-    sizeof(QUIC_RUN_DATAGRAM_NEGOTIATION),
-    sizeof(INT32),
-    sizeof(QUIC_RUN_REBIND_PARAMS),
-    sizeof(QUIC_RUN_REBIND_PARAMS),
-    sizeof(INT32),
-    sizeof(INT32),
-    0,
-    sizeof(INT32),
-    sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
-    sizeof(INT32),
-    sizeof(INT32),
-    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
-    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
-    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
-    sizeof(INT32),
-    sizeof(INT32),
-    0,
-    sizeof(QUIC_RUN_CONNECT_CLIENT_CERT),
-    0,
-    0,
-    sizeof(QUIC_CREDENTIAL_BLOB),
-    sizeof(QUIC_CREDENTIAL_BLOB),
-    sizeof(QUIC_CREDENTIAL_BLOB),
-    sizeof(QUIC_CREDENTIAL_BLOB),
-    0,
-    sizeof(QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS),
-    0,
-    0,
-    0,
-    sizeof(QUIC_RUN_MTU_DISCOVERY_PARAMS),
-    sizeof(INT32),
-    sizeof(INT32),
-    0,
-    0,
-    sizeof(INT32),
-    0,
-    sizeof(UINT8),
-    sizeof(INT32),
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    sizeof(QUIC_CREDENTIAL_BLOB),
-    sizeof(QUIC_RUN_CIBIR_EXTENSION),
-    0,
-    0,
-    sizeof(INT32),
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    sizeof(QUIC_RUN_VN_TP_ODD_SIZE_PARAMS),
-    sizeof(UINT8),
-    sizeof(UINT8),
-    sizeof(UINT8),
-    sizeof(BOOLEAN),
-    sizeof(INT32),
-    sizeof(QUIC_HANDSHAKE_LOSS_PARAMS),
-    sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
-    sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
-    sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
-    0,
-    0,
-    0,
-    sizeof(INT32),
-    0,
-    sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
-    sizeof(uint32_t),
-    sizeof(BOOLEAN),
-    0,
-    0,
-    0,
-    0,
-    sizeof(BOOLEAN),
-    sizeof(INT32),
-    sizeof(INT32),                           // IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS
-    0,
-    0,
-    sizeof(INT32),
-    sizeof(INT32),
-    sizeof(QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS),
-    0,
-    0,
-    0,
-    0,
-    0,
-    sizeof(INT32),
-};
-
-CXPLAT_STATIC_ASSERT(
-    QUIC_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES)/sizeof(size_t)),
-    "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOCTLs");
-
-typedef union {
-    QUIC_TEST_CONFIGURATION_PARAMS TestConfigurationParams;
-    QUIC_RUN_CERTIFICATE_PARAMS CertParams;
-    QUIC_CERTIFICATE_HASH_STORE CertHashStore;
-    UINT8 Connect;
-    INT32 Family;
-    QUIC_RUN_CONNECT_PARAMS Params1;
-    QUIC_RUN_CONNECT_AND_PING_PARAMS Params2;
-    QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS Params4;
-    QUIC_RUN_CID_UPDATE_PARAMS Params5;
-    QUIC_RUN_RECEIVE_RESUME_PARAMS Params6;
-    QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params7;
-    UINT8 EnableKeepAlive;
-    UINT8 StopListenerFirst;
-    QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
-    QUIC_RUN_DATAGRAM_NEGOTIATION DatagramNegotiationParams;
-    QUIC_RUN_CUSTOM_CERT_VALIDATION CustomCertValidationParams;
-    QUIC_RUN_VERSION_NEGOTIATION_EXT VersionNegotiationExtParams;
-    QUIC_RUN_CONNECT_CLIENT_CERT ConnectClientCertParams;
-    QUIC_CREDENTIAL_BLOB CredValidationParams;
-    QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS KeyUpdateRandomLossParams;
-    QUIC_RUN_MTU_DISCOVERY_PARAMS MtuDiscoveryParams;
-    uint32_t Test;
-    QUIC_RUN_REBIND_PARAMS RebindParams;
-    UINT8 RejectByClosing;
-    QUIC_RUN_CIBIR_EXTENSION CibirParams;
-    QUIC_RUN_VN_TP_ODD_SIZE_PARAMS OddSizeVnTpParams;
-    UINT8 TestServerVNTP;
-    BOOLEAN Bidirectional;
-    QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
-    QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
-    BOOLEAN ClientShutdown;
-    BOOLEAN EnableResumption;
-    QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS ConnPoolCreateParams;
-} QUIC_IOCTL_PARAMS;
-
 #define QuicTestCtlRun(X) \
     Client->TestFailure = false; \
     X; \
@@ -865,7 +679,7 @@ QuicTestCtlEvtIoDeviceControl(
     _In_ WDFQUEUE /* Queue */,
     _In_ WDFREQUEST Request,
     _In_ size_t /* OutputBufferLength */,
-    _In_ size_t InputBufferLength,
+    _In_ size_t /* InputBufferLength */,
     _In_ ULONG IoControlCode
     )
 {
@@ -902,9 +716,104 @@ QuicTestCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    // For now, this IOCTL is handled separately since it has variable length input.
-    // Eventually, when all tests are migrated, it can be unified with the remaining setup IOCTLs.
-    if (IoControlCode == IOCTL_QUIC_RUN_TEST) {
+    const ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
+
+    QuicTraceLogInfo(
+        TestControlClientIoctl,
+        "[test] Client %p executing IOCTL %u",
+        Client,
+        FunctionCode);
+
+    // Validate the security config is set first.
+    if (IoControlCode != IOCTL_QUIC_SET_CERT_PARAMS &&
+        ServerSelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
+        Status = STATUS_INVALID_DEVICE_STATE;
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Client didn't set Security Config");
+        goto Error;
+    }
+
+    switch (IoControlCode) {
+
+    case IOCTL_QUIC_TEST_CONFIGURATION:
+    {
+        QUIC_TEST_CONFIGURATION_PARAMS TestConfig{};
+        Status =
+            WdfRequestRetrieveInputBuffer(Request, sizeof(TestConfig), (void**)&TestConfig, nullptr);
+
+        if (!NT_SUCCESS(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "WdfRequestRetrieveInputBuffer failed for IOCTL_QUIC_TEST_CONFIGURATION");
+            break;
+        }
+
+        UseDuoNic = TestConfig.UseDuoNic;
+        RtlCopyMemory(CurrentWorkingDirectory, "\\DosDevices\\", sizeof("\\DosDevices\\"));
+        Status =
+            RtlStringCbCatExA(
+                CurrentWorkingDirectory,
+                sizeof(CurrentWorkingDirectory),
+                TestConfig.CurrentDirectory,
+                nullptr,
+                nullptr,
+                STRSAFE_NULL_ON_FAILURE);
+
+        //
+        // We don't want to hinge the result of 'Status = ' on this setparam call because
+        // this SetParam will only succeed the first time, before the datapath initializes.
+        // User mode tests already ensure at most 1 setparam call. But in Kernel mode, this IOCTL
+        // can be invoked many times.
+        // If the datapath is already initialized, this setparam call should fail silently.
+        //
+        BOOLEAN EnableDscpRecvOption = TRUE;
+        MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+                sizeof(BOOLEAN),
+                &EnableDscpRecvOption);
+        break;
+    }
+    case IOCTL_QUIC_SET_CERT_PARAMS:
+    {
+        QUIC_RUN_CERTIFICATE_PARAMS CertParams{};
+        Status =
+            WdfRequestRetrieveInputBuffer(Request, sizeof(CertParams), (void**)&CertParams, nullptr);
+
+        if (!NT_SUCCESS(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "WdfRequestRetrieveInputBuffer failed for IOCTL_QUIC_SET_CERT_PARAMS");
+            break;
+        }
+
+        ServerSelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerSelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+        ServerSelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
+        ServerSelfSignedCredConfigClientAuth.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerSelfSignedCredConfigClientAuth.Flags =
+            QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+            QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
+        ServerSelfSignedCredConfigClientAuth.CertificateHash = &SelfSignedCertHash;
+        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &CertParams.ServerCertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        ClientCertCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ClientCertCredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        ClientCertCredConfig.CertificateHash = &ClientCertHash;
+        RtlCopyMemory(&ClientCertHash.ShaHash, &CertParams.ClientCertHash, sizeof(QUIC_CERTIFICATE_HASH));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case IOCTL_QUIC_RUN_TEST:
+    {
         QUIC_RUN_TEST_REQUEST* TestRequest{};
         size_t Length{};
         Status =
@@ -919,7 +828,7 @@ QuicTestCtlEvtIoDeviceControl(
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "WdfRequestRetrieveInputBuffer failed for run test request");
-            goto Error;
+            break;
         }
 
         if (Length < sizeof(QUIC_RUN_TEST_REQUEST) + TestRequest->ParameterSize) {
@@ -928,7 +837,7 @@ QuicTestCtlEvtIoDeviceControl(
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "IOCTL buffer too small for test parameters");
-            goto Error;
+            break;
         }
 
         // Invoke the test function
@@ -937,127 +846,16 @@ QuicTestCtlEvtIoDeviceControl(
         if (Status == QUIC_STATUS_SUCCESS && Client->TestFailure) {
             Status = STATUS_FAIL_FAST_EXCEPTION;
         }
-        goto Error;
+
+        break;
     }
 
-    ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
-
-    if (FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
-        Status = STATUS_NOT_IMPLEMENTED;
+    default:
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             FunctionCode,
             "Invalid FunctionCode");
-        goto Error;
-    }
-
-    if (InputBufferLength < QUIC_IOCTL_BUFFER_SIZES[FunctionCode]) {
-        Status = STATUS_INSUFFICIENT_RESOURCES;
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            FunctionCode,
-            "Invalid buffer size for FunctionCode");
-        goto Error;
-    }
-
-    QUIC_IOCTL_PARAMS* Params = nullptr;
-    if (QUIC_IOCTL_BUFFER_SIZES[FunctionCode] != 0) {
-        Status =
-            WdfRequestRetrieveInputBuffer(
-                Request,
-                QUIC_IOCTL_BUFFER_SIZES[FunctionCode],
-                (void**)&Params,
-                nullptr);
-        if (!NT_SUCCESS(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "WdfRequestRetrieveInputBuffer failed");
-            goto Error;
-        } else if (Params == nullptr) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "WdfRequestRetrieveInputBuffer failed to return parameter buffer");
-            Status = STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-    }
-
-    QuicTraceLogInfo(
-        TestControlClientIoctl,
-        "[test] Client %p executing IOCTL %u",
-        Client,
-        FunctionCode);
-
-    if (IoControlCode != IOCTL_QUIC_SET_CERT_PARAMS &&
-        ServerSelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
-        Status = STATUS_INVALID_DEVICE_STATE;
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Client didn't set Security Config");
-        goto Error;
-    }
-
-    switch (IoControlCode) {
-
-    case IOCTL_QUIC_TEST_CONFIGURATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        UseDuoNic = Params->TestConfigurationParams.UseDuoNic;
-        RtlCopyMemory(CurrentWorkingDirectory, "\\DosDevices\\", sizeof("\\DosDevices\\"));
-        Status =
-            RtlStringCbCatExA(
-                CurrentWorkingDirectory,
-                sizeof(CurrentWorkingDirectory),
-                Params->TestConfigurationParams.CurrentDirectory,
-                nullptr,
-                nullptr,
-                STRSAFE_NULL_ON_FAILURE);
-
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        // TODO - XDP stuff, if/when supported
-#endif
-        {
-            //
-            // We don't want to hinge the result of 'Status = ' on this setparam call because
-            // this SetParam will only succeed the first time, before the datapath initializes.
-            // User mode tests already ensure at most 1 setparam call. But in Kernel mode, this IOCTL
-            // can be invoked many times.
-            // If the datapath is already initialized, this setparam call should fail silently.
-            //
-            BOOLEAN EnableDscpRecvOption = TRUE;
-            MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
-                    sizeof(BOOLEAN),
-                    &EnableDscpRecvOption);
-        }
-        break;
-
-    case IOCTL_QUIC_SET_CERT_PARAMS:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        ServerSelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        ServerSelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
-        ServerSelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
-        ServerSelfSignedCredConfigClientAuth.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        ServerSelfSignedCredConfigClientAuth.Flags =
-            QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
-            QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
-            QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
-        ServerSelfSignedCredConfigClientAuth.CertificateHash = &SelfSignedCertHash;
-        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->CertParams.ServerCertHash, sizeof(QUIC_CERTIFICATE_HASH));
-        ClientCertCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        ClientCertCredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-        ClientCertCredConfig.CertificateHash = &ClientCertHash;
-        RtlCopyMemory(&ClientCertHash.ShaHash, &Params->CertParams.ClientCertHash, sizeof(QUIC_CERTIFICATE_HASH));
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
     }
