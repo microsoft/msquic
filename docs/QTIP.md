@@ -36,8 +36,7 @@ MsQuic connections over UDP XDP creates an OS UDP socket only and relies on the 
 MsQuic connections over QTIP XDP creates an OS TCP socket only and relies on the OS to assign the app an ephemeral TCP port to reserve them and configure XDP to snoop TCP traffic on that port.
 
 But since apps can create many client connections with different QTIP enablements, sometimes the OS assigns
-the same TCP and UDP port. This isn't necessarily a problem but may be confusing when debugging logs. Apps should
-expect in rare cases some client connections will have the same local port when using different QTIP enablements.
+the same TCP and UDP port. If using client connections with and without QTIP enabled simultaneously, the application should not assume 4-tuples uniquely identify a connection and also track the QTIP state.
 
 
 **Listeners with different QTIP enablements shall NOT be able to exist on the same local port.**
