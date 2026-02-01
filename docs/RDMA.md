@@ -23,6 +23,9 @@ The model for using MsQuic over the RDMA datapath can **not**
 easily inherit from the general model using `QUIC_SETTINGS`.
 
 This is primarily due to the RDMA datapath impacting the core logic of MsQuic itself (much of MsQuic loss detection logic can be disabled), along with major updates to core MsQuic structures and the entire datapath initialization stack.
+With how fluid `QUIC_SETTINGS` can change based on many different contexts,
+the integration logic for RDMA will be very complex.
+
 Having multiple connections or listeners with varying RDMA settings is a non-goal.
 
 
