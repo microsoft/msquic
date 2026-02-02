@@ -5914,6 +5914,11 @@ QuicConnRecvDatagrams(
 
     if (!Connection->State.UpdateWorker && Connection->State.Connected &&
         !Connection->State.ShutdownComplete && RecvState.UpdatePartitionId) {
+        //
+        // Packets were received on a different partition than the one assigned to the connection.
+        // Migrate the connection to a new worker. New CIDs must be generated since the partition
+        // id is encoded in the CID.
+        //
         CXPLAT_DBG_ASSERT(Connection->Registration);
         CXPLAT_DBG_ASSERT(!Connection->Registration->NoPartitioning);
         CXPLAT_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
