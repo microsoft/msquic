@@ -1,0 +1,159 @@
+name: PR Build and Report
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  build-and-report:
+    name: Build and Report
+    runs-on: windows-2022
+    steps:
+      - name: Checkout merged version
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: List files changed in PR
+        id: changed-files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request.number;
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr,
+              per_page: 100,
+            });
+
+            core.info(`Changed files (${files.length}):`);
+            for (const f of files) core.info(`${f.status}\t${f.filename}`);
+
+            // Save to file
+            const fs = require('fs');
+            let content = `Changed Files (${files.length}):\n`;
+            content += '='.repeat(50) + '\n\n';
+            for (const f of files) {
+              content += `[${f.status.toUpperCase()}] ${f.filename}\n`;
+            }
+            fs.writeFileSync('changed_files.txt', content);
+
+            core.setOutput('files', JSON.stringify(files.map(f => f.filename)));
+            core.setOutput('file_count', files.length);
+
+      - name: Install Perl
+        uses: shogo82148/actions-setup-perl@fa3bdcb0144a50651e317f30949bb4491e74a6e4
+        with:
+          perl-version: '5.34'
+
+      - name: Install NASM
+        uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
+
+      - name: Prepare Machine
+        shell: pwsh
+        run: scripts/prepare-machine.ps1 -ForBuild -Tls schannel
+
+      - name: Build
+        id: build
+        shell: pwsh
+        run: |
+          "Starting build at $(Get-Date)" | Tee-Object -FilePath build.log
+          "========================================" | Tee-Object -FilePath build.log -Append
+          
+          try {
+            scripts/build.ps1 -Config Release -Platform windows -Arch x64 -Tls schannel 2>&1 | Tee-Object -FilePath build.log -Append
+            "========================================" | Tee-Object -FilePath build.log -Append
+            "Build completed successfully at $(Get-Date)" | Tee-Object -FilePath build.log -Append
+            "build_status=success" >> $env:GITHUB_OUTPUT
+          } catch {
+            "========================================" | Tee-Object -FilePath build.log -Append
+            "Build failed at $(Get-Date)" | Tee-Object -FilePath build.log -Append
+            $_.Exception.Message | Tee-Object -FilePath build.log -Append
+            "build_status=failure" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Upload build log artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+
+      - name: Upload changed files artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changed-files
+          path: changed_files.txt
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Read build log
+            const buildLog = fs.readFileSync('build.log', 'utf8');
+            const buildStatus = '${{ steps.build.outputs.build_status }}';
+            
+            // Read changed files
+            const changedFiles = fs.readFileSync('changed_files.txt', 'utf8');
+            const fileCount = '${{ steps.changed-files.outputs.file_count }}';
+            
+            // Truncate build log if too long (GitHub comment limit is ~65536 chars)
+            const maxLogLength = 30000;
+            let truncatedLog = buildLog;
+            let truncatedNote = '';
+            if (buildLog.length > maxLogLength) {
+              truncatedLog = buildLog.substring(buildLog.length - maxLogLength);
+              truncatedNote = '\n\n> ⚠️ Build log truncated. See artifacts for full log.';
+            }
+            
+            const statusEmoji = buildStatus === 'success' ? '✅' : '❌';
+            const statusText = buildStatus === 'success' ? 'succeeded' : 'failed';
+            
+            const comment = `## ${statusEmoji} Build Report
+            
+            **Build Status:** ${statusText}
+            **Changed Files:** ${fileCount}
+            **Commit:** \`${{ github.event.pull_request.merge_commit_sha }}\`
+            
+            ---
+            
+            ### 📁 Changed Files
+            
+            <details>
+            <summary>Click to expand (${fileCount} files)</summary>
+            
+            \`\`\`
+            ${changedFiles}
+            \`\`\`
+            
+            </details>
+            
+            ---
+            
+            ### 📋 Build Log
+            
+            <details>
+            <summary>Click to expand</summary>
+            
+            \`\`\`
+            ${truncatedLog}
+            \`\`\`
+            ${truncatedNote}
+            
+            </details>
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: comment
+            });
