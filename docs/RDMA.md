@@ -20,21 +20,26 @@ a best-effort basis.
 ## RDMA Datapath Consumption
 
 The model for using MsQuic over the RDMA datapath can **not**
-easily inherit from the general model using `QUIC_SETTINGS`.
+easily inherit from the general model where MsQuic lazily initializes RDMA on a best effort basis and the datapath implicitly reads from `QUIC_SETTINGS`.
 
-This is primarily due to the RDMA datapath impacting the core logic of MsQuic itself (much of MsQuic loss detection logic can be disabled), along with major updates to core MsQuic structures and the entire datapath initialization stack.
-With how fluid `QUIC_SETTINGS` can change based on many different contexts,
+This is primarily due to the RDMA datapath impacting the core logic of QUIC itself (much of MsQuic loss detection logic can be disabled), along with major updates to core MsQuic structures and the entire datapath initialization stack.
+With how fluid `QUIC_SETTINGS` can update based on many different contexts,
 the integration logic for RDMA will be very complex.
-
 Having multiple connections or listeners with varying RDMA settings is a non-goal.
 
 
 Thus the `RdmaEnabled` option should live at the registration level; to give maximal control
 over datapath initialization and worker thread allocation.
 
+A new flag `QUIC_EXECUTION_PROFILE_RDMA` can be added to `QUIC_EXECUTION_PROFILE`.
+When enabled for a registration, completely disallow XDP/QTIP/OS sockets usage under this registration.
+The core logic for MsQuic will also update accordingly.
+
 If applications would like to use XDP, normal OS sockets, and RDMA on the same machine, they
 should create multiple registrations.
 
+Having XDP/QTIP available, normal OS sockets available, and RDMA available all under the same
+registration where different listeners and different connections can have different datapath enablements and depending on the datapath enablement would change the QUIC logic would explode the test matrix and state machine.
 
 ## RDMA facts
 
@@ -45,4 +50,5 @@ The RNIC is programmed by the provider driver (MANA or Mellanox) to redirect all
 This implies major updates will need to occur all the way from the datapath to the binding
 to the core layers to be QPN aware.
 
-On a bright note, MsQuic does not need to reserve any UDP ports when using RDMA datapath unlike the XDP datapath which may steal traffic on ports reserved for AF_XDP sockets.
+On a bright note, MsQuic does not need to reserve any UDP ports when using RDMA datapath unlike the XDP datapath which may steal traffic on ports reserved for AF_XDP sockets. The
+provider driver will handle port reservations / collision logic.
