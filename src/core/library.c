@@ -2224,10 +2224,8 @@ QuicLibraryLookupBinding(
         if (Binding->Connected) {
             //
             // For client/connected bindings we need to match on both local and
-            // remote addresses/ports, along with QTIP settings. This is because if QTIP is enabled, the OS
-            // may choose to assign us the same ephemeral TCP and UDP local port. We allow client connections to use
-            // the same local port IF they have different QTIP settings. Any binding a client connection shares
-            // must possess the same QTIP settings.
+            // remote addresses/ports, along with transport type (QTIP). We need to match on the 5-tuple,
+            // because client connections cannot share the binding if the underlying transport does not match.
             //
             if (RemoteAddress &&
                 QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
