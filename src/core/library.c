@@ -2242,7 +2242,7 @@ QuicLibraryLookupBinding(
             // For server (unconnected/listening) bindings we always use wildcard
             // addresses, so we simply need to match on the local port. We need not consider the
             // binding QTIP settings because we always disallow listeners with different QTIP settings to
-            // share a binding.
+            // share a binding. This is enforced by the caller.
             //
             if (QuicAddrGetPort(&BindingLocalAddr) == QuicAddrGetPort(LocalAddress)) {
                 //
@@ -2385,9 +2385,9 @@ NewBinding:
         // 4-tuple.
         //
         CXPLAT_UDP_CONFIG Config = {0};
-        #ifdef QUIC_COMPARTMENT_ID
+#ifdef QUIC_COMPARTMENT_ID
         Config.CompartmentId = UdpConfig->CompartmentId;
-        #endif
+#endif
         Config.LocalAddress = &NewLocalAddress;
         Config.RemoteAddress = UdpConfig->RemoteAddress;
         Config.Flags = UdpConfig->Flags;
@@ -2400,9 +2400,9 @@ NewBinding:
         // tuple.
         //
         CXPLAT_UDP_CONFIG Config = {0};
-        #ifdef QUIC_COMPARTMENT_ID
+#ifdef QUIC_COMPARTMENT_ID
         Config.CompartmentId = UdpConfig->CompartmentId;
-        #endif
+#endif
         Config.LocalAddress = &NewLocalAddress;
         Config.RemoteAddress = NULL;
         Config.Flags = UdpConfig->Flags;

@@ -312,16 +312,13 @@ QuicBindingGetRemoteAddress(
 #endif
 }
 
-//
-// Queries the QTIP settings of the binding.
-//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingGetQtipEnabled(
     _In_ const QUIC_BINDING* Binding
     )
 {
-    return CxPlatSocketGetQtipSettings(Binding->Socket);
+    return CxPlatSocketGetQtipEnabled(Binding->Socket);
 }
 
 //

@@ -2094,7 +2094,7 @@ CxPlatSocketSend(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatSocketGetQtipSettings(
+CxPlatSocketGetQtipEnabled(
     _In_ CXPLAT_SOCKET* Socket
     )
 {

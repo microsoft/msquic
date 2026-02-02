@@ -341,16 +341,16 @@ CxPlatSocketCompare(
     CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
     if (Socket->Wildcard) {
         //
-        // For a listener socket,
-        // always give a match if the listener Socket has enabled QTIP (can accept both UDP/QTIP traffic).
+        // For a listener socket, always give a match if the listener
+        // socket has enabled QTIP (can accept both UDP/QTIP traffic).
         // Otherwise, we want to NOT match if UseQtip is TRUE but the listener socket does not enable QTIP.
         //
         return Socket->ReserveAuxTcpSock || !UseQtip;
     }
 
     //
-    // For a client socket,
-    // Make sure the local IP matches and the full remote address matches along with QTIP settings.
+    // For a client socket, make sure the local IP matches and the full
+    // remote address matches along with QTIP settings.
     //
     CXPLAT_DBG_ASSERT(Socket->Connected);
     return
