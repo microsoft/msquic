@@ -25,7 +25,7 @@ This setting can be overridden per client connection, allowing you to create som
 > Crucial information necessary for users to succeed.
 
 Listeners with QTIP enabled will initialize a TCP and UDP socket and attempt to bind to your listener's local address. This is to reserve a TCP/UDP port for your listener to ensure
-XDP does not steal any traffic from your other processes later. That also means you need to ensure no other processes are listening on the same port as your listener's local address prior
+XDP does not steal any traffic from other sockets later. That also means you need to ensure no other processes are listening on the same port as your listener's local address prior
 to starting your listener, otherwise the OS will throw a socket access denied / address in use error,
 and your listener will fail to initialize.
 
