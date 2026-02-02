@@ -31,9 +31,9 @@ and your listener will fail to initialize.
 
 **Client connections with different QTIP enablements CAN exist on the same local port.**
 
-MsQuic connections over UDP XDP creates an OS UDP socket only and relies on the OS to assign the app an ephemeral UDP port to reserve them and configure XDP to snoop UDP traffic on that port.
+MsQuic connections over XDP/UDP creates an OS UDP socket only, and relies on the OS to assign the app an ephemeral UDP port to reserve it. XDP will be configured to intercept UDP packets on that port.
 
-MsQuic connections over QTIP XDP creates an OS TCP socket only and relies on the OS to assign the app an ephemeral TCP port to reserve them and configure XDP to snoop TCP traffic on that port.
+MsQuic connections over XDP/QTIP creates an OS TCP socket only, and relies on the OS to assign the app an ephemeral TCP port to reserve it. XDP will be configured to intercept TCP traffic on that port.
 
 Since apps can create many client connections with different QTIP enablements, sometimes the OS assigns
 the same TCP and UDP port number. If using client connections with and without QTIP enabled simultaneously, the application should not assume 4-tuples uniquely identify a connection and also track the QTIP state.
