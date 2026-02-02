@@ -1,4 +1,4 @@
-name: PR Build and Report
+name: PR Build and Coverage Comparison
 
 on:
   pull_request:
@@ -10,15 +10,26 @@ permissions:
   pull-requests: write
 
 jobs:
-  build-and-report:
-    name: Build and Report
+  build-and-coverage:
+    name: Build and Coverage Comparison
     runs-on: windows-2022
     steps:
-      - name: Checkout merged version
+      # ========================================
+      # Setup and Changed Files Detection
+      # ========================================
+      - name: Checkout PR version (post-PR)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          path: post-pr
+
+      - name: Checkout base version (pre-PR)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          path: pre-pr
 
       - name: List files changed in PR
         id: changed-files
@@ -56,98 +67,274 @@ jobs:
       - name: Install NASM
         uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
 
-      - name: Prepare Machine
+      # ========================================
+      # Build and Test Pre-PR (Baseline)
+      # ========================================
+      - name: Prepare Machine (Pre-PR)
         shell: pwsh
-        run: scripts/prepare-machine.ps1 -ForBuild -Tls schannel
+        working-directory: pre-pr
+        run: scripts/prepare-machine.ps1 -ForBuild -Tls schannel -InstallCodeCoverage
 
-      - name: Build
-        id: build
+      - name: Build Pre-PR
+        id: build-pre
         shell: pwsh
+        working-directory: pre-pr
         run: |
-          "Starting build at $(Get-Date)" | Tee-Object -FilePath build.log
-          "========================================" | Tee-Object -FilePath build.log -Append
+          "Starting baseline build at $(Get-Date)" | Tee-Object -FilePath ../build-pre.log
+          "========================================" | Tee-Object -FilePath ../build-pre.log -Append
           
           try {
-            scripts/build.ps1 -Config Release -Platform windows -Arch x64 -Tls schannel 2>&1 | Tee-Object -FilePath build.log -Append
-            "========================================" | Tee-Object -FilePath build.log -Append
-            "Build completed successfully at $(Get-Date)" | Tee-Object -FilePath build.log -Append
+            scripts/build.ps1 -Config Release -Platform windows -Arch x64 -Tls schannel 2>&1 | Tee-Object -FilePath ../build-pre.log -Append
+            "========================================" | Tee-Object -FilePath ../build-pre.log -Append
+            "Build completed successfully at $(Get-Date)" | Tee-Object -FilePath ../build-pre.log -Append
             "build_status=success" >> $env:GITHUB_OUTPUT
           } catch {
-            "========================================" | Tee-Object -FilePath build.log -Append
-            "Build failed at $(Get-Date)" | Tee-Object -FilePath build.log -Append
-            $_.Exception.Message | Tee-Object -FilePath build.log -Append
+            "========================================" | Tee-Object -FilePath ../build-pre.log -Append
+            "Build failed at $(Get-Date)" | Tee-Object -FilePath ../build-pre.log -Append
+            $_.Exception.Message | Tee-Object -FilePath ../build-pre.log -Append
             "build_status=failure" >> $env:GITHUB_OUTPUT
           }
 
-      - name: Upload build log artifact
+      - name: Run Tests with Coverage (Pre-PR)
+        id: test-pre
+        if: steps.build-pre.outputs.build_status == 'success'
+        shell: pwsh
+        working-directory: pre-pr
+        run: |
+          "Starting baseline tests with coverage at $(Get-Date)" | Tee-Object -FilePath ../test-pre.log
+          "========================================" | Tee-Object -FilePath ../test-pre.log -Append
+          
+          try {
+            scripts/test.ps1 -Config Release -Arch x64 -Tls schannel -CodeCoverage -IsolationMode Batch 2>&1 | Tee-Object -FilePath ../test-pre.log -Append
+            "========================================" | Tee-Object -FilePath ../test-pre.log -Append
+            "Tests completed at $(Get-Date)" | Tee-Object -FilePath ../test-pre.log -Append
+            "test_status=success" >> $env:GITHUB_OUTPUT
+          } catch {
+            "========================================" | Tee-Object -FilePath ../test-pre.log -Append
+            "Tests failed at $(Get-Date)" | Tee-Object -FilePath ../test-pre.log -Append
+            $_.Exception.Message | Tee-Object -FilePath ../test-pre.log -Append
+            "test_status=failure" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Copy Pre-PR Coverage
+        if: steps.test-pre.outputs.test_status == 'success'
+        shell: pwsh
+        run: |
+          if (Test-Path "pre-pr/artifacts/coverage/msquiccoverage.xml") {
+            Copy-Item "pre-pr/artifacts/coverage/msquiccoverage.xml" "baseline-coverage.xml"
+            Write-Host "Baseline coverage copied successfully"
+          } else {
+            Write-Warning "Baseline coverage file not found"
+          }
+
+      # ========================================
+      # Build and Test Post-PR (Current)
+      # ========================================
+      - name: Prepare Machine (Post-PR)
+        shell: pwsh
+        working-directory: post-pr
+        run: scripts/prepare-machine.ps1 -ForBuild -Tls schannel -InstallCodeCoverage
+
+      - name: Build Post-PR
+        id: build-post
+        shell: pwsh
+        working-directory: post-pr
+        run: |
+          "Starting PR build at $(Get-Date)" | Tee-Object -FilePath ../build-post.log
+          "========================================" | Tee-Object -FilePath ../build-post.log -Append
+          
+          try {
+            scripts/build.ps1 -Config Release -Platform windows -Arch x64 -Tls schannel 2>&1 | Tee-Object -FilePath ../build-post.log -Append
+            "========================================" | Tee-Object -FilePath ../build-post.log -Append
+            "Build completed successfully at $(Get-Date)" | Tee-Object -FilePath ../build-post.log -Append
+            "build_status=success" >> $env:GITHUB_OUTPUT
+          } catch {
+            "========================================" | Tee-Object -FilePath ../build-post.log -Append
+            "Build failed at $(Get-Date)" | Tee-Object -FilePath ../build-post.log -Append
+            $_.Exception.Message | Tee-Object -FilePath ../build-post.log -Append
+            "build_status=failure" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Run Tests with Coverage (Post-PR)
+        id: test-post
+        if: steps.build-post.outputs.build_status == 'success'
+        shell: pwsh
+        working-directory: post-pr
+        run: |
+          "Starting PR tests with coverage at $(Get-Date)" | Tee-Object -FilePath ../test-post.log
+          "========================================" | Tee-Object -FilePath ../test-post.log -Append
+          
+          try {
+            scripts/test.ps1 -Config Release -Arch x64 -Tls schannel -CodeCoverage -IsolationMode Batch 2>&1 | Tee-Object -FilePath ../test-post.log -Append
+            "========================================" | Tee-Object -FilePath ../test-post.log -Append
+            "Tests completed at $(Get-Date)" | Tee-Object -FilePath ../test-post.log -Append
+            "test_status=success" >> $env:GITHUB_OUTPUT
+          } catch {
+            "========================================" | Tee-Object -FilePath ../test-post.log -Append
+            "Tests failed at $(Get-Date)" | Tee-Object -FilePath ../test-post.log -Append
+            $_.Exception.Message | Tee-Object -FilePath ../test-post.log -Append
+            "test_status=failure" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Copy Post-PR Coverage
+        if: steps.test-post.outputs.test_status == 'success'
+        shell: pwsh
+        run: |
+          if (Test-Path "post-pr/artifacts/coverage/msquiccoverage.xml") {
+            Copy-Item "post-pr/artifacts/coverage/msquiccoverage.xml" "current-coverage.xml"
+            Write-Host "Current coverage copied successfully"
+          } else {
+            Write-Warning "Current coverage file not found"
+          }
+
+      # ========================================
+      # Compare Coverage
+      # ========================================
+      - name: Compare Coverage
+        id: compare-coverage
+        shell: pwsh
+        run: |
+          $changedFiles = '${{ steps.changed-files.outputs.files }}'
+          
+          # Run the comparison script from post-pr (has latest version)
+          $report = & "post-pr/scripts/compare-coverage.ps1" `
+            -BaselineCoverage "baseline-coverage.xml" `
+            -CurrentCoverage "current-coverage.xml" `
+            -OutputPath "coverage-comparison.json" `
+            -ChangedFiles $changedFiles
+          
+          # Save markdown report for the comment
+          $report | Out-File -FilePath "coverage-report.md" -Encoding utf8
+
+      # ========================================
+      # Upload Artifacts
+      # ========================================
+      - name: Upload build logs
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: build.log
+          name: build-logs
+          path: |
+            build-pre.log
+            build-post.log
 
-      - name: Upload changed files artifact
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-logs
+          path: |
+            test-pre.log
+            test-post.log
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports
+          path: |
+            baseline-coverage.xml
+            current-coverage.xml
+            coverage-comparison.json
+            coverage-report.md
+
+      - name: Upload changed files
         uses: actions/upload-artifact@v4
         with:
           name: changed-files
           path: changed_files.txt
 
+      # ========================================
+      # Comment on PR
+      # ========================================
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             
-            // Read build log
-            const buildLog = fs.readFileSync('build.log', 'utf8');
-            const buildStatus = '${{ steps.build.outputs.build_status }}';
+            // Read build logs
+            const buildPreLog = fs.existsSync('build-pre.log') ? fs.readFileSync('build-pre.log', 'utf8') : 'Build log not available';
+            const buildPostLog = fs.existsSync('build-post.log') ? fs.readFileSync('build-post.log', 'utf8') : 'Build log not available';
+            const buildPreStatus = '${{ steps.build-pre.outputs.build_status }}';
+            const buildPostStatus = '${{ steps.build-post.outputs.build_status }}';
+            const testPreStatus = '${{ steps.test-pre.outputs.test_status }}';
+            const testPostStatus = '${{ steps.test-post.outputs.test_status }}';
             
             // Read changed files
             const changedFiles = fs.readFileSync('changed_files.txt', 'utf8');
             const fileCount = '${{ steps.changed-files.outputs.file_count }}';
             
-            // Truncate build log if too long (GitHub comment limit is ~65536 chars)
-            const maxLogLength = 30000;
-            let truncatedLog = buildLog;
-            let truncatedNote = '';
-            if (buildLog.length > maxLogLength) {
-              truncatedLog = buildLog.substring(buildLog.length - maxLogLength);
-              truncatedNote = '\n\n> ⚠️ Build log truncated. See artifacts for full log.';
+            // Read coverage report
+            let coverageReport = '';
+            if (fs.existsSync('coverage-report.md')) {
+              coverageReport = fs.readFileSync('coverage-report.md', 'utf8');
+            } else {
+              coverageReport = '> ⚠️ Coverage comparison not available (tests may have failed)';
             }
             
-            const statusEmoji = buildStatus === 'success' ? '✅' : '❌';
-            const statusText = buildStatus === 'success' ? 'succeeded' : 'failed';
+            // Truncate build logs if too long
+            const maxLogLength = 10000;
+            const truncateLog = (log) => {
+              if (log.length > maxLogLength) {
+                return log.substring(log.length - maxLogLength) + '\n\n> ⚠️ Log truncated. See artifacts for full log.';
+              }
+              return log;
+            };
             
-            const comment = `## ${statusEmoji} Build Report
+            const buildPreStatusEmoji = buildPreStatus === 'success' ? '✅' : '❌';
+            const buildPostStatusEmoji = buildPostStatus === 'success' ? '✅' : '❌';
+            const testPreStatusEmoji = testPreStatus === 'success' ? '✅' : (testPreStatus === 'failure' ? '❌' : '⏭️');
+            const testPostStatusEmoji = testPostStatus === 'success' ? '✅' : (testPostStatus === 'failure' ? '❌' : '⏭️');
             
-            **Build Status:** ${statusText}
-            **Changed Files:** ${fileCount}
-            **Commit:** \`${{ github.event.pull_request.merge_commit_sha }}\`
+            const comment = `## 🔍 PR Build and Coverage Report
             
+            **PR Head:** \`${{ github.event.pull_request.head.sha }}\`
+            **Base:** \`${{ github.event.pull_request.base.sha }}\`
+
+            ### 📋 Status Summary
+
+            | Phase | Baseline (Pre-PR) | Current (Post-PR) |
+            |-------|-------------------|-------------------|
+            | Build | ${buildPreStatusEmoji} ${buildPreStatus || 'N/A'} | ${buildPostStatusEmoji} ${buildPostStatus || 'N/A'} |
+            | Tests | ${testPreStatusEmoji} ${testPreStatus || 'skipped'} | ${testPostStatusEmoji} ${testPostStatus || 'skipped'} |
+
             ---
-            
+
+            ${coverageReport}
+
+            ---
+
             ### 📁 Changed Files
-            
+
             <details>
             <summary>Click to expand (${fileCount} files)</summary>
-            
+
             \`\`\`
             ${changedFiles}
             \`\`\`
-            
+
             </details>
-            
+
             ---
-            
-            ### 📋 Build Log
-            
+
+            ### 📋 Build Logs
+
             <details>
-            <summary>Click to expand</summary>
-            
+            <summary>🔹 Baseline Build Log (Pre-PR)</summary>
+
             \`\`\`
-            ${truncatedLog}
+            ${truncateLog(buildPreLog)}
             \`\`\`
-            ${truncatedNote}
-            
+
+            </details>
+
+            <details>
+            <summary>🔹 PR Build Log (Post-PR)</summary>
+
+            \`\`\`
+            ${truncateLog(buildPostLog)}
+            \`\`\`
+
             </details>
             `;
             
