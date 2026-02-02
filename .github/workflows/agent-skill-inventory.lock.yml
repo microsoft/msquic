@@ -25,7 +25,7 @@ name: "Agent Skill Inventory"
 "on":
   pull_request:
     branches:
-    - meiyang/installaw
+    - master
     types:
     - opened
     - synchronize

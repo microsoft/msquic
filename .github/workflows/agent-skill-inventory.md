@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize]
     branches:
-      - meiyang/installaw
+      - master
 permissions:
   contents: read
   discussions: read
