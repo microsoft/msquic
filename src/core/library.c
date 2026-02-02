@@ -2226,7 +2226,7 @@ QuicLibraryLookupBinding(
             // For client/connected bindings we need to match on both local and
             // remote addresses/ports, along with QTIP settings. This is because if QTIP is enabled, the OS
             // may choose to assign us the same ephemeral TCP and UDP local port. We allow client connections to use
-            // the same local port IF they have different QTIP settings. So any binding a client connection shares
+            // the same local port IF they have different QTIP settings. Any binding a client connection shares
             // must possess the same QTIP settings.
             //
             if (RemoteAddress &&
