@@ -999,10 +999,18 @@ CxPlatTlsSecConfigCreate(
             CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if(CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
         if (CredConfig->CertificatePkcs12 == NULL ||
             CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
             CredConfig->CertificatePkcs12->Asn1BlobLength == 0) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
+        if (CredConfig->CertificatePem == NULL ||
+            CredConfig->CertificatePem->CertificatePem == NULL ||
+            CredConfig->CertificatePem->CertificatePemLength == 0 ||
+            CredConfig->CertificatePem->PrivateKeyPem == NULL ||
+            CredConfig->CertificatePem->PrivateKeyPemLength == 0) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
@@ -1326,6 +1334,97 @@ CxPlatTlsSecConfigCreate(
                 "SSL_CTX_use_certificate_chain_file failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
+        }
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
+        BIO *BioKey = NULL;
+        BIO *BioCert = NULL;
+
+        {
+            BioKey = BIO_new_mem_buf(
+                CredConfig->CertificatePem->PrivateKeyPem,
+                (int) CredConfig->CertificatePem->PrivateKeyPemLength);
+
+            if (!BioKey) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "BIO_new failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            // FIXME: Handle encrypted private key
+            PEM_read_bio_PrivateKey(BioKey, &PrivateKey, NULL, NULL);
+            BIO_free(BioKey);
+
+            if (!PrivateKey) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "PEM_read_bio_PrivateKey failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            Ret = SSL_CTX_use_PrivateKey(
+                SecurityConfig->SSLCtx,
+                PrivateKey);
+
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_use_PrivateKey failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+        }
+
+        {
+            BioCert = BIO_new_mem_buf(
+                CredConfig->CertificatePem->CertificatePem,
+                (int) CredConfig->CertificatePem->CertificatePemLength);
+
+            if (!BioCert) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "BIO_new failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            // FIXME: Handle password-protected certs
+            PEM_read_bio_X509(BioCert, &X509Cert, NULL, NULL);
+            BIO_free(BioCert);
+
+            if (!X509Cert) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "PEM_read_bio_X509 failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            Ret = SSL_CTX_use_certificate(
+                SecurityConfig->SSLCtx,
+                X509Cert);
+
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_use_certificate failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
         }
     } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
         BIO* Bio = BIO_new(BIO_s_mem());

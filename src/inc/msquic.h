@@ -121,6 +121,7 @@ typedef enum QUIC_CREDENTIAL_TYPE {
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM,
 } QUIC_CREDENTIAL_TYPE;
 
 typedef enum QUIC_CREDENTIAL_FLAGS {
@@ -397,6 +398,13 @@ typedef struct QUIC_CERTIFICATE_PKCS12 {
     const char *PrivateKeyPassword;     // Optional: used if provided. Ignored if NULL
 } QUIC_CERTIFICATE_PKCS12;
 
+typedef struct QUIC_CERTIFICATE_PEM {
+    const uint8_t *PrivateKeyPem;
+    uint32_t PrivateKeyPemLength;
+    const uint8_t *CertificatePem;
+    uint32_t CertificatePemLength;
+} QUIC_CERTIFICATE_PEM;
+
 typedef void QUIC_CERTIFICATE;          // Platform specific certificate object
 typedef void QUIC_CERTIFICATE_CHAIN;    // Platform specific certificate chain object
 
@@ -410,6 +418,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
         QUIC_CERTIFICATE_FILE* CertificateFile;
         QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
         QUIC_CERTIFICATE_PKCS12* CertificatePkcs12;
+        QUIC_CERTIFICATE_PEM* CertificatePem;
     };
     const char* Principal;
     void* Reserved; // Currently unused
