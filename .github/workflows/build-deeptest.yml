@@ -1,0 +1,27 @@
+name: Build and DeepTest
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - master
+
+jobs:
+  # First job: Call PR Build workflow (Windows)
+  pr-build:
+    name: PR Build
+    uses: ./.github/workflows/pr-build.yml
+    permissions:
+      contents: read
+      pull-requests: write
+
+  # Second job: Call DeepTest workflow (Ubuntu) - runs after pr-build
+  deeptest:
+    name: DeepTest
+    needs: pr-build
+    uses: ./.github/workflows/deeptest-ubuntu.lock.yml
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    secrets: inherit

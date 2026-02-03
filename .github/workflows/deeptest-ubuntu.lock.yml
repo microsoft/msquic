@@ -29,6 +29,7 @@ name: "Deeptest Ubuntu"
     types:
     - opened
     - synchronize
+  workflow_call:
   workflow_dispatch:
     inputs:
       source_file:

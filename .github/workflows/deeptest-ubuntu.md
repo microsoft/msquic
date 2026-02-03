@@ -7,6 +7,7 @@ on:
         description: "Relative path to the source file (e.g., src/core/connection.c)"
         required: true
         type: string
+  workflow_call:
   pull_request:
     types: [opened, synchronize]
     branches:
