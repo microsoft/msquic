@@ -401,6 +401,7 @@ typedef struct QUIC_CERTIFICATE_PKCS12 {
 typedef struct QUIC_CERTIFICATE_PEM {
     const uint8_t *PrivateKeyPem;
     uint32_t PrivateKeyPemLength;
+    const char *PrivateKeyPassword;     // Optional: used if provided. Ignored if NULL
     const uint8_t *CertificatePem;
     uint32_t CertificatePemLength;
 } QUIC_CERTIFICATE_PEM;

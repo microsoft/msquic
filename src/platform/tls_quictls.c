@@ -924,6 +924,47 @@ CxPlatTlsGetProvider(
     return QUIC_TLS_PROVIDER_OPENSSL;
 }
 
+int
+CxPlatTlsSecConfigPemPasswordCallback(
+    _In_ char *Password,
+    _In_ int PasswordSize,
+    _In_ int RWFlag,
+    _In_ void *UserInfo
+    )
+{
+    QUIC_CERTIFICATE_PEM *CertificatePem = NULL;
+
+    int OutSize = 0;
+
+    if (RWFlag != 0) {
+        UNREFERENCED_PARAMETER(Password);
+        UNREFERENCED_PARAMETER(PasswordSize);
+        UNREFERENCED_PARAMETER(UserInfo);
+        return 0; // We don't support writing
+    }
+
+    if (UserInfo == NULL) {
+        return 0;
+    }
+
+    CertificatePem = (QUIC_CERTIFICATE_PEM *)UserInfo;
+
+    if (CertificatePem->PrivateKeyPassword == NULL) {
+        return 0;
+    }
+
+    OutSize = (int) strlen(CertificatePem->PrivateKeyPassword);
+
+    if (OutSize + 1 > PasswordSize) {
+        return 0;
+    }
+
+    memcpy(Password, CertificatePem->PrivateKeyPassword, OutSize);
+    Password[OutSize] = '\0';
+
+    return OutSize;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
@@ -1354,8 +1395,7 @@ CxPlatTlsSecConfigCreate(
                 goto ExitInner;
             }
 
-            // FIXME: Handle encrypted private key
-            PEM_read_bio_PrivateKey(BioKey, &PrivateKey, NULL, NULL);
+            PEM_read_bio_PrivateKey(BioKey, &PrivateKey, CxPlatTlsSecConfigPemPasswordCallback, CredConfig->CertificatePem);
 
             if (!PrivateKey) {
                 QuicTraceEvent(
@@ -1397,7 +1437,6 @@ CxPlatTlsSecConfigCreate(
                 goto ExitInner;
             }
 
-            // FIXME: Handle password-protected certs
             PEM_read_bio_X509(BioCert, &X509Cert, NULL, NULL);
 
             if (!X509Cert) {
