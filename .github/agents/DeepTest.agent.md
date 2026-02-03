@@ -1,7 +1,6 @@
 ---
 name: DeepTest
 description: 'This agent generates high quality tests for production code at scale. Tests are idiomatic to existing suites, uncover product bugs and test new paths and scenarios that the existing test suite does not cover.'
-engine: copilot
 ---
 
 ```yaml
