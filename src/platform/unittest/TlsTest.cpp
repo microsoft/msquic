@@ -15,6 +15,13 @@
 #include <wincrypt.h>
 #pragma warning(pop)
 #endif
+#ifndef _WIN32
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <openssl/x509.h>
+#include <openssl/x509_vfy.h>
+#endif
 #include <fcntl.h>
 
 #ifdef QUIC_CLOG
@@ -160,6 +167,166 @@ protected:
         TearDown();
     }
 
+#ifndef _WIN32
+    static uint8_t*
+    ReadFileToBuffer(
+        const char* Name,
+        uint32_t* Length
+        )
+    {
+        if (Length == nullptr) {
+            return nullptr;
+        }
+        *Length = 0;
+
+        FILE* Handle = fopen(Name, "rb");
+        if (Handle == nullptr) {
+            return nullptr;
+        }
+
+        if (fseek(Handle, 0, SEEK_END) != 0) {
+            fclose(Handle);
+            return nullptr;
+        }
+
+        long Size = ftell(Handle);
+        if (Size <= 0) {
+            fclose(Handle);
+            return nullptr;
+        }
+
+        if (fseek(Handle, 0, SEEK_SET) != 0) {
+            fclose(Handle);
+            return nullptr;
+        }
+
+        uint8_t* Buffer = (uint8_t*)malloc((size_t)Size);
+        if (Buffer == nullptr) {
+            fclose(Handle);
+            return nullptr;
+        }
+
+        size_t Read = fread(Buffer, 1, (size_t)Size, Handle);
+        fclose(Handle);
+
+        if (Read != (size_t)Size) {
+            free(Buffer);
+            return nullptr;
+        }
+
+        *Length = (uint32_t)Read;
+        return Buffer;
+    }
+
+    static uint8_t*
+    BuildPemChainBuffer(
+        const uint8_t* Leaf,
+        uint32_t LeafLength,
+        const char* CaPath,
+        uint32_t* ChainLength
+        )
+    {
+        if (Leaf == nullptr || LeafLength == 0 || CaPath == nullptr || ChainLength == nullptr) {
+            return nullptr;
+        }
+
+        uint32_t CaLength = 0;
+        uint8_t* CaBuffer = ReadFileToBuffer(CaPath, &CaLength);
+        if (CaBuffer == nullptr || CaLength == 0) {
+            if (CaBuffer) {
+                free(CaBuffer);
+            }
+            return nullptr;
+        }
+
+        uint32_t TotalLength = LeafLength + CaLength;
+        uint8_t* Chain = (uint8_t*)malloc(TotalLength);
+        if (Chain == nullptr) {
+            free(CaBuffer);
+            return nullptr;
+        }
+
+        memcpy(Chain, Leaf, LeafLength);
+        memcpy(Chain + LeafLength, CaBuffer, CaLength);
+        free(CaBuffer);
+
+        *ChainLength = TotalLength;
+        return Chain;
+    }
+
+    static char*
+    BuildPemChainFile(
+        const char* LeafPath,
+        const char* CaPath
+        )
+    {
+        if (LeafPath == nullptr || CaPath == nullptr) {
+            return nullptr;
+        }
+
+        uint32_t LeafLength = 0;
+        uint32_t CaLength = 0;
+        uint8_t* LeafBuffer = ReadFileToBuffer(LeafPath, &LeafLength);
+        uint8_t* CaBuffer = ReadFileToBuffer(CaPath, &CaLength);
+        if (LeafBuffer == nullptr || CaBuffer == nullptr || LeafLength == 0 || CaLength == 0) {
+            if (LeafBuffer) {
+                free(LeafBuffer);
+            }
+            if (CaBuffer) {
+                free(CaBuffer);
+            }
+            return nullptr;
+        }
+
+        const char* Template = "/tmp/msquic_chain_XXXXXX";
+        char* ChainPath = (char*)malloc(strlen(Template) + 1);
+        if (ChainPath == nullptr) {
+            free(LeafBuffer);
+            free(CaBuffer);
+            return nullptr;
+        }
+        strcpy(ChainPath, Template);
+
+        int Fd = mkstemp(ChainPath);
+        if (Fd < 0) {
+            free(LeafBuffer);
+            free(CaBuffer);
+            free(ChainPath);
+            return nullptr;
+        }
+
+        FILE* Out = fdopen(Fd, "wb");
+        if (Out == nullptr) {
+            close(Fd);
+            unlink(ChainPath);
+            free(LeafBuffer);
+            free(CaBuffer);
+            free(ChainPath);
+            return nullptr;
+        }
+
+        bool Ok = true;
+        if (fwrite(LeafBuffer, 1, LeafLength, Out) != LeafLength) {
+            Ok = false;
+        }
+        if (Ok && fwrite(CaBuffer, 1, CaLength, Out) != CaLength) {
+            Ok = false;
+        }
+        fclose(Out);
+
+        free(LeafBuffer);
+        free(CaBuffer);
+
+        if (!Ok) {
+            unlink(ChainPath);
+            free(ChainPath);
+            return nullptr;
+        }
+
+        return ChainPath;
+    }
+#endif
+
 #ifndef QUIC_DISABLE_PFX_TESTS
     static uint8_t* ReadFile(const char* Name, uint32_t* Length) {
         size_t FileSize = 0;
@@ -291,6 +458,8 @@ protected:
 
         uint32_t ExpectedErrorFlags {0};
         QUIC_STATUS ExpectedValidationStatus {QUIC_STATUS_SUCCESS};
+        uint32_t ExpectedPeerChainMin {0};
+        uint32_t ObservedPeerChainCount {0};
 
         TlsContext() {
             CxPlatZeroMemory(&State, sizeof(State));
@@ -630,6 +799,23 @@ protected:
                 std::cout << "Expecting valid certificate and certificate chain\n";
                 return FALSE;
             }
+#ifndef _WIN32
+            if (Context->ExpectedPeerChainMin != 0) {
+                if (Chain == nullptr) {
+                    std::cout << "Expected certificate chain but got null\n";
+                    return FALSE;
+                }
+                X509_STORE_CTX* StoreCtx = (X509_STORE_CTX*)Chain;
+                STACK_OF(X509)* Untrusted = X509_STORE_CTX_get0_untrusted(StoreCtx);
+                int ChainCount = Untrusted ? sk_X509_num(Untrusted) : 0;
+                Context->ObservedPeerChainCount = (uint32_t)ChainCount;
+                if (ChainCount < (int)Context->ExpectedPeerChainMin) {
+                    std::cout << "Expected at least " << Context->ExpectedPeerChainMin
+                              << " peer chain certificates, got " << ChainCount << "\n";
+                    return FALSE;
+                }
+            }
+#endif
             return Context->OnPeerCertReceivedResult;
         }
     };
@@ -1434,6 +1620,141 @@ TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
     }
 }
 #endif
+
+#ifndef _WIN32
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
+TEST_F(TlsTest, PeerCertificateChainFromRuntimeCerts)
+{
+    if (CxPlatTlsGetProvider() != QUIC_TLS_PROVIDER_OPENSSL) {
+        GTEST_SKIP();
+    }
+
+    struct ChainCase {
+        uint32_t CredType;
+        const char* Name;
+    };
+    const ChainCase Cases[] = {
+        { QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, "File" },
+        { QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, "FileProtected" },
+        { QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM, "Pem" },
+    };
+
+    for (const auto& TestCase : Cases) {
+        SCOPED_TRACE(TestCase.Name);
+
+        struct TestCert {
+            QUIC_CREDENTIAL_CONFIG CredConfig;
+            QUIC_CERTIFICATE_HASH CertHash;
+            QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+            QUIC_CERTIFICATE_FILE CertFile;
+            QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
+            QUIC_CERTIFICATE_PKCS12 Pkcs12;
+            QUIC_CERTIFICATE_PEM Pem;
+            char Principal[100];
+        } Params;
+
+        CxPlatZeroMemory(&Params, sizeof(Params));
+        ASSERT_TRUE(CxPlatGetTestCertificate(
+            CXPLAT_TEST_CERT_CA_SERVER,
+            CXPLAT_SELF_SIGN_CERT_USER,
+            TestCase.CredType,
+            &Params.CredConfig,
+            &Params.CertHash,
+            &Params.CertHashStore,
+            &Params.CertFile,
+            &Params.CertFileProtected,
+            &Params.Pkcs12,
+            &Params.Pem,
+            Params.Principal));
+
+        const char* CaFile = Params.CredConfig.CaCertificateFile;
+        ASSERT_NE(nullptr, CaFile);
+
+        const char* OriginalCertPath = nullptr;
+        const uint8_t* OriginalCertPem = nullptr;
+        uint32_t OriginalCertPemLength = 0;
+        char* ChainFile = nullptr;
+        uint8_t* ChainBuffer = nullptr;
+        uint32_t ChainBufferLength = 0;
+
+        if (TestCase.CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+            OriginalCertPath = Params.CertFile.CertificateFile;
+            ChainFile = BuildPemChainFile(OriginalCertPath, CaFile);
+            ASSERT_NE(nullptr, ChainFile);
+            Params.CertFile.CertificateFile = ChainFile;
+        } else if (TestCase.CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            OriginalCertPath = Params.CertFileProtected.CertificateFile;
+            ChainFile = BuildPemChainFile(OriginalCertPath, CaFile);
+            ASSERT_NE(nullptr, ChainFile);
+            Params.CertFileProtected.CertificateFile = ChainFile;
+        } else if (TestCase.CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
+            OriginalCertPem = Params.Pem.CertificatePem;
+            OriginalCertPemLength = Params.Pem.CertificatePemLength;
+            ChainBuffer = BuildPemChainBuffer(
+                OriginalCertPem,
+                OriginalCertPemLength,
+                CaFile,
+                &ChainBufferLength);
+            ASSERT_NE(nullptr, ChainBuffer);
+            Params.Pem.CertificatePem = ChainBuffer;
+            Params.Pem.CertificatePemLength = ChainBufferLength;
+        } else {
+            FAIL() << "Unsupported credential type for chain test";
+        }
+
+        QUIC_CREDENTIAL_CONFIG ClientCredConfig = {};
+        ClientCredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
+        ClientCredConfig.Flags =
+            QUIC_CREDENTIAL_FLAG_CLIENT |
+            QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
+            QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE;
+        ClientCredConfig.CaCertificateFile = CaFile;
+
+        CxPlatSecConfig ServerConfig;
+        CxPlatSecConfig ClientConfig;
+        ServerConfig.Load(&Params.CredConfig);
+        ClientConfig.Load(&ClientCredConfig);
+
+        TlsContext ServerContext, ClientContext;
+        ClientContext.ExpectedPeerChainMin = 2;
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+
+        DoHandshake(ServerContext, ClientContext);
+
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
+        ASSERT_GE(ClientContext.ObservedPeerChainCount, ClientContext.ExpectedPeerChainMin);
+
+        if (TestCase.CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
+            Params.Pem.CertificatePem = OriginalCertPem;
+            Params.Pem.CertificatePemLength = OriginalCertPemLength;
+        } else if (OriginalCertPath != nullptr) {
+            if (TestCase.CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+                Params.CertFile.CertificateFile = OriginalCertPath;
+            } else {
+                Params.CertFileProtected.CertificateFile = OriginalCertPath;
+            }
+        }
+
+        CxPlatFreeTestCert(&Params.CredConfig);
+        if (Params.CredConfig.CaCertificateFile != nullptr) {
+            CxPlatFreeSelfSignedCertCaFile(Params.CredConfig.CaCertificateFile);
+            Params.CredConfig.CaCertificateFile = nullptr;
+        }
+
+        if (ChainFile != nullptr) {
+            remove(ChainFile);
+            free(ChainFile);
+        }
+        if (ChainBuffer != nullptr) {
+            free(ChainBuffer);
+        }
+    }
+}
+#endif // QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
+#endif // _WIN32
 
 TEST_F(TlsTest, DeferredCertificateValidationReject)
 {
