@@ -2,10 +2,6 @@
 description: Inventory custom agents and skills in the repository and report to a GitHub Discussion
 on:
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize]
-    branches:
-      - master
 permissions:
   contents: read
   discussions: read
