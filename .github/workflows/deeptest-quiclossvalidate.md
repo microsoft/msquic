@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize]
+    branches:
+      - master
 permissions:
   contents: read
   pull-requests: read
