@@ -16,6 +16,11 @@ permissions:
   pull-requests: read
   issues: read
 strict: false
+env:
+  GH_TOKEN: ${{ github.token }}
+  COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+  SOURCE_FILE: ${{ github.event.inputs.source_file || 'src/core/loss_detection.c' }}
+  RUN_ID: ${{ github.run_id }}
 engine:
   id: custom
   steps:
@@ -23,11 +28,6 @@ engine:
       run: |
         gh extension install github/gh-copilot || echo "Copilot CLI already installed"
     - name: Run DeepTest via Copilot CLI
-      env:
-        GH_TOKEN: ${{ github.token }}
-        COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-        SOURCE_FILE: ${{ github.event.inputs.source_file || 'src/core/loss_detection.c' }}
-        RUN_ID: ${{ github.run_id }}
       run: |
         echo "Invoking DeepTest custom agent for: $SOURCE_FILE (Run ID: $RUN_ID)"
         gh copilot --agent DeepTest -p "Generate comprehensive tests for the source file at $SOURCE_FILE. Analyze the file, identify testable functions, and create test cases following MsQuic test patterns in src/test/. After generating tests, create a PR with all changed files. Include the workflow run ID $RUN_ID in the PR title." --allow-all-tools

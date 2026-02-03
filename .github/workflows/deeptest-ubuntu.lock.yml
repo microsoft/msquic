@@ -44,6 +44,12 @@ concurrency:
 
 run-name: "Deeptest Ubuntu"
 
+env:
+  COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+  GH_TOKEN: ${{ github.token }}
+  RUN_ID: ${{ github.run_id }}
+  SOURCE_FILE: ${{ github.event.inputs.source_file || 'src/core/loss_detection.c' }}
+
 jobs:
   activation:
     needs: pre_activation
