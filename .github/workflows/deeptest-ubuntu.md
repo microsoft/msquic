@@ -8,10 +8,6 @@ on:
         required: true
         type: string
   workflow_call:
-  pull_request:
-    types: [opened, synchronize]
-    branches:
-      - master
 permissions:
   contents: read
   pull-requests: read
