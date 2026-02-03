@@ -43,7 +43,12 @@ Abstract:
 #endif
 
 
-static uint8_t* ReadPkcs12(const char* Name, uint32_t* Length) {
+static uint8_t*
+ReadFileToBuffer(
+    const char* Name,
+    uint32_t* Length
+    )
+{
     size_t FileSize = 0;
     FILE* Handle = fopen(Name, "rb");
     if (Handle == NULL) {
@@ -83,6 +88,10 @@ static uint8_t* ReadPkcs12(const char* Name, uint32_t* Length) {
         return NULL;
     }
     return Buffer;
+}
+
+static uint8_t* ReadPkcs12(const char* Name, uint32_t* Length) {
+    return ReadFileToBuffer(Name, Length);
 }
 
 //
@@ -1095,6 +1104,9 @@ CxPlatGetTestCertificate(
     _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
     _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Reserved_)
         QUIC_CERTIFICATE_PKCS12* Pkcs12,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM, _Reserved_)
+        QUIC_CERTIFICATE_PEM* Pem,
     _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
     _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
         char Principal[100]
@@ -1112,7 +1124,8 @@ CxPlatGetTestCertificate(
          Type == CXPLAT_TEST_CERT_CA_SERVER) &&
         (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
          CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED ||
-         CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12)) {
+         CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12 ||
+         CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM)) {
 
         const char* CertFileName = NULL;
         const char* KeyFileName = NULL;
@@ -1140,7 +1153,8 @@ CxPlatGetTestCertificate(
             }
         }
 
-        if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+        if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
+            CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
             // Generate plaintext certificate files
             if (IsCa) {
                 if (IsClient) {
@@ -1170,9 +1184,11 @@ CxPlatGetTestCertificate(
             }
             KeyFilePath = CertFilePath + MAX_PATH;
 
-            _Analysis_assume_(CertFile != NULL);
-            CertFile->CertificateFile = CertFilePath;
-            CertFile->PrivateKeyFile = KeyFilePath;
+            if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+                _Analysis_assume_(CertFile != NULL);
+                CertFile->CertificateFile = CertFilePath;
+                CertFile->PrivateKeyFile = KeyFilePath;
+            }
         } else if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
             // Generate password protected certificate files
             if (IsCa) {
@@ -1238,7 +1254,8 @@ CxPlatGetTestCertificate(
                     KeyFilePath,
                     CaFilePath,
                     Type == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ? "localhost" : "MsQuicClient",
-                    CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ? NULL : TEST_PASS,
+                    (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
+                     CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) ? NULL : TEST_PASS,
                     CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12))) {
             goto Error;
         }
@@ -1255,6 +1272,17 @@ CxPlatGetTestCertificate(
         } else if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
             Params->CertificateFileProtected = CertFileProtected;
             CertFilePath = NULL;
+        } else if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
+            _Analysis_assume_(Pem != NULL);
+            Pem->PrivateKeyPem = ReadFileToBuffer(KeyFilePath, &Pem->PrivateKeyPemLength);
+            if (Pem->PrivateKeyPem == NULL) {
+                goto Error;
+            }
+            Pem->CertificatePem = ReadFileToBuffer(CertFilePath, &Pem->CertificatePemLength);
+            if (Pem->CertificatePem == NULL) {
+                goto Error;
+            }
+            Params->CertificatePem = Pem;
         } else {
             _Analysis_assume_(Pkcs12 != NULL);
             Params->CertificatePkcs12 = Pkcs12;
@@ -1272,6 +1300,18 @@ CxPlatGetTestCertificate(
         Params->Type = CredType;
         Result = TRUE;
 Error:
+        if (!Result && CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM && Pem != NULL) {
+            if (Pem->PrivateKeyPem != NULL) {
+                free((uint8_t*)Pem->PrivateKeyPem);
+                Pem->PrivateKeyPem = NULL;
+                Pem->PrivateKeyPemLength = 0;
+            }
+            if (Pem->CertificatePem != NULL) {
+                free((uint8_t*)Pem->CertificatePem);
+                Pem->CertificatePem = NULL;
+                Pem->CertificatePemLength = 0;
+            }
+        }
         if (CertFilePath != NULL) {
             free(CertFilePath);
         }
@@ -1295,6 +1335,11 @@ CxPlatFreeTestCert(
     } else if (Params->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
         free((uint8_t*)Params->CertificatePkcs12->Asn1Blob);
         free((char*)Params->CertificatePkcs12->PrivateKeyPassword);
+    } else if (Params->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
+        if (Params->CertificatePem != NULL) {
+            free((uint8_t*)Params->CertificatePem->PrivateKeyPem);
+            free((uint8_t*)Params->CertificatePem->CertificatePem);
+        }
     }
 }
 
