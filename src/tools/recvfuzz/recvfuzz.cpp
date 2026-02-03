@@ -702,7 +702,7 @@ void WriteClientPacket(
 
 //
 // Finalizes the packet number, encryption, and header protection.
-//
+//d
 void FinalizePacket(
     _Out_writes_(PacketLength)
         uint8_t* Packet,
@@ -769,7 +769,7 @@ void FinalizePacket(
     }
 }
 
-void BuildAndSendPackets(
+void BuildAndSendLongHeaderPackets(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ CXPLAT_ROUTE* Route,
     _In_ PacketParams* PacketParams,
@@ -879,7 +879,7 @@ void WriteShortHeaderPacket(
                 &PayloadLength,
                 BufferSize,
                 Buffer + *HeaderLength);
-        } else if (PacketParams->FrameTypes[i] >= 0x08 && PacketParams->FrameTypes[i] <= 0x0f) {
+        } else if (PacketParams->FrameTypes[i] >= QUIC_FRAME_STREAM && PacketParams->FrameTypes[i] <= QUIC_FRAME_STREAM_7) {
             // STREAM frame (types 0x08-0x0f)
             WriteStreamFrame(
                 &PayloadLength,
@@ -1076,7 +1076,7 @@ void FuzzInitial(
     ClientContext.CreateContext(PacketParams.SourceCid);
     CXPLAT_FRE_ASSERT(ClientContext.ProcessData() & CXPLAT_TLS_RESULT_DATA);
 
-    BuildAndSendPackets(Binding, Route, &PacketParams, &ClientContext);
+    BuildAndSendLongHeaderPackets(Binding, Route, &PacketParams, &ClientContext);
 }
 
 bool CompleteHandshake(
@@ -1091,7 +1091,7 @@ bool CompleteHandshake(
     // Keep sending the packet until we receive a response or the time runs out.
     //
     do {
-        BuildAndSendPackets(Binding, Route, PacketParams, ClientContext, false);
+        BuildAndSendLongHeaderPackets(Binding, Route, PacketParams, ClientContext, false);
     } while (!RecvPacketEvent.WaitTimeout(250) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
 
     //
@@ -1175,7 +1175,7 @@ bool CompleteHandshake(
                     PacketParams->NumFrames = 1;
                     PacketParams->FrameTypes[0] = QUIC_FRAME_ACK;
                     PacketParams->PacketType = QUIC_INITIAL_V1;
-                    BuildAndSendPackets(Binding, Route, PacketParams, ClientContext, false);
+                    BuildAndSendLongHeaderPackets(Binding, Route, PacketParams, ClientContext, false);
                     CryptoBufferOffset = 0; // Reset to zero for handshake data
                 }
             }
@@ -1218,7 +1218,7 @@ void FuzzHandshake(
         PacketParams.NumFrames = 1;
         PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
         PacketParams.NumPackets = GetRandom<uint8_t>(3) + 1;
-        BuildAndSendPackets(Binding, Route, &PacketParams, &ClientContext);
+        BuildAndSendLongHeaderPackets(Binding, Route, &PacketParams, &ClientContext);
     }
 }
 
@@ -1253,16 +1253,26 @@ void Fuzz1Rtt(
         PacketParams.NumFrames = 1;
         PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
         PacketParams.NumPackets = 1;
-        BuildAndSendPackets(Binding, Route, &PacketParams, &ClientContext, false);
+        BuildAndSendLongHeaderPackets(Binding, Route, &PacketParams, &ClientContext, false);
 
         if (ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT] != nullptr) {
             //
-            // Send HANDSHAKE_DONE packet in 1-RTT
+            // Send HANDSHAKE_DONE packet in 1-RTT (with low chance to skip or send multiple)
             //
-            PacketParams.NumFrames = 1;
-            PacketParams.FrameTypes[0] = QUIC_FRAME_HANDSHAKE_DONE;
-            PacketParams.NumPackets = 1;
-            BuildAndSendShortHeaderPackets(Binding, Route, &PacketParams, &ClientContext, false);
+            uint8_t HandshakeDoneCount = 1; // Default: send once
+            uint8_t RandomChoice = GetRandom<uint8_t>(20);
+            if (RandomChoice == 0) {
+                HandshakeDoneCount = 0; // 5% chance: don't send
+            } else if (RandomChoice == 1) {
+                HandshakeDoneCount = GetRandom<uint8_t>(3) + 2; // 5% chance: send 2-4 times
+            }
+            
+            if (HandshakeDoneCount > 0) {
+                PacketParams.NumFrames = 1;
+                PacketParams.FrameTypes[0] = QUIC_FRAME_HANDSHAKE_DONE;
+                PacketParams.NumPackets = HandshakeDoneCount;
+                BuildAndSendShortHeaderPackets(Binding, Route, &PacketParams, &ClientContext, false);
+            }
 
             //
             // Send fuzzed 1-RTT packets with STREAM frames
