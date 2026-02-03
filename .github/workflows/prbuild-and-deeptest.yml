@@ -1,0 +1,33 @@
+name: PR Build and DeepTest
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_file:
+        description: "Relative path to the source file (e.g., src/core/connection.c)"
+        required: false
+        type: string
+        default: "src/core/loss_detection.c"
+
+jobs:
+  # First job: Call PR Build workflow (Windows)
+  pr-build:
+    name: PR Build
+    uses: ./.github/workflows/pr-build.yml
+    permissions:
+      contents: read
+      pull-requests: write
+
+  # Second job: Call DeepTest workflow (Ubuntu) - runs after pr-build
+  deeptest:
+    name: DeepTest
+    needs: pr-build
+    uses: ./.github/workflows/deeptest-ubuntu.lock.yml
+    with:
+      source_file: ${{ inputs.source_file }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      discussions: write
+    secrets: inherit
