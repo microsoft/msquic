@@ -73,25 +73,25 @@ jobs:
       - name: Prepare Machine (Pre-PR)
         shell: pwsh
         working-directory: pre-pr
-        run: scripts/prepare-machine.ps1 -ForBuild -Tls schannel -InstallCodeCoverage
+        run: scripts\prepare-machine.ps1 -ForBuild -Tls schannel -InstallCodeCoverage
 
       - name: Build Pre-PR
         id: build-pre
         shell: pwsh
         working-directory: pre-pr
         run: |
-          "Starting baseline build at $(Get-Date)" | Tee-Object -FilePath ../build-pre.log
-          "========================================" | Tee-Object -FilePath ../build-pre.log -Append
+          "Starting baseline build at $(Get-Date)" | Tee-Object -FilePath ..\build-pre.log
+          "========================================" | Tee-Object -FilePath ..\build-pre.log -Append
           
           try {
-            scripts/build.ps1 -Config Release -Platform windows -Arch x64 -Tls schannel 2>&1 | Tee-Object -FilePath ../build-pre.log -Append
-            "========================================" | Tee-Object -FilePath ../build-pre.log -Append
-            "Build completed successfully at $(Get-Date)" | Tee-Object -FilePath ../build-pre.log -Append
+            scripts\build.ps1 -Config Release -Platform windows -Arch x64 -Tls schannel 2>&1 | Tee-Object -FilePath ..\build-pre.log -Append
+            "========================================" | Tee-Object -FilePath ..\build-pre.log -Append
+            "Build completed successfully at $(Get-Date)" | Tee-Object -FilePath ..\build-pre.log -Append
             "build_status=success" >> $env:GITHUB_OUTPUT
           } catch {
-            "========================================" | Tee-Object -FilePath ../build-pre.log -Append
-            "Build failed at $(Get-Date)" | Tee-Object -FilePath ../build-pre.log -Append
-            $_.Exception.Message | Tee-Object -FilePath ../build-pre.log -Append
+            "========================================" | Tee-Object -FilePath ..\build-pre.log -Append
+            "Build failed at $(Get-Date)" | Tee-Object -FilePath ..\build-pre.log -Append
+            $_.Exception.Message | Tee-Object -FilePath ..\build-pre.log -Append
             "build_status=failure" >> $env:GITHUB_OUTPUT
           }
 
@@ -101,18 +101,18 @@ jobs:
         shell: pwsh
         working-directory: pre-pr
         run: |
-          "Starting baseline tests with coverage at $(Get-Date)" | Tee-Object -FilePath ../test-pre.log
-          "========================================" | Tee-Object -FilePath ../test-pre.log -Append
+          "Starting baseline tests with coverage at $(Get-Date)" | Tee-Object -FilePath ..\test-pre.log
+          "========================================" | Tee-Object -FilePath ..\test-pre.log -Append
           
           try {
-            scripts/test.ps1 -Config Release -Arch x64 -Tls schannel -CodeCoverage -IsolationMode Batch 2>&1 | Tee-Object -FilePath ../test-pre.log -Append
-            "========================================" | Tee-Object -FilePath ../test-pre.log -Append
-            "Tests completed at $(Get-Date)" | Tee-Object -FilePath ../test-pre.log -Append
+            scripts\test.ps1 -Filter *DeepTest* -Config Release -Arch x64 -Tls schannel -CodeCoverage -GHA -GenerateXmlResults -LogProfile Full.Light 2>&1 | Tee-Object -FilePath ..\test-pre.log -Append
+            "========================================" | Tee-Object -FilePath ..\test-pre.log -Append
+            "Tests completed at $(Get-Date)" | Tee-Object -FilePath ..\test-pre.log -Append
             "test_status=success" >> $env:GITHUB_OUTPUT
           } catch {
-            "========================================" | Tee-Object -FilePath ../test-pre.log -Append
-            "Tests failed at $(Get-Date)" | Tee-Object -FilePath ../test-pre.log -Append
-            $_.Exception.Message | Tee-Object -FilePath ../test-pre.log -Append
+            "========================================" | Tee-Object -FilePath ..\test-pre.log -Append
+            "Tests failed at $(Get-Date)" | Tee-Object -FilePath ..\test-pre.log -Append
+            $_.Exception.Message | Tee-Object -FilePath ..\test-pre.log -Append
             "test_status=failure" >> $env:GITHUB_OUTPUT
           }
 
@@ -120,8 +120,8 @@ jobs:
         if: steps.test-pre.outputs.test_status == 'success'
         shell: pwsh
         run: |
-          if (Test-Path "pre-pr/artifacts/coverage/msquiccoverage.xml") {
-            Copy-Item "pre-pr/artifacts/coverage/msquiccoverage.xml" "baseline-coverage.xml"
+          if (Test-Path "pre-pr\artifacts\coverage\msquiccoverage.xml") {
+            Copy-Item "pre-pr\artifacts\coverage\msquiccoverage.xml" "baseline-coverage.xml"
             Write-Host "Baseline coverage copied successfully"
           } else {
             Write-Warning "Baseline coverage file not found"
@@ -133,25 +133,25 @@ jobs:
       - name: Prepare Machine (Post-PR)
         shell: pwsh
         working-directory: post-pr
-        run: scripts/prepare-machine.ps1 -ForBuild -Tls schannel -InstallCodeCoverage
+        run: scripts\prepare-machine.ps1 -ForBuild -Tls schannel -InstallCodeCoverage
 
       - name: Build Post-PR
         id: build-post
         shell: pwsh
         working-directory: post-pr
         run: |
-          "Starting PR build at $(Get-Date)" | Tee-Object -FilePath ../build-post.log
-          "========================================" | Tee-Object -FilePath ../build-post.log -Append
+          "Starting PR build at $(Get-Date)" | Tee-Object -FilePath ..\build-post.log
+          "========================================" | Tee-Object -FilePath ..\build-post.log -Append
           
           try {
-            scripts/build.ps1 -Config Release -Platform windows -Arch x64 -Tls schannel 2>&1 | Tee-Object -FilePath ../build-post.log -Append
-            "========================================" | Tee-Object -FilePath ../build-post.log -Append
-            "Build completed successfully at $(Get-Date)" | Tee-Object -FilePath ../build-post.log -Append
+            scripts\build.ps1 -Config Release -Platform windows -Arch x64 -Tls schannel 2>&1 | Tee-Object -FilePath ..\build-post.log -Append
+            "========================================" | Tee-Object -FilePath ..\build-post.log -Append
+            "Build completed successfully at $(Get-Date)" | Tee-Object -FilePath ..\build-post.log -Append
             "build_status=success" >> $env:GITHUB_OUTPUT
           } catch {
-            "========================================" | Tee-Object -FilePath ../build-post.log -Append
-            "Build failed at $(Get-Date)" | Tee-Object -FilePath ../build-post.log -Append
-            $_.Exception.Message | Tee-Object -FilePath ../build-post.log -Append
+            "========================================" | Tee-Object -FilePath ..\build-post.log -Append
+            "Build failed at $(Get-Date)" | Tee-Object -FilePath ..\build-post.log -Append
+            $_.Exception.Message | Tee-Object -FilePath ..\build-post.log -Append
             "build_status=failure" >> $env:GITHUB_OUTPUT
           }
 
@@ -161,18 +161,18 @@ jobs:
         shell: pwsh
         working-directory: post-pr
         run: |
-          "Starting PR tests with coverage at $(Get-Date)" | Tee-Object -FilePath ../test-post.log
-          "========================================" | Tee-Object -FilePath ../test-post.log -Append
+          "Starting PR tests with coverage at $(Get-Date)" | Tee-Object -FilePath ..\test-post.log
+          "========================================" | Tee-Object -FilePath ..\test-post.log -Append
           
           try {
-            scripts/test.ps1 -Config Release -Arch x64 -Tls schannel -CodeCoverage -IsolationMode Batch 2>&1 | Tee-Object -FilePath ../test-post.log -Append
-            "========================================" | Tee-Object -FilePath ../test-post.log -Append
-            "Tests completed at $(Get-Date)" | Tee-Object -FilePath ../test-post.log -Append
+            scripts\test.ps1  -Filter *DeepTest* -Config Release -Arch x64 -Tls schannel -CodeCoverage -GHA -GenerateXmlResults -LogProfile Full.Light 2>&1 | Tee-Object -FilePath ..\test-post.log -Append
+            "========================================" | Tee-Object -FilePath ..\test-post.log -Append
+            "Tests completed at $(Get-Date)" | Tee-Object -FilePath ..\test-post.log -Append
             "test_status=success" >> $env:GITHUB_OUTPUT
           } catch {
-            "========================================" | Tee-Object -FilePath ../test-post.log -Append
-            "Tests failed at $(Get-Date)" | Tee-Object -FilePath ../test-post.log -Append
-            $_.Exception.Message | Tee-Object -FilePath ../test-post.log -Append
+            "========================================" | Tee-Object -FilePath ..\test-post.log -Append
+            "Tests failed at $(Get-Date)" | Tee-Object -FilePath ..\test-post.log -Append
+            $_.Exception.Message | Tee-Object -FilePath ..\test-post.log -Append
             "test_status=failure" >> $env:GITHUB_OUTPUT
           }
 
@@ -180,8 +180,8 @@ jobs:
         if: steps.test-post.outputs.test_status == 'success'
         shell: pwsh
         run: |
-          if (Test-Path "post-pr/artifacts/coverage/msquiccoverage.xml") {
-            Copy-Item "post-pr/artifacts/coverage/msquiccoverage.xml" "current-coverage.xml"
+          if (Test-Path "post-pr\artifacts\coverage\msquiccoverage.xml") {
+            Copy-Item "post-pr\artifacts\coverage\msquiccoverage.xml" "current-coverage.xml"
             Write-Host "Current coverage copied successfully"
           } else {
             Write-Warning "Current coverage file not found"
@@ -197,7 +197,7 @@ jobs:
           $changedFiles = '${{ steps.changed-files.outputs.files }}'
           
           # Run the comparison script from post-pr (has latest version)
-          $report = & "post-pr/scripts/compare-coverage.ps1" `
+          $report = & ".\post-pr\scripts\compare-coverage.ps1" `
             -BaselineCoverage "baseline-coverage.xml" `
             -CurrentCoverage "current-coverage.xml" `
             -OutputPath "coverage-comparison.json" `
