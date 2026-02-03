@@ -31,21 +31,18 @@ Having multiple connections or listeners with varying RDMA settings is a non-goa
 Thus the `RdmaEnabled` option should live at the registration level; to give maximal control
 over datapath initialization and worker thread allocation.
 
-A new flag `QUIC_EXECUTION_PROFILE_RDMA` can be added to `QUIC_EXECUTION_PROFILE`.
-When enabled for a registration, completely disallow XDP/QTIP/OS sockets usage under this registration.
-The core logic for MsQuic will also update accordingly.
+Additionally, MsQuic requires the RNIC adapter interface IPv4/IPv6 address for datapath initialization.
+Thus, the RDMA datapath will require `RdmaEnabled: BOOLEAN` and `RdmaInterfaceIp: QUIC_ADDR` be added to the `QUIC_REGISTRATION_CONFIG` structure.
+`QUIC_REGISTRATION_CONFIG` is provided to the OpenRegistration call, which initialize the datapath layer and will need this information.
 
 If applications would like to use XDP, normal OS sockets, and RDMA on the same machine, they
 should create multiple registrations.
-
-Having XDP/QTIP available, normal OS sockets available, and RDMA available all under the same
-registration where different listeners and different connections can have different datapath enablements and depending on the datapath enablement would change the QUIC logic would explode the test matrix and state machine.
 
 ## RDMA facts
 
 RDMA over RoCEv2, which is what MsQuic will use,
  intercepts packets and redirects them at the hardware level.
-The RNIC is programmed by the provider driver (MANA or Mellanox) to redirect all packets matching a specific well known port X (usually 4791) and DMA them into the RDMA datapath then de-muxed using the QPN (queue pair number) into specific queue pairs (QP). A QP is a socket-like endpoint for applications using RDMA.
+The RNIC is programmed by the provider driver to redirect all packets matching a specific well known port X (usually 4791) and DMA them into the RDMA datapath then de-muxed using the QPN (queue pair number) into specific queue pairs (QP). A QP is a socket-like endpoint for applications using RDMA.
 
 This implies major updates will need to occur all the way from the datapath to the binding
 to the core layers to be QPN aware.
