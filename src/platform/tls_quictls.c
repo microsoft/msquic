@@ -1351,12 +1351,11 @@ CxPlatTlsSecConfigCreate(
                     ERR_get_error(),
                     "BIO_new failed");
                 Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
+                goto ExitInner;
             }
 
             // FIXME: Handle encrypted private key
             PEM_read_bio_PrivateKey(BioKey, &PrivateKey, NULL, NULL);
-            BIO_free(BioKey);
 
             if (!PrivateKey) {
                 QuicTraceEvent(
@@ -1365,7 +1364,7 @@ CxPlatTlsSecConfigCreate(
                     ERR_get_error(),
                     "PEM_read_bio_PrivateKey failed");
                 Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
+                goto ExitInner;
             }
 
             Ret = SSL_CTX_use_PrivateKey(
@@ -1379,7 +1378,7 @@ CxPlatTlsSecConfigCreate(
                     ERR_get_error(),
                     "SSL_CTX_use_PrivateKey failed");
                 Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
+                goto ExitInner;
             }
         }
 
@@ -1395,12 +1394,11 @@ CxPlatTlsSecConfigCreate(
                     ERR_get_error(),
                     "BIO_new failed");
                 Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
+                goto ExitInner;
             }
 
             // FIXME: Handle password-protected certs
             PEM_read_bio_X509(BioCert, &X509Cert, NULL, NULL);
-            BIO_free(BioCert);
 
             if (!X509Cert) {
                 QuicTraceEvent(
@@ -1409,7 +1407,7 @@ CxPlatTlsSecConfigCreate(
                     ERR_get_error(),
                     "PEM_read_bio_X509 failed");
                 Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
+                goto ExitInner;
             }
 
             Ret = SSL_CTX_use_certificate(
@@ -1423,8 +1421,28 @@ CxPlatTlsSecConfigCreate(
                     ERR_get_error(),
                     "SSL_CTX_use_certificate failed");
                 Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
+                goto ExitInner;
             }
+
+            {
+                X509 *CaCert = NULL;
+
+                while (PEM_read_bio_X509(BioCert, &CaCert, NULL, NULL) != NULL) {
+                    // transfers ownership to SSLCtx and CaCert does not need to be freed.
+                    SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert);
+                }
+            }
+
+            goto SuccessInner;
+
+            ExitInner:
+            BIO_free(BioCert);
+            BIO_free(BioKey);
+            goto Exit;
+
+            SuccessInner:
+            BIO_free(BioCert);
+            BIO_free(BioKey);
         }
     } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
         BIO* Bio = BIO_new(BIO_s_mem());
