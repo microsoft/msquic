@@ -24,6 +24,11 @@
 name: "Deeptest Ubuntu"
 "on":
   workflow_call:
+    inputs:
+      source_file:
+        description: Relative path to the source file (e.g., src/core/connection.c)
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       source_file:
@@ -42,7 +47,7 @@ env:
   COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
   GH_TOKEN: ${{ github.token }}
   RUN_ID: ${{ github.run_id }}
-  SOURCE_FILE: ${{ github.event.inputs.source_file || 'src/core/loss_detection.c' }}
+  SOURCE_FILE: ${{ inputs.source_file || github.event.inputs.source_file || 'src/core/loss_detection.c' }}
 
 jobs:
   activation:

@@ -8,6 +8,11 @@ on:
         required: true
         type: string
   workflow_call:
+    inputs:
+      source_file:
+        description: "Relative path to the source file (e.g., src/core/connection.c)"
+        required: false
+        type: string
 permissions:
   contents: read
   pull-requests: read
@@ -16,7 +21,7 @@ strict: false
 env:
   GH_TOKEN: ${{ github.token }}
   COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-  SOURCE_FILE: ${{ github.event.inputs.source_file || 'src/core/loss_detection.c' }}
+  SOURCE_FILE: ${{ inputs.source_file || github.event.inputs.source_file || 'src/core/loss_detection.c' }}
   RUN_ID: ${{ github.run_id }}
 engine:
   id: custom
