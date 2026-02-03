@@ -211,6 +211,7 @@ jobs:
       # ========================================
       - name: Upload build logs
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: build-logs
           path: |
@@ -225,6 +226,20 @@ jobs:
           path: |
             test-pre.log
             test-post.log
+
+      - name: Upload Pre-PR test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-artifacts-pre-pr
+          path: pre-pr\artifacts\logs\
+
+      - name: Upload Post-PR test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-artifacts-post-pr
+          path: post-pr\artifacts\logs\
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
