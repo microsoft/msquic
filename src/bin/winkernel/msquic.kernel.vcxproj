@@ -124,6 +124,16 @@
       <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\msquic.pgd</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
+  <!-- ARM64 Release Hotpatch linker flags to allow hotpatching -->
+  <PropertyGroup>
+    <AllowHotpatchLinkOptionsARM64>/hotpatchcompatible /profile /incremental:no /PDBINJECT:MAPFILE</AllowHotpatchLinkOptionsARM64>
+  </PropertyGroup>
+   <!-- Hotpatch flags appended last to prevent override -->
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Link>
+      <AdditionalOptions>%(AdditionalOptions) $(AllowHotpatchLinkOptionsARM64)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
