@@ -583,6 +583,8 @@ jobs:
           echo "Invoking DeepTest custom agent for QuicLossValidate..."
           gh copilot --agent DeepTest -p "Generate comprehensive tests for the focal function QuicLossValidate in src/core/loss_detection.c. The function validates QUIC_LOSS_DETECTION internal state including SentPackets and LostPackets linked lists, PacketsInFlight counter, and tail pointers. Follow MsQuic test patterns in src/test/." --allow-all-tools
         env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
           GH_AW_SAFE_OUTPUTS: ${{ env.GH_AW_SAFE_OUTPUTS }}
@@ -894,6 +896,8 @@ jobs:
           echo "Invoking DeepTest custom agent for QuicLossValidate..."
           gh copilot --agent DeepTest -p "Generate comprehensive tests for the focal function QuicLossValidate in src/core/loss_detection.c. The function validates QUIC_LOSS_DETECTION internal state including SentPackets and LostPackets linked lists, PacketsInFlight counter, and tail pointers. Follow MsQuic test patterns in src/test/." --allow-all-tools
         env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
       - name: Ensure log file exists
