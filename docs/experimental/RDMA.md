@@ -22,7 +22,8 @@ a best-effort basis.
 The model for using MsQuic over the RDMA datapath can **not**
 easily inherit from the general model where MsQuic lazily initializes RDMA on a best effort basis and the datapath implicitly reads from `QUIC_SETTINGS`.
 
-This is primarily due to the RDMA datapath impacting the core logic of QUIC itself (much of MsQuic loss detection logic can be disabled), along with major updates to core MsQuic structures and the entire datapath initialization stack.
+This is primarily due to MsQuic requiring the adapter IP address prior
+to initializing the datapath. Along with the RDMA datapath impacting the core logic of QUIC itself (much of MsQuic loss detection logic can be disabled), along with major updates to core MsQuic structures and the entire datapath initialization stack.
 With how fluid `QUIC_SETTINGS` can update based on many different contexts,
 the integration logic for RDMA will be very complex.
 Having multiple connections or listeners with varying RDMA settings is a non-goal.
@@ -32,8 +33,20 @@ Thus the `RdmaEnabled` option should live at the registration level; to give max
 over datapath initialization and worker thread allocation.
 
 Additionally, MsQuic requires the RNIC adapter interface IPv4/IPv6 address for datapath initialization.
-Thus, the RDMA datapath will require `RdmaEnabled: BOOLEAN` and `RdmaInterfaceIp: QUIC_ADDR` be added to the `QUIC_REGISTRATION_CONFIG` structure.
-`QUIC_REGISTRATION_CONFIG` is provided to the OpenRegistration call, which initialize the datapath layer and will need this information.
+
+Thus, we will add `RdmaEnabledOnInterfaceIp: QUIC_ADDR` into `QUIC_REGISTRATION_CONFIG`,
+which is provided to the OpenRegistration call that initializes the datapath layer and will need this information. `RdmaEnabledOnInterfaceIp` will be
+set to NULL by default. If it's any valid adapter address, then MsQuic will
+initialize the RDMA datapath.
+
+```C
+typedef struct QUIC_REGISTRATION_CONFIG {
+    const char* AppName;
+    QUIC_EXECUTION_PROFILE ExecutionProfile;
+    QUIC_ADDR RdmaEnabledOnInterfaceIp;
+} QUIC_REGISTRATION_CONFIG;
+```
+
 
 If applications would like to use XDP, normal OS sockets, and RDMA on the same machine, they
 should create multiple registrations.
