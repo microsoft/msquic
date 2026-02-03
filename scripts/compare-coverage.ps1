@@ -53,6 +53,7 @@ function Parse-CoberturaCoverage {
             BranchesValid = 0
             Packages = @{}
             Files = @{}
+            NotFound = $true
         }
     }
 
@@ -68,6 +69,7 @@ function Parse-CoberturaCoverage {
         BranchesValid = [int]($coverage.'branches-valid' ?? 0)
         Packages = @{}
         Files = @{}
+        NotFound = $false
     }
 
     # Parse package-level and file-level coverage
@@ -149,12 +151,14 @@ function Compare-Coverage {
                 BranchCoverage = [math]::Round($Baseline.BranchCoverage, 2)
                 LinesCovered = $Baseline.LinesCovered
                 LinesValid = $Baseline.LinesValid
+                NotFound = $Baseline.NotFound
             }
             Current = @{
                 LineCoverage = [math]::Round($Current.LineCoverage, 2)
                 BranchCoverage = [math]::Round($Current.BranchCoverage, 2)
                 LinesCovered = $Current.LinesCovered
                 LinesValid = $Current.LinesValid
+                NotFound = $Current.NotFound
             }
             Delta = @{
                 LineCoverage = [math]::Round($Current.LineCoverage - $Baseline.LineCoverage, 2)
@@ -243,47 +247,93 @@ function Format-CoverageReport {
 
     $sb = [System.Text.StringBuilder]::new()
 
+    # Check if baseline or current coverage is missing
+    $baselineNotFound = $Comparison.Summary.Baseline.NotFound
+    $currentNotFound = $Comparison.Summary.Current.NotFound
+
     # Overall summary
     [void]$sb.AppendLine("## 📊 Code Coverage Comparison")
     [void]$sb.AppendLine("")
-    [void]$sb.AppendLine("| Metric | Baseline | Current | Delta |")
-    [void]$sb.AppendLine("|--------|----------|---------|-------|")
 
-    $lineDelta = $Comparison.Summary.Delta.LineCoverage
-    $lineIcon = if ($lineDelta -gt 0) { "🟢 +" } elseif ($lineDelta -lt 0) { "🔴 " } else { "⚪ " }
-    [void]$sb.AppendLine("| Line Coverage | $($Comparison.Summary.Baseline.LineCoverage)% | $($Comparison.Summary.Current.LineCoverage)% | $lineIcon$($lineDelta)% |")
+    # Show warning if baseline is missing
+    if ($baselineNotFound) {
+        [void]$sb.AppendLine("> ⚠️ **Baseline coverage not available** - No tests were run on the pre-PR version, or coverage file was not generated.")
+        [void]$sb.AppendLine("> Showing current PR coverage only. Delta comparison is not available.")
+        [void]$sb.AppendLine("")
+        [void]$sb.AppendLine("| Metric | Current (Post-PR) |")
+        [void]$sb.AppendLine("|--------|-------------------|")
+        [void]$sb.AppendLine("| Line Coverage | $($Comparison.Summary.Current.LineCoverage)% |")
+        [void]$sb.AppendLine("| Branch Coverage | $($Comparison.Summary.Current.BranchCoverage)% |")
+        [void]$sb.AppendLine("| Lines Covered | $($Comparison.Summary.Current.LinesCovered) |")
+        [void]$sb.AppendLine("| Total Lines | $($Comparison.Summary.Current.LinesValid) |")
+    } elseif ($currentNotFound) {
+        [void]$sb.AppendLine("> ⚠️ **Current coverage not available** - No tests were run on the post-PR version, or coverage file was not generated.")
+        [void]$sb.AppendLine("")
+        [void]$sb.AppendLine("| Metric | Baseline (Pre-PR) |")
+        [void]$sb.AppendLine("|--------|-------------------|")
+        [void]$sb.AppendLine("| Line Coverage | $($Comparison.Summary.Baseline.LineCoverage)% |")
+        [void]$sb.AppendLine("| Branch Coverage | $($Comparison.Summary.Baseline.BranchCoverage)% |")
+        [void]$sb.AppendLine("| Lines Covered | $($Comparison.Summary.Baseline.LinesCovered) |")
+        [void]$sb.AppendLine("| Total Lines | $($Comparison.Summary.Baseline.LinesValid) |")
+    } else {
+        [void]$sb.AppendLine("| Metric | Baseline | Current | Delta |")
+        [void]$sb.AppendLine("|--------|----------|---------|-------|")
 
-    $branchDelta = $Comparison.Summary.Delta.BranchCoverage
-    $branchIcon = if ($branchDelta -gt 0) { "🟢 +" } elseif ($branchDelta -lt 0) { "🔴 " } else { "⚪ " }
-    [void]$sb.AppendLine("| Branch Coverage | $($Comparison.Summary.Baseline.BranchCoverage)% | $($Comparison.Summary.Current.BranchCoverage)% | $branchIcon$($branchDelta)% |")
+        $lineDelta = $Comparison.Summary.Delta.LineCoverage
+        $lineIcon = if ($lineDelta -gt 0) { "🟢 +" } elseif ($lineDelta -lt 0) { "🔴 " } else { "⚪ " }
+        [void]$sb.AppendLine("| Line Coverage | $($Comparison.Summary.Baseline.LineCoverage)% | $($Comparison.Summary.Current.LineCoverage)% | $lineIcon$($lineDelta)% |")
 
-    [void]$sb.AppendLine("| Lines Covered | $($Comparison.Summary.Baseline.LinesCovered) | $($Comparison.Summary.Current.LinesCovered) | $($Comparison.Summary.Delta.LinesCovered) |")
-    [void]$sb.AppendLine("| Total Lines | $($Comparison.Summary.Baseline.LinesValid) | $($Comparison.Summary.Current.LinesValid) | $($Comparison.Summary.Delta.LinesValid) |")
+        $branchDelta = $Comparison.Summary.Delta.BranchCoverage
+        $branchIcon = if ($branchDelta -gt 0) { "🟢 +" } elseif ($branchDelta -lt 0) { "🔴 " } else { "⚪ " }
+        [void]$sb.AppendLine("| Branch Coverage | $($Comparison.Summary.Baseline.BranchCoverage)% | $($Comparison.Summary.Current.BranchCoverage)% | $branchIcon$($branchDelta)% |")
+
+        [void]$sb.AppendLine("| Lines Covered | $($Comparison.Summary.Baseline.LinesCovered) | $($Comparison.Summary.Current.LinesCovered) | $($Comparison.Summary.Delta.LinesCovered) |")
+        [void]$sb.AppendLine("| Total Lines | $($Comparison.Summary.Baseline.LinesValid) | $($Comparison.Summary.Current.LinesValid) | $($Comparison.Summary.Delta.LinesValid) |")
+    }
     [void]$sb.AppendLine("")
 
-    # Changed files coverage
-    if ($Comparison.ChangedFiles.Count -gt 0) {
-        [void]$sb.AppendLine("### 📁 Coverage for Changed Files")
-        [void]$sb.AppendLine("")
-        [void]$sb.AppendLine("<details>")
-        [void]$sb.AppendLine("<summary>Click to expand ($($Comparison.ChangedFiles.Count) files)</summary>")
-        [void]$sb.AppendLine("")
-        [void]$sb.AppendLine("| File | Baseline | Current | Delta |")
-        [void]$sb.AppendLine("|------|----------|---------|-------|")
+    [void]$sb.AppendLine("")
 
-        foreach ($file in $Comparison.ChangedFiles) {
-            $delta = $file.Delta.LineCoverage
-            $icon = if ($delta -gt 0) { "🟢 +" } elseif ($delta -lt 0) { "🔴 " } else { "⚪ " }
-            $shortName = Split-Path $file.File -Leaf
-            [void]$sb.AppendLine("| ``$shortName`` | $($file.Baseline.LineCoverage)% | $($file.Current.LineCoverage)% | $icon$($delta)% |")
+    # Only show changed files sections if we have both baseline and current
+    if (-not $baselineNotFound -and -not $currentNotFound) {
+        # Changed files coverage
+        if ($Comparison.ChangedFiles.Count -gt 0) {
+            [void]$sb.AppendLine("### 📁 Coverage for Changed Files")
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("<details>")
+            [void]$sb.AppendLine("<summary>Click to expand ($($Comparison.ChangedFiles.Count) files)</summary>")
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("| File | Baseline | Current | Delta |")
+            [void]$sb.AppendLine("|------|----------|---------|-------|")
+
+            foreach ($file in $Comparison.ChangedFiles) {
+                $delta = $file.Delta.LineCoverage
+                $icon = if ($delta -gt 0) { "🟢 +" } elseif ($delta -lt 0) { "🔴 " } else { "⚪ " }
+                $shortName = Split-Path $file.File -Leaf
+                [void]$sb.AppendLine("| ``$shortName`` | $($file.Baseline.LineCoverage)% | $($file.Current.LineCoverage)% | $icon$($delta)% |")
+            }
+
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("</details>")
+            [void]$sb.AppendLine("")
         }
 
-        [void]$sb.AppendLine("")
-        [void]$sb.AppendLine("</details>")
-        [void]$sb.AppendLine("")
+        # Regressed files warning
+        if ($Comparison.RegressedFiles.Count -gt 0) {
+            [void]$sb.AppendLine("### ⚠️ Files with Decreased Coverage")
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("| File | Baseline | Current | Delta |")
+            [void]$sb.AppendLine("|------|----------|---------|-------|")
+
+            foreach ($file in $Comparison.RegressedFiles) {
+                $shortName = Split-Path $file.File -Leaf
+                [void]$sb.AppendLine("| ``$shortName`` | $($file.Baseline.LineCoverage)% | $($file.Current.LineCoverage)% | 🔴 $($file.Delta.LineCoverage)% |")
+            }
+            [void]$sb.AppendLine("")
+        }
     }
 
-    # New files
+    # New files (show even if baseline is missing, since these are new in current)
     if ($Comparison.NewFiles.Count -gt 0) {
         [void]$sb.AppendLine("### 🆕 New Files")
         [void]$sb.AppendLine("")
@@ -293,20 +343,6 @@ function Format-CoverageReport {
         foreach ($file in $Comparison.NewFiles) {
             $shortName = Split-Path $file.File -Leaf
             [void]$sb.AppendLine("| ``$shortName`` | $($file.Current.LineCoverage)% |")
-        }
-        [void]$sb.AppendLine("")
-    }
-
-    # Regressed files warning
-    if ($Comparison.RegressedFiles.Count -gt 0) {
-        [void]$sb.AppendLine("### ⚠️ Files with Decreased Coverage")
-        [void]$sb.AppendLine("")
-        [void]$sb.AppendLine("| File | Baseline | Current | Delta |")
-        [void]$sb.AppendLine("|------|----------|---------|-------|")
-
-        foreach ($file in $Comparison.RegressedFiles) {
-            $shortName = Split-Path $file.File -Leaf
-            [void]$sb.AppendLine("| ``$shortName`` | $($file.Baseline.LineCoverage)% | $($file.Current.LineCoverage)% | 🔴 $($file.Delta.LineCoverage)% |")
         }
         [void]$sb.AppendLine("")
     }
