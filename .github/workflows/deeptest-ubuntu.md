@@ -36,50 +36,55 @@ engine:
     - name: Run DeepTest via Copilot CLI
       run: |
         echo "Invoking DeepTest custom agent for: $SOURCE_FILE (Run ID: $RUN_ID)"
-        gh copilot --agent DeepTest -p "Generate comprehensive tests for the source file at $SOURCE_FILE. Analyze the file, identify testable functions, and create test cases following MsQuic test patterns in src/test/. After generating tests, commit all changes locally. Do NOT create a PR - just generate and commit the test code." --allow-all-tools
-    - name: Create branch and push changes
+        gh copilot --agent DeepTest -p "Generate comprehensive tests for the source file at $SOURCE_FILE. Analyze the file, identify testable functions, and create test cases following MsQuic test patterns in src/test/. After generating tests, stage all new and modified files with 'git add'. Do NOT commit or push - just generate the test code and stage the files." --allow-all-tools
+    - name: Write safe-output for PR creation
       run: |
-        BRANCH_NAME="deeptest-run-$RUN_ID"
-        echo "Creating branch: $BRANCH_NAME"
-        
         CURRENT_HEAD=$(git rev-parse HEAD)
         echo "Original HEAD: $ORIGINAL_HEAD"
         echo "Current HEAD: $CURRENT_HEAD"
         
-        # Check if there are new commits (HEAD moved) or uncommitted changes
-        if [ "$ORIGINAL_HEAD" = "$CURRENT_HEAD" ] && git diff --quiet && git diff --cached --quiet; then
-          echo "No changes detected, skipping branch creation"
-          echo "NO_CHANGES=true" >> $GITHUB_ENV
-        else
-          echo "Changes detected, creating branch and pushing"
-          # Create new branch from current state
-          git checkout -b "$BRANCH_NAME"
-          # If there are uncommitted changes, commit them
-          if ! git diff --quiet || ! git diff --cached --quiet; then
-            git add -A
-            git commit -m "[DeepTest Run #$RUN_ID] Add tests for $SOURCE_FILE" || true
-          fi
-          git push origin "$BRANCH_NAME"
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-          echo "NO_CHANGES=false" >> $GITHUB_ENV
+        # Check for any changes: new commits OR staged/unstaged changes
+        HAS_COMMITS=false
+        HAS_STAGED=false
+        HAS_UNSTAGED=false
+        
+        if [ "$ORIGINAL_HEAD" != "$CURRENT_HEAD" ]; then
+          HAS_COMMITS=true
+          echo "New commits detected"
         fi
-    - name: Write safe-output for PR creation
-      run: |
-        if [ "$NO_CHANGES" = "true" ]; then
-          echo "No changes to create PR for, writing noop"
+        
+        if ! git diff --cached --quiet 2>/dev/null; then
+          HAS_STAGED=true
+          echo "Staged changes detected"
+        fi
+        
+        if ! git diff --quiet 2>/dev/null; then
+          HAS_UNSTAGED=true
+          echo "Unstaged changes detected"
+        fi
+        
+        if [ "$HAS_COMMITS" = "false" ] && [ "$HAS_STAGED" = "false" ] && [ "$HAS_UNSTAGED" = "false" ]; then
+          echo "No changes detected, writing noop"
           echo '{"tool":"noop","args":{"message":"No test changes generated"}}' >> "$GH_AW_SAFE_OUTPUTS"
         else
-          echo "Writing PR creation request to safe-outputs"
-          cat >> "$GH_AW_SAFE_OUTPUTS" << EOF
-        {"tool":"create_pull_request","args":{"title":"Tests for $SOURCE_FILE","body":"Auto-generated tests for $SOURCE_FILE by DeepTest workflow run #$RUN_ID","branch":"$BRANCH_NAME","labels":["automation","tests"]}}
-        EOF
+          echo "Changes detected, writing PR creation request"
+          # Stage any unstaged changes
+          git add -A
+          # Generate the git patch
+          git diff --cached > /tmp/changes.patch
+          echo "Patch size: $(wc -c < /tmp/changes.patch) bytes"
+          # Write safe-output with embedded patch using base64
+          PATCH_B64=$(base64 -w0 /tmp/changes.patch)
+          PR_TITLE="[DeepTest Run #$RUN_ID] Tests for $SOURCE_FILE"
+          PR_BODY="Auto-generated tests for $SOURCE_FILE by DeepTest workflow run #$RUN_ID. This PR was created automatically by the DeepTest agent."
+          echo "{\"tool\":\"create_pull_request\",\"args\":{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"patch\":\"$PATCH_B64\"}}" >> "$GH_AW_SAFE_OUTPUTS"
           echo "Safe-output written successfully"
-          cat "$GH_AW_SAFE_OUTPUTS"
         fi
 safe-outputs:
   create-pull-request:
-    title-prefix: "[DeepTest Run #${{ github.run_id }}] "
+    title-prefix: ""
     labels: [automation, tests]
+    draft: true
   noop:
 ---
 
