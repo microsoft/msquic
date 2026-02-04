@@ -65,7 +65,7 @@ engine:
         
         if [ "$HAS_COMMITS" = "false" ] && [ "$HAS_STAGED" = "false" ] && [ "$HAS_UNSTAGED" = "false" ]; then
           echo "No changes detected, writing noop"
-          echo '{"tool":"noop","args":{"message":"No test changes generated"}}' >> "$GH_AW_SAFE_OUTPUTS"
+          echo '{"type":"noop","args":{"message":"No test changes generated"}}' >> "$GH_AW_SAFE_OUTPUTS"
         else
           echo "Changes detected, writing PR creation request"
           # Stage any unstaged changes
@@ -77,7 +77,7 @@ engine:
           PATCH_B64=$(base64 -w0 /tmp/changes.patch)
           PR_TITLE="[DeepTest Run #$RUN_ID] Tests for $SOURCE_FILE"
           PR_BODY="Auto-generated tests for $SOURCE_FILE by DeepTest workflow run #$RUN_ID. This PR was created automatically by the DeepTest agent."
-          echo "{\"tool\":\"create_pull_request\",\"args\":{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"patch\":\"$PATCH_B64\"}}" >> "$GH_AW_SAFE_OUTPUTS"
+          echo "{\"type\":\"create_pull_request\",\"args\":{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"patch\":\"$PATCH_B64\"}}" >> "$GH_AW_SAFE_OUTPUTS"
           echo "Safe-output written successfully"
         fi
 safe-outputs:
