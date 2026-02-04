@@ -6137,7 +6137,7 @@ QuicTestConnectionRejection(
 }
 
 void
-QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
+QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -6145,7 +6145,7 @@ QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
     MsQuicConfiguration Configuration(Registration, "MsQuicTest");
     TEST_TRUE(Configuration.IsValid());
 
-    TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(Config));
+    TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(&Config.CredConfig));
 }
 
 
