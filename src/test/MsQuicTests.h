@@ -1232,6 +1232,7 @@ typedef struct {
         QUIC_CERTIFICATE_FILE CertFile;
         QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
         QUIC_CERTIFICATE_PKCS12 Pkcs12;
+        QUIC_CERTIFICATE_PEM Pem;
         char PrincipalString[100];
     };
 } QUIC_RUN_CRED_VALIDATION;

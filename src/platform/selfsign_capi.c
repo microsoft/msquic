@@ -1106,6 +1106,9 @@ CxPlatGetTestCertificate(
     _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
     _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Reserved_)
         QUIC_CERTIFICATE_PKCS12* Pkcs12,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM, _Reserved_)
+        QUIC_CERTIFICATE_PEM* Pem,
     _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
     _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
         char Principal[100]
@@ -1114,6 +1117,7 @@ CxPlatGetTestCertificate(
     UNREFERENCED_PARAMETER(CertFile);
     UNREFERENCED_PARAMETER(CertFileProtected);
     UNREFERENCED_PARAMETER(Pkcs12);
+    UNREFERENCED_PARAMETER(Pem);
     BOOLEAN Success = FALSE;
     PCCERT_CONTEXT Cert = NULL;
     const wchar_t* FriendlyName = NULL;

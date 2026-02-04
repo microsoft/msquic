@@ -549,7 +549,8 @@ struct TlsConfigArgs {
 #else
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
-            QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM
 #endif
         })
         for (auto CertType : {CXPLAT_TEST_CERT_SELF_SIGNED_SERVER, CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT}) {
@@ -594,6 +595,8 @@ std::ostream& operator << (std::ostream& o, const QUIC_CREDENTIAL_TYPE& type) {
         return o << "FileProtected";
     case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12:
         return o << "Pkcs12";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM:
+        return o << "Pem";
     default:
         return o << "Unknown";
     }

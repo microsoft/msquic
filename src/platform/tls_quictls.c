@@ -924,6 +924,47 @@ CxPlatTlsGetProvider(
     return QUIC_TLS_PROVIDER_OPENSSL;
 }
 
+int
+CxPlatTlsSecConfigPemPasswordCallback(
+    _In_ char *Password,
+    _In_ int PasswordSize,
+    _In_ int RWFlag,
+    _In_ void *UserInfo
+    )
+{
+    QUIC_CERTIFICATE_PEM *CertificatePem = NULL;
+
+    int OutSize = 0;
+
+    if (RWFlag != 0) {
+        UNREFERENCED_PARAMETER(Password);
+        UNREFERENCED_PARAMETER(PasswordSize);
+        UNREFERENCED_PARAMETER(UserInfo);
+        return 0; // We don't support writing
+    }
+
+    if (UserInfo == NULL) {
+        return 0;
+    }
+
+    CertificatePem = (QUIC_CERTIFICATE_PEM *)UserInfo;
+
+    if (CertificatePem->PrivateKeyPassword == NULL) {
+        return 0;
+    }
+
+    OutSize = (int) strlen(CertificatePem->PrivateKeyPassword);
+
+    if (OutSize + 1 > PasswordSize) {
+        return 0;
+    }
+
+    memcpy(Password, CertificatePem->PrivateKeyPassword, OutSize);
+    Password[OutSize] = '\0';
+
+    return OutSize;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
@@ -999,10 +1040,18 @@ CxPlatTlsSecConfigCreate(
             CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if(CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
         if (CredConfig->CertificatePkcs12 == NULL ||
             CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
             CredConfig->CertificatePkcs12->Asn1BlobLength == 0) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
+        if (CredConfig->CertificatePem == NULL ||
+            CredConfig->CertificatePem->CertificatePem == NULL ||
+            CredConfig->CertificatePem->CertificatePemLength == 0 ||
+            CredConfig->CertificatePem->PrivateKeyPem == NULL ||
+            CredConfig->CertificatePem->PrivateKeyPemLength == 0) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
@@ -1326,6 +1375,113 @@ CxPlatTlsSecConfigCreate(
                 "SSL_CTX_use_certificate_chain_file failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
+        }
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
+        BIO *BioKey = NULL;
+        BIO *BioCert = NULL;
+
+        {
+            BioKey = BIO_new_mem_buf(
+                CredConfig->CertificatePem->PrivateKeyPem,
+                (int) CredConfig->CertificatePem->PrivateKeyPemLength);
+
+            if (!BioKey) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "BIO_new failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto ExitInner;
+            }
+
+            PEM_read_bio_PrivateKey(BioKey, &PrivateKey, CxPlatTlsSecConfigPemPasswordCallback, CredConfig->CertificatePem);
+
+            if (!PrivateKey) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "PEM_read_bio_PrivateKey failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto ExitInner;
+            }
+
+            Ret = SSL_CTX_use_PrivateKey(
+                SecurityConfig->SSLCtx,
+                PrivateKey);
+
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_use_PrivateKey failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto ExitInner;
+            }
+        }
+
+        {
+            BioCert = BIO_new_mem_buf(
+                CredConfig->CertificatePem->CertificatePem,
+                (int) CredConfig->CertificatePem->CertificatePemLength);
+
+            if (!BioCert) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "BIO_new failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto ExitInner;
+            }
+
+            PEM_read_bio_X509(BioCert, &X509Cert, NULL, NULL);
+
+            if (!X509Cert) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "PEM_read_bio_X509 failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto ExitInner;
+            }
+
+            Ret = SSL_CTX_use_certificate(
+                SecurityConfig->SSLCtx,
+                X509Cert);
+
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_use_certificate failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto ExitInner;
+            }
+
+            {
+                X509 *CaCert = NULL;
+
+                while (PEM_read_bio_X509(BioCert, &CaCert, NULL, NULL) != NULL) {
+                    // transfers ownership to SSLCtx and CaCert does not need to be freed.
+                    SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert);
+                }
+            }
+
+            goto SuccessInner;
+
+            ExitInner:
+            BIO_free(BioCert);
+            BIO_free(BioKey);
+            goto Exit;
+
+            SuccessInner:
+            BIO_free(BioCert);
+            BIO_free(BioKey);
         }
     } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
         BIO* Bio = BIO_new(BIO_s_mem());
