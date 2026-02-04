@@ -15,13 +15,13 @@
 #include <wincrypt.h>
 #pragma warning(pop)
 #endif
-#ifndef _WIN32
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
-#endif
+#endif // QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
 #include <fcntl.h>
 
 #ifdef QUIC_CLOG
@@ -167,7 +167,7 @@ protected:
         TearDown();
     }
 
-#ifndef _WIN32
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
     static uint8_t*
     ReadFileToBuffer(
         const char* Name,
@@ -325,7 +325,7 @@ protected:
 
         return ChainPath;
     }
-#endif
+#endif // QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
 
 #ifndef QUIC_DISABLE_PFX_TESTS
     static uint8_t* ReadFile(const char* Name, uint32_t* Length) {
@@ -799,7 +799,7 @@ protected:
                 std::cout << "Expecting valid certificate and certificate chain\n";
                 return FALSE;
             }
-#ifndef _WIN32
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
             if (Context->ExpectedPeerChainMin != 0) {
                 if (Chain == nullptr) {
                     std::cout << "Expected certificate chain but got null\n";
@@ -815,7 +815,7 @@ protected:
                     return FALSE;
                 }
             }
-#endif
+#endif // QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
             return Context->OnPeerCertReceivedResult;
         }
     };
@@ -1621,7 +1621,6 @@ TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
 }
 #endif
 
-#ifndef _WIN32
 #ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
 TEST_F(TlsTest, PeerCertificateChainFromRuntimeCerts)
 {
@@ -1754,7 +1753,6 @@ TEST_F(TlsTest, PeerCertificateChainFromRuntimeCerts)
     }
 }
 #endif // QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
-#endif // _WIN32
 
 TEST_F(TlsTest, DeferredCertificateValidationReject)
 {
