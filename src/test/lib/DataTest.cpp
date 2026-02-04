@@ -1989,6 +1989,11 @@ QuicTestReceiveResume(
                 TEST_FAILURE("PauseFirst MsQuic->StreamReceiveSetEnabled(FALSE) failed, 0x%x", Status);
                 return;
             }
+
+            //
+            // Ensure the receive pause task is processed.
+            //
+            DrainConnectionWorkQueue(ServerContext.Conn.Handle);
         }
 
         Status =
@@ -2206,6 +2211,9 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
+        //
+        // Disable receive notifications on the server.
+        //
         Status =
             MsQuic->StreamReceiveSetEnabled(
                 ServerContext.Stream.Handle,
@@ -2214,6 +2222,12 @@ QuicTestReceiveResumeNoData(
             TEST_FAILURE("PauseFirst MsQuic->StreamReceiveSetEnabled(FALSE) failed, 0x%x", Status);
             return;
         }
+
+        //
+        // Ensure the StreamReceiveSetEnabled task is processed so it doesn't race with receiving
+        // the shutdown.
+        //
+        DrainConnectionWorkQueue(ServerContext.Conn.Handle);
 
         Status =
             MsQuic->StreamShutdown(
@@ -2227,10 +2241,18 @@ QuicTestReceiveResumeNoData(
         }
 
         if (ShutdownType == GracefulShutdown) {
+            //
+            // On a graceful shutdown, the shutdown notification is emitted only after all data
+            // was delivered (in this case, zero bytes and a FIN).
+            //
             if (CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server got shutdown event when it shouldn't have!");
                 return;
             }
+
+            //
+            // Re-enable receive notifications.
+            //
             Status =
                 MsQuic->StreamReceiveSetEnabled(
                     ServerContext.Stream.Handle,
@@ -2242,7 +2264,7 @@ QuicTestReceiveResumeNoData(
         }
 
         //
-        // Validate the test was shutdown as expected.
+        // Validate the stream was shutdown as expected.
         //
         if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get shutdown before timeout!");
