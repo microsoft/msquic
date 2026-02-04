@@ -30,6 +30,9 @@ engine:
     - name: Install Copilot CLI
       run: |
         gh extension install github/gh-copilot || echo "Copilot CLI already installed"
+    - name: Save original HEAD
+      run: |
+        echo "ORIGINAL_HEAD=$(git rev-parse HEAD)" >> $GITHUB_ENV
     - name: Run DeepTest via Copilot CLI
       run: |
         echo "Invoking DeepTest custom agent for: $SOURCE_FILE (Run ID: $RUN_ID)"
@@ -39,14 +42,23 @@ engine:
         BRANCH_NAME="deeptest-run-$RUN_ID"
         echo "Creating branch: $BRANCH_NAME"
         
-        # Check if there are any changes to commit
-        if git diff --quiet && git diff --cached --quiet; then
+        CURRENT_HEAD=$(git rev-parse HEAD)
+        echo "Original HEAD: $ORIGINAL_HEAD"
+        echo "Current HEAD: $CURRENT_HEAD"
+        
+        # Check if there are new commits (HEAD moved) or uncommitted changes
+        if [ "$ORIGINAL_HEAD" = "$CURRENT_HEAD" ] && git diff --quiet && git diff --cached --quiet; then
           echo "No changes detected, skipping branch creation"
           echo "NO_CHANGES=true" >> $GITHUB_ENV
         else
+          echo "Changes detected, creating branch and pushing"
+          # Create new branch from current state
           git checkout -b "$BRANCH_NAME"
-          git add -A
-          git commit -m "[DeepTest Run #$RUN_ID] Add tests for $SOURCE_FILE" || echo "Nothing to commit"
+          # If there are uncommitted changes, commit them
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            git add -A
+            git commit -m "[DeepTest Run #$RUN_ID] Add tests for $SOURCE_FILE" || true
+          fi
           git push origin "$BRANCH_NAME"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
           echo "NO_CHANGES=false" >> $GITHUB_ENV
