@@ -1990,7 +1990,9 @@ QuicTestReceiveResume(
                 return;
             }
 
+            //
             // Ensure the receive pause task is processed.
+            //
             DrainConnectionWorkQueue(ServerContext.Conn.Handle);
         }
 
@@ -2209,7 +2211,9 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
+        //
         // Disable receive notifications on the server.
+        //
         Status =
             MsQuic->StreamReceiveSetEnabled(
                 ServerContext.Stream.Handle,
@@ -2219,8 +2223,10 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
+        //
         // Ensure the StreamReceiveSetEnabled task is processed so it doesn't race with receiving
         // the shutdown.
+        //
         DrainConnectionWorkQueue(ServerContext.Conn.Handle);
 
         Status =
@@ -2235,14 +2241,18 @@ QuicTestReceiveResumeNoData(
         }
 
         if (ShutdownType == GracefulShutdown) {
+            //
             // On a graceful shutdown, the shutdown notification is emitted only after all data
             // was delivered (in this case, zero bytes and a FIN).
+            //
             if (CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server got shutdown event when it shouldn't have!");
                 return;
             }
 
+            //
             // Re-enable receive notifications.
+            //
             Status =
                 MsQuic->StreamReceiveSetEnabled(
                     ServerContext.Stream.Handle,
