@@ -17,6 +17,7 @@ permissions:
   contents: read
   pull-requests: read
   issues: read
+roles: all
 strict: false
 env:
   GH_TOKEN: ${{ github.token }}
