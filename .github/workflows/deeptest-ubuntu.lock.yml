@@ -629,20 +629,21 @@ jobs:
 
           if [ "$HAS_COMMITS" = "false" ] && [ "$HAS_STAGED" = "false" ] && [ "$HAS_UNSTAGED" = "false" ]; then
             echo "No changes detected, writing noop"
-            echo '{"type":"noop","args":{"message":"No test changes generated"}}' >> "$GH_AW_SAFE_OUTPUTS"
+            echo '{"type":"noop","message":"No test changes generated"}' >> "$GH_AW_SAFE_OUTPUTS"
           else
             echo "Changes detected, writing PR creation request"
             # Stage any unstaged changes
             git add -A
-            # Generate the git patch
-            git diff --cached > /tmp/changes.patch
-            echo "Patch size: $(wc -c < /tmp/changes.patch) bytes"
-            # Write safe-output with embedded patch using base64
-            PATCH_B64=$(base64 -w0 /tmp/changes.patch)
+            # Generate the git patch to the expected location
+            git diff --cached > /tmp/gh-aw/aw.patch
+            echo "Patch size: $(wc -c < /tmp/gh-aw/aw.patch) bytes"
+            # Write safe-output in flat format (not nested in args)
             PR_TITLE="[DeepTest Run #$RUN_ID] Tests for $SOURCE_FILE"
             PR_BODY="Auto-generated tests for $SOURCE_FILE by DeepTest workflow run #$RUN_ID. This PR was created automatically by the DeepTest agent."
-            echo "{\"type\":\"create_pull_request\",\"args\":{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"patch\":\"$PATCH_B64\"}}" >> "$GH_AW_SAFE_OUTPUTS"
+            BRANCH_NAME="meiyang/$RUN_ID"
+            echo "{\"type\":\"create_pull_request\",\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"branch\":\"$BRANCH_NAME\"}" >> "$GH_AW_SAFE_OUTPUTS"
             echo "Safe-output written successfully"
+            cat "$GH_AW_SAFE_OUTPUTS"
           fi
         env:
           GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
@@ -994,20 +995,21 @@ jobs:
 
           if [ "$HAS_COMMITS" = "false" ] && [ "$HAS_STAGED" = "false" ] && [ "$HAS_UNSTAGED" = "false" ]; then
             echo "No changes detected, writing noop"
-            echo '{"type":"noop","args":{"message":"No test changes generated"}}' >> "$GH_AW_SAFE_OUTPUTS"
+            echo '{"type":"noop","message":"No test changes generated"}' >> "$GH_AW_SAFE_OUTPUTS"
           else
             echo "Changes detected, writing PR creation request"
             # Stage any unstaged changes
             git add -A
-            # Generate the git patch
-            git diff --cached > /tmp/changes.patch
-            echo "Patch size: $(wc -c < /tmp/changes.patch) bytes"
-            # Write safe-output with embedded patch using base64
-            PATCH_B64=$(base64 -w0 /tmp/changes.patch)
+            # Generate the git patch to the expected location
+            git diff --cached > /tmp/gh-aw/aw.patch
+            echo "Patch size: $(wc -c < /tmp/gh-aw/aw.patch) bytes"
+            # Write safe-output in flat format (not nested in args)
             PR_TITLE="[DeepTest Run #$RUN_ID] Tests for $SOURCE_FILE"
             PR_BODY="Auto-generated tests for $SOURCE_FILE by DeepTest workflow run #$RUN_ID. This PR was created automatically by the DeepTest agent."
-            echo "{\"type\":\"create_pull_request\",\"args\":{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"patch\":\"$PATCH_B64\"}}" >> "$GH_AW_SAFE_OUTPUTS"
+            BRANCH_NAME="meiyang/$RUN_ID"
+            echo "{\"type\":\"create_pull_request\",\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"branch\":\"$BRANCH_NAME\"}" >> "$GH_AW_SAFE_OUTPUTS"
             echo "Safe-output written successfully"
+            cat "$GH_AW_SAFE_OUTPUTS"
           fi
         env:
           GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
