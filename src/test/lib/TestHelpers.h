@@ -1068,8 +1068,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_INLINE
 void
 DrainConnectionWorkQueue(HQUIC Connection) {
+    //
     // Call the GetParam API: it schedules a work item on the connection and waits for its completion,
     // ensuring all prior work items have completed.
+    //
     QUIC_STATISTICS_V2 Stats{};
     uint32_t StatsSize = sizeof(Stats);
     (void)MsQuic->GetParam(Connection, QUIC_PARAM_CONN_STATISTICS_V2, &StatsSize, &Stats);
