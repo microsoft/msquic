@@ -1466,9 +1466,31 @@ CxPlatTlsSecConfigCreate(
             {
                 X509 *CaCert = NULL;
 
-                while (PEM_read_bio_X509(BioCert, &CaCert, NULL, NULL) != NULL) {
-                    // transfers ownership to SSLCtx and CaCert does not need to be freed.
-                    SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert);
+                while ((CaCert = PEM_read_bio_X509(BioCert, NULL, NULL, NULL)) != NULL) {
+                    if (SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert) != 1) {
+                        X509_free(CaCert);
+                        QuicTraceEvent(
+                            LibraryErrorStatus,
+                            "[ lib] ERROR, %u, %s.",
+                            ERR_get_error(),
+                            "SSL_CTX_add_extra_chain_cert failed");
+                        Status = QUIC_STATUS_TLS_ERROR;
+                        goto ExitInner;
+                    }
+                }
+
+                unsigned long Error = ERR_peek_last_error();
+                if (ERR_GET_LIB(Error) == ERR_LIB_PEM &&
+                    ERR_GET_REASON(Error) == PEM_R_NO_START_LINE) {
+                    ERR_clear_error();
+                } else {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        ERR_get_error(),
+                        "PEM_read_bio_X509 failed");
+                    Status = QUIC_STATUS_TLS_ERROR;
+                    goto ExitInner;
                 }
             }
 
