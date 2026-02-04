@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>RDMA Datapath Proposal </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="RDMA Datapath Proposal ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/experimental/RDMA.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="rdma-datapath-proposal">RDMA Datapath Proposal</h1>
+
+<p>Important: This article is a work-in-progress document for implementing
+the RDMA datapath.</p>
+<p>Application developers should not expect any support until
+otherwise indicated.</p>
+<h2 id="general-datapath-consumption">General Datapath Consumption</h2>
+<p>Today, applications control whether to use MsQuic over XDP or normal OS UDP sockets via <code>XdpEnabled</code> in <code>QUIC_SETTINGS</code>.
+Set an instance of <code>QUIC_SETTINGS</code> where <code>XdpEnabled=true</code> (false by default) globally via the SetParam <code>QUIC_PARAM_GLOBAL_SETTINGS</code>, and all <code>QUIC_CONNECTION</code>
+clients and <code>QUIC_LISTENER</code> servers initialized thereafter will inherit the global <code>XdpEnabled==true</code> setting, and use the XDP datapath.
+Note that applications may override <code>QUIC_SETTINGS</code> for each instance of a <code>QUIC_CONNECTION</code>, and so you can have some client connections using XDP,
+some using normal OS sockets. Server listeners purely derive their datapath usage from the global settings.</p>
+<p>During the datapath initialization step, we <strong>always</strong> attempt to initialize the XDP datapath on
+a best-effort basis.</p>
+<h2 id="rdma-datapath-consumption">RDMA Datapath Consumption</h2>
+<p>The model for using MsQuic over the RDMA datapath can <strong>not</strong>
+easily inherit from the general model where MsQuic lazily initializes RDMA on a best effort basis and the datapath implicitly reads from <code>QUIC_SETTINGS</code>.</p>
+<p>This is primarily due to MsQuic requiring the adapter IP address prior
+to initializing the datapath. Along with the RDMA datapath impacting the core logic of QUIC itself (much of MsQuic loss detection logic can be disabled), along with major updates to core MsQuic structures and the entire datapath initialization stack.
+With how fluid <code>QUIC_SETTINGS</code> can update based on many different contexts,
+the integration logic for RDMA will be very complex.
+Having multiple connections or listeners with varying RDMA settings is a non-goal.</p>
+<p>Thus the <code>RdmaEnabled</code> option should live at the registration level; to give maximal control
+over datapath initialization and worker thread allocation.</p>
+<p>Additionally, MsQuic requires the RNIC adapter interface IPv4/IPv6 address for datapath initialization.</p>
+<p>Proposed API design:</p>
+<pre><code class="lang-C">typedef struct RDMA_DATAPATH_CONFIG {
+    BOOLEAN RdmaEnabled;
+    QUIC_ADDR RdmaInterfaceAdapterIp;
+}
+
+typedef struct QUIC_REGISTRATION_CONFIG {
+    const char* AppName;
+    QUIC_EXECUTION_PROFILE ExecutionProfile;
+    RDMA_DATAPATH_CONFIG RdmaConfig;
+} QUIC_REGISTRATION_CONFIG;
+</code></pre>
+<p>If applications would like to use XDP, normal OS sockets, and RDMA on the same machine, they
+should create multiple registrations.</p>
+<h2 id="rdma-facts">RDMA facts</h2>
+<p>RDMA over RoCEv2, which is what MsQuic will use,
+intercepts packets and redirects them at the hardware level.
+The RNIC is programmed by the provider driver to redirect all packets matching a specific well known port X (usually 4791) and DMA them into the RDMA datapath then de-muxed using the QPN (queue pair number) into specific queue pairs (QP). A QP is a socket-like endpoint for applications using RDMA.</p>
+<p>This implies major updates will need to occur all the way from the datapath to the binding
+to the core layers to be QPN aware.</p>
+<p>On a bright note, MsQuic does not need to reserve any UDP ports when using RDMA datapath unlike the XDP datapath which may steal traffic on ports reserved for AF_XDP sockets. The
+provider driver will handle port reservations / collision logic.</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/experimental/RDMA.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
