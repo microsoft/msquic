@@ -1,7 +1,9 @@
 # RDMA Datapath Proposal
 
-Important: This article is the proposed API design for how applications consume MsQuic over RDMA.
-This datapath is still very much a work in progress. Application developers should not expect any support until
+Important: This article is a work-in-progress document for implementing
+the RDMA datapath.
+
+Application developers should not expect any support until
 otherwise indicated.
 
 
@@ -34,22 +36,23 @@ over datapath initialization and worker thread allocation.
 
 Additionally, MsQuic requires the RNIC adapter interface IPv4/IPv6 address for datapath initialization.
 
-Thus, we will add `RdmaEnabledOnInterfaceIp: QUIC_ADDR` into `QUIC_REGISTRATION_CONFIG`,
-which is provided to the OpenRegistration call that initializes the datapath layer and will need this information. `RdmaEnabledOnInterfaceIp` will be
-set to NULL by default. If it's any valid adapter address, then MsQuic will
-initialize the RDMA datapath.
-
+Proposed API design:
 ```C
+typedef struct RDMA_DATAPATH_CONFIG {
+    BOOLEAN RdmaEnabled;
+    QUIC_ADDR RdmaInterfaceAdapterIp;
+}
+
 typedef struct QUIC_REGISTRATION_CONFIG {
     const char* AppName;
     QUIC_EXECUTION_PROFILE ExecutionProfile;
-    QUIC_ADDR RdmaEnabledOnInterfaceIp;
+    RDMA_DATAPATH_CONFIG RdmaConfig;
 } QUIC_REGISTRATION_CONFIG;
 ```
 
 
 If applications would like to use XDP, normal OS sockets, and RDMA on the same machine, they
-should create multiple registrations.
+should create multiple registrations. 
 
 ## RDMA facts
 
