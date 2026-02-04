@@ -2209,7 +2209,7 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
-        // Disable receive notifications on the server
+        // Disable receive notifications on the server.
         Status =
             MsQuic->StreamReceiveSetEnabled(
                 ServerContext.Stream.Handle,
