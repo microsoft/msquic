@@ -33,7 +33,7 @@ engine:
     - name: Run DeepTest via Copilot CLI
       run: |
         echo "Invoking DeepTest custom agent for: $SOURCE_FILE (Run ID: $RUN_ID)"
-        gh copilot --agent DeepTest -p "Generate comprehensive tests for the source file at $SOURCE_FILE. Analyze the file, identify testable functions, and create test cases following MsQuic test patterns in src/test/. After generating tests, create a PR with all changed files. Include the workflow run ID $RUN_ID in the PR title." --allow-all-tools
+        gh copilot --agent DeepTest --additional-mcp-config @$GH_AW_MCP_CONFIG -p "Generate comprehensive tests for the source file at $SOURCE_FILE. Analyze the file, identify testable functions, and create test cases following MsQuic test patterns in src/test/. After generating tests, use the create_pull_request tool from the safeoutputs MCP server to create a PR with all changed files. Include the workflow run ID $RUN_ID in the PR title. IMPORTANT: Do not use git push directly - you must use the safeoutputs create_pull_request tool." --allow-all-tools
 safe-outputs:
   create-pull-request:
     title-prefix: "[DeepTest Run #${{ github.run_id }}] "
