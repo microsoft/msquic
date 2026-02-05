@@ -8,3 +8,5 @@
 *.pgd binary
 *.png binary
 *.jpg binary
+
+.github/workflows/*.lock.yml linguist-generated=true merge=ours
