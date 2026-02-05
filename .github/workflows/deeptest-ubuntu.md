@@ -21,12 +21,9 @@ roles: all
 env:
   SOURCE_FILE: ${{ inputs.source_file || github.event.inputs.source_file }}
   RUN_ID: ${{ github.run_id }}
-steps:
-  - name: Run DeepTest Agent
-    run: |
-      gh copilot --agent DeepTest -p "Generate comprehensive tests for the source file at $SOURCE_FILE. Analyze the file, identify testable functions, and create test cases following MsQuic test patterns in src/test/. After generating tests, stage all new and modified files with 'git add'. Do NOT commit or push." --allow-all-tools
-    env:
-      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+engine:
+  id: copilot
+  agent: DeepTest
 safe-outputs:
   create-pull-request:
     title-prefix: ""
@@ -35,9 +32,17 @@ safe-outputs:
   noop:
 ---
 
-# Create PR for DeepTest Results
+# Generate Tests with DeepTest
 
-The DeepTest agent has already run and staged any generated test files.
+Generate comprehensive tests for the source file at `${{ env.SOURCE_FILE }}`.
+
+## Instructions
+
+1. Analyze the source file to identify testable functions
+2. Create test cases following MsQuic test patterns in `src/test/`
+3. Stage all new and modified test files with `git add`
+
+## After Generating Tests
 
 Check if there are staged changes using `git diff --cached --stat`.
 
