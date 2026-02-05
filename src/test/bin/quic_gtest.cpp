@@ -1598,7 +1598,7 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
 
 TEST(CredValidation, ConnectValidClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022() || IsWindows2025()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
