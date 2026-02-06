@@ -77,23 +77,108 @@ Each file entry contains:
 - `path`: The file path relative to the repository root
 - `status`: One of `added`, `modified`, or `removed`
 
-## Instructions
+## Step 1: Determine Related Test Suites
+
+Based on the files in the PR, identify related test suites to run:
 
 1. Read the PR files list from `${{ env.PR_FILES_PATH }}`
-2. For each file in the `files` array, check the `status` field:
+2. For each file path, map to relevant test suites:
+   - `src/core/*.c` → Test suites: `Basic*`, `Core*`, `Connection*`, `Stream*`
+   - `src/core/cubic.c` → Test suites: `Cubic*`, `CongestionControl*`
+   - `src/core/loss_detection.c` → Test suites: `Loss*`, `Recovery*`
+   - `src/core/stream.c` → Test suites: `Stream*`
+   - `src/core/connection.c` → Test suites: `Connection*`
+   - `src/platform/*.c` → Test suites: `Platform*`, `Datapath*`
+   - `src/test/lib/*.cpp` → Run the specific test file's suite
+3. Construct a gtest filter expression combining the relevant suites (e.g., `"Cubic*:Stream*:Connection*"`)
+4. Save this filter for use in coverage commands
+
+## Step 2: Measure Baseline Code Coverage
+
+Before generating new tests, measure the current test coverage as a baseline:
+
+1. **Prepare Machine**:
+   ```bash
+   pwsh scripts/prepare-machine.ps1 -ForBuild -ForTest -InstallCodeCoverage
+   ```
+
+2. **Build with Coverage**:
+   ```bash
+   pwsh scripts/build.ps1 -CodeCoverage
+   ```
+
+3. **Run Tests with Coverage (Baseline)**:
+   ```bash
+   pwsh scripts/test.ps1 -CodeCoverage -Filter "<selected_test_suites>"
+   ```
+   Use the gtest filter determined in Step 1.
+
+4. Save the baseline coverage output to a file or variable for later comparison.
+
+## Step 3: Generate Tests
+
+1. For each file in the `files` array, check the `status` field:
    - **`added`**: Analyze the new code and create comprehensive tests
    - **`modified`**: Analyze the changes and update/add tests to cover modifications
    - **`removed`**: Check if associated tests should be removed or updated
-3. Create test cases following MsQuic test patterns in `src/test/`
-4. Stage all new and modified test files with `git add`
+2. Create test cases following MsQuic test patterns in `src/test/`
+3. Stage all new and modified test files with `git add`
 
-## After Generating Tests
+## Step 4: Measure Updated Code Coverage
+
+After generating tests, measure the new coverage:
+
+1. **Rebuild with Coverage** (if test files changed):
+   ```bash
+   pwsh scripts/build.ps1 -CodeCoverage
+   ```
+
+2. **Run Tests with Coverage (After)**:
+   ```bash
+   pwsh scripts/test.ps1 -CodeCoverage -Filter "<selected_test_suites>:*NewTestName*"
+   ```
+   Update the filter to include your newly generated test names.
+
+3. Save the updated coverage output.
+
+## Step 5: Generate Coverage Comparison Report
+
+Compare baseline and updated coverage:
+
+1. Extract key metrics from both runs:
+   - Total lines covered
+   - Total lines
+   - Coverage percentage
+   - Per-file coverage for files in the PR
+
+2. Create a markdown report:
+   ```markdown
+   ## Code Coverage Report
+   
+   ### Summary
+   | Metric | Baseline | After | Change |
+   |--------|----------|-------|--------|
+   | Lines Covered | X | Y | +Z |
+   | Total Lines | A | B | +C |
+   | Coverage % | P% | Q% | +R% |
+   
+   ### Per-File Coverage (PR Files)
+   | File | Baseline | After | Change |
+   |------|----------|-------|--------|
+   | src/core/example.c | X% | Y% | +Z% |
+   ```
+
+## Step 6: Create Pull Request
 
 Check if there are staged changes using `git diff --cached --stat`.
 
 If there are staged changes, use `create_pull_request` with:
 - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
-- Body: "Auto-generated tests for files changed in PR #${{ env.PR_NUMBER }} by DeepTest workflow run #${{ env.RUN_ID }}."
+- Body: Include the following sections:
+  - Summary: "Auto-generated tests for files changed in PR #${{ env.PR_NUMBER }} by DeepTest workflow run #${{ env.RUN_ID }}."
+  - Code Coverage Report: The comparison report from Step 5
+  - Test Suites Run: The gtest filter used
+  - List of test files added/modified
 - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ env.RUN_ID }}"
 
 If no staged changes, use `noop` with message "No test changes generated for PR #${{ env.PR_NUMBER }}."
