@@ -9,12 +9,22 @@ on:
         description: 'Pull Request number to analyze'
         required: true
         type: number
+      filter:
+        description: 'Regex pattern to filter file paths (e.g., "^src/.*" to include only src/, "^(?!.github/).*" to exclude .github/)'
+        required: false
+        type: string
+        default: '.*'
   workflow_call:
     inputs:
       pr_number:
         description: 'Pull Request number to analyze'
         required: false
         type: number
+      filter:
+        description: 'Regex pattern to filter file paths'
+        required: false
+        type: string
+        default: '.*'
     outputs:
       pr_files:
         description: 'JSON object with pr_number, files_count, and files array'
@@ -65,6 +75,8 @@ jobs:
           script: |
             const fs = require('fs');
             const prNumber = ${{ steps.pr-number.outputs.pr_number }};
+            const filterPattern = '${{ inputs.filter || '.*' }}';
+            const filterRegex = new RegExp(filterPattern);
             
             // Fetch all files changed in the PR with pagination
             const files = await github.paginate(github.rest.pulls.listFiles, {
@@ -74,20 +86,24 @@ jobs:
               per_page: 100,
             });
             
-            // Extract file paths
-            const filePaths = files.map(f => f.filename);
+            // Extract file paths and apply filter
+            const allFilePaths = files.map(f => f.filename);
+            const filePaths = allFilePaths.filter(f => filterRegex.test(f));
             
             // Log summary
-            core.info(`Total changed files: ${filePaths.length}`);
+            core.info(`Filter pattern: ${filterPattern}`);
+            core.info(`Total changed files: ${allFilePaths.length}`);
+            core.info(`Files after filter: ${filePaths.length}`);
             core.info('');
-            core.info('Changed files:');
-            for (const file of files) {
-              core.info(`  ${file.status.padEnd(10)} ${file.filename}`);
+            core.info('Filtered files:');
+            for (const file of filePaths) {
+              core.info(`  ${file}`);
             }
             
             // Set outputs - single combined JSON object
             const prFiles = {
               pr_number: prNumber,
+              filter: filterPattern,
               files_count: filePaths.length,
               files: filePaths
             };
@@ -99,10 +115,11 @@ jobs:
             // Write to job summary
             await core.summary
               .addHeading(`PR #${prNumber} Changed Files`)
-              .addRaw(`**Total files:** ${filePaths.length}\n\n`)
+              .addRaw(`**Filter:** \`${filterPattern}\`\n\n`)
+              .addRaw(`**Total changed:** ${allFilePaths.length} | **After filter:** ${filePaths.length}\n\n`)
               .addTable([
-                [{data: 'Status', header: true}, {data: 'File', header: true}],
-                ...files.map(f => [f.status, f.filename])
+                [{data: 'File', header: true}],
+                ...filePaths.map(f => [f])
               ])
               .write();
 
