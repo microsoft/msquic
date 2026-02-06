@@ -119,9 +119,14 @@
       <PreprocessorDefinitions>VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!-- x64 Release Hotpatch linker flags to allow hotpatching -->
+  <PropertyGroup>
+    <AllowHotpatchLinkOptionsX64>/hotpatchcompatible /profile /incremental:no /FUNCTIONPADMIN:6</AllowHotpatchLinkOptionsX64>
+  </PropertyGroup>
+  <!-- Hotpatch flags appended last to prevent override -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\msquic.pgd</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\msquic.pgd $(AllowHotpatchLinkOptionsX64)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <!-- ARM64 Release Hotpatch linker flags to allow hotpatching -->
