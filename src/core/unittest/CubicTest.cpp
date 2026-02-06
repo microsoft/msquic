@@ -11,7 +11,7 @@ Abstract:
 
 #include "main.h"
 #ifdef QUIC_CLOG
-#include "CubicTest.cpp.clog.h"
+#include "DeepTest_CubicTest.cpp.clog.h"
 #endif
 
 //
