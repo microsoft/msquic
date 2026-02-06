@@ -655,19 +655,16 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestDatagramNegotiation);
     RegisterTestFunction(QuicTestDatagramSend);
     RegisterTestFunction(QuicTestDatagramDrop);
-#ifdef _WIN32 // Storage tests only supported on Windows
     RegisterTestFunction(QuicTestStorage);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestVersionStorage);
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
-#ifdef DEBUG // This test needs a GetParam API that is only available in debug builds.
     RegisterTestFunction(QuicTestRetryConfigSetting);
-#endif // DEBUG
-#endif // _WIN32
 
     // Fail if no function matched
     char Buffer[256];
-    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, "Unknown function name in IOCTL test request: %s", Request->FunctionName);
+    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE,
+        "Unknown function name in IOCTL test request: %s", Request->FunctionName);
 
     QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", Buffer);
 
@@ -739,9 +736,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_TEST_CONFIGURATION:
     {
-        QUIC_TEST_CONFIGURATION_PARAMS TestConfig{};
+        QUIC_TEST_CONFIGURATION_PARAMS* TestConfig{};
         Status =
-            WdfRequestRetrieveInputBuffer(Request, sizeof(TestConfig), (void**)&TestConfig, nullptr);
+            WdfRequestRetrieveInputBuffer(
+                Request, sizeof(*TestConfig), reinterpret_cast<void**>(&TestConfig), nullptr);
 
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
@@ -780,9 +778,10 @@ QuicTestCtlEvtIoDeviceControl(
     }
     case IOCTL_QUIC_SET_CERT_PARAMS:
     {
-        QUIC_RUN_CERTIFICATE_PARAMS CertParams{};
+        QUIC_RUN_CERTIFICATE_PARAMS* CertParams{};
         Status =
-            WdfRequestRetrieveInputBuffer(Request, sizeof(CertParams), (void**)&CertParams, nullptr);
+            WdfRequestRetrieveInputBuffer(
+                Request, sizeof(CertParams), reinterpret_cast<void**>(&CertParams), nullptr);
 
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
@@ -818,16 +817,13 @@ QuicTestCtlEvtIoDeviceControl(
         size_t Length{};
         Status =
             WdfRequestRetrieveInputBuffer(
-                Request,
-                sizeof(QUIC_RUN_TEST_REQUEST),
-                reinterpret_cast<void**>(&TestRequest),
-                &Length);
+                Request, sizeof(*TestRequest), reinterpret_cast<void**>(&TestRequest), &Length);
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
-                "WdfRequestRetrieveInputBuffer failed for run test request");
+                "WdfRequestRetrieveInputBuffer failed for IOCTL_QUIC_RUN_TEST");
             break;
         }
 
