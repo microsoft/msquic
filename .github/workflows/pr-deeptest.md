@@ -47,6 +47,9 @@ safe-outputs:
 jobs:
   list-files:
     uses: ./.github/workflows/list-pr-files.yml
+    permissions:
+      contents: read
+      pull-requests: read
     with:
       pr_number: ${{ inputs.pr_number || github.event.pull_request.number }}
       filter: ${{ inputs.filter || '^src/.*' }}
