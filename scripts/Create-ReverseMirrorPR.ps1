@@ -87,7 +87,6 @@ foreach ($tool in $RequiredTools) {
 # Ensure we're logged into Azure DevOps
 Write-Host "Checking Azure DevOps authentication..." -ForegroundColor Yellow
 try {
-    az devops configure --defaults organization="https://dev.azure.com/$AdoOrg" project=$AdoProject | Out-Null
     $null = az account show 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Logging into Azure DevOps..." -ForegroundColor Yellow
