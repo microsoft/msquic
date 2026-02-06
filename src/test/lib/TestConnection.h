@@ -61,21 +61,21 @@ class TestConnection
     // Lock protecting the TestConnection members used in the connection callback.
     mutable CxPlatLock Lock{};
 
-    bool IsServer           : 1;
-    bool IsStarted          : 1;
-    bool IsConnected        : 1;
-    bool Resumed            : 1;
-    bool PeerAddrChanged    : 1;
-    bool PeerClosed         : 1;
-    bool TransportClosed    : 1;
-    bool IsShutdown         : 1;
-    bool ShutdownTimedOut   : 1;
-    bool AutoDelete         : 1;
-    bool HasRandomLoss      : 1;
-    bool AsyncCustomValidation : 1;
-    bool CustomValidationResultSet : 1;
+    bool IsServer;
+    bool IsStarted;
+    bool IsConnected;
+    bool Resumed;
+    bool PeerAddrChanged;
+    bool PeerClosed;
+    bool TransportClosed;
+    bool IsShutdown;
+    bool ShutdownTimedOut;
+    bool AutoDelete;
+    bool HasRandomLoss;
+    bool AsyncCustomValidation;
+    bool CustomValidationResultSet;
 
-    bool ExpectedResumed    : 1;
+    bool ExpectedResumed;
     QUIC_STATUS ExpectedCustomTicketValidationResult;
     QUIC_STATUS ExpectedTransportCloseStatus;
     QUIC_UINT62 ExpectedPeerCloseErrorCode;
