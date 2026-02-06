@@ -86,26 +86,26 @@ jobs:
               per_page: 100,
             });
             
-            // Extract file paths and apply filter
-            const allFilePaths = files.map(f => f.filename);
-            const filePaths = allFilePaths.filter(f => filterRegex.test(f));
+            // Extract file info with status and apply filter
+            const allFiles = files.map(f => ({ path: f.filename, status: f.status }));
+            const filteredFiles = allFiles.filter(f => filterRegex.test(f.path));
             
             // Log summary
             core.info(`Filter pattern: ${filterPattern}`);
-            core.info(`Total changed files: ${allFilePaths.length}`);
-            core.info(`Files after filter: ${filePaths.length}`);
+            core.info(`Total changed files: ${allFiles.length}`);
+            core.info(`Files after filter: ${filteredFiles.length}`);
             core.info('');
             core.info('Filtered files:');
-            for (const file of filePaths) {
-              core.info(`  ${file}`);
+            for (const file of filteredFiles) {
+              core.info(`  ${file.status.padEnd(10)} ${file.path}`);
             }
             
             // Set outputs - single combined JSON object
             const prFiles = {
               pr_number: prNumber,
               filter: filterPattern,
-              files_count: filePaths.length,
-              files: filePaths
+              files_count: filteredFiles.length,
+              files: filteredFiles
             };
             core.setOutput('pr_files', JSON.stringify(prFiles));
             
@@ -116,10 +116,10 @@ jobs:
             await core.summary
               .addHeading(`PR #${prNumber} Changed Files`)
               .addRaw(`**Filter:** \`${filterPattern}\`\n\n`)
-              .addRaw(`**Total changed:** ${allFilePaths.length} | **After filter:** ${filePaths.length}\n\n`)
+              .addRaw(`**Total changed:** ${allFiles.length} | **After filter:** ${filteredFiles.length}\n\n`)
               .addTable([
-                [{data: 'File', header: true}],
-                ...filePaths.map(f => [f])
+                [{data: 'Status', header: true}, {data: 'File', header: true}],
+                ...filteredFiles.map(f => [f.status, f.path])
               ])
               .write();
 
