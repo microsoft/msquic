@@ -334,25 +334,30 @@ function Install-JOM {
     }
 }
 
-# Installs OpenCppCoverage from the public release.
+# Installs OpenCppCoverage on Windows or gcovr on Linux.
 function Install-OpenCppCoverage {
-    if (!$IsWindows) { return } # Windows only
-    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
-        # Download the installer.
-        $Installer = $null
-        if ([System.Environment]::Is64BitOperatingSystem) {
-            $Installer = "OpenCppCoverageSetup-x64-0.9.9.0.exe"
-        } else {
-            $Installer = "OpenCppCoverageSetup-x86-0.9.9.0.exe"
-        }
-        $ExeFile = Join-Path $Env:TEMP $Installer
-        Write-Host "Downloading $Installer"
-        Invoke-WebRequest -Uri "https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/$($Installer)" -OutFile $ExeFile
+    if ($IsWindows) {
+        if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+            # Download the installer.
+            $Installer = $null
+            if ([System.Environment]::Is64BitOperatingSystem) {
+                $Installer = "OpenCppCoverageSetup-x64-0.9.9.0.exe"
+            } else {
+                $Installer = "OpenCppCoverageSetup-x86-0.9.9.0.exe"
+            }
+            $ExeFile = Join-Path $Env:TEMP $Installer
+            Write-Host "Downloading $Installer"
+            Invoke-WebRequest -Uri "https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/$($Installer)" -OutFile $ExeFile
 
-        # Start the installer and wait for it to finish.
-        Write-Host "Installing $Installer"
-        Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
-        Remove-Item -Path $ExeFile
+            # Start the installer and wait for it to finish.
+            Write-Host "Installing $Installer"
+            Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
+            Remove-Item -Path $ExeFile
+        }
+    } else {
+        # Linux: Install gcovr for code coverage
+        Write-Host "Installing gcovr for code coverage..."
+        pip3 install gcovr
     }
 }
 
