@@ -46,6 +46,11 @@ int main(int argc, char** argv) {
             }
         } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");
+        } else if (strcmp("--rdmaadapterip", argv[i]) == 0) {
+            if (i + 1 < argc) {
+                RdmaAdapterIp = argv[i + 1];
+                ++i;
+            }
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicCoreTestEnvironment);

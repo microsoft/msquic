@@ -19,3 +19,5 @@
 
 #define GTEST_SKIP_NO_RETURN_(message) \
   GTEST_MESSAGE_(message, ::testing::TestPartResult::kSkip)
+
+extern const char* RdmaAdapterIp;

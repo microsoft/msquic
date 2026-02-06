@@ -148,9 +148,11 @@ if ($ForBuild) {
     $InstallJom = $true
     $InstallCoreNetCiDeps = $true; # For kernel signing certs
 
-    if (!$IsLinux && !$IsMacOS)
+    if ($IsLinux -or $IsMacOS)
     {
-        $InstallNetworkDirect = $true
+        if ($InstallNetworkDirect) {
+            Write-Error "NetworkDirect is only supported on Windows."
+        }
     }
 }
 
@@ -172,9 +174,11 @@ if ($ForTest) {
         $InstallDuoNic = $true;
     }
 
-    if (!$IsLinux && !$IsMacOS)
+    if ($IsLinux -or $IsMacOS)
     {
-        $InstallNetworkDirect = $true
+        if ($InstallNetworkDirect) {
+            Write-Error "NetworkDirect is only supported on Windows."
+        }
     }
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it

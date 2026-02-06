@@ -2656,7 +2656,7 @@ int main(int argc, char** argv) {
                 Timeout = atoi(argv[i + 1]);
                 ++i;
             }
-        }
+        } 
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);
     ::testing::InitGoogleTest(&argc, argv);
