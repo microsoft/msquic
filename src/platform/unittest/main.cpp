@@ -16,6 +16,7 @@ const char* PfxPath = nullptr;
 bool UseDuoNic = false;
 uint32_t Timeout = UINT32_MAX;
 const char* OsRunner = nullptr;
+const char* RdmaAdapterIp = nullptr;
 CXPLAT_WORKER_POOL WorkerPool;
 
 class QuicCoreTestEnvironment : public ::testing::Environment {

@@ -1477,6 +1477,15 @@ TEST_P(DataPathTest, TcpDataServer)
 //
 // RDMA Tests
 //
+
+/*
+
+Usage:
+
+./msquicplatformtest.exe --rdmaadapterip <ip string> --gtest_filter=*rdma*
+
+*/
+
 TEST_F(DataPathTest, RdmaListener)
 {
     /*
@@ -1525,7 +1534,7 @@ TEST_P(DataPathTest, RdmaConnect)
         GTEST_SKIP_("RDMA is not supported");
     }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
-    ASSERT_NE(nullptr, Datapath.Datapath);  
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
     RdmaListenerContext ListenerContext;
     CxPlatSocket Listener;
@@ -1533,17 +1542,17 @@ TEST_P(DataPathTest, RdmaConnect)
     VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
     ASSERT_NE(nullptr, Listener.Socket);
     ASSERT_NE(Listener.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
-    
+
     RdmaClientContext ClientContext;
     CxPlatSocket Client;
     Client.CreateRdma(Datapath, &LocalAddress , &ListenerAddress, &ClientContext, &RdmaConfig);
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
     ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
-    
+
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 5000));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 5000));
-    
+
     ASSERT_NE(nullptr, ListenerContext.Server);
     QUIC_ADDR ServerRemote = {};
     CxPlatSocketGetRemoteAddress(ListenerContext.Server, &ServerRemote);
@@ -1554,7 +1563,7 @@ TEST_P(DataPathTest, RdmaConnect)
     ASSERT_EQ(ServerRemote.Ipv4.sin_port, Client.GetLocalAddress().Ipv4.sin_port);
 
     ListenerContext.DeleteSocket();
-    
+
     //ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 500));
     */
 }
@@ -1564,8 +1573,9 @@ TEST_P(DataPathTest, RdmaDataClient)
     QUIC_ADDR LocalAddress = {};
     QUIC_ADDR ListenerAddress = {};
     CXPLAT_RDMA_CONFIG RdmaConfig = {};
-    QuicAddrFromString("10.1.0.5", 0, &LocalAddress);
-    QuicAddrFromString("10.1.0.5", 50000, &ListenerAddress);
+    ASSERT_NE(nullptr, RdmaAdapterIp);
+    QuicAddrFromString(RdmaAdapterIp, 0, &LocalAddress);
+    QuicAddrFromString(RdmaAdapterIp, 50000, &ListenerAddress);
 
     RdmaConfig.SendRingBufferSize = 0x8000;
     RdmaConfig.RecvRingBufferSize = 0x8000;
@@ -1577,7 +1587,7 @@ TEST_P(DataPathTest, RdmaDataClient)
         GTEST_SKIP_("RDMA is not supported");
     }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
-    ASSERT_NE(nullptr, Datapath.Datapath);  
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
     RdmaListenerContext ListenerContext;
     CxPlatSocket Listener;
@@ -1585,17 +1595,17 @@ TEST_P(DataPathTest, RdmaDataClient)
     VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
     ASSERT_NE(nullptr, Listener.Socket);
     ASSERT_NE(Listener.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
-    
+
     RdmaClientContext ClientContext;
     CxPlatSocket Client;
     Client.CreateRdma(Datapath, &LocalAddress , &ListenerAddress, &ClientContext, &RdmaConfig);
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
     ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
-    
+
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 5000));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 5000));
-    
+
     ASSERT_NE(nullptr, ListenerContext.Server);
 
     CXPLAT_SEND_CONFIG SendConfig = { &Client.Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
