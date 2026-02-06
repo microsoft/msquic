@@ -51,7 +51,7 @@ jobs:
       contents: read
       pull-requests: read
     with:
-      pr_number: ${{ inputs.pr_number || github.event.pull_request.number }}
+      pr_number: ${{ fromJSON(inputs.pr_number || github.event.pull_request.number || '0') }}
       filter: ${{ inputs.filter || '^src/.*' }}
 steps:
   - name: Download PR Files List

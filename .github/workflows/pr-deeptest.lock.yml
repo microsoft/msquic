@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: 63322cb8a6544f16e5ffb59490957319fd3e204608d5152851910892e4fa573d
+# frontmatter-hash: a8bfee413cd2f28615012dc790afd980abd8708506f043ca37f42bbbd0067043
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -997,7 +997,7 @@ jobs:
     uses: ./.github/workflows/list-pr-files.yml
     with:
       filter: ${{ inputs.filter || '^src/.*' }}
-      pr_number: ${{ inputs.pr_number || github.event.pull_request.number }}
+      pr_number: ${{ fromJSON(inputs.pr_number || github.event.pull_request.number || '0') }}
 
   safe_outputs:
     needs:
