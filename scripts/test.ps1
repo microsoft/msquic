@@ -398,16 +398,11 @@ if ($CodeCoverage) {
         } else {
             Write-Warning "No coverage results to merge!"
         }
-    } else {
+    } elseif ($IsLinux) {
         # Linux: Use gcovr to generate coverage report from .gcda files
         $CoverageOutput = Join-Path $CoverageDir "msquiccoverage.xml"
         $BuildDir = Join-Path $RootDir "build"
-        if ($Clang) {
-            # Use llvm-cov gcov wrapper for clang builds
-            gcovr -r $RootDir --filter "$RootDir/src/core" --gcov-executable "llvm-cov gcov" --cobertura $CoverageOutput $BuildDir
-        } else {
-            gcovr -r $RootDir --filter "$RootDir/src/core" --cobertura $CoverageOutput $BuildDir
-        }
+        gcovr -r $RootDir --filter "$RootDir/src/core" --cobertura $CoverageOutput $BuildDir
         if (Test-Path $CoverageOutput) {
             Write-Host "Coverage report generated at $CoverageOutput"
         } else {

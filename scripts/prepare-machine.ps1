@@ -354,11 +354,7 @@ function Install-OpenCppCoverage {
             Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
             Remove-Item -Path $ExeFile
         }
-    } else {
-        # Linux: Install gcovr for code coverage
-        Write-Host "Installing gcovr for code coverage..."
-        pip3 install gcovr
-    }
+    } 
 }
 
 # Installs StrawberryPerl on Windows via Winget.
@@ -640,6 +636,22 @@ if ($IsLinux) {
         Write-Host "Setting core dump pattern"
         sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
         #sudo cat /proc/sys/kernel/core_pattern
+        if ($InstallCodeCoverage){
+            # Check if gcovr is already installed, and if not
+            if (gcovr --version 2>$null) {
+                Write-Host "gcovr is already installed"
+                return
+            }
+            # Check if pip is already installed, and if not, install it
+            if (pip --version 2>$null) {
+                Write-Host "pip is already installed"
+            } else {
+                Write-Host "Installing pip"
+                sudo apt-get update -y
+                sudo apt-get install -y pip
+            }
+            pip install gcovr
+        }
     }
 }
 

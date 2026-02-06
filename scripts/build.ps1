@@ -535,11 +535,12 @@ function CMake-Generate {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
     if ($CodeCoverage) {
-        if ($IsWindows) {
-            Write-Warning "-CodeCoverage is only supported on Linux. Ignoring flag."
-        } else {
+        if ($IsLinux) {
             $Arguments += " -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage"
         }
+        else {
+            Write-Warning "-CodeCoverage is only supported on Linux systems. Ignoring flag."
+        } 
     }
     if ($Platform -eq "android") {
         $NDK = $env:ANDROID_NDK_LATEST_HOME
