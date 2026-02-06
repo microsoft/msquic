@@ -334,25 +334,26 @@ function Install-JOM {
     }
 }
 
-# Installs OpenCppCoverage from the public release.
+# Installs OpenCppCoverage on Windows or gcovr on Linux.
 function Install-OpenCppCoverage {
-    if (!$IsWindows) { return } # Windows only
-    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
-        # Download the installer.
-        $Installer = $null
-        if ([System.Environment]::Is64BitOperatingSystem) {
-            $Installer = "OpenCppCoverageSetup-x64-0.9.9.0.exe"
-        } else {
-            $Installer = "OpenCppCoverageSetup-x86-0.9.9.0.exe"
-        }
-        $ExeFile = Join-Path $Env:TEMP $Installer
-        Write-Host "Downloading $Installer"
-        Invoke-WebRequest -Uri "https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/$($Installer)" -OutFile $ExeFile
+    if ($IsWindows) {
+        if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+            # Download the installer.
+            $Installer = $null
+            if ([System.Environment]::Is64BitOperatingSystem) {
+                $Installer = "OpenCppCoverageSetup-x64-0.9.9.0.exe"
+            } else {
+                $Installer = "OpenCppCoverageSetup-x86-0.9.9.0.exe"
+            }
+            $ExeFile = Join-Path $Env:TEMP $Installer
+            Write-Host "Downloading $Installer"
+            Invoke-WebRequest -Uri "https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/$($Installer)" -OutFile $ExeFile
 
-        # Start the installer and wait for it to finish.
-        Write-Host "Installing $Installer"
-        Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
-        Remove-Item -Path $ExeFile
+            # Start the installer and wait for it to finish.
+            Write-Host "Installing $Installer"
+            Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
+            Remove-Item -Path $ExeFile
+        }
     }
 }
 
@@ -635,6 +636,22 @@ if ($IsLinux) {
         Write-Host "Setting core dump pattern"
         sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
         #sudo cat /proc/sys/kernel/core_pattern
+        if ($InstallCodeCoverage){
+            # Check if gcovr is already installed, and if not
+            if (gcovr --version 2>$null) {
+                Write-Host "gcovr is already installed"
+                return
+            }
+            # Check if pip is already installed, and if not, install it
+            if (pip --version 2>$null) {
+                Write-Host "pip is already installed"
+            } else {
+                Write-Host "Installing pip"
+                sudo apt-get update -y
+                sudo apt-get install -y pip
+            }
+            pip install gcovr
+        }
     }
 }
 
