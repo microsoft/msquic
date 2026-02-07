@@ -49,6 +49,10 @@ jobs:
       repo: ${{ inputs.repo || '' }}
       filter: ${{ inputs.filter || '^src/.*' }}
 steps:
+  - name: Checkout Repository
+    uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    with:
+      repository: ${{ inputs.repo || github.repository }}
   - name: Download PR Files List
     uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
     with:

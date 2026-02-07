@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: 26cc7ca0ef86056f8a2962e4e3f397d310b808e5ac1f2e3b25da56fbf66442c4
+# frontmatter-hash: e71ef4274e6dc72952dcebbb6457f7c1469366ce70e0830c20bda3275229a414
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -112,12 +112,12 @@ jobs:
         uses: github/gh-aw/actions/setup@a7134347103ecf66b4bd422c3e9ce6466d400c02 # v0.42.0
         with:
           destination: /opt/gh-aw/actions
-      - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-        with:
-          persist-credentials: false
       - name: Create gh-aw temp directory
         run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ inputs.repo || github.repository }}
       - name: Download PR Files List
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # fa0a91b85d4f404e444e00e005971372dc801d16
         with:
