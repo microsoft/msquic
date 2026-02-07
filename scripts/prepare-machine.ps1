@@ -638,19 +638,19 @@ if ($IsLinux) {
         #sudo cat /proc/sys/kernel/core_pattern
         if ($InstallCodeCoverage){
             # Check if gcovr is already installed, and if not
-            if (gcovr --version 2>$null) {
+            if (Get-Command gcovr -ErrorAction SilentlyContinue) {
                 Write-Host "gcovr is already installed"
                 return
             }
             # Check if pip is already installed, and if not, install it
-            if (pip --version 2>$null) {
+            if (Get-Command pip -ErrorAction SilentlyContinue) {
                 Write-Host "pip is already installed"
             } else {
                 Write-Host "Installing pip"
                 sudo apt-get update -y
                 sudo apt-get install -y pip
             }
-            pip install gcovr
+            pip install gcovr==8.6
         }
     }
 }
