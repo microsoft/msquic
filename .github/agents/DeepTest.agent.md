@@ -43,8 +43,8 @@ inputs:
     default: ".\artifacts\coverage\msquiccoverage.xml"
  
 ```
-You are generating tests for the {{component}} component. {{#if focal}}  The test should specifically target the {{focal}} function.{{/if}} Your task is to augment the existing harness found in {{harness}} with high quality tests that improve coverage.
+You are generating tests for the {{component}} component. {{#if focal}}  The test should specifically target the {{focal}} function.{{/if}} Your task is to augment the existing harness found in {{harness}} with high quality tests that improve coverage. You must invoke the **coverage-analysis** skill with the appropriate inputs to compute coverage. You must **not** attempt to build or run the tests yourself.
 
 If a focal function name is provided, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs.
 
-To examine the quality of the generated tests, you must compare the test coverage before and after generated tests. To compute test coverage, invoke the **coverage-analysis** skill with the appropriate inputs. Report the coverage improvement and uncovered lines in **coverage_result**.
+At the end, you need to report the coverage before and after generated tests in a markdown file. The report should include a summary of the tests you generated, the coverage improvement, and any uncovered lines or scenarios that the new tests address. The report should be saved to the path specified in `coverage_result`.
