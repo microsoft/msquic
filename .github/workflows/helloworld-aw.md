@@ -11,7 +11,7 @@ on:
 runs-on: ubuntu-24.04
 
 tools:
-  bash:
+  bash: ["pwsh"]
 ---
 
 # Hello World Agentic Workflow
