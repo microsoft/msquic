@@ -592,7 +592,6 @@ void QuicTestValidateConnectionEvents(const ValidateConnectionEventArgs& Params)
     } // Listener Scope
 }
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 void
 QuicTestValidateNetStatsConnEvent1(
     _In_ MsQuicRegistration& Registration,
@@ -778,7 +777,6 @@ void QuicTestValidateNetStatsConnEvent(const ValidateNetStatsConnEventArgs& Para
 
     } // Listener Scope
 }
-#endif
 
 void
 QuicTestValidateStreamEvents1(

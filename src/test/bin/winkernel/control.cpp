@@ -469,11 +469,9 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestValidateConfiguration);
     RegisterTestFunction(QuicTestValidateListener);
     RegisterTestFunction(QuicTestValidateConnection);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestValidateConnectionPoolCreate);
     RegisterTestFunction(QuicTestValidateExecutionContext);
     RegisterTestFunction(QuicTestValidatePartition);
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestRegistrationShutdownBeforeConnOpen);
     RegisterTestFunction(QuicTestRegistrationShutdownAfterConnOpen);
     RegisterTestFunction(QuicTestRegistrationShutdownAfterConnOpenBeforeStart);
@@ -482,17 +480,11 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestValidateStream);
     RegisterTestFunction(QuicTestCloseConnBeforeStreamFlush);
     RegisterTestFunction(QuicTestValidateConnectionEvents);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestValidateNetStatsConnEvent);
-#endif
     RegisterTestFunction(QuicTestValidateStreamEvents);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestVersionSettings);
-#endif
     RegisterTestFunction(QuicTestValidateParamApi);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestRegistrationOpenClose);
-#endif
     RegisterTestFunction(QuicTestCreateListener);
     RegisterTestFunction(QuicTestStartListener);
     RegisterTestFunction(QuicTestStartListenerMultiAlpns);
@@ -528,12 +520,9 @@ ExecuteTestRequest(
 #endif
     RegisterTestFunction(QuicTestInterfaceBinding);
     RegisterTestFunction(QuicTestRetryMemoryLimitConnect);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestConnect_OldVersion);
-#endif
     RegisterTestFunction(QuicTestConnect_AsyncSecurityConfig);
     RegisterTestFunction(QuicTestConnect_AsyncSecurityConfig_Delayed);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestVersionNegotiation);
     RegisterTestFunction(QuicTestVersionNegotiationRetry);
     RegisterTestFunction(QuicTestCompatibleVersionNegotiationRetry);
@@ -544,18 +533,15 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestFailedVersionNegotiation);
     RegisterTestFunction(QuicTestReliableResetNegotiation);
     RegisterTestFunction(QuicTestOneWayDelayNegotiation);
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestCustomServerCertificateValidation);
     RegisterTestFunction(QuicTestCustomClientCertificateValidation);
     RegisterTestFunction(QuicTestConnectClientCertificate);
     RegisterTestFunction(QuicTestCibirExtension);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #if QUIC_TEST_DISABLE_VNE_TP_GENERATION
     RegisterTestFunction(QuicTestVNTPOddSize);
     RegisterTestFunction(QuicTestVNTPChosenVersionMismatch);
     RegisterTestFunction(QuicTestVNTPChosenVersionZero);
     RegisterTestFunction(QuicTestVNTPOtherVersionZero);
-#endif
 #endif
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
     RegisterTestFunction(QuicTestConnectExpiredServerCertificate);
@@ -588,9 +574,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestHandshakeSpecificLossPatterns);
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestShutdownDuringHandshake);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestConnectionPoolCreate);
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestConnectAndIdle);
     RegisterTestFunction(QuicTestConnectAndIdleForDestCidChange);
     RegisterTestFunction(QuicTestServerDisconnect);
@@ -633,7 +617,6 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamReliableReset);
     RegisterTestFunction(QuicTestStreamReliableResetMultipleSends);
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestStreamMultiReceive);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffers_ClientSend);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffers_ServerSend);
@@ -641,7 +624,6 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer);
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestStreamBlockUnblockConnFlowControl_Bidi);
     RegisterTestFunction(QuicTestStreamBlockUnblockConnFlowControl_Unidi);
     RegisterTestFunction(QuicTestStreamAbortConnFlowControl);
@@ -656,9 +638,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestDatagramSend);
     RegisterTestFunction(QuicTestDatagramDrop);
     RegisterTestFunction(QuicTestStorage);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestVersionStorage);
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestRetryConfigSetting);
 
     // Fail if no function matched

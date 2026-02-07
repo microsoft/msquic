@@ -320,7 +320,6 @@ TestConnection::SetQuicVersion(
     uint32_t value
     )
 {
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     MsQuicVersionSettings Settings;
     Settings.AcceptableVersions = &value;
     Settings.AcceptableVersionsLength = 1;
@@ -334,10 +333,6 @@ TestConnection::SetQuicVersion(
             QUIC_PARAM_CONN_VERSION_SETTINGS,
             sizeof(Settings),
             &Settings);
-#else
-    UNREFERENCED_PARAMETER(value);
-    return QUIC_STATUS_NOT_SUPPORTED;
-#endif
 }
 
 QUIC_STATUS

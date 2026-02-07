@@ -621,9 +621,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV4CR)
         const char* Name;
     } kAlgorithms[] = {
         { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, "CUBIC" },
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
         { QUIC_CONGESTION_CONTROL_ALGORITHM_BBR, "BBR" },
-#endif
     };
 
     for (size_t i = 0; i < ARRAYSIZE(kAlgorithms); ++i) {
@@ -827,9 +825,6 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV6CR)
         const char* Name;
     } kAlgorithms[] = {
         { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, "CUBIC" },
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        { QUIC_CONGESTION_CONTROL_ALGORITHM_BBR, "BBR" },
-#endif
     };
 
     for (size_t i = 0; i < ARRAYSIZE(kAlgorithms); ++i) {

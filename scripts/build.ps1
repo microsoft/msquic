@@ -87,9 +87,6 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
-.PARAMETER OfficialRelease
-    Build is for an official (tag) release.
-
 .PARAMETER EnableTelemetryAsserts
     Enables telemetry asserts in release builds.
 
@@ -208,12 +205,6 @@ param (
     [switch]$CI = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$OfficialRelease = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$ForceOfficialRelease = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$EnableTelemetryAsserts = $true,
 
     [Parameter(Mandatory = $false)]
@@ -297,27 +288,6 @@ if ($IsLinux -And $Arch -ne "x64") {
 if ($Platform -eq "ios" -and !$Static) {
     $Static = $true
     Write-Host "iOS can only be built as static"
-}
-
-if ($OfficialRelease) {
-    # We only actually try to do official release if there is a matching git tag.
-    # Clear the flag and then only set it if we find a tag.
-    $OfficialRelease = $false
-    try {
-        $env:GIT_REDIRECT_STDERR = '2>&1'
-        # Thanks to https://stackoverflow.com/questions/3404936/show-which-git-tag-you-are-on
-        # for this magic git command!
-        $Output = git describe --exact-match --tags $(git log -n1 --pretty='%h')
-        if (!$Output.Contains("fatal: no tag exactly matches")) {
-            Write-Host "Configuring OfficialRelease for tag build"
-            $OfficialRelease = $true
-        }
-    } catch { }
-    $global:LASTEXITCODE = 0
-}
-
-if ($ForceOfficialRelease) {
-    $OfficialRelease = $true
 }
 
 # Root directory of the project.
@@ -515,9 +485,6 @@ function CMake-Generate {
         }
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
-    }
-    if ($OfficialRelease) {
-        $Arguments += " -DQUIC_OFFICIAL_RELEASE=ON"
     }
     if ($EnableTelemetryAsserts) {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"

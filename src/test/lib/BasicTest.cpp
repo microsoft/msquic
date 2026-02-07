@@ -14,8 +14,6 @@ Abstract:
 #include "BasicTest.cpp.clog.h"
 #endif
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
 namespace {
 
 struct RegistrationCloseContext {
@@ -34,8 +32,6 @@ QUIC_API RegistrationCloseCallback(
 
 }
 
-#endif
-
 void QuicTestRegistrationOpenClose()
 {
     //
@@ -46,7 +42,6 @@ void QuicTestRegistrationOpenClose()
         TEST_TRUE(Registration.IsValid());
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // Open and asyncrhonous close
     //
@@ -58,7 +53,6 @@ void QuicTestRegistrationOpenClose()
         Registration.CloseAsync(RegistrationCloseCallback, &Context);
         Context.Event.WaitForever();
     }
-#endif
 }
 
 _Function_class_(NEW_CONNECTION_CALLBACK)

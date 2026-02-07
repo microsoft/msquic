@@ -1478,7 +1478,6 @@ QuicTestConnectInvalidAddress(
     }
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
     const FamilyArgs& Params
@@ -2436,8 +2435,6 @@ QuicTestOneWayDelayNegotiation(
         TEST_FALSE(ServerContext.CallbackReceived);
     }
 }
-
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestConnectBadAlpn(
@@ -3889,7 +3886,6 @@ QuicTestRetryMemoryLimitConnect(
     TEST_TRUE(Context.DosModeChangeEventReceived);
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(
     const CibirExtensionParams& Params
@@ -3934,8 +3930,6 @@ QuicTestCibirExtension(
     Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
     TEST_EQUAL(Connection.HandshakeComplete, ShouldConnnect);
 }
-
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestClientBlockedSourcePort(
@@ -4121,7 +4115,6 @@ QuicTestChangeAlpn(
     }
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
@@ -4355,7 +4348,6 @@ QuicTestVNTPOtherVersionZero(
 
     QuicTestCustomVNTP(TestServer, &TestTP);
 }
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestHandshakeSpecificLossPatterns(
@@ -4437,7 +4429,6 @@ struct ConnectionPoolConnectionContext {
     }
 };
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestConnectionPoolCreate(
     const ConnectionPoolCreateArgs& Params
@@ -4571,5 +4562,3 @@ QuicTestConnectionPoolCreate(
         }
     }
 }
-
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES

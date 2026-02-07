@@ -15,7 +15,7 @@ Abstract:
 #endif
 #if defined(_KERNEL_MODE)
 static bool UseQTIP = false;
-#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#else
 extern bool UseQTIP;
 #endif
 
@@ -324,7 +324,6 @@ NewPingConnection(
         return nullptr;
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_SETTINGS PerConnSettings = Connection->GetSettings();
     if (PerConnSettings.QTIPEnabled != UseQTIP) {
         TEST_FAILURE("UseQTIP does not match global settings." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
@@ -344,13 +343,6 @@ NewPingConnection(
             return nullptr;
         }
     }
-#else
-    if (SendUdpOverQtip) {
-        TEST_FAILURE("QTIP is not supported in this build.");
-        delete Connection;
-        return nullptr;
-    }
-#endif
 
     Connection->SetAutoDelete();
 
@@ -527,13 +519,6 @@ QuicTestConnectAndPing(
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
-#if !defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (SendUdpToQtipListener) {
-        TEST_FAILURE("QTIP is not supported in this build.");
-        return;
-    }
-#endif
-
     UniquePtr<QUIC_TLS_SECRETS[]> ClientSecrets;
     UniquePtr<QUIC_TLS_SECRETS[]> ServerSecrets;
 
@@ -662,14 +647,11 @@ QuicTestConnectAndPing(
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
                     if (i != 0
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                         && !UseQTIP
-#endif
                     ) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                     if (SendUdpToQtipListener && (i % 2 == 1) && UseQTIP) {
                         // Test and make sure this connection's QTIP settings is opposite of UseQTIP.
                         QUIC_SETTINGS PerConnSettings = Connections.get()[i]->GetSettings();
@@ -685,7 +667,6 @@ QuicTestConnectAndPing(
                             return;
                         }
                     }
-#endif
 
                     TEST_QUIC_SUCCEEDED(
                         Connections.get()[i]->Start(
@@ -695,9 +676,7 @@ QuicTestConnectAndPing(
                             ServerLocalAddr.GetPort()));
 
                     if (i == 0
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                         && !UseQTIP
-#endif
                     ) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
                     }
@@ -4501,7 +4480,6 @@ QuicTestStreamReliableResetMultipleSends(
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define MultiRecvNumSend 10
 struct MultiReceiveTestContext {
     CxPlatEvent PktRecvd[MultiRecvNumSend];
@@ -5456,5 +5434,3 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
     TEST_EQUAL(ReceiveContext.GetReceivedBytes(), Buffers.SendDataSize);
     TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
 }
-
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES

@@ -18,7 +18,7 @@ Abstract:
 
 #if defined(_KERNEL_MODE)
 static bool UseQTIP = false;
-#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#else
 extern bool UseQTIP;
 #endif
 
@@ -57,9 +57,7 @@ void QuicTestValidateRegistration()
 
     MsQuic->RegistrationClose(nullptr);
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     MsQuic->RegistrationClose2(nullptr, nullptr, nullptr);
-#endif
 }
 
 void QuicTestValidateConfiguration()
@@ -2578,7 +2576,6 @@ void QuicTestGlobalParam()
         }
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_EXECUTION_CONFIG
     //
@@ -2631,9 +2628,7 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
         if (!UseQTIP && !UseDuoNic)
-#endif
         {
             //
             // Good GetParam with length == 0
@@ -2647,7 +2642,6 @@ void QuicTestGlobalParam()
                     nullptr));
         }
     }
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 #endif // !_KERNEL_MODE
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -2673,7 +2667,6 @@ void QuicTestGlobalParam()
     // Remove tests as these doesn't have GetParam and are for local debugging purpose
     //
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED
     //
@@ -2696,7 +2689,6 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED, sizeof(Flag), &Flag);
         }
     }
-#endif
 
     //
     // QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY
@@ -3252,7 +3244,6 @@ void QuicTestConfigurationParam()
         TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS is covered by QuicTestVersionSettings");
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED
     //
@@ -3297,7 +3288,6 @@ void QuicTestConfigurationParam()
             TEST_EQUAL(Flag, ExpectedFlag);
         }
     }
-#endif
 }
 
 // Used by Listener and Connection
@@ -3559,7 +3549,6 @@ void QuicTestListenerParam()
         }
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_LISTENER_CIBIR_ID
     //
@@ -3625,7 +3614,6 @@ void QuicTestListenerParam()
             TEST_EQUAL(Length, sizeof(BOOLEAN)); //sizeof (((QUIC_LISTENER *)0)->DosModeEventsEnabled)
         }
     }
-#endif
 
 }
 
@@ -4593,7 +4581,6 @@ void QuicTest_QUIC_PARAM_CONN_TLS_SECRETS(MsQuicRegistration& Registration, MsQu
 
 void QuicTest_QUIC_PARAM_CONN_CIBIR_ID(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
 {
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_CIBIR_ID");
     {
         TestScopeLogger LogScope1("SetParam");
@@ -4654,10 +4641,8 @@ void QuicTest_QUIC_PARAM_CONN_CIBIR_ID(MsQuicRegistration& Registration, MsQuicC
     {
         TestScopeLogger LogScope1("GetParam is not allowed");
     }
-#else
     UNREFERENCED_PARAMETER(Registration);
     UNREFERENCED_PARAMETER(ClientConfiguration);
-#endif
 }
 
 void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(MsQuicRegistration& Registration)
@@ -4919,7 +4904,6 @@ void QuicTest_QUIC_PARAM_CONN_SEND_DSCP(MsQuicRegistration& Registration)
 
 void QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(MsQuicRegistration& Registration)
 {
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_NETWORK_STATISTICS");
     {
         TestScopeLogger LogScope1("SetParam");
@@ -4940,13 +4924,11 @@ void QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(MsQuicRegistration& Registratio
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_NETWORK_STATISTICS, sizeof(QUIC_NETWORK_STATISTICS), nullptr, true);
     }
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     UNREFERENCED_PARAMETER(Registration);
 }
 
 void QuicTest_QUIC_PARAM_CONN_CLOSE_ASYNC(MsQuicRegistration& Registration)
 {
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_ASYNC");
     {
         TestScopeLogger LogScope1("GetParam default");
@@ -4978,9 +4960,7 @@ void QuicTest_QUIC_PARAM_CONN_CLOSE_ASYNC(MsQuicRegistration& Registration)
         TEST_EQUAL(BufferSize, sizeof(GetValue));
         TEST_EQUAL(GetValue, CloseAsync);
     }
-#else
     UNREFERENCED_PARAMETER(Registration);
-#endif
 }
 
 void QuicTestConnectionParam()
@@ -5796,7 +5776,6 @@ QuicTestGetPerfCounters()
     TEST_EQUAL(BufferLength, (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)));
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 ValidateVersionSettings(
     _In_ const QUIC_VERSION_SETTINGS* const OutputVersionSettings,
@@ -6048,7 +6027,6 @@ QuicTestVersionSettings()
         ValidateVersionSettings(OutputVersionSettings, ValidVersions, ARRAYSIZE(ValidVersions));
     }
 }
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestValidateParamApi()
@@ -6297,7 +6275,6 @@ QuicTestStorage()
     }
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionStorage()
 {
@@ -7191,8 +7168,6 @@ QuicTestValidatePartition()
 #else // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(CXPLAT_LINUX_XDP_ENABLED)
 void QuicTestValidatePartition() {}
 #endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(CXPLAT_LINUX_XDP_ENABLED)
-
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestRetryConfigSetting()

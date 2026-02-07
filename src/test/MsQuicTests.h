@@ -12,14 +12,12 @@ Abstract:
 #pragma once
 
 //
-// For official releases, disable tests for preview features:
-// the official release test binary for a version is used for down-level compatibility testing
-// against newer versions of MsQuic, and since preview features are subject to change, those tests
-// would break.
+// Enable preview features in tests.
+// N.B. Preview features can change and cause down-level test failures.
+//      If it happens, disable the test case downlevel.
+// TODO: Should there be a "preview" tag for easily skip preview tests? Or we accept they can fail downlevel?
 //
-#ifndef QUIC_OFFICIAL_RELEASE
 #define QUIC_API_ENABLE_PREVIEW_FEATURES
-#endif
 
 #include "msquic.hpp"
 
@@ -116,12 +114,11 @@ struct ValidateConnectionEventArgs {
     uint32_t Test;
 };
 void QuicTestValidateConnectionEvents(const ValidateConnectionEventArgs& Params);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 struct ValidateNetStatsConnEventArgs {
     uint32_t Test;
 };
 void QuicTestValidateNetStatsConnEvent(const ValidateNetStatsConnEventArgs& Params);
-#endif
+
 struct ValidateStreamEventArgs {
     uint32_t Test;
 };
@@ -272,7 +269,6 @@ QuicTestConnect_AsyncSecurityConfig_Delayed(
     const HandshakeArgs& Params
     );
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
     const FamilyArgs& Params
@@ -334,7 +330,6 @@ void
 QuicTestOneWayDelayNegotiation(
     const FeatureSupportArgs& Params
     );
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct CustomCertValidationArgs {
     bool AcceptCert;
@@ -391,8 +386,6 @@ QuicTestRetryMemoryLimitConnect(
     const FamilyArgs& Params
     );
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
 struct CibirExtensionParams {
     int Family;
     uint8_t Mode; // server = &1, client = &2
@@ -402,7 +395,6 @@ void
 QuicTestCibirExtension(
     const CibirExtensionParams& Params
     );
-#endif
 
 void
 QuicTestChangeAlpn(
@@ -481,8 +473,6 @@ QuicTestClientBlockedSourcePort(
     const FamilyArgs& Params
     );
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
 struct OddSizeVnTpParams {
     bool TestServer;
     uint8_t VnTpSize;
@@ -519,7 +509,6 @@ void
 QuicTestConnectionPoolCreate(
     const ConnectionPoolCreateArgs& Params
     );
-#endif
 
 //
 // Post Handshake Tests
@@ -981,11 +970,9 @@ void
 QuicTestStorage(
     );
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionStorage(
     );
-#endif
 
 //
 // Platform Specific Functions

@@ -153,7 +153,6 @@ struct ServerAcceptContext {
     }
 };
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 struct ClearGlobalVersionListScope {
     ~ClearGlobalVersionListScope() {
         MsQuicVersionSettings Settings(nullptr, 0);
@@ -173,7 +172,6 @@ struct ClearGlobalVersionListScope {
                 &Default));
     }
 };
-#endif
 
 //
 // Simulating Connection's status to be QUIC_CONN_BAD_START_STATE

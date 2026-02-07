@@ -18,17 +18,13 @@
 #pragma message("Test compiled with datapath hooks enabled")
 #endif
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #pragma message("Test compiled with preview features enabled")
-#endif
 
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
 CXPLAT_WORKER_POOL* WorkerPool;
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
-#endif
 const MsQuicApi* MsQuic;
 const char* OsRunner = nullptr;
 uint32_t Timeout = UINT32_MAX;
@@ -112,7 +108,6 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             if (UseDuoNic) {
                 MsQuicSettings Settings;
                 Settings.SetXdpEnabled(true);
@@ -123,7 +118,6 @@ public:
                 Settings.SetQtipEnabled(true);
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
-#endif
             //
             // Enable DSCP on the receive path. This is needed to test DSCP Send path.
             //
@@ -387,7 +381,6 @@ TEST(ParameterValidation, ValidateConnection) {
     }
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateConnectionPoolCreate) {
     TestLogger Logger("QuicTestValidateConnectionPoolCreate");
     if (TestingKernelMode) {
@@ -413,7 +406,6 @@ TEST(ParameterValidation, ValidatePartition) {
         QuicTestValidatePartition();
     }
 }
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
@@ -507,8 +499,6 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithValidateConnectionEventArgs::Generate()));
 
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
 struct WithValidateNetStatsConnEventArgs : public testing::Test,
     public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
     static ::std::vector<ValidateNetStatsConnEventArgs> Generate() {
@@ -536,8 +526,6 @@ INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithValidateNetStatsConnEventArgs,
     testing::ValuesIn(WithValidateNetStatsConnEventArgs::Generate()));
-
-#endif
 
 struct WithValidateStreamEventArgs : public testing::Test,
     public testing::WithParamInterface<ValidateStreamEventArgs> {
@@ -567,7 +555,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithValidateStreamEventArgs,
     testing::ValuesIn(WithValidateStreamEventArgs::Generate()));
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateVersionSettings) {
     TestLogger Logger("QuicTestVersionSettings");
     if (TestingKernelMode) {
@@ -576,7 +563,6 @@ TEST(ParameterValidation, ValidateVersionSettings) {
         QuicTestVersionSettings();
     }
 }
-#endif
 
 TEST(ParameterValidation, ValidateParamApi) {
     TestLogger Logger("QuicTestValidateParamApi");
@@ -701,7 +687,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithValidateTlsConfigArgs,
     testing::ValuesIn(WithValidateTlsConfigArgs::Generate()));
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Basic, RegistrationOpenClose) {
     TestLogger Logger("QuicTestRegistrationOpenClose");
     if (TestingKernelMode) {
@@ -710,7 +695,6 @@ TEST(Basic, RegistrationOpenClose) {
         QuicTestRegistrationOpenClose();
     }
 }
-#endif
 
 TEST(Basic, CreateListener) {
     TestLogger Logger("QuicTestCreateListener");
@@ -1057,8 +1041,6 @@ TEST_P(WithFamilyArgs, RetryMemoryLimitConnect) {
     }
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
 struct WithHandshakeArgs2 :
     public testing::TestWithParam<HandshakeArgs> {
 
@@ -1084,7 +1066,6 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs2,
     testing::ValuesIn(WithHandshakeArgs2::Generate()));
-#endif
 
 struct WithHandshakeArgs3 :
     public testing::TestWithParam<HandshakeArgs> {
@@ -1123,8 +1104,6 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithHandshakeArgs3::Generate()));
 
 // Version negociation tests
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct WithVersionNegotiationExtArgs : public testing::Test,
     public testing::WithParamInterface<VersionNegotiationExtArgs> {
@@ -1266,8 +1245,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithFeatureSupportArgs,
     testing::ValuesIn(WithFeatureSupportArgs::Generate()));
 
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
-
 struct WithCustomCertificateValidationArgs :
     public testing::TestWithParam<CustomCertValidationArgs> {
 
@@ -1345,9 +1322,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithClientCertificateArgs,
     testing::ValuesIn(WithClientCertificateArgs::Generate()));
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
-
 struct WithCibirExtensionParams :
     public testing::TestWithParam<CibirExtensionParams> {
 
@@ -1381,9 +1355,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithCibirExtensionParams,
     testing::ValuesIn(WithCibirExtensionParams::Generate()));
 
-#endif
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #if QUIC_TEST_DISABLE_VNE_TP_GENERATION
 
 struct WithOddSizeVnTpParams :
@@ -1454,7 +1425,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithVpnVersionParams,
     ::testing::Values(false, true));
 
-#endif
 #endif
 
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
@@ -1769,14 +1739,12 @@ TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
-#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind_NoPadding", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatPortRebind_NoPadding), GetParam()));
@@ -1803,14 +1771,12 @@ std::ostream& operator << (std::ostream& o, const RebindPaddingArgs& args) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
-#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind_WithPadding", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatPortRebind_WithPadding), GetParam()));
@@ -1825,14 +1791,12 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(WithRebindPaddingArgs::Generate()));
 
 TEST_P(WithFamilyArgs, RebindAddr) {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
-#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind_NoPadding", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatAddrRebind_NoPadding), GetParam()));
@@ -1842,14 +1806,12 @@ TEST_P(WithFamilyArgs, RebindAddr) {
 }
 
 TEST_P(WithFamilyArgs, RebindDatapathAddr) {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (UseQTIP || !UseDuoNic) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
-#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(datapath)", GetParam());
     if (!TestingKernelMode) {
         QuicTestNatAddrRebind(GetParam().Family, 0, TRUE);
@@ -1857,14 +1819,12 @@ TEST_P(WithFamilyArgs, RebindDatapathAddr) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
-#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind_WithPadding", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNatAddrRebind_WithPadding), GetParam()));
@@ -1911,11 +1871,7 @@ struct WithHandshakeLossPatternsArgs :
     static ::std::vector<HandshakeLossPatternsArgs> Generate() {
         ::std::vector<HandshakeLossPatternsArgs> list;
         for (int Family : { 4, 6 })
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR })
-#else
-        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC })
-#endif
             list.push_back({ Family, CcAlgo });
         return list;
     }
@@ -1971,8 +1927,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithShutdownDuringHandshakeArgs,
     testing::ValuesIn(WithShutdownDuringHandshakeArgs::Generate()));
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-
 struct WithConnectionPoolCreateArgs :
     public testing::TestWithParam<ConnectionPoolCreateArgs> {
 
@@ -2015,7 +1969,6 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithConnectionPoolCreateArgs,
     testing::ValuesIn(WithConnectionPoolCreateArgs::Generate()));
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct WithSendArgs :
     public testing::TestWithParam<SendArgs> {
@@ -2059,7 +2012,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithSendArgs,
     testing::ValuesIn(WithSendArgs::Generate()));
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 TEST_P(WithSendArgs, SendQtip) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPingOverQtip", GetParam());
     if (!TestingKernelMode && UseQTIP) {
@@ -2081,7 +2033,6 @@ TEST_P(WithSendArgs, SendQtip) {
             true); // SendUdpToQtipListener
     }
 }
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct WithSendLargeArgs :
     public testing::TestWithParam<SendLargeArgs> {
@@ -2096,11 +2047,9 @@ struct WithSendLargeArgs :
         for (bool UseZeroRtt : { false })
 #endif
         {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             if (UseQTIP && UseZeroRtt) {
                 continue;
             }
-#endif
             list.push_back({ Family, UseSendBuffer, UseZeroRtt });
         }
         return list;
@@ -2195,7 +2144,6 @@ std::ostream& operator << (std::ostream& o, const Send0RttArgs1& args) {
 }
 
 TEST_P(WithSend0RttArgs1, Send0Rtt) {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (UseQTIP) {
         //
         // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
@@ -2203,7 +2151,6 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
         //
         return;
     }
-#endif
 
     TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
     if (TestingKernelMode) {
@@ -2237,7 +2184,6 @@ std::ostream& operator << (std::ostream& o, const Send0RttArgs2& args) {
 }
 
 TEST_P(WithSend0RttArgs2, Reject0Rtt) {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (UseQTIP) {
         //
         // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
@@ -2245,7 +2191,6 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
         //
         return;
     }
-#endif
     TestLoggerT<ParamType> Logger("Reject0Rtt", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_Reject0Rtt), GetParam()));
@@ -2670,7 +2615,6 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Misc, StreamMultiReceive) {
     TestLogger Logger("StreamMultiReceive");
     if (TestingKernelMode) {
@@ -2758,8 +2702,6 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithAppProvidedBuffersConfigArgs,
     testing::ValuesIn(WithAppProvidedBuffersConfigArgs::Generate()));
-
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
     TestLogger Logger("StreamBlockUnblockBidiConnFlowControl");
@@ -2970,7 +2912,6 @@ TEST(Basic, TestStorage) {
     }
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Basic, TestVersionStorage) {
     if (!CanRunStorageTests) {
         GTEST_SKIP();
@@ -2983,7 +2924,6 @@ TEST(Basic, TestVersionStorage) {
         QuicTestVersionStorage();
     }
 }
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #ifdef DEBUG // This test needs a GetParam API that is only available in debug builds.
 TEST(ParameterValidation, RetryConfigSetting)
@@ -3041,12 +2981,7 @@ int main(int argc, char** argv) {
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
         } else if (strcmp("--useQTIP", argv[i]) == 0) {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             UseQTIP = true;
-#else
-            printf("QTIP is not supported in this build.\n");
-            return -1;
-#endif
         } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");
         } else if (strcmp("--timeout", argv[i]) == 0) {

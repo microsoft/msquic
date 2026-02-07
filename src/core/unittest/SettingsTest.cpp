@@ -807,7 +807,6 @@ TEST(SettingsTest, GlobalLoadBalancingServerIDSet)
             &OldMode));
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
 {
     uint8_t RawConfig[QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
@@ -873,4 +872,3 @@ TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
             sizeof(RawConfig),
             Config));
 }
-#endif
