@@ -21,30 +21,10 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: 029fd9da6a9c0fcdcc3b74e856367b70140143ff0d5e4579fec5cc504e96803f
+# frontmatter-hash: 26cc7ca0ef86056f8a2962e4e3f397d310b808e5ac1f2e3b25da56fbf66442c4
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
-  pull_request:
-    types:
-    - opened
-    - synchronize
-    - reopened
-  workflow_call:
-    inputs:
-      filter:
-        default: ^src/.*
-        description: Regex pattern to filter file paths
-        required: false
-        type: string
-      pr_number:
-        description: Pull Request number to analyze
-        required: false
-        type: number
-      repo:
-        description: Repository in owner/repo format (e.g., microsoft/msquic). Defaults to current repo.
-        required: false
-        type: string
   workflow_dispatch:
     inputs:
       filter:
@@ -64,8 +44,7 @@ name: "Generate Tests for PR Files with DeepTest"
 permissions: {}
 
 concurrency:
-  group: "gh-aw-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
-  cancel-in-progress: true
+  group: "gh-aw-${{ github.workflow }}"
 
 run-name: "Generate Tests for PR Files with DeepTest"
 
@@ -79,7 +58,6 @@ env:
 
 jobs:
   activation:
-    if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.id == github.repository_id)
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -111,6 +89,8 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
+    concurrency:
+      group: "gh-aw-copilot-${{ github.workflow }}"
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       GH_AW_ASSETS_ALLOWED_EXTS: ""
@@ -912,6 +892,8 @@ jobs:
     if: needs.agent.outputs.output_types != '' || needs.agent.outputs.has_patch == 'true'
     runs-on: ubuntu-latest
     permissions: {}
+    concurrency:
+      group: "gh-aw-copilot-${{ github.workflow }}"
     timeout-minutes: 10
     outputs:
       success: ${{ steps.parse_results.outputs.success }}
