@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: a8bfee413cd2f28615012dc790afd980abd8708506f043ca37f42bbbd0067043
+# frontmatter-hash: a18bdc16cae372aea62d7f6681b4e895db31d095751bd1495b8a024498a6bc69
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -190,7 +190,7 @@ jobs:
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
           cat > /opt/gh-aw/safeoutputs/config.json << 'EOF'
-          {"create_pull_request":{},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
+          {"create_pull_request":{"expires":168},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
           EOF
           cat > /opt/gh-aw/safeoutputs/tools.json << 'EOF'
           [
@@ -1067,7 +1067,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request\":{\"base_branch\":\"${{ github.ref_name }}\",\"draft\":true,\"labels\":[\"automation\",\"tests\",\"deeptest\"],\"max\":1,\"max_patch_size\":1024},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request\":{\"base_branch\":\"${{ github.ref_name }}\",\"draft\":true,\"expires\":168,\"labels\":[\"automation\",\"tests\",\"deeptest\"],\"max\":1,\"max_patch_size\":1024},\"missing_data\":{},\"missing_tool\":{}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
