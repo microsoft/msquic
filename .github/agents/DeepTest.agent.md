@@ -43,7 +43,7 @@ inputs:
     default: ".\artifacts\coverage\msquiccoverage.xml"
  
 ```
-You are generating tests for the {{component}} component. {{#if focal}}  The test should specifically target the {{focal}} function.{{/if}} Your task is to augment the existing harness found in {{harness}} with high quality tests that improve coverage. You must invoke the **coverage-analysis** skill with the appropriate inputs to compute coverage. You must **not** attempt to build or run the tests yourself.
+You are generating tests for the {{component}} component. {{#if focal}}  The test should specifically target the {{focal}} function.{{/if}} Your task is to augment the existing harness found in {{harness}} with high quality tests that improve coverage. You must invoke the **coverage-analysis** skill with {{harness}} to compute coverage. You must **not** attempt to build or run the tests yourself.
 
 If a focal function name is provided, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs.
 
