@@ -1230,8 +1230,7 @@ QuicBindingShouldRetryConnection(
     _In_ QUIC_RX_PACKET* Packet,
     _In_ uint16_t TokenLength,
     _In_reads_(TokenLength)
-        const uint8_t* Token,
-    _Inout_ BOOLEAN* DropPacket
+        const uint8_t* Token
     )
 {
     //
@@ -1248,12 +1247,8 @@ QuicBindingShouldRetryConnection(
         // to validate retry tokens is fatal. Failure to validate NEW_TOKEN
         // tokens is not.
         //
-        if (QuicPacketValidateInitialToken(
-                Binding, Packet, TokenLength, Token, DropPacket)) {
+        if (QuicPacketValidateInitialToken(Binding, Packet, TokenLength, Token)) {
             Packet->ValidToken = TRUE;
-            return FALSE;
-        }
-        if (*DropPacket) {
             return FALSE;
         }
     }
@@ -1582,17 +1577,13 @@ QuicBindingDeliverPackets(
 
         CXPLAT_DBG_ASSERT(Binding->ServerOwned);
 
-        BOOLEAN DropPacket = FALSE;
-        if (QuicBindingShouldRetryConnection(
-                Binding, Packets, TokenLength, Token, &DropPacket)) {
+        if (QuicBindingShouldRetryConnection(Binding, Packets, TokenLength, Token)) {
             return
                 QuicBindingQueueStatelessOperation(
                     Binding, QUIC_OPER_TYPE_RETRY, Packets);
         }
 
-        if (!DropPacket) {
-            Connection = QuicBindingCreateConnection(Binding, Packets);
-        }
+        Connection = QuicBindingCreateConnection(Binding, Packets);
     }
 
     if (Connection == NULL) {
