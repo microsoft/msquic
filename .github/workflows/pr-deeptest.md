@@ -43,7 +43,8 @@ env:
   PR_REPO: ${{ inputs.repo || github.repository }}
   FILTER: ${{ inputs.filter || '^src/.*' }}
   RUN_ID: ${{ github.run_id }}
-  PR_FILES_PATH: /tmp/pr-files.json
+  PR_FILES_PATH: /tmp/gh-aw/pr-files.json
+  COVERAGE_RESULT_PATH: /tmp/gh-aw/coverage-result.md
 engine:
   id: copilot
   agent: DeepTest
@@ -69,11 +70,19 @@ steps:
     uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
     with:
       name: pr-files-list
-      path: /tmp
+      path: /tmp/gh-aw
   - name: Display PR Files
     run: |
       echo "PR Files to analyze:"
-      cat /tmp/pr-files.json
+      cat /tmp/gh-aw/pr-files.json
+post-steps:
+  - name: Upload Coverage Result
+    if: always()
+    uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+    with:
+      name: coverage-result
+      path: /tmp/gh-aw/coverage-result.md
+      if-no-files-found: ignore
 ---
 
 # Generate Tests for PR Files with DeepTest
@@ -111,26 +120,17 @@ Based on the files in the PR, identify related test harnesses:
    - **`removed`**: Check if associated tests should be removed or updated
 2. Create test cases following MsQuic test patterns in `src/test/`
 3. Stage all new and modified test files with `git add`
+4. Store the coverage report at `${{ env.COVERAGE_RESULT_PATH }}`.
 
 You must never attempt to run `git push` as it is not supported in this environment.
 
-### Step 3: Create Report
-
-Generate a markdown report based on the test generation output from Step 2:
-- List of files analyzed
-- Tests created or modified for each file
-- Any files skipped and why
-
-### Step 4: Create Pull Request
+### Step 3: Create Pull Request
 
 Check if there are staged changes using `git diff --cached --stat`.
 
 If there are staged changes, use `create_pull_request` with:
 - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
-- Body: Include the following sections:
-  - Summary: "Auto-generated tests for files changed in PR #${{ env.PR_NUMBER }} by DeepTest workflow run #${{ env.RUN_ID }}."
-  - Report: The report from Step 3
-  - List of test files added/modified
+- Body: Read and use the content from `${{ env.COVERAGE_RESULT_PATH }}`
 - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ env.RUN_ID }}"
 
 If no staged changes, use `noop` with message "No test changes generated for PR #${{ env.PR_NUMBER }}."

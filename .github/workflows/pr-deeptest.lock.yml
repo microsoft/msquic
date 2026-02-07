@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: b9348a8cc59b4a068917e5f7fa6fdadb58942753a9796750793590e826811a59
+# frontmatter-hash: 029fd9da6a9c0fcdcc3b74e856367b70140143ff0d5e4579fec5cc504e96803f
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -70,8 +70,9 @@ concurrency:
 run-name: "Generate Tests for PR Files with DeepTest"
 
 env:
+  COVERAGE_RESULT_PATH: /tmp/gh-aw/coverage-result.md
   FILTER: ${{ inputs.filter || '^src/.*' }}
-  PR_FILES_PATH: /tmp/pr-files.json
+  PR_FILES_PATH: /tmp/gh-aw/pr-files.json
   PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
   PR_REPO: ${{ inputs.repo || github.repository }}
   RUN_ID: ${{ github.run_id }}
@@ -141,11 +142,11 @@ jobs:
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # fa0a91b85d4f404e444e00e005971372dc801d16
         with:
           name: pr-files-list
-          path: /tmp
+          path: /tmp/gh-aw
       - name: Display PR Files
         run: |-
           echo "PR Files to analyze:"
-          cat /tmp/pr-files.json
+          cat /tmp/gh-aw/pr-files.json
 
       - name: Configure Git credentials
         env:
@@ -762,6 +763,14 @@ jobs:
           # AWF runs with sudo, creating files owned by root
           sudo chmod -R a+r /tmp/gh-aw/sandbox/firewall/logs 2>/dev/null || true
           awf logs summary | tee -a "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        name: Upload Coverage Result
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+        with:
+          if-no-files-found: ignore
+          name: coverage-result
+          path: /tmp/gh-aw/coverage-result.md
+
       - name: Upload agent artifacts
         if: always()
         continue-on-error: true
