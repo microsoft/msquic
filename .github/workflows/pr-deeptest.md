@@ -112,6 +112,8 @@ Based on the files in the PR, identify related test harnesses:
 2. Create test cases following MsQuic test patterns in `src/test/`
 3. Stage all new and modified test files with `git add`
 
+You must never attempt to run `git push` as it is not supported in this environment.
+
 ### Step 3: Create Report
 
 Generate a markdown report based on the test generation output from Step 2:
