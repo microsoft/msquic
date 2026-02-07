@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: 5ce6cf9c0f9514855c5d7be45c7b1782227a7501a23b44ec7a6a93ee2fd47e31
+# frontmatter-hash: f523c237a3f5513cc1965d71aa9d30ea99c9d1ecc753e5c482500681a0aef708
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -138,7 +138,7 @@ jobs:
           echo "PR Files to analyze:"
           cat /tmp/pr-files.json
       - name: Install PowerShell
-        run: "# Check if pwsh is available\nif command -v pwsh &> /dev/null; then\n    echo \"PowerShell already installed:\"\n    pwsh --version\nelse\n    echo \"PowerShell not found, checking common paths...\"\n    if [ -f /usr/bin/pwsh ]; then\n        echo \"Found pwsh at /usr/bin/pwsh, adding to PATH\"\n        export PATH=\"/usr/bin:$PATH\"\n    else\n        echo \"Installing PowerShell...\"\n        sudo apt-get update\n        sudo apt-get install -y wget\n        source /etc/os-release\n        wget -q \"https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb\"\n        sudo dpkg -i packages-microsoft-prod.deb\n        rm packages-microsoft-prod.deb\n        sudo apt-get update\n        sudo apt-get install -y powershell\n    fi\n    pwsh --version\nfi\n"
+        run: "# Check if pwsh is available\necho \"Installing PowerShell...\"\nsudo apt-get update\nsudo apt-get install -y wget\nsource /etc/os-release\nwget -q \"https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb\"\nsudo dpkg -i packages-microsoft-prod.deb\nrm packages-microsoft-prod.deb\nsudo apt-get update\nsudo apt-get install -y powershell\npwsh --version\n"
 
       - name: Configure Git credentials
         env:

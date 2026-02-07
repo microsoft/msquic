@@ -65,28 +65,16 @@ steps:
       cat /tmp/pr-files.json
   - name: Install PowerShell
     run: |
-      # Check if pwsh is available
-      if command -v pwsh &> /dev/null; then
-          echo "PowerShell already installed:"
-          pwsh --version
-      else
-          echo "PowerShell not found, checking common paths..."
-          if [ -f /usr/bin/pwsh ]; then
-              echo "Found pwsh at /usr/bin/pwsh, adding to PATH"
-              export PATH="/usr/bin:$PATH"
-          else
-              echo "Installing PowerShell..."
-              sudo apt-get update
-              sudo apt-get install -y wget
-              source /etc/os-release
-              wget -q "https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb"
-              sudo dpkg -i packages-microsoft-prod.deb
-              rm packages-microsoft-prod.deb
-              sudo apt-get update
-              sudo apt-get install -y powershell
-          fi
-          pwsh --version
-      fi
+      echo "Installing PowerShell..."
+      sudo apt-get update
+      sudo apt-get install -y wget
+      source /etc/os-release
+      wget -q "https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb"
+      sudo dpkg -i packages-microsoft-prod.deb
+      rm packages-microsoft-prod.deb
+      sudo apt-get update
+      sudo apt-get install -y powershell
+      pwsh --version
 ---
 
 # Generate Tests for PR Files with DeepTest
