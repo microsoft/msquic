@@ -22,5 +22,4 @@ jobs:
       plat: 'linux'
       os: 'ubuntu-24.04'
       arch: 'x64'
-      tls: 'openssl'
       repo: ${{ github.repository }}
