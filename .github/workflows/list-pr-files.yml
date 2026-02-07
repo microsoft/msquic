@@ -1,8 +1,6 @@
 name: List PR Files
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -123,6 +121,7 @@ jobs:
             // Set outputs - single combined JSON object
             const prFiles = {
               pr_number: prNumber,
+              repo: `${owner}/${repo}`,
               filter: filterPattern,
               files_count: filteredFiles.length,
               files: filteredFiles
