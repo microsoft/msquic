@@ -79,25 +79,20 @@ Each file entry contains:
 
 ## Instructions
 
-### Step 1: Determine Related Test Suites
+### Step 1: Determine Related Test Harnesses
 
-Based on the files in the PR, identify related test suites:
+Based on the files in the PR, identify related test harnesses:
 
 1. Read the PR files list from `${{ env.PR_FILES_PATH }}`
-2. For each file path, map to relevant test suites:
-   - `src/core/*.c` → Test suites: `Basic*`, `Core*`, `Connection*`, `Stream*`
-   - `src/core/cubic.c` → Test suites: `Cubic*`, `CongestionControl*`
-   - `src/core/loss_detection.c` → Test suites: `Loss*`, `Recovery*`
-   - `src/core/stream.c` → Test suites: `Stream*`
-   - `src/core/connection.c` → Test suites: `Connection*`
-   - `src/platform/*.c` → Test suites: `Platform*`, `Datapath*`
-3. Construct a gtest filter expression combining the relevant suites (e.g., `"Cubic*:Stream*:Connection*"`)
+2. For each file path, map to relevant test harnesses:
+   - `src/core/*.c` → Test harnesses: `Basic*`, `Core*`, `Connection*`, `Stream*`
+   - `src/core/cubic.c` → Test harnesses: `Cubic*`, `CongestionControl*`
+   - `src/core/loss_detection.c` → Test harnesses: `Loss*`, `Recovery*`
+   - `src/core/stream.c` → Test harnesses: `Stream*`
+   - `src/core/connection.c` → Test harnesses: `Connection*`
+   - `src/platform/*.c` → Test harnesses: `Platform*`, `Datapath*`
 
-### Step 2: Compute Baseline Coverage
-
-Use the skill `coverage-analysis` with the gtest filter from Step 1 to compute the current test coverage before generating new tests. Save this as the baseline.
-
-### Step 3: Generate Tests
+### Step 2: Create Tests for Each Changed File
 
 1. For each file in the `files` array, check the `status` field:
    - **`added`**: Analyze the new code and create comprehensive tests
@@ -106,18 +101,14 @@ Use the skill `coverage-analysis` with the gtest filter from Step 1 to compute t
 2. Create test cases following MsQuic test patterns in `src/test/`
 3. Stage all new and modified test files with `git add`
 
-### Step 4: Compute Updated Coverage
+### Step 3: Create Report
 
-Use the skill `coverage-analysis` again with the gtest filter (including any new test names) to compute the test coverage after generating new tests.
+Generate a markdown report based on the test generation output from Step 2:
+- List of files analyzed
+- Tests created or modified for each file
+- Any files skipped and why
 
-### Step 5: Compare Coverage and Generate Report
-
-Compare the baseline and updated coverage results. Generate a markdown report including:
-- Coverage before and after
-- Coverage change (increase/decrease)
-- Per-file coverage for files in the PR
-
-## Create Pull Request
+### Step 4: Create Pull Request
 
 Check if there are staged changes using `git diff --cached --stat`.
 
@@ -125,7 +116,7 @@ If there are staged changes, use `create_pull_request` with:
 - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
 - Body: Include the following sections:
   - Summary: "Auto-generated tests for files changed in PR #${{ env.PR_NUMBER }} by DeepTest workflow run #${{ env.RUN_ID }}."
-  - Coverage Report: The comparison report from Step 5
+  - Report: The report from Step 3
   - List of test files added/modified
 - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ env.RUN_ID }}"
 
