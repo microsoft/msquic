@@ -9,6 +9,10 @@ on:
         description: 'Pull Request number to analyze'
         required: true
         type: number
+      repo:
+        description: 'Repository in owner/repo format (e.g., microsoft/msquic). Defaults to current repo.'
+        required: false
+        type: string
       filter:
         description: 'Regex pattern to filter file paths (e.g., "^src/.*" to include only src/)'
         required: false
@@ -20,6 +24,10 @@ on:
         description: 'Pull Request number to analyze'
         required: false
         type: number
+      repo:
+        description: 'Repository in owner/repo format (e.g., microsoft/msquic). Defaults to current repo.'
+        required: false
+        type: string
       filter:
         description: 'Regex pattern to filter file paths'
         required: false
@@ -32,6 +40,7 @@ permissions:
 roles: all
 env:
   PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+  PR_REPO: ${{ inputs.repo || github.repository }}
   FILTER: ${{ inputs.filter || '^src/.*' }}
   RUN_ID: ${{ github.run_id }}
   PR_FILES_PATH: /tmp/pr-files.json
@@ -53,6 +62,7 @@ jobs:
       pull-requests: read
     with:
       pr_number: ${{ fromJSON(inputs.pr_number || github.event.pull_request.number || '0') }}
+      repo: ${{ inputs.repo || '' }}
       filter: ${{ inputs.filter || '^src/.*' }}
 steps:
   - name: Download PR Files List
@@ -68,7 +78,7 @@ steps:
 
 # Generate Tests for PR Files with DeepTest
 
-Analyze files changed in PR #${{ env.PR_NUMBER }} and generate comprehensive tests.
+Analyze files changed in PR #${{ env.PR_NUMBER }} from repository `${{ env.PR_REPO }}` and generate comprehensive tests.
 
 ## PR Files to Analyze
 

@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: a18bdc16cae372aea62d7f6681b4e895db31d095751bd1495b8a024498a6bc69
+# frontmatter-hash: b9348a8cc59b4a068917e5f7fa6fdadb58942753a9796750793590e826811a59
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -41,6 +41,10 @@ name: "Generate Tests for PR Files with DeepTest"
         description: Pull Request number to analyze
         required: false
         type: number
+      repo:
+        description: Repository in owner/repo format (e.g., microsoft/msquic). Defaults to current repo.
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       filter:
@@ -52,6 +56,10 @@ name: "Generate Tests for PR Files with DeepTest"
         description: Pull Request number to analyze
         required: true
         type: number
+      repo:
+        description: Repository in owner/repo format (e.g., microsoft/msquic). Defaults to current repo.
+        required: false
+        type: string
 
 permissions: {}
 
@@ -65,6 +73,7 @@ env:
   FILTER: ${{ inputs.filter || '^src/.*' }}
   PR_FILES_PATH: /tmp/pr-files.json
   PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+  PR_REPO: ${{ inputs.repo || github.repository }}
   RUN_ID: ${{ github.run_id }}
 
 jobs:
@@ -998,6 +1007,7 @@ jobs:
     with:
       filter: ${{ inputs.filter || '^src/.*' }}
       pr_number: ${{ fromJSON(inputs.pr_number || github.event.pull_request.number || '0') }}
+      repo: ${{ inputs.repo || '' }}
 
   safe_outputs:
     needs:
