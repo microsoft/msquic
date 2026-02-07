@@ -118,6 +118,7 @@ If there are staged changes, use `create_pull_request` with:
   - Summary: "Auto-generated tests for files changed in PR #${{ env.PR_NUMBER }} by DeepTest workflow run #${{ env.RUN_ID }}."
   - Report: The report from Step 3
   - List of test files added/modified
+  - Expiration: "⚠️ This PR will expire on [DATE 7 days from now]. Please review and merge before expiration."
 - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ env.RUN_ID }}"
 
 If no staged changes, use `noop` with message "No test changes generated for PR #${{ env.PR_NUMBER }}."
