@@ -77,9 +77,11 @@ Each file entry contains:
 - `path`: The file path relative to the repository root
 - `status`: One of `added`, `modified`, or `removed`
 
-## Step 1: Determine Related Test Suites
+## Instructions
 
-Based on the files in the PR, identify related test suites to run:
+### Step 1: Determine Related Test Suites
+
+Based on the files in the PR, identify related test suites:
 
 1. Read the PR files list from `${{ env.PR_FILES_PATH }}`
 2. For each file path, map to relevant test suites:
@@ -89,49 +91,13 @@ Based on the files in the PR, identify related test suites to run:
    - `src/core/stream.c` → Test suites: `Stream*`
    - `src/core/connection.c` → Test suites: `Connection*`
    - `src/platform/*.c` → Test suites: `Platform*`, `Datapath*`
-   - `src/test/lib/*.cpp` → Run the specific test file's suite
 3. Construct a gtest filter expression combining the relevant suites (e.g., `"Cubic*:Stream*:Connection*"`)
-4. Save this filter for use in coverage commands
 
-## Step 2: Install PowerShell
+### Step 2: Compute Baseline Coverage
 
-Install PowerShell in the sandbox before running build/test scripts:
+Use the skill `coverage-analysis` with the gtest filter from Step 1 to compute the current test coverage before generating new tests. Save this as the baseline.
 
-```bash
-sudo apt-get update
-sudo apt-get install -y wget
-source /etc/os-release
-wget -q "https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb"
-sudo dpkg -i packages-microsoft-prod.deb
-rm packages-microsoft-prod.deb
-sudo apt-get update
-sudo apt-get install -y powershell
-pwsh --version
-```
-
-## Step 3: Measure Baseline Code Coverage
-
-Before generating new tests, measure the current test coverage as a baseline:
-
-1. **Prepare Machine**:
-   ```bash
-   pwsh scripts/prepare-machine.ps1 -ForBuild -ForTest -InstallCodeCoverage
-   ```
-
-2. **Build with Coverage**:
-   ```bash
-   pwsh scripts/build.ps1 -CodeCoverage
-   ```
-
-3. **Run Tests with Coverage (Baseline)**:
-   ```bash
-   pwsh scripts/test.ps1 -CodeCoverage -Filter "<selected_test_suites>"
-   ```
-   Use the gtest filter determined in Step 1.
-
-4. Save the baseline coverage output to a file or variable for later comparison.
-
-## Step 4: Generate Tests
+### Step 3: Generate Tests
 
 1. For each file in the `files` array, check the `status` field:
    - **`added`**: Analyze the new code and create comprehensive tests
@@ -140,51 +106,18 @@ Before generating new tests, measure the current test coverage as a baseline:
 2. Create test cases following MsQuic test patterns in `src/test/`
 3. Stage all new and modified test files with `git add`
 
-## Step 5: Measure Updated Code Coverage
+### Step 4: Compute Updated Coverage
 
-After generating tests, measure the new coverage:
+Use the skill `coverage-analysis` again with the gtest filter (including any new test names) to compute the test coverage after generating new tests.
 
-1. **Rebuild with Coverage** (if test files changed):
-   ```bash
-   pwsh scripts/build.ps1 -CodeCoverage
-   ```
+### Step 5: Compare Coverage and Generate Report
 
-2. **Run Tests with Coverage (After)**:
-   ```bash
-   pwsh scripts/test.ps1 -CodeCoverage -Filter "<selected_test_suites>:*NewTestName*"
-   ```
-   Update the filter to include your newly generated test names.
+Compare the baseline and updated coverage results. Generate a markdown report including:
+- Coverage before and after
+- Coverage change (increase/decrease)
+- Per-file coverage for files in the PR
 
-3. Save the updated coverage output.
-
-## Step 6: Generate Coverage Comparison Report
-
-Compare baseline and updated coverage:
-
-1. Extract key metrics from both runs:
-   - Total lines covered
-   - Total lines
-   - Coverage percentage
-   - Per-file coverage for files in the PR
-
-2. Create a markdown report:
-   ```markdown
-   ## Code Coverage Report
-   
-   ### Summary
-   | Metric | Baseline | After | Change |
-   |--------|----------|-------|--------|
-   | Lines Covered | X | Y | +Z |
-   | Total Lines | A | B | +C |
-   | Coverage % | P% | Q% | +R% |
-   
-   ### Per-File Coverage (PR Files)
-   | File | Baseline | After | Change |
-   |------|----------|-------|--------|
-   | src/core/example.c | X% | Y% | +Z% |
-   ```
-
-## Step 7: Create Pull Request
+## Create Pull Request
 
 Check if there are staged changes using `git diff --cached --stat`.
 
@@ -192,8 +125,7 @@ If there are staged changes, use `create_pull_request` with:
 - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
 - Body: Include the following sections:
   - Summary: "Auto-generated tests for files changed in PR #${{ env.PR_NUMBER }} by DeepTest workflow run #${{ env.RUN_ID }}."
-  - Code Coverage Report: The comparison report from Step 6
-  - Test Suites Run: The gtest filter used
+  - Coverage Report: The comparison report from Step 5
   - List of test files added/modified
 - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ env.RUN_ID }}"
 
