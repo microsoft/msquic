@@ -1,0 +1,128 @@
+name: Build Unix
+
+# The caller is responsible for making sure all options passed to this workflow are valid and compatible with each other.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        default: ''
+        type: string
+      repo:
+        required: false
+        default: microsoft/msquic
+        type: string
+      config:
+        required: false
+        default: 'Release'
+        type: string
+        # options:
+        #   - Debug
+        #   - Release
+      plat:
+        required: false
+        type: string
+        default: 'linux'
+        # options:
+        #   - linux
+        #   - android
+        #   - ios
+        #   - macos
+      os:
+        required: false
+        type: string
+        default: 'ubuntu-22.04'
+        # options:
+        #   - ubuntu-22.04
+        #   - ubuntu-24.04
+        #   - macos-15
+      arch:
+        required: false
+        default: 'x64'
+        type: string
+        # options:
+        #   - x86
+        #   - x64
+        #   - arm
+        #   - arm64
+      tls:
+        required: false
+        default: 'quictls'
+        type: string
+        # options:
+        #   - quictls
+        #   - openssl
+      static:
+        required: false
+        default: ''
+        type: string
+      systemcrypto:
+        required: false
+        default: ''
+        type: string
+      clang:
+        required: false
+        default: ''
+        type: string
+      codecheck:
+        required: false
+        default: ''
+        type: string
+      xdp:
+        required: false
+        default: ''
+        type: string
+      iouring:
+        required: false
+        default: ''
+        type: string
+      sanitize:
+        required: false
+        default: ''
+        type: string
+      build:
+        required: false
+        default: '' # Empty string means build all
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-unix-reuse:
+    name: Build
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
+    container:
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      with:
+        repository: ${{ inputs.repo}}
+        ref: ${{ inputs.ref }}
+    - name: Set ownership
+      if: inputs.plat == 'linux'
+      run: |
+        # this is to fix GIT not liking owner of the checkout dir
+        chown -R $(id -u):$(id -g) $PWD
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }}
+    - name: Build For Test
+      if: inputs.build == '-Test'
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ inputs.xdp }} ${{ inputs.iouring }} -OneBranch
+    - name: Build For Perf
+      if: inputs.build == '-Perf'
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ inputs.xdp }} ${{ inputs.iouring }}
+    - name: Build
+      if: inputs.build == ''
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ inputs.xdp }} ${{ inputs.iouring }} -OneBranch
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+      with:
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.iouring }}${{ inputs.build }}
+        path: artifacts
