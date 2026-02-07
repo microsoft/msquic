@@ -33,8 +33,8 @@ class TestListener
     HQUIC QuicListener;
     HQUIC QuicConfiguration;
 
-    bool FilterConnections : 1;
-    bool HasRandomLoss     : 1;
+    bool FilterConnections;
+    bool HasRandomLoss;
 
     NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallback;
 
