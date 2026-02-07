@@ -1,0 +1,26 @@
+name: Build PR Ubuntu
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+    - master
+
+concurrency:
+  group: build-pr-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-ubuntu:
+    name: Ubuntu Release x64
+    uses: ./.github/workflows/build-reuse-unix.yml
+    with:
+      config: 'Release'
+      plat: 'linux'
+      os: 'ubuntu-24.04'
+      arch: 'x64'
+      tls: 'openssl'
+      repo: ${{ github.repository }}
