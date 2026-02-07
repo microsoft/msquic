@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: f523c237a3f5513cc1965d71aa9d30ea99c9d1ecc753e5c482500681a0aef708
+# frontmatter-hash: a8bfee413cd2f28615012dc790afd980abd8708506f043ca37f42bbbd0067043
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -134,11 +134,9 @@ jobs:
           name: pr-files-list
           path: /tmp
       - name: Display PR Files
-        run: |
+        run: |-
           echo "PR Files to analyze:"
           cat /tmp/pr-files.json
-      - name: Install PowerShell
-        run: "# Check if pwsh is available\necho \"Installing PowerShell...\"\nsudo apt-get update\nsudo apt-get install -y wget\nsource /etc/os-release\nwget -q \"https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb\"\nsudo dpkg -i packages-microsoft-prod.deb\nrm packages-microsoft-prod.deb\nsudo apt-get update\nsudo apt-get install -y powershell\npwsh --version\n"
 
       - name: Configure Git credentials
         env:

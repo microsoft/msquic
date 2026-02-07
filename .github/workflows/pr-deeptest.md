@@ -63,18 +63,6 @@ steps:
     run: |
       echo "PR Files to analyze:"
       cat /tmp/pr-files.json
-  - name: Install PowerShell
-    run: |
-      echo "Installing PowerShell..."
-      sudo apt-get update
-      sudo apt-get install -y wget
-      source /etc/os-release
-      wget -q "https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb"
-      sudo dpkg -i packages-microsoft-prod.deb
-      rm packages-microsoft-prod.deb
-      sudo apt-get update
-      sudo apt-get install -y powershell
-      pwsh --version
 ---
 
 # Generate Tests for PR Files with DeepTest
@@ -105,7 +93,23 @@ Based on the files in the PR, identify related test suites to run:
 3. Construct a gtest filter expression combining the relevant suites (e.g., `"Cubic*:Stream*:Connection*"`)
 4. Save this filter for use in coverage commands
 
-## Step 2: Measure Baseline Code Coverage
+## Step 2: Install PowerShell
+
+Install PowerShell in the sandbox before running build/test scripts:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y wget
+source /etc/os-release
+wget -q "https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb"
+sudo dpkg -i packages-microsoft-prod.deb
+rm packages-microsoft-prod.deb
+sudo apt-get update
+sudo apt-get install -y powershell
+pwsh --version
+```
+
+## Step 3: Measure Baseline Code Coverage
 
 Before generating new tests, measure the current test coverage as a baseline:
 
@@ -127,7 +131,7 @@ Before generating new tests, measure the current test coverage as a baseline:
 
 4. Save the baseline coverage output to a file or variable for later comparison.
 
-## Step 3: Generate Tests
+## Step 4: Generate Tests
 
 1. For each file in the `files` array, check the `status` field:
    - **`added`**: Analyze the new code and create comprehensive tests
@@ -136,7 +140,7 @@ Before generating new tests, measure the current test coverage as a baseline:
 2. Create test cases following MsQuic test patterns in `src/test/`
 3. Stage all new and modified test files with `git add`
 
-## Step 4: Measure Updated Code Coverage
+## Step 5: Measure Updated Code Coverage
 
 After generating tests, measure the new coverage:
 
@@ -153,7 +157,7 @@ After generating tests, measure the new coverage:
 
 3. Save the updated coverage output.
 
-## Step 5: Generate Coverage Comparison Report
+## Step 6: Generate Coverage Comparison Report
 
 Compare baseline and updated coverage:
 
@@ -180,7 +184,7 @@ Compare baseline and updated coverage:
    | src/core/example.c | X% | Y% | +Z% |
    ```
 
-## Step 6: Create Pull Request
+## Step 7: Create Pull Request
 
 Check if there are staged changes using `git diff --cached --stat`.
 
@@ -188,7 +192,7 @@ If there are staged changes, use `create_pull_request` with:
 - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
 - Body: Include the following sections:
   - Summary: "Auto-generated tests for files changed in PR #${{ env.PR_NUMBER }} by DeepTest workflow run #${{ env.RUN_ID }}."
-  - Code Coverage Report: The comparison report from Step 5
+  - Code Coverage Report: The comparison report from Step 6
   - Test Suites Run: The gtest filter used
   - List of test files added/modified
 - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ env.RUN_ID }}"
