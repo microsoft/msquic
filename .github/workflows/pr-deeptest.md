@@ -62,7 +62,7 @@ jobs:
       contents: read
       pull-requests: read
     with:
-      pr_number: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_number }}
+      pr_number: ${{ fromJSON(needs.resolve-params-for-list-pr-files.outputs.pr_number) }}
       repo: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_repo }}
       filter: ${{ needs.resolve-params-for-list-pr-files.outputs.filter }}
 steps:

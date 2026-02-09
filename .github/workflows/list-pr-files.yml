@@ -46,7 +46,7 @@ env:
 jobs:
   list-files:
     name: List Changed Files
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     outputs:
       pr_files: ${{ steps.list-files.outputs.pr_files }}
     steps:
