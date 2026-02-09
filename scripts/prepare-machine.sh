@@ -362,6 +362,13 @@ install_test_certificates() {
     else
         log "Test certificates already exist at $pfx_file"
     fi
+
+    # When running under sudo, chown artifacts back to the real user
+    # so non-root builds can write there
+    if [ -n "${SUDO_USER:-}" ] && [ -d "$ARTIFACTS_DIR" ]; then
+        log "Fixing artifacts ownership for user $SUDO_USER"
+        chown -R "$SUDO_USER:$(id -gn "$SUDO_USER")" "$ARTIFACTS_DIR"
+    fi
 }
 
 ##############################################################################
