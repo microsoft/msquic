@@ -60,6 +60,9 @@ make CONFIG=Release PARALLEL=8
 
 # Run tests
 make test
+
+# Build with coverage, run tests, generate report
+make coverage
 ```
 
 ---
@@ -76,6 +79,7 @@ make test
 | `make TLS=openssl` | Force OpenSSL TLS backend |
 | `make ARCH=arm64` | Cross-compile for arm64 |
 | `make configure` | CMake configure only (no build) |
+| `make coverage` | Clean build with gcov, run tests, generate Cobertura XML report |
 | `make clean` | Remove build and artifact directories |
 
 Variables can be combined: `make CONFIG=Release TLS=openssl PARALLEL=8`
@@ -187,6 +191,18 @@ Run `./scripts/test.sh --help` for the full list of options.
 
 Code coverage uses `gcov` (compile-time instrumentation) and `gcovr` (report
 generation). This is supported on **Linux only**.
+
+### Quick Way
+
+```sh
+make coverage
+```
+
+This does everything in one step: clean builds with `--coverage` instrumentation,
+runs all tests, and generates a Cobertura XML report at
+`artifacts/coverage/msquiccoverage.xml`.
+
+### Manual Steps
 
 ### 1. Install gcovr
 
