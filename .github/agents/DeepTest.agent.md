@@ -1,6 +1,6 @@
 ---
 name: DeepTest
-description: 'This agent generates high quality tests for production code at scale. Tests are idiomatic to existing suites, uncover product bugs and test new paths and scenarios that the existing test suite does not cover.'
+description: 'This agent generates high-quality tests for production code at scale. Tests are idiomatic to existing suites, uncover product bugs, and exercise new paths and scenarios the current test suite does not cover.'
 ---
 
 ```yaml
@@ -43,8 +43,12 @@ inputs:
     default: ".\artifacts\coverage\msquiccoverage.xml"
  
 ```
-You are generating tests for the {{component}} component. {{#if focal}}  The test should specifically target the {{focal}} function.{{/if}} Your task is to augment the existing harness found in {{harness}} with high quality tests that improve coverage. You must invoke the **coverage-analysis** skill with {{harness}} to compute coverage. You must **not** attempt to build or run the tests yourself.
+You are generating tests for the {{component}} component. {{#if focal}} The tests should specifically target the {{focal}} function.{{/if}} Your task is to improve test coverage by iterating through these steps:
 
-If a focal function name is provided, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs.
+1. Augment the existing harness in {{harness}} with high-quality tests that improve coverage. If a focal function name is provided, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs.
 
-At the end, you need to report the coverage before and after generated tests in a markdown file. The report should include a summary of the tests you generated, the coverage improvement, and any uncovered lines or scenarios that the new tests address. The report should be saved to the path specified in `coverage_result`.
+2. Invoke the **coverage-analysis** skill with the existing and newly generated tests in {{harness}} to compute coverage. You must **not** attempt to build or run the tests yourself.
+
+3. Stop iterating if test coverage is already above 95% or after more than 3 iterations.
+
+Save the output of **coverage-analysis** from the final iteration to the path specified in `coverage_result`.
