@@ -185,7 +185,9 @@ fi
 BUILD_DIR="${ROOT_DIR}/build/${PLATFORM}/${ARCH}_${TLS}"
 
 if [ "$CLEAN" -eq 1 ]; then
-    rm -rf "$ARTIFACTS_DIR" "$BUILD_DIR"
+    # Remove build outputs but preserve test certificates (*.pfx)
+    find "$ARTIFACTS_DIR" -mindepth 1 ! -name '*.pfx' -delete 2>/dev/null || true
+    rm -rf "$BUILD_DIR"
 fi
 mkdir -p "${ROOT_DIR}/artifacts" "$BUILD_DIR"
 

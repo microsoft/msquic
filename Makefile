@@ -64,4 +64,5 @@ configure:
 	./scripts/build.sh $(BUILD_FLAGS) --configure-only
 
 clean:
-	rm -rf build/ artifacts/
+	find artifacts/ -mindepth 1 ! -name '*.pfx' -delete 2>/dev/null || true
+	rm -rf build/
