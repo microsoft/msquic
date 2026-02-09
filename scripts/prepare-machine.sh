@@ -89,7 +89,16 @@ if [ -z "$TLS" ]; then
 fi
 
 IS_UBUNTU_2404=0
+DISTRO="unknown"
 if [ "$IS_LINUX" -eq 1 ] && [ -f /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    source /etc/os-release 2>/dev/null || true
+    case "${ID:-}" in
+        ubuntu|debian|linuxmint|pop) DISTRO="debian" ;;
+        arch|manjaro|endeavouros)    DISTRO="arch" ;;
+        fedora|rhel|centos|rocky)    DISTRO="fedora" ;;
+        *)                           DISTRO="unknown" ;;
+    esac
     grep -q "24.04" /etc/os-release 2>/dev/null && IS_UBUNTU_2404=1
 fi
 
@@ -103,6 +112,14 @@ apt_install() {
         apt-get install -y "$@"
     else
         echo "WARNING: apt-get not available. Please install manually: $*" >&2
+    fi
+}
+
+pacman_install() {
+    if command -v pacman >/dev/null 2>&1; then
+        pacman -S --needed --noconfirm "$@"
+    else
+        echo "WARNING: pacman not available. Please install manually: $*" >&2
     fi
 }
 
@@ -144,9 +161,41 @@ init_submodules() {
 # Linux build dependencies
 ##############################################################################
 install_linux_build_deps() {
-    log "Installing Linux build dependencies"
-    apt-get update -y
+    log "Installing Linux build dependencies ($DISTRO)"
 
+    if [ "$DISTRO" = "arch" ]; then
+        install_arch_build_deps
+    else
+        install_debian_build_deps
+    fi
+
+    if [ "$INSTALL_ARM64_TOOLCHAIN" -eq 1 ]; then
+        log "Installing arm64 cross-compilation toolchain"
+        if [ "$DISTRO" = "arch" ]; then
+            pacman_install aarch64-linux-gnu-gcc aarch64-linux-gnu-binutils
+        else
+            apt_install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu g++-aarch64-linux-gnu
+        fi
+    fi
+
+    if [ "$USE_XDP" -eq 1 ]; then
+        log "Installing XDP dependencies"
+        if [ "$DISTRO" = "arch" ]; then
+            pacman_install xdp-tools libbpf libpcap libelf clang pkgconf zlib
+        else
+            apt_install --no-install-recommends libc6-dev-i386 || true
+            if [ "$IS_UBUNTU_2404" -eq 0 ]; then
+                apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y 2>/dev/null || true
+                apt-get update -y
+            fi
+            apt_install libxdp-dev libbpf-dev
+            apt_install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+        fi
+    fi
+}
+
+install_debian_build_deps() {
+    apt-get update -y
     apt_install cmake build-essential liblttng-ust-dev libssl-dev libnuma-dev liburing-dev
 
     # babeltrace2 (fallback to babeltrace)
@@ -159,41 +208,51 @@ install_linux_build_deps() {
     apt_install ruby ruby-dev rpm || true
     gem install public_suffix -v 4.0.7 2>/dev/null || true
     gem install fpm 2>/dev/null || true
+}
 
-    if [ "$INSTALL_ARM64_TOOLCHAIN" -eq 1 ]; then
-        log "Installing arm64 cross-compilation toolchain"
-        apt_install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu g++-aarch64-linux-gnu
-    fi
+install_arch_build_deps() {
+    pacman -Sy --noconfirm
+    pacman_install cmake base-devel openssl numactl liburing
 
-    if [ "$USE_XDP" -eq 1 ]; then
-        log "Installing XDP dependencies"
-        apt_install --no-install-recommends libc6-dev-i386 || true
-        if [ "$IS_UBUNTU_2404" -eq 0 ]; then
-            apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y 2>/dev/null || true
-            apt-get update -y
-        fi
-        apt_install libxdp-dev libbpf-dev
-        apt_install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
-    fi
+    # LTTng (may not be in official repos, skip if unavailable)
+    pacman_install lttng-ust 2>/dev/null || log "WARNING: lttng-ust not available on Arch, tracing will be disabled"
+
+    # babeltrace2
+    pacman_install babeltrace2 2>/dev/null || true
+
+    # Code check tools
+    pacman_install cppcheck clang || true
+
+    # Packaging tools
+    pacman_install ruby rpm-tools 2>/dev/null || true
+    gem install public_suffix -v 4.0.7 2>/dev/null || true
+    gem install fpm 2>/dev/null || true
 }
 
 ##############################################################################
 # Linux test dependencies
 ##############################################################################
 install_linux_test_deps() {
-    log "Installing Linux test dependencies"
-    apt-get update -y
+    log "Installing Linux test dependencies ($DISTRO)"
 
-    apt_install lttng-tools liblttng-ust-dev gdb liburing2 || true
+    if [ "$DISTRO" = "arch" ]; then
+        install_arch_test_deps
+    else
+        install_debian_test_deps
+    fi
 
     if [ "$USE_XDP" -eq 1 ]; then
-        if [ "$IS_UBUNTU_2404" -eq 0 ]; then
-            apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y 2>/dev/null || true
-            apt-get update -y
+        if [ "$DISTRO" = "arch" ]; then
+            pacman_install xdp-tools libbpf libnl iproute2 iptables || true
+        else
+            if [ "$IS_UBUNTU_2404" -eq 0 ]; then
+                apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y 2>/dev/null || true
+                apt-get update -y
+            fi
+            apt_install libxdp1 libbpf1 || true
+            apt_install libnl-3-200 libnl-route-3-200 libnl-genl-3-200 || true
+            apt_install iproute2 iptables || true
         fi
-        apt_install libxdp1 libbpf1 || true
-        apt_install libnl-3-200 libnl-route-3-200 libnl-genl-3-200 || true
-        apt_install iproute2 iptables || true
 
         # Install DuoNic
         local duonic_script="$SCRIPT_DIR/duonic.sh"
@@ -219,6 +278,17 @@ install_linux_test_deps() {
     # Set core dump pattern
     log "Setting core dump pattern"
     echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern 2>/dev/null || true
+}
+
+install_debian_test_deps() {
+    apt-get update -y
+    apt_install lttng-tools liblttng-ust-dev gdb liburing2 || true
+}
+
+install_arch_test_deps() {
+    pacman -Sy --noconfirm
+    pacman_install gdb liburing || true
+    pacman_install lttng-tools lttng-ust 2>/dev/null || log "WARNING: lttng not available on Arch, tracing disabled"
 }
 
 ##############################################################################
@@ -264,7 +334,9 @@ install_code_coverage() {
         return
     fi
     log "Installing gcovr"
-    if command -v pip3 >/dev/null 2>&1; then
+    if [ "$DISTRO" = "arch" ]; then
+        pacman_install python-pip python-gcovr 2>/dev/null || pip install gcovr || true
+    elif command -v pip3 >/dev/null 2>&1; then
         pip3 install gcovr
     elif command -v pip >/dev/null 2>&1; then
         pip install gcovr
