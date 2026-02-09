@@ -26,6 +26,8 @@ safe-outputs:
     draft: true
     expires: 7d
   noop:
+  env:
+    GH_AW_BASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
 jobs:
   # workflow call cannot use env.* as input
   # and thus create a step to pass these
@@ -54,6 +56,10 @@ jobs:
       repo: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_repo }}
       filter: ${{ needs.resolve-params-for-list-pr-files.outputs.filter }}
 steps:
+  - name: Checkout repository
+    uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+    with:
+      fetch-depth: 1
   - name: Download PR Files List
     uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
     with:
