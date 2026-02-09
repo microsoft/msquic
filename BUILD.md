@@ -82,6 +82,9 @@ make test
 
 # Build with coverage, run tests, generate report
 make coverage
+
+# Same as above, but also generate an HTML report
+make coverage-html
 ```
 
 ---
@@ -101,6 +104,7 @@ make coverage
 | `make test` | Init + build + run tests |
 | `make configure` | CMake configure only (no build) |
 | `make coverage` | Init + build with gcov + run tests + generate Cobertura XML |
+| `make coverage-html` | Same as `coverage`, plus HTML report in `artifacts/coverage/html/` |
 | `make clean` | Remove build and artifact directories |
 
 Variables can be combined: `make CONFIG=Release TLS=openssl PARALLEL=8`
@@ -259,7 +263,20 @@ The report is saved in **Cobertura XML** format at
 `artifacts/coverage/msquiccoverage.xml`. This file is directly consumed by CI
 tools like Codecov, Azure Pipelines, and GitHub Actions.
 
-To view coverage locally:
+To generate an HTML report alongside the XML, use:
+
+```sh
+make coverage-html
+```
+
+This produces browsable HTML at `artifacts/coverage/html/index.html`:
+
+```sh
+xdg-open artifacts/coverage/html/index.html   # Linux
+open artifacts/coverage/html/index.html        # macOS
+```
+
+You can also generate reports manually:
 
 ```sh
 # Print a text summary to the terminal
@@ -267,8 +284,7 @@ gcovr -r . --filter "src/core" --filter "src/platform" --filter "src/bin" build/
 
 # Generate an HTML report you can open in a browser
 gcovr -r . --filter "src/core" --filter "src/platform" --filter "src/bin" \
-    --html-details artifacts/coverage/index.html build/
-xdg-open artifacts/coverage/index.html
+    --html-details artifacts/coverage/html/index.html build/
 ```
 
 ### Clang Builds

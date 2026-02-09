@@ -41,7 +41,7 @@ ifneq ($(TLS),)
   INIT_FLAGS += --tls $(TLS)
 endif
 
-.PHONY: all build init test clean configure coverage
+.PHONY: all build init test clean configure coverage coverage-html
 
 all: build
 
@@ -59,6 +59,11 @@ coverage:
 	@echo "NOTE: Run 'sudo make init' first to install packages and generate test certs."
 	./scripts/build.sh $(BUILD_FLAGS) --code-coverage --clean
 	./scripts/test.sh $(TEST_FLAGS) --code-coverage
+
+coverage-html:
+	@echo "NOTE: Run 'sudo make init' first to install packages and generate test certs."
+	./scripts/build.sh $(BUILD_FLAGS) --code-coverage --clean
+	./scripts/test.sh $(TEST_FLAGS) --code-coverage --coverage-html
 
 configure:
 	./scripts/build.sh $(BUILD_FLAGS) --configure-only

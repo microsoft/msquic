@@ -42,6 +42,7 @@ OS_RUNNER=""
 NUM_ITERATIONS=1
 EXTRA_ARTIFACT_DIR=""
 CODE_COVERAGE=0
+COVERAGE_HTML=0
 CLANG=0
 
 ##############################################################################
@@ -74,6 +75,7 @@ while [[ $# -gt 0 ]]; do
         --num-iterations)        NUM_ITERATIONS="$2"; shift 2 ;;
         --extra-artifact-dir)    EXTRA_ARTIFACT_DIR="$2"; shift 2 ;;
         --code-coverage)         CODE_COVERAGE=1; shift ;;
+        --coverage-html)         COVERAGE_HTML=1; shift ;;
         --clang)                 CLANG=1; shift ;;
         -h|--help)
             echo "Usage: $0 [options]"
@@ -221,14 +223,25 @@ if [ "$CODE_COVERAGE" -eq 1 ]; then
     fi
 
     echo "Generating code coverage report..."
-    (cd "$ROOT_DIR" && $GCOVR_TOOL -r . \
-        --filter "src/core" --filter "src/platform" --filter "src/bin" --filter "src/inc" \
-        --exclude "src/.*/test" --exclude "src/.*/unittest" \
-        --cobertura "$COVERAGE_OUTPUT" build/) || true
+    GCOVR_ARGS="-r . \
+        --filter src/core --filter src/platform --filter src/bin --filter src/inc \
+        --exclude src/.*/test --exclude src/.*/unittest \
+        --cobertura $COVERAGE_OUTPUT"
+
+    if [ "$COVERAGE_HTML" -eq 1 ]; then
+        COVERAGE_HTML_DIR="${COVERAGE_DIR}/html"
+        mkdir -p "$COVERAGE_HTML_DIR"
+        GCOVR_ARGS+=" --html-details ${COVERAGE_HTML_DIR}/index.html"
+    fi
+
+    (cd "$ROOT_DIR" && $GCOVR_TOOL $GCOVR_ARGS build/) || true
 
     if [ -f "$COVERAGE_OUTPUT" ]; then
-        echo "Coverage report generated at $COVERAGE_OUTPUT"
+        echo "Coverage report (XML): $COVERAGE_OUTPUT"
     else
         echo "WARNING: No coverage results generated!" >&2
+    fi
+    if [ "$COVERAGE_HTML" -eq 1 ] && [ -f "${COVERAGE_HTML_DIR}/index.html" ]; then
+        echo "Coverage report (HTML): ${COVERAGE_HTML_DIR}/index.html"
     fi
 fi
