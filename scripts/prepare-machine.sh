@@ -123,6 +123,14 @@ pacman_install() {
     fi
 }
 
+dnf_install() {
+    if command -v dnf >/dev/null 2>&1; then
+        dnf install -y "$@"
+    else
+        echo "WARNING: dnf not available. Please install manually: $*" >&2
+    fi
+}
+
 brew_install() {
     if command -v brew >/dev/null 2>&1; then
         brew install "$@" 2>/dev/null || true
@@ -165,6 +173,8 @@ install_linux_build_deps() {
 
     if [ "$DISTRO" = "arch" ]; then
         install_arch_build_deps
+    elif [ "$DISTRO" = "fedora" ]; then
+        install_fedora_build_deps
     else
         install_debian_build_deps
     fi
@@ -173,6 +183,8 @@ install_linux_build_deps() {
         log "Installing arm64 cross-compilation toolchain"
         if [ "$DISTRO" = "arch" ]; then
             pacman_install aarch64-linux-gnu-gcc aarch64-linux-gnu-binutils
+        elif [ "$DISTRO" = "fedora" ]; then
+            dnf_install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
         else
             apt_install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu g++-aarch64-linux-gnu
         fi
@@ -182,6 +194,9 @@ install_linux_build_deps() {
         log "Installing XDP dependencies"
         if [ "$DISTRO" = "arch" ]; then
             pacman_install xdp-tools libbpf libpcap libelf clang pkgconf zlib
+        elif [ "$DISTRO" = "fedora" ]; then
+            dnf_install xdp-tools-devel libbpf-devel libpcap-devel elfutils-libelf-devel clang pkgconf zlib-devel
+            dnf_install libnl3-devel || true
         else
             apt_install --no-install-recommends libc6-dev-i386 || true
             if [ "$IS_UBUNTU_2404" -eq 0 ]; then
@@ -229,14 +244,31 @@ install_arch_build_deps() {
     gem install fpm 2>/dev/null || true
 }
 
-##############################################################################
-# Linux test dependencies
-##############################################################################
+install_fedora_build_deps() {
+    dnf install -y 'dnf-command(config-manager)' || true
+    dnf_install cmake gcc gcc-c++ make openssl-devel numactl-devel liburing-devel
+
+    # LTTng
+    dnf_install lttng-ust-devel || log "WARNING: lttng-ust-devel not available, tracing will be disabled"
+
+    # babeltrace2
+    dnf_install babeltrace2 2>/dev/null || true
+
+    # Code check tools
+    dnf_install cppcheck clang-tools-extra || true
+
+    # Packaging tools
+    dnf_install ruby ruby-devel rpm-build || true
+    gem install public_suffix -v 4.0.7 2>/dev/null || true
+    gem install fpm 2>/dev/null || true
+}
 install_linux_test_deps() {
     log "Installing Linux test dependencies ($DISTRO)"
 
     if [ "$DISTRO" = "arch" ]; then
         install_arch_test_deps
+    elif [ "$DISTRO" = "fedora" ]; then
+        install_fedora_test_deps
     else
         install_debian_test_deps
     fi
@@ -244,6 +276,8 @@ install_linux_test_deps() {
     if [ "$USE_XDP" -eq 1 ]; then
         if [ "$DISTRO" = "arch" ]; then
             pacman_install xdp-tools libbpf libnl iproute2 iptables || true
+        elif [ "$DISTRO" = "fedora" ]; then
+            dnf_install xdp-tools libbpf libnl3 iproute iptables || true
         else
             if [ "$IS_UBUNTU_2404" -eq 0 ]; then
                 apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y 2>/dev/null || true
@@ -291,6 +325,11 @@ install_arch_test_deps() {
     pacman_install lttng-tools lttng-ust 2>/dev/null || log "WARNING: lttng not available on Arch, tracing disabled"
 }
 
+install_fedora_test_deps() {
+    dnf_install gdb liburing || true
+    dnf_install lttng-tools lttng-ust 2>/dev/null || log "WARNING: lttng not available on Fedora, tracing disabled"
+}
+
 ##############################################################################
 # macOS dependencies
 ##############################################################################
@@ -336,6 +375,8 @@ install_code_coverage() {
     log "Installing gcovr"
     if [ "$DISTRO" = "arch" ]; then
         pacman_install python-pip python-gcovr 2>/dev/null || pip install gcovr || true
+    elif [ "$DISTRO" = "fedora" ]; then
+        dnf_install python3-gcovr 2>/dev/null || pip3 install gcovr || true
     elif command -v pip3 >/dev/null 2>&1; then
         pip3 install gcovr
     elif command -v pip >/dev/null 2>&1; then
