@@ -1,6 +1,8 @@
 ---
 description: Analyze PR files and generate tests using DeepTest agent
 on:
+  pull_request:
+    types: [opened, synchronize]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -22,7 +24,8 @@ permissions:
   issues: read
 roles: all
 env:
-  PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+#  PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+  PR_NUMBER: ${{ inputs.pr_number || 38 }}
   PR_REPO: ${{ inputs.repo || github.repository }}
   FILTER: ${{ inputs.filter || '^src/.*' }}
   RUN_ID: ${{ github.run_id }}
