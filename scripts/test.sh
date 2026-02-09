@@ -41,6 +41,8 @@ USE_QTIP=0
 OS_RUNNER=""
 NUM_ITERATIONS=1
 EXTRA_ARTIFACT_DIR=""
+CODE_COVERAGE=0
+CLANG=0
 
 ##############################################################################
 # Parse arguments
@@ -71,6 +73,8 @@ while [[ $# -gt 0 ]]; do
         --os-runner)             OS_RUNNER="$2"; shift 2 ;;
         --num-iterations)        NUM_ITERATIONS="$2"; shift 2 ;;
         --extra-artifact-dir)    EXTRA_ARTIFACT_DIR="$2"; shift 2 ;;
+        --code-coverage)         CODE_COVERAGE=1; shift ;;
+        --clang)                 CLANG=1; shift ;;
         -h|--help)
             echo "Usage: $0 [options]"
             echo "  --config <Debug|Release>   Build configuration (default: Debug)"
@@ -105,6 +109,16 @@ ROOT_ARTIFACT_DIR="$QUIC_ARTIFACTS_DIR"
 
 if [ "$USE_XDP" -eq 1 ]; then
     DUONIC=1
+fi
+
+# Code coverage validation
+COVERAGE_DIR=""
+if [ "$CODE_COVERAGE" -eq 1 ]; then
+    if [ "$DEBUGGER" -eq 1 ]; then
+        echo "ERROR: --code-coverage is not supported with --debugger" >&2; exit 1
+    fi
+    COVERAGE_DIR="${ROOT_DIR}/artifacts/coverage"
+    mkdir -p "$COVERAGE_DIR"
 fi
 
 ##############################################################################
@@ -145,6 +159,7 @@ build_run_args() {
     [ -n "$OS_RUNNER" ]                 && args+=" --os-runner $OS_RUNNER"
     [ "$USE_QTIP" -eq 1 ]              && args+=" --use-qtip"
     [ -n "$EXTRA_ARTIFACT_DIR" ]        && args+=" --extra-artifact-dir $EXTRA_ARTIFACT_DIR"
+    [ "$CODE_COVERAGE" -eq 1 ]          && args+=" --code-coverage"
 
     echo "$args"
 }
@@ -183,3 +198,25 @@ for ((iteration = 1; iteration <= NUM_ITERATIONS; iteration++)); do
         fi
     done
 done
+
+##############################################################################
+# Code coverage collection
+##############################################################################
+if [ "$CODE_COVERAGE" -eq 1 ]; then
+    COVERAGE_OUTPUT="${COVERAGE_DIR}/msquiccoverage.xml"
+    BUILD_DIR="${ROOT_DIR}/build"
+
+    GCOVR_TOOL="gcovr"
+    if [ "$CLANG" -eq 1 ]; then
+        GCOVR_TOOL="gcovr --gcov-executable 'llvm-cov gcov'"
+    fi
+
+    echo "Generating code coverage report..."
+    (cd "$ROOT_DIR" && $GCOVR_TOOL -r . --filter "src/core" --cobertura "$COVERAGE_OUTPUT" build/) || true
+
+    if [ -f "$COVERAGE_OUTPUT" ]; then
+        echo "Coverage report generated at $COVERAGE_OUTPUT"
+    else
+        echo "WARNING: No coverage results generated!" >&2
+    fi
+fi

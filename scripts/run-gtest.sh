@@ -32,6 +32,7 @@ EXTRA_ARTIFACT_DIR=""
 DUONIC=0
 OS_RUNNER=""
 USE_QTIP=0
+CODE_COVERAGE=0
 
 ##############################################################################
 # Parse arguments
@@ -57,6 +58,7 @@ while [[ $# -gt 0 ]]; do
         --duonic)                DUONIC=1; shift ;;
         --os-runner)             OS_RUNNER="$2"; shift 2 ;;
         --use-qtip)              USE_QTIP=1; shift ;;
+        --code-coverage)         CODE_COVERAGE=1; shift ;;
         -h|--help)
             echo "Usage: $0 --path <test-binary> [options]"
             echo "  --filter <f>            gtest filter"

@@ -56,6 +56,7 @@ LIBRARY_NAME="msquic"
 SYSROOT="/"
 ONEBRANCH=0
 TOOLCHAIN_FILE=""
+CODE_COVERAGE=0
 
 ##############################################################################
 # Parse arguments
@@ -105,6 +106,7 @@ while [[ $# -gt 0 ]]; do
         --sysroot)              SYSROOT="$2"; shift 2 ;;
         --onebranch)            ONEBRANCH=1; shift ;;
         --toolchain-file)       TOOLCHAIN_FILE="$2"; shift 2 ;;
+        --code-coverage)        CODE_COVERAGE=1; shift ;;
         -h|--help)
             sed -n '/^# Usage:/,/^[^#]/p' "$0" | head -n -1
             exit 0 ;;
@@ -376,6 +378,15 @@ cmake_generate() {
     [ "$ENABLE_TELEMETRY_ASSERTS" -eq 1 ] && args+=(-DQUIC_TELEMETRY_ASSERTS=on)
     [ "$USE_SYSTEM_OPENSSL_CRYPTO" -eq 1 ] && args+=(-DQUIC_USE_SYSTEM_LIBCRYPTO=on)
     [ "$ENABLE_HIGH_RES_TIMERS"  -eq 1 ] && args+=(-DQUIC_HIGH_RES_TIMERS=on)
+
+    # Code coverage (Linux only, uses gcov)
+    if [ "$CODE_COVERAGE" -eq 1 ]; then
+        if [ "$PLATFORM" = "linux" ]; then
+            args+=("-DCMAKE_C_FLAGS=--coverage" "-DCMAKE_CXX_FLAGS=--coverage")
+        else
+            echo "WARNING: --code-coverage is only supported on Linux. Ignoring flag." >&2
+        fi
+    fi
 
     # Android
     if [ "$PLATFORM" = "android" ]; then
