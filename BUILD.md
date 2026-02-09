@@ -232,6 +232,23 @@ report at:
 artifacts/coverage/msquiccoverage.xml
 ```
 
+### Reading Coverage Results
+
+The report is saved in **Cobertura XML** format at
+`artifacts/coverage/msquiccoverage.xml`. This file is directly consumed by CI
+tools like Codecov, Azure Pipelines, and GitHub Actions.
+
+To view coverage locally:
+
+```sh
+# Print a text summary to the terminal
+gcovr -r . --filter "src/core" build/
+
+# Generate an HTML report you can open in a browser
+gcovr -r . --filter "src/core" --html-details artifacts/coverage/index.html build/
+xdg-open artifacts/coverage/index.html
+```
+
 ### Clang Builds
 
 If you built with Clang, pass `--clang` so that `gcovr` uses `llvm-cov gcov`
