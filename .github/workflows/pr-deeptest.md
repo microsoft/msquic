@@ -26,7 +26,7 @@ roles: all
 env:
 #  PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
   # use fromJSON to convert to number type
-  PR_NUMBER: ${{ fromJSON(inputs.pr_number || '38') }}
+  PR_NUMBER: ${{ inputs.pr_number || '38' }}
   PR_REPO: ${{ inputs.repo || github.repository }}
   FILTER: ${{ inputs.filter || '^src/.*' }}
   RUN_ID: ${{ github.run_id }}
@@ -44,6 +44,9 @@ safe-outputs:
     expires: 7d
   noop:
 jobs:
+  # workflow call cannot use env.* as input
+  # and thus create a step to pass these
+  # values directly to list-pr-files
   resolve-params-for-list-pr-files:
     runs-on: ubuntu-slim
     permissions:
@@ -62,6 +65,8 @@ jobs:
       contents: read
       pull-requests: read
     with:
+      # needs.resolve-params-for-list-pr-files.outputs.pr_number is always string type
+      # need to convert to number type
       pr_number: ${{ fromJSON(needs.resolve-params-for-list-pr-files.outputs.pr_number) }}
       repo: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_repo }}
       filter: ${{ needs.resolve-params-for-list-pr-files.outputs.filter }}
@@ -70,6 +75,10 @@ steps:
     uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     with:
       repository: ${{ env.PR_REPO }}
+  - name: Checkout PR branch
+    run: |
+      git fetch origin pull/${{ env.PR_NUMBER }}/head:pr-head
+      git checkout pr-head
   - name: Download PR Files List
     uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
     with:
