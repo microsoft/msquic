@@ -103,14 +103,6 @@ jobs:
         uses: github/gh-aw/actions/setup@42e08424e94c418ca3612767a2135aa42312ca04 # v0.42.10
         with:
           destination: /opt/gh-aw/actions
-      - name: Checkout .github and .agents folders
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-        with:
-          sparse-checkout: |
-            .github
-            .agents
-          depth: 1
-          persist-credentials: false
       - name: Create gh-aw temp directory
         run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
       - name: Download PR Files List
