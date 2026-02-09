@@ -3,30 +3,13 @@ description: Analyze PR files and generate tests using DeepTest agent
 on:
   pull_request:
     types: [opened, synchronize]
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: 'Pull Request number to analyze'
-        required: true
-        type: number
-      repo:
-        description: 'Repository in owner/repo format (e.g., microsoft/msquic). Defaults to current repo.'
-        required: false
-        type: string
-      filter:
-        description: 'Regex pattern to filter file paths (e.g., "^src/.*" to include only src/)'
-        required: false
-        type: string
-        default: '^src/.*'
 permissions:
   contents: read
   pull-requests: read
   issues: read
 roles: all
 env:
-#  PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
-  # use fromJSON to convert to number type
-  PR_NUMBER: ${{ inputs.pr_number || '38' }}
+  PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
   PR_REPO: ${{ inputs.repo || github.repository }}
   FILTER: ${{ inputs.filter || '^src/.*' }}
   RUN_ID: ${{ github.run_id }}
@@ -71,14 +54,6 @@ jobs:
       repo: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_repo }}
       filter: ${{ needs.resolve-params-for-list-pr-files.outputs.filter }}
 steps:
-  - name: Checkout Repository
-    uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    with:
-      repository: ${{ env.PR_REPO }}
-  - name: Checkout PR branch
-    run: |
-      git fetch origin pull/${{ env.PR_NUMBER }}/head:pr-head
-      git checkout pr-head
   - name: Download PR Files List
     uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
     with:
