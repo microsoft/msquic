@@ -51,10 +51,12 @@ init:
 build:
 	./scripts/build.sh $(BUILD_FLAGS)
 
-test: init build
+test: build
+	@echo "NOTE: Run 'sudo make init' first to install packages and generate test certs."
 	./scripts/test.sh $(TEST_FLAGS)
 
-coverage: init
+coverage:
+	@echo "NOTE: Run 'sudo make init' first to install packages and generate test certs."
 	./scripts/build.sh $(BUILD_FLAGS) --code-coverage --clean
 	./scripts/test.sh $(TEST_FLAGS) --code-coverage
 
