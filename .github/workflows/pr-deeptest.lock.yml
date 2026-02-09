@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: 807c13054803b87cd03c19cda1685c064e133fbc7f2e3e9e89dee63e7788a2fe
+# frontmatter-hash: d8e658e7fc3039d9d946b1968137db4b92cab5fc34566ad6182dbdc25eb52340
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -57,7 +57,7 @@ env:
   COVERAGE_RESULT_PATH: /tmp/gh-aw/coverage-result.md
   FILTER: ${{ inputs.filter || '^src/.*' }}
   PR_FILES_PATH: /tmp/gh-aw/pr-files.json
-  PR_NUMBER: ${{ inputs.pr_number || 38 }}
+  PR_NUMBER: ${{ fromJSON(inputs.pr_number || '38') }}
   PR_REPO: ${{ inputs.repo || github.repository }}
   RUN_ID: ${{ github.run_id }}
 
@@ -121,7 +121,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # 11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          repository: ${{ inputs.repo || github.repository }}
+          repository: ${{ env.PR_REPO }}
       - name: Download PR Files List
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # fa0a91b85d4f404e444e00e005971372dc801d16
         with:
@@ -1002,9 +1002,9 @@ jobs:
 
     uses: ./.github/workflows/list-pr-files.yml
     with:
-      filter: ${{ inputs.filter || '^src/.*' }}
-      pr_number: ${{ fromJSON(inputs.pr_number || github.event.pull_request.number || '0') }}
-      repo: ${{ inputs.repo || '' }}
+      filter: ${{ env.FILTER }}
+      pr_number: ${{ env.PR_NUMBER }}
+      repo: ${{ env.PR_REPO }}
 
   safe_outputs:
     needs:

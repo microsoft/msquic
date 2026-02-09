@@ -25,7 +25,8 @@ permissions:
 roles: all
 env:
 #  PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
-  PR_NUMBER: ${{ inputs.pr_number || 38 }}
+  # use fromJSON to convert to number type
+  PR_NUMBER: ${{ fromJSON(inputs.pr_number || '38') }}
   PR_REPO: ${{ inputs.repo || github.repository }}
   FILTER: ${{ inputs.filter || '^src/.*' }}
   RUN_ID: ${{ github.run_id }}
@@ -48,14 +49,14 @@ jobs:
       contents: read
       pull-requests: read
     with:
-      pr_number: ${{ fromJSON(inputs.pr_number || github.event.pull_request.number || '0') }}
-      repo: ${{ inputs.repo || '' }}
-      filter: ${{ inputs.filter || '^src/.*' }}
+      pr_number: ${{ env.PR_NUMBER }}
+      repo: ${{ env.PR_REPO }}
+      filter: ${{ env.FILTER }}
 steps:
   - name: Checkout Repository
     uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     with:
-      repository: ${{ inputs.repo || github.repository }}
+      repository: ${{ env.PR_REPO }}
   - name: Download PR Files List
     uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
     with:
