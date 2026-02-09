@@ -242,10 +242,11 @@ To view coverage locally:
 
 ```sh
 # Print a text summary to the terminal
-gcovr -r . --filter "src/core" build/
+gcovr -r . --filter "src/core" --filter "src/platform" --filter "src/bin" build/
 
 # Generate an HTML report you can open in a browser
-gcovr -r . --filter "src/core" --html-details artifacts/coverage/index.html build/
+gcovr -r . --filter "src/core" --filter "src/platform" --filter "src/bin" \
+    --html-details artifacts/coverage/index.html build/
 xdg-open artifacts/coverage/index.html
 ```
 

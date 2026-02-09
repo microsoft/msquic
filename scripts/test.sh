@@ -212,7 +212,10 @@ if [ "$CODE_COVERAGE" -eq 1 ]; then
     fi
 
     echo "Generating code coverage report..."
-    (cd "$ROOT_DIR" && $GCOVR_TOOL -r . --filter "src/core" --cobertura "$COVERAGE_OUTPUT" build/) || true
+    (cd "$ROOT_DIR" && $GCOVR_TOOL -r . \
+        --filter "src/core" --filter "src/platform" --filter "src/bin" --filter "src/inc" \
+        --exclude "src/.*/test" --exclude "src/.*/unittest" \
+        --cobertura "$COVERAGE_OUTPUT" build/) || true
 
     if [ -f "$COVERAGE_OUTPUT" ]; then
         echo "Coverage report generated at $COVERAGE_OUTPUT"
