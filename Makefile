@@ -5,8 +5,9 @@
 #
 # Usage:
 #   make                  # Debug build, auto-detect platform/TLS
+#   make init             # Install deps, init submodules, generate test certs
 #   make CONFIG=Release   # Release build
-#   make test             # Build then run tests
+#   make test             # Init + build + run tests
 #   make coverage         # Build with gcov, run tests, generate coverage report
 #   make clean            # Remove build and artifact dirs
 #   make configure        # CMake configure only
@@ -35,17 +36,25 @@ ifneq ($(PARALLEL),)
   BUILD_FLAGS += --parallel $(PARALLEL)
 endif
 
-.PHONY: all build test clean configure coverage
+INIT_FLAGS :=
+ifneq ($(TLS),)
+  INIT_FLAGS += --tls $(TLS)
+endif
+
+.PHONY: all build init test clean configure coverage
 
 all: build
+
+init:
+	./scripts/prepare-machine.sh --for-build --for-test $(INIT_FLAGS)
 
 build:
 	./scripts/build.sh $(BUILD_FLAGS)
 
-test: build
+test: init build
 	./scripts/test.sh $(TEST_FLAGS)
 
-coverage:
+coverage: init
 	./scripts/build.sh $(BUILD_FLAGS) --code-coverage --clean
 	./scripts/test.sh $(TEST_FLAGS) --code-coverage
 

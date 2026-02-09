@@ -135,6 +135,14 @@ if [ ! -f "$MSQUIC_TEST" ]; then
 fi
 
 ##############################################################################
+# Generate test certificates if missing
+##############################################################################
+PFX_FILE="${ROOT_ARTIFACT_DIR}/selfsignedservercert.pfx"
+if [ ! -f "$PFX_FILE" ]; then
+    bash "${SCRIPT_DIR}/install-test-certificates.sh" "$PFX_FILE"
+fi
+
+##############################################################################
 # Build run-gtest arguments
 ##############################################################################
 RUN_GTEST="${SCRIPT_DIR}/run-gtest.sh"
@@ -160,6 +168,7 @@ build_run_args() {
     [ "$USE_QTIP" -eq 1 ]              && args+=" --use-qtip"
     [ -n "$EXTRA_ARTIFACT_DIR" ]        && args+=" --extra-artifact-dir $EXTRA_ARTIFACT_DIR"
     [ "$CODE_COVERAGE" -eq 1 ]          && args+=" --code-coverage"
+    [ -f "$PFX_FILE" ]                  && args+=" --pfx-path $PFX_FILE"
 
     echo "$args"
 }

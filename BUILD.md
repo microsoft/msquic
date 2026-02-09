@@ -24,7 +24,23 @@ For existing clones:
 git submodule update --init --recursive
 ```
 
-### Linux (Ubuntu/Debian)
+### Automated Setup
+
+The easiest way to install all dependencies, initialize submodules, and generate
+test certificates is:
+
+```sh
+sudo make init
+```
+
+This runs `prepare-machine.sh --for-build --for-test` which handles everything
+below automatically. You can also run it directly:
+
+```sh
+sudo ./scripts/prepare-machine.sh --for-build --for-test
+```
+
+### Manual Setup (Linux/Ubuntu/Debian)
 
 ```sh
 sudo apt-get install -y cmake build-essential liblttng-ust-dev libssl-dev
@@ -52,13 +68,16 @@ For Visual Studio builds, run from a **Developer Command Prompt** or ensure
 ## Quick Start
 
 ```sh
+# Install dependencies and generate test certificates (one-time)
+sudo make init
+
 # Debug build (auto-detects platform, architecture, TLS library)
 make
 
 # Release build with 8 parallel jobs
 make CONFIG=Release PARALLEL=8
 
-# Run tests
+# Run tests (automatically runs init first)
 make test
 
 # Build with coverage, run tests, generate report
@@ -74,12 +93,14 @@ make coverage
 | Command | Description |
 |---|---|
 | `make` | Debug build with defaults |
+| `sudo make init` | Install dependencies, init submodules, generate test certs |
 | `make CONFIG=Release` | Release build |
 | `make PARALLEL=4` | Build with 4 parallel jobs |
 | `make TLS=openssl` | Force OpenSSL TLS backend |
 | `make ARCH=arm64` | Cross-compile for arm64 |
+| `make test` | Init + build + run tests |
 | `make configure` | CMake configure only (no build) |
-| `make coverage` | Clean build with gcov, run tests, generate Cobertura XML report |
+| `make coverage` | Init + build with gcov + run tests + generate Cobertura XML |
 | `make clean` | Remove build and artifact directories |
 
 Variables can be combined: `make CONFIG=Release TLS=openssl PARALLEL=8`
