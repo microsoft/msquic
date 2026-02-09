@@ -30,6 +30,7 @@ env:
   PR_REPO: ${{ inputs.repo || github.repository }}
   FILTER: ${{ inputs.filter || '^src/.*' }}
   RUN_ID: ${{ github.run_id }}
+  GH_AW_DIR: /tmp/gh-aw
   PR_FILES_PATH: /tmp/gh-aw/pr-files.json
   COVERAGE_RESULT_PATH: /tmp/gh-aw/coverage-result.md
 engine:
@@ -43,15 +44,27 @@ safe-outputs:
     expires: 7d
   noop:
 jobs:
+  resolve-params-for-list-pr-files:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    outputs:
+      pr_number: ${{ env.PR_NUMBER }}
+      pr_repo: ${{ env.PR_REPO }}
+      filter: ${{ env.FILTER }}
+    steps:
+      - name: Export params
+        run: echo "Resolved pr_number, pr_repo, filter"
   list-files:
+    needs: resolve-params-for-list-pr-files
     uses: ./.github/workflows/list-pr-files.yml
     permissions:
       contents: read
       pull-requests: read
     with:
-      pr_number: ${{ env.PR_NUMBER }}
-      repo: ${{ env.PR_REPO }}
-      filter: ${{ env.FILTER }}
+      pr_number: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_number }}
+      repo: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_repo }}
+      filter: ${{ needs.resolve-params-for-list-pr-files.outputs.filter }}
 steps:
   - name: Checkout Repository
     uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -61,18 +74,14 @@ steps:
     uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
     with:
       name: pr-files-list
-      path: /tmp/gh-aw
-  - name: Display PR Files
-    run: |
-      echo "PR Files to analyze:"
-      cat /tmp/gh-aw/pr-files.json
+      path: ${{ env.GH_AW_DIR }}
 post-steps:
   - name: Upload Coverage Result
     if: always()
     uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
     with:
       name: coverage-result
-      path: /tmp/gh-aw/coverage-result.md
+      path: ${{ env.COVERAGE_RESULT_PATH }}
       if-no-files-found: ignore
 ---
 
@@ -110,6 +119,6 @@ You must never attempt to run `git push` as it is not supported in this environm
 4. Stage all new and modified test files with `git add` and use `create_pull_request` with:
   - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
   - Body: Read and use the content from `${{ env.COVERAGE_RESULT_PATH }}`
-  - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ env.RUN_ID }}"
+  - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ github.run_id }}"
 
 5. If no staged changes, use `noop` with message "No test changes generated for PR #${{ env.PR_NUMBER }}."

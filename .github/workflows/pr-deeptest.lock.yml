@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: d8e658e7fc3039d9d946b1968137db4b92cab5fc34566ad6182dbdc25eb52340
+# frontmatter-hash: df9b201d6e037198302cab0e3457465c5196c29b9dbd330b470c43731869a21c
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -56,6 +56,7 @@ run-name: "Generate Tests for PR Files with DeepTest"
 env:
   COVERAGE_RESULT_PATH: /tmp/gh-aw/coverage-result.md
   FILTER: ${{ inputs.filter || '^src/.*' }}
+  GH_AW_DIR: /tmp/gh-aw
   PR_FILES_PATH: /tmp/gh-aw/pr-files.json
   PR_NUMBER: ${{ fromJSON(inputs.pr_number || '38') }}
   PR_REPO: ${{ inputs.repo || github.repository }}
@@ -90,6 +91,7 @@ jobs:
     needs:
       - activation
       - list-files
+      - resolve-params-for-list-pr-files
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -126,11 +128,7 @@ jobs:
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # fa0a91b85d4f404e444e00e005971372dc801d16
         with:
           name: pr-files-list
-          path: /tmp/gh-aw
-      - name: Display PR Files
-        run: |-
-          echo "PR Files to analyze:"
-          cat /tmp/gh-aw/pr-files.json
+          path: ${{ env.GH_AW_DIR }}
 
       - name: Configure Git credentials
         env:
@@ -756,7 +754,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: coverage-result
-          path: /tmp/gh-aw/coverage-result.md
+          path: ${{ env.COVERAGE_RESULT_PATH }}
 
       - name: Upload agent artifacts
         if: always()
@@ -995,16 +993,30 @@ jobs:
           if-no-files-found: ignore
 
   list-files:
-    needs: activation
+    needs: resolve-params-for-list-pr-files
     permissions:
       contents: read
       pull-requests: read
 
     uses: ./.github/workflows/list-pr-files.yml
     with:
+      filter: ${{ needs.resolve-params-for-list-pr-files.outputs.filter }}
+      pr_number: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_number }}
+      repo: ${{ needs.resolve-params-for-list-pr-files.outputs.pr_repo }}
+
+  resolve-params-for-list-pr-files:
+    needs: activation
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+
+    outputs:
       filter: ${{ env.FILTER }}
       pr_number: ${{ env.PR_NUMBER }}
-      repo: ${{ env.PR_REPO }}
+      pr_repo: ${{ env.PR_REPO }}
+    steps:
+      - name: Export params
+        run: echo "Resolved pr_number, pr_repo, filter"
 
   safe_outputs:
     needs:
