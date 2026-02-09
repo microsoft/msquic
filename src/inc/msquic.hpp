@@ -208,8 +208,8 @@ struct CxPlatHashTable {
 
 class CxPlatThread {
     CXPLAT_THREAD Thread {0};
-    bool Initialized : 1;
-    bool WaitOnDelete : 1;
+    bool Initialized{};
+    bool WaitOnDelete{};
 public:
     CxPlatThread(bool WaitOnDelete = true) noexcept : Initialized(false), WaitOnDelete(WaitOnDelete) { }
     ~CxPlatThread() noexcept {
