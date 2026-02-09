@@ -87,4 +87,6 @@ openssl pkcs12 -export \
     -passout "pass:$PASSWORD" \
     2>/dev/null
 
+chmod 644 "$OUTPUT_FILE"
+
 echo "Generated $OUTPUT_FILE"
