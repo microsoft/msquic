@@ -49,6 +49,6 @@ You are generating tests for the {{component}} component. {{#if focal}} The test
 
 2. Invoke the **coverage-analysis** skill with the existing and newly generated tests in {{harness}} to compute coverage. You must **not** attempt to build or run the tests yourself.
 
-3. Stop iterating if test coverage is already above 95% or after more than 3 iterations.
+3. Stop iterating if test coverage is already above 99% or after more than 3 iterations.
 
 Save the output of **coverage-analysis** from the final iteration to the path specified in `coverage_result`.

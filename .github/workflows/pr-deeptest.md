@@ -19,16 +19,17 @@ env:
 engine:
   id: copilot
   agent: DeepTest
+
+
 safe-outputs:
   create-pull-request:
     title-prefix: ""
     labels: [automation, tests, deeptest]
     draft: true
     expires: 7d
+
   noop:
-  env:
-    GH_AW_BASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
-jobs:
+  jobs:
   # workflow call cannot use env.* as input
   # and thus create a step to pass these
   # values directly to list-pr-files
@@ -106,9 +107,9 @@ You must never attempt to run `git push` as it is not supported in this environm
 
 3. Store the coverage report at `${{ env.COVERAGE_RESULT_PATH }}`.
 
-4. Stage all new and modified test files with `git add` and use `create_pull_request` with:
+4. Create a new branch (branch name shown below), stage all new and modified test files, and use `create_pull_request` with:
+  - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ github.run_id }}"
   - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
   - Body: Read and use the content from `${{ env.COVERAGE_RESULT_PATH }}`
-  - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ github.run_id }}"
 
 5. If no staged changes, use `noop` with message "No test changes generated for PR #${{ env.PR_NUMBER }}."
