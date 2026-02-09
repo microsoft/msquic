@@ -62,4 +62,4 @@ configure:
 	./scripts/build.sh $(BUILD_FLAGS) --configure-only
 
 clean:
-	./scripts/build.sh $(BUILD_FLAGS) --clean --configure-only
+	rm -rf build/ artifacts/
