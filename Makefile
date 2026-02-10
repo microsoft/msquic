@@ -46,7 +46,7 @@ endif
 all: build
 
 init:
-	./scripts/prepare-machine.sh --for-build --for-test $(INIT_FLAGS)
+	./scripts/prepare-machine.sh --for-build --for-test --install-code-coverage $(INIT_FLAGS)
 
 build:
 	./scripts/build.sh $(BUILD_FLAGS)
