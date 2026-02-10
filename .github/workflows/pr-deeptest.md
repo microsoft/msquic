@@ -12,22 +12,19 @@ env:
   PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
   PR_REPO: ${{ inputs.repo || github.repository }}
   FILTER: ${{ inputs.filter || '^src/.*' }}
-  RUN_ID: ${{ github.run_id }}
+  BRANCH_NAME: deeptest/run-${{ github.run_id }}
   GH_AW_DIR: /tmp/gh-aw
   PR_FILES_PATH: /tmp/gh-aw/pr-files.json
   COVERAGE_RESULT_PATH: /tmp/gh-aw/coverage-result.md
 engine:
   id: copilot
   agent: DeepTest
-
-
 safe-outputs:
   create-pull-request:
     title-prefix: ""
-    labels: [automation, tests, deeptest]
+    labels: [deeptest]
     draft: true
     expires: 7d
-
   noop:
 
 jobs:
@@ -108,9 +105,9 @@ You must never attempt to run `git push` as it is not supported in this environm
 
 3. Store the coverage report at `${{ env.COVERAGE_RESULT_PATH }}`.
 
-4. Stage **only** test files with `git add src/test/` — do NOT stage any other files (especially `.yml`, `.md`, or workflow files). Then use `create_pull_request` with:
-    - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ github.run_id }}"
-    - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
-    - Body: Read and use the content from `${{ env.COVERAGE_RESULT_PATH }}`
+4. Prepare commit with `scripts/create-commit-for-safe-outputs.sh ${{ env.BRANCH_NAME }}` and use `create_pull_request` with:
+    - Branch: "${{ env.BRANCH_NAME }}"
+    - Title: "[DeepTest] Tests for PR #${{ env.PR_NUMBER }}"
+    - Body: generated tests 
 
 5. If no staged changes, use `noop` with message "No test changes generated for PR #${{ env.PR_NUMBER }}."
