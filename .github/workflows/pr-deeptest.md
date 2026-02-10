@@ -107,9 +107,9 @@ You must never attempt to run `git push` as it is not supported in this environm
 
 3. Store the coverage report at `${{ env.COVERAGE_RESULT_PATH }}`.
 
-4. Create a new branch (branch name shown below), stage all new and modified test files, and use `create_pull_request` with:
-  - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ github.run_id }}"
-  - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
-  - Body: Read and use the content from `${{ env.COVERAGE_RESULT_PATH }}`
+4. Stage changes with `git add` (*.c or *.cpp files only) and use `create_pull_request` with:
+    - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ github.run_id }}"
+    - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
+    - Body: Read and use the content from `${{ env.COVERAGE_RESULT_PATH }}`
 
 5. If no staged changes, use `noop` with message "No test changes generated for PR #${{ env.PR_NUMBER }}."
