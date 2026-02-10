@@ -12,6 +12,7 @@
 
 #include <MsQuicTests.h>
 
+#include <algorithm>
 #include <array>
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
