@@ -39,6 +39,7 @@ concurrency:
 run-name: "Generate Tests for PR Files with DeepTest"
 
 env:
+  BRANCH_NAME: deeptest/run-${{ github.run_id }}
   COVERAGE_RESULT_PATH: /tmp/gh-aw/coverage-result.md
   FILTER: ${{ inputs.filter || '^src/.*' }}
   GH_AW_DIR: /tmp/gh-aw

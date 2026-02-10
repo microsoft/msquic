@@ -106,7 +106,7 @@ You must never attempt to run `git push` as it is not supported in this environm
 3. Store the coverage report at `${{ env.COVERAGE_RESULT_PATH }}`.
 
 4. Prepare commit with `scripts/create-commit-for-safe-outputs.sh ${{ env.BRANCH_NAME }}` and use `create_pull_request` with:
-    - Branch: "${{ env.BRANCH_NAME }}"
+    - Branch: "${{ github.event.pull_request.head.ref }}"
     - Title: "[DeepTest] Tests for PR #${{ env.PR_NUMBER }}"
     - Body: generated tests 
 

@@ -51,6 +51,6 @@ You are generating tests for the {{component}} component. {{#if focal}} The test
 
 3. Stop iterating if test coverage is already above 99% or after more than 3 iterations.
 
-4. Code change should happen within the folder `src/test/` only. If you notice any change outside of the folder, revert them with `git restore` and print warnings. 
+4. Code change should happen within the folder `src/` only. If you notice any change outside of the folder, revert them with `git restore` and print warnings. 
 
 Save the output of **coverage-analysis** from the final iteration to the path specified in `coverage_result`.
