@@ -1,0 +1,56 @@
+name: Build and Coverage
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: coverage-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: Build with Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Update Apt Cache
+        run: sudo apt-get update
+
+      - name: Install Dependencies
+        run: sudo ./scripts/prepare-machine.sh --for-build --for-test --install-code-coverage
+
+      - name: Build and Generate Coverage HTML
+        run: make coverage-html
+
+      - name: Upload Coverage Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/coverage/html
+
+  deploy-pages:
+    name: Deploy Coverage to GitHub Pages
+    needs: coverage
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
