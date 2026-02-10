@@ -227,6 +227,7 @@ if [ "$CODE_COVERAGE" -eq 1 ]; then
     GCOVR_ARGS="-r . \
         --filter src/core --filter src/platform --filter src/bin --filter src/inc \
         --exclude src/.*/test --exclude src/.*/unittest \
+        --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
         --cobertura $COVERAGE_OUTPUT"
 
     if [ "$COVERAGE_HTML" -eq 1 ]; then
