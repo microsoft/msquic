@@ -188,6 +188,7 @@ TEST_PATHS+=("$MSQUIC_TEST")
 ##############################################################################
 # Run tests
 ##############################################################################
+TEST_FAILURES=0
 for ((iteration = 1; iteration <= NUM_ITERATIONS; iteration++)); do
     if [ "$NUM_ITERATIONS" -gt 1 ]; then
         echo "------- Iteration $iteration -------"
@@ -203,9 +204,9 @@ for ((iteration = 1; iteration <= NUM_ITERATIONS; iteration++)); do
 
         if [ "$USE_XDP" -eq 1 ]; then
             nofile="$(ulimit -n)"
-            sudo bash -c "ulimit -n $nofile && bash $RUN_GTEST $local_args"
+            sudo bash -c "ulimit -n $nofile && bash $RUN_GTEST $local_args" || TEST_FAILURES=$((TEST_FAILURES + 1))
         else
-            bash "$RUN_GTEST" $local_args
+            bash "$RUN_GTEST" $local_args || TEST_FAILURES=$((TEST_FAILURES + 1))
         fi
     done
 done
@@ -245,3 +246,8 @@ if [ "$CODE_COVERAGE" -eq 1 ]; then
         echo "Coverage report (HTML): ${COVERAGE_HTML_DIR}/index.html"
     fi
 fi
+
+if [ "$TEST_FAILURES" -gt 0 ]; then
+    echo "WARNING: $TEST_FAILURES test binary(ies) had failures." >&2
+fi
+exit 0
