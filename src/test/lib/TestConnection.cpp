@@ -19,18 +19,7 @@ TestConnection::TestConnection(
     _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
     ) :
     QuicConnection(Handle),
-    IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
-    PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
-    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
-    ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
-    ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
-    ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
-    EventDeleted(nullptr),
-    NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
-    DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), SslKeyLogFileName(nullptr), Context(nullptr)
+    NewStreamCallback(NewStreamCallbackHandler)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -52,19 +41,7 @@ TestConnection::TestConnection(
     _In_ MsQuicRegistration& Registration,
     _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
     ) :
-    QuicConnection(nullptr),
-    IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
-    PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
-    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
-    ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
-    ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
-    ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
-    EventDeleted(nullptr),
-    NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
-    DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), SslKeyLogFileName(nullptr), Context(nullptr)
+    NewStreamCallback(NewStreamCallbackHandler)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);

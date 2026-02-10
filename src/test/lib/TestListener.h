@@ -30,13 +30,13 @@ typedef NEW_CONNECTION_CALLBACK *NEW_CONNECTION_CALLBACK_HANDLER;
 //
 class TestListener
 {
-    HQUIC QuicListener;
-    HQUIC QuicConfiguration;
+    HQUIC QuicListener{};
+    HQUIC QuicConfiguration{};
 
-    bool FilterConnections;
-    bool HasRandomLoss;
+    bool FilterConnections{};
+    bool HasRandomLoss{};
 
-    NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallback;
+    NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallback{};
 
     QUIC_STATUS
     HandleListenerEvent(
