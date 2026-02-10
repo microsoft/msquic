@@ -87,6 +87,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Ensure TEST_PATH is absolute so it works inside cd'd subshells
+[[ "$TEST_PATH" != /* ]] && TEST_PATH="$(cd "$(dirname "$TEST_PATH")" && pwd)/$(basename "$TEST_PATH")"
+
 TEST_EXE_NAME="$(basename "$TEST_PATH")"
 EXE_LOG_FOLDER="$TEST_EXE_NAME"
 if [ -n "$EXTRA_ARTIFACT_DIR" ]; then
@@ -190,7 +193,7 @@ run_test_executable() {
         export LSAN_OPTIONS="report_objects=1"
         export ASAN_OPTIONS="disable_coredump=0:abort_on_error=1"
         export UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1"
-        "$TEST_PATH" $arguments
+        timeout 120 "$TEST_PATH" $arguments
     ) >"$stdout_file" 2>"$stderr_file" || exit_code=$?
 
     # Print stdout/stderr for diagnostics
@@ -202,7 +205,11 @@ run_test_executable() {
     local any_failed=0
 
     if [ "$exit_code" -ne 0 ]; then
-        log "Process had nonzero exit code: $exit_code"
+        if [ "$exit_code" -eq 124 ]; then
+            log "Process timed out after 120 seconds"
+        else
+            log "Process had nonzero exit code: $exit_code"
+        fi
         process_crashed=1
     fi
     if echo "$stderr_txt" | grep -q "Aborted"; then
