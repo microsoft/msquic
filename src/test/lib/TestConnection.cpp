@@ -19,6 +19,8 @@ TestConnection::TestConnection(
     _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
     ) :
     QuicConnection(Handle),
+    IsServer(true),
+    IsStarted(true),
     NewStreamCallback(NewStreamCallbackHandler)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
