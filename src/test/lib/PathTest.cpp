@@ -42,6 +42,11 @@ struct PathTestContext {
     }
 };
 
+struct ClientPathTestContext {
+    CxPlatEvent PeerStreamsChanged;
+    CxPlatEvent PeerAddrChanged;
+};
+
 static
 QUIC_STATUS
 QUIC_API
@@ -51,11 +56,13 @@ ClientCallback(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     ) noexcept
 {
+    ClientPathTestContext* ClientContext = static_cast<ClientPathTestContext*>(Context);
     if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
         MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
     } else if (Event->Type == QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE) {
-        CxPlatEvent* StreamCountEvent = static_cast<CxPlatEvent*>(Context);
-        StreamCountEvent->Set();
+        ClientContext->PeerStreamsChanged.Set();
+    } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED) {
+        ClientContext->PeerAddrChanged.Set();
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -67,7 +74,7 @@ QuicTestLocalPathChanges(
 {
     const int Family = Params.Family;
     PathTestContext Context;
-    CxPlatEvent PeerStreamsChanged;
+    ClientPathTestContext ClientContext;
     MsQuicRegistration Registration{true};
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -87,7 +94,7 @@ QuicTestLocalPathChanges(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration, CleanUpManual, ClientCallback, &PeerStreamsChanged);
+    MsQuicConnection Connection(Registration, CleanUpManual, ClientCallback, &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
@@ -116,7 +123,78 @@ QuicTestLocalPathChanges(
         TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
         TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &ServerRemoteAddr.SockAddr));
         Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(0));
-        TEST_TRUE(PeerStreamsChanged.WaitTimeout(1500));
-        PeerStreamsChanged.Reset();
+        TEST_TRUE(ClientContext.PeerStreamsChanged.WaitTimeout(1500));
+        ClientContext.PeerStreamsChanged.Reset();
     }
+}
+
+void
+QuicTestClientLocalAddrRebindWithMultiplePaths(
+    _In_ int Family
+    )
+{
+    PathTestContext ServerContext;
+    ClientPathTestContext ClientContext;
+    MsQuicRegistration Registration{true};
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig{});
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestContext::ConnCallback, &ServerContext);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration, CleanUpManual, ClientCallback, &ClientContext);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_NOT_EQUAL(nullptr, ServerContext.Connection);
+    TEST_TRUE(ServerContext.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+
+    QuicAddr ServerRemoteAddr;
+    TEST_QUIC_SUCCEEDED(Connection.GetRemoteAddr(ServerRemoteAddr));
+    ReplaceAddressHelper AddrHelper(ServerRemoteAddr.SockAddr);
+    AddrHelper.IncrementPort();
+
+    //
+    // Force the peer to send non-probing traffic so the client tracks a
+    // secondary path before local address rebinding.
+    //
+    TEST_QUIC_SUCCEEDED(ServerContext.Connection->SetSettings(MsQuicSettings{}.SetKeepAlive(25)));
+    TEST_TRUE(ClientContext.PeerAddrChanged.WaitTimeout(1500));
+
+    QuicAddr NewLocalAddr;
+    TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(NewLocalAddr));
+    NewLocalAddr.IncrementPort();
+    if (NewLocalAddr.GetPort() == ServerLocalAddr.GetPort()) {
+        NewLocalAddr.IncrementPort();
+    }
+
+    QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
+    for (uint32_t Try = 0; Try < 4; ++Try) {
+        Status = Connection.SetLocalAddr(NewLocalAddr);
+        if (Status != QUIC_STATUS_INVALID_STATE) {
+            break;
+        }
+        CxPlatSleep(100);
+    }
+    TEST_QUIC_SUCCEEDED(Status);
+
+    //
+    // Keep traffic flowing briefly so any path challenge sends run after the
+    // local address rebinding.
+    //
+    TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25)));
+    CxPlatSleep(150);
 }

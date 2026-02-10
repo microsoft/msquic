@@ -703,6 +703,15 @@ TEST_P(WithFamilyArgs, LocalPathChanges) {
     }
 }
 
+TEST_P(WithFamilyArgs, ClientLocalAddrRebindWithMultiplePaths) {
+    TestLoggerT<ParamType> Logger("QuicTestClientLocalAddrRebindWithMultiplePaths", GetParam());
+    if (TestingKernelMode) {
+        GTEST_SKIP_("No kernel test control opcode wired for this scenario.");
+    } else {
+        QuicTestClientLocalAddrRebindWithMultiplePaths(GetParam().Family);
+    }
+}
+
 TEST(Mtu, Settings) {
     TestLogger Logger("QuicTestMtuSettings");
     if (TestingKernelMode) {
