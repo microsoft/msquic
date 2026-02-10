@@ -6326,8 +6326,18 @@ QuicConnParamSet(
                 Connection->Paths[0].Binding = OldBinding;
                 break;
             }
-            Connection->Paths[0].Route.State = RouteUnresolved;
-            Connection->Paths[0].Route.Queue = NULL;
+
+            //
+            // Keep all existing paths consistent with the newly selected
+            // binding. Non-active paths can still be used for path challenge
+            // traffic; leaving them on the old binding/queue can result in
+            // stale datapath pointers after old binding teardown.
+            //
+            for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+                Connection->Paths[i].Binding = Connection->Paths[0].Binding;
+                Connection->Paths[i].Route.State = RouteUnresolved;
+                Connection->Paths[i].Route.Queue = NULL;
+            }
 
             //
             // TODO - Need to free any queued recv packets from old binding.
