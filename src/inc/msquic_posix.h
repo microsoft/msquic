@@ -250,7 +250,17 @@ QuicAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    return QuicAddrFamilyIsValid(Addr->Ip.sa_family);
+    if (!QuicAddrFamilyIsValid(Addr->Ip.sa_family)) {
+        return FALSE;
+    }
+
+    //
+    // IPv6 link-local addresses require an explicit scope/interface index.
+    //
+    return
+        Addr->Ip.sa_family != QUIC_ADDRESS_FAMILY_INET6 ||
+        !IN6_IS_ADDR_LINKLOCAL(&Addr->Ipv6.sin6_addr) ||
+        Addr->Ipv6.sin6_scope_id != 0;
 }
 
 QUIC_INLINE
