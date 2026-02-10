@@ -29,7 +29,8 @@ safe-outputs:
     expires: 7d
 
   noop:
-  jobs:
+
+jobs:
   # workflow call cannot use env.* as input
   # and thus create a step to pass these
   # values directly to list-pr-files
@@ -107,7 +108,7 @@ You must never attempt to run `git push` as it is not supported in this environm
 
 3. Store the coverage report at `${{ env.COVERAGE_RESULT_PATH }}`.
 
-4. Stage changes with `git add` (*.c or *.cpp files only) and use `create_pull_request` with:
+4. Stage **only** test files with `git add src/test/` — do NOT stage any other files (especially `.yml`, `.md`, or workflow files). Then use `create_pull_request` with:
     - Branch: "deeptest/pr-${{ env.PR_NUMBER }}_run-${{ github.run_id }}"
     - Title: "[DeepTest PR #${{ env.PR_NUMBER }}] Tests for changed files"
     - Body: Read and use the content from `${{ env.COVERAGE_RESULT_PATH }}`

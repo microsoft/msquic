@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: e3631c61f5216a431cc3c2653fc44bf8d8a752cec315eed7557c2d341174617d
+# frontmatter-hash: 71c63561c98ae1fd6f7e7d29012552b915259b885bb1c08ddc1a82edab427e6d
 
 name: "Generate Tests for PR Files with DeepTest"
 "on":
@@ -808,7 +808,6 @@ jobs:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: 1
           GH_AW_WORKFLOW_NAME: "Generate Tests for PR Files with DeepTest"
-          GH_AW_BASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -822,7 +821,6 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_WORKFLOW_NAME: "Generate Tests for PR Files with DeepTest"
-          GH_AW_BASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -840,7 +838,6 @@ jobs:
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.agent.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
-          GH_AW_BASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -855,7 +852,6 @@ jobs:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_WORKFLOW_NAME: "Generate Tests for PR Files with DeepTest"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          GH_AW_BASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -874,7 +870,6 @@ jobs:
           GH_AW_WORKFLOW_NAME: "Generate Tests for PR Files with DeepTest"
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_DETECTION_CONCLUSION: ${{ needs.detection.result }}
-          GH_AW_BASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1077,7 +1072,6 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_BASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
           GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request\":{\"base_branch\":\"${{ github.event.pull_request.head.ref || github.ref_name }}\",\"draft\":true,\"expires\":168,\"labels\":[\"automation\",\"tests\",\"deeptest\"],\"max\":1,\"max_patch_size\":1024},\"missing_data\":{},\"missing_tool\":{}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
