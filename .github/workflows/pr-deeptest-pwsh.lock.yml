@@ -376,6 +376,40 @@ jobs:
           
           bash /opt/gh-aw/actions/start_safe_outputs_server.sh
           
+      - name: Write MCP config for Copilot CLI
+        env:
+          GH_AW_SAFE_OUTPUTS_PORT: ${{ steps.safe-outputs-config.outputs.safe_outputs_port }}
+          GH_AW_SAFE_OUTPUTS_API_KEY: ${{ steps.safe-outputs-config.outputs.safe_outputs_api_key }}
+          GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /home/runner/.copilot
+          cat > /home/runner/.copilot/mcp-config.json << EOF
+          {
+            "mcpServers": {
+              "github": {
+                "type": "stdio",
+                "command": "docker",
+                "args": ["run", "-i", "--rm",
+                  "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+                  "-e", "GITHUB_READ_ONLY=1",
+                  "-e", "GITHUB_TOOLSETS=context,repos,issues,pull_requests",
+                  "ghcr.io/github/github-mcp-server:v0.30.3"],
+                "env": {
+                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_MCP_SERVER_TOKEN}"
+                }
+              },
+              "safeoutputs": {
+                "type": "http",
+                "url": "http://localhost:${GH_AW_SAFE_OUTPUTS_PORT}",
+                "headers": {
+                  "Authorization": "${GH_AW_SAFE_OUTPUTS_API_KEY}"
+                }
+              }
+            }
+          }
+          EOF
+          echo "Wrote MCP config to /home/runner/.copilot/mcp-config.json"
+          
       - name: Generate agentic run info
         id: generate_aw_info
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
