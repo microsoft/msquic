@@ -5,6 +5,12 @@
 
 --*/
 
+#pragma once
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include "bbr.h"
 #include "cubic.h"
 
@@ -412,3 +418,8 @@ QuicCongestionControlSetAppLimited(
 {
     Cc->QuicCongestionControlSetAppLimited(Cc);
 }
+
+
+#if defined(__cplusplus)
+}
+#endif
