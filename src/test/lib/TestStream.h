@@ -97,18 +97,18 @@ class TestStream
 {
     HQUIC QuicStream;
 
-    bool IsUnidirectional   : 1;
-    bool IsPingSource       : 1;
-    bool UsedZeroRtt        : 1;
-    bool AllDataSent        : 1;
-    bool AllDataReceived    : 1;
-    bool SendShutdown       : 1;
-    bool RecvShutdown       : 1;
-    bool IsShutdown         : 1;
+    bool IsUnidirectional{};
+    bool IsPingSource{};
+    bool UsedZeroRtt{};
+    bool AllDataSent{};
+    bool AllDataReceived{};
+    bool SendShutdown{};
+    bool RecvShutdown{};
+    bool IsShutdown{};
 
-    bool ConnectionShutdown       : 1;
-    bool ConnectionShutdownByApp  : 1;
-    bool ConnectionClosedRemotely : 1;
+    bool ConnectionShutdown{};
+    bool ConnectionShutdownByApp{};
+    bool ConnectionClosedRemotely{};
     QUIC_UINT62 ConnectionErrorCode;
     QUIC_STATUS ConnectionCloseStatus;
 
