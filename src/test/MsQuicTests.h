@@ -165,6 +165,11 @@ QuicTestLocalPathChanges(
     const FamilyArgs& Params
     );
 
+void
+QuicTestClientLocalAddrRebindWithMultiplePaths(
+    _In_ int Family
+    );
+
 //
 // Handshake Tests
 //
