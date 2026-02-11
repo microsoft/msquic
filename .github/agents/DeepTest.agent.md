@@ -31,10 +31,13 @@ You are generating tests for the {{component}} component. {{#if focal}} The test
 
 1. Augment the existing harness in {{harness}} with high-quality tests that improve coverage. If a focal function name is provided, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs.
 
-2. Invoke the **coverage-analysis** skill with the existing and newly generated tests in {{harness}} to compute coverage. You must **not** attempt to build or run the tests yourself.
+2. Compute test coverage using `scripts/make-coverage.sh`
+  - The 1st input to the script is a google gtest pattern to match tests in {{harness}}.
+  - The 2nd input to the script is the output path for the coverage report. You should use temporary paths in this form `/tmp/gh-aw/coverage-result-<iteration>.xml`.
+  - You must **not** attempt to build or run the tests yourself. Rely on the script to do this and return the coverage results.
 
 3. Stop iterating if test coverage is already above 99% or after more than 3 iterations.
 
 4. Code change should happen within the folder `src/` only. If you notice any change outside of the folder, revert them with `git restore` and print warnings. 
 
-Save the output of **coverage-analysis** from the final iteration to the path specified in `coverage_result`.
+Save the coverage report from the final iteration to the path specified in `coverage_result`.
