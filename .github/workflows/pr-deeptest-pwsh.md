@@ -69,6 +69,8 @@ steps:
     with:
       name: pr-files-list
       path: ${{ env.GH_AW_DIR }}
+  - name: Prepare machine for code coverage
+    run: pwsh scripts/prepare-machine.ps1 -InstallCodeCoverage
 post-steps:
   - name: Upload Coverage Result
     if: always()

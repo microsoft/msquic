@@ -21,7 +21,7 @@
 #
 # Analyze PR files and generate tests using DeepTest agent
 #
-# frontmatter-hash: d02c93d219c026fc0afacafa34259bb7f7ca190d8e0b7026f0b447f2c3cf26f5
+# frontmatter-hash: 6c0d359e9145203f5b7bb3a9d12dff83a2ab0a121f3f5a9142207e0aa525568a
 
 name: "DeepTest + pwsh"
 "on":
@@ -113,6 +113,8 @@ jobs:
         with:
           name: pr-files-list
           path: ${{ env.GH_AW_DIR }}
+      - name: Prepare machine for code coverage
+        run: pwsh scripts/prepare-machine.ps1 -InstallCodeCoverage
 
       - name: Configure Git credentials
         env:

@@ -822,15 +822,6 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     return Result;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-CubicCongestionControlIsInSlowStart(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    return Cc->Cubic.CongestionWindow < Cc->Cubic.SlowStartThreshold;
-}
-
 void
 CubicCongestionControlLogOutFlowStatus(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
@@ -839,9 +830,6 @@ CubicCongestionControlLogOutFlowStatus(
     const QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     const QUIC_PATH* Path = &Connection->Paths[0];
     const QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
-
-    BOOLEAN InSlowStart = CubicCongestionControlIsInSlowStart(Cc);
-    UNREFERENCED_PARAMETER(InSlowStart); // Used for debugging/tracing context
 
     QuicTraceEvent(
         ConnOutFlowStatsV2,
