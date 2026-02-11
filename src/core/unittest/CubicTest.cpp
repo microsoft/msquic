@@ -11,7 +11,7 @@ Abstract:
 
 #include "main.h"
 #ifdef QUIC_CLOG
-#include "DeepTest_CubicTest.cpp.clog.h"
+#include "CubicTest.cpp.clog.h"
 #endif
 
 //
@@ -46,7 +46,7 @@ static void InitializeMockConnection(
 // including settings, function pointers, state flags, HyStart fields, and zero-initialized fields.
 // This consolidates basic initialization, function pointer, state flags, HyStart, and zero-field checks.
 //
-TEST(DeepTest_CubicTest, InitializeComprehensive)
+TEST(CubicTest, InitializeComprehensive)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -112,7 +112,7 @@ TEST(DeepTest_CubicTest, InitializeComprehensive)
 // Scenario: Tests initialization with extreme boundary values for MTU, InitialWindowPackets,
 // and SendIdleTimeoutMs to ensure robustness across all valid configurations.
 //
-TEST(DeepTest_CubicTest, InitializeBoundaries)
+TEST(CubicTest, InitializeBoundaries)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -150,7 +150,7 @@ TEST(DeepTest_CubicTest, InitializeBoundaries)
 // properly resets state and applies new settings (e.g., doubling InitialWindowPackets should
 // double the CongestionWindow). Important for connection migration or settings updates.
 //
-TEST(DeepTest_CubicTest, MultipleSequentialInitializations)
+TEST(CubicTest, MultipleSequentialInitializations)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -181,7 +181,7 @@ TEST(DeepTest_CubicTest, MultipleSequentialInitializations)
 // congestion blocked (cannot send), and exemptions (bypass blocking). Tests the core
 // congestion control decision logic.
 //
-TEST(DeepTest_CubicTest, CanSendScenarios)
+TEST(CubicTest, CanSendScenarios)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -217,7 +217,7 @@ TEST(DeepTest_CubicTest, CanSendScenarios)
 // Scenario: Tests SetExemption to verify it correctly sets the number of packets that
 // can bypass congestion control. Used for probe packets and other special cases.
 //
-TEST(DeepTest_CubicTest, SetExemption)
+TEST(CubicTest, SetExemption)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -252,7 +252,7 @@ TEST(DeepTest_CubicTest, SetExemption)
 // available window without pacing (returns full window), and invalid time (skips pacing).
 // Covers the main decision paths in send allowance calculation.
 //
-TEST(DeepTest_CubicTest, GetSendAllowanceScenarios)
+TEST(CubicTest, GetSendAllowanceScenarios)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -297,7 +297,7 @@ TEST(DeepTest_CubicTest, GetSendAllowanceScenarios)
 // This test verifies that with pacing enabled, the allowance is rate-limited based on elapsed
 // time, resulting in a smaller allowance than the full available congestion window.
 //
-TEST(DeepTest_CubicTest, GetSendAllowanceWithActivePacing)
+TEST(CubicTest, GetSendAllowanceWithActivePacing)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -343,7 +343,7 @@ TEST(DeepTest_CubicTest, GetSendAllowanceWithActivePacing)
 // Verifies GetExemptions, GetBytesInFlightMax, and GetCongestionWindow all return
 // correct values matching the internal CUBIC state.
 //
-TEST(DeepTest_CubicTest, GetterFunctions)
+TEST(CubicTest, GetterFunctions)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -380,7 +380,7 @@ TEST(DeepTest_CubicTest, GetterFunctions)
 // FullReset=TRUE (zeros BytesInFlight). Verifies that reset properly reinitializes CUBIC
 // state while respecting the FullReset parameter for connection recovery scenarios.
 //
-TEST(DeepTest_CubicTest, ResetScenarios)
+TEST(CubicTest, ResetScenarios)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -427,7 +427,7 @@ TEST(DeepTest_CubicTest, ResetScenarios)
 // in the network and consumes exemptions. Verifies BytesInFlightMax is updated when
 // BytesInFlight reaches a new maximum.
 //
-TEST(DeepTest_CubicTest, OnDataSent_IncrementsBytesInFlight)
+TEST(CubicTest, OnDataSent_IncrementsBytesInFlight)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -468,7 +468,7 @@ TEST(DeepTest_CubicTest, OnDataSent_IncrementsBytesInFlight)
 // phase change). BytesInFlight should decrease by the invalidated bytes since they're
 // no longer considered in-flight. Critical for accurate congestion window management.
 //
-TEST(DeepTest_CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
+TEST(CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -497,7 +497,7 @@ TEST(DeepTest_CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
 // Exercises CubicCongestionControlOnDataAcknowledged and internally calls CubeRoot for CUBIC calculations.
 // Verifies congestion window grows appropriately after successful ACK.
 //
-TEST(DeepTest_CubicTest, OnDataAcknowledged_BasicAck)
+TEST(CubicTest, OnDataAcknowledged_BasicAck)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -547,7 +547,7 @@ TEST(DeepTest_CubicTest, OnDataAcknowledged_BasicAck)
 // the congestion window should be reduced according to CUBIC algorithm (multiplicative decrease).
 // Verifies proper loss recovery state transitions.
 //
-TEST(DeepTest_CubicTest, OnDataLost_WindowReduction)
+TEST(CubicTest, OnDataLost_WindowReduction)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -590,7 +590,7 @@ TEST(DeepTest_CubicTest, OnDataLost_WindowReduction)
 // Scenario: Tests Explicit Congestion Notification (ECN) handling. When ECN-marked packets
 // are received, CUBIC should treat it as a congestion signal and reduce the window appropriately.
 //
-TEST(DeepTest_CubicTest, OnEcn_CongestionSignal)
+TEST(CubicTest, OnEcn_CongestionSignal)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -630,7 +630,7 @@ TEST(DeepTest_CubicTest, OnEcn_CongestionSignal)
 // Scenario: Tests retrieval of network statistics including congestion window, RTT estimates,
 // and throughput metrics. Used for monitoring and diagnostics.
 //
-TEST(DeepTest_CubicTest, GetNetworkStatistics_RetrieveStats)
+TEST(CubicTest, GetNetworkStatistics_RetrieveStats)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -669,7 +669,7 @@ TEST(DeepTest_CubicTest, GetNetworkStatistics_RetrieveStats)
 // Scenario: Tests remaining small functions to achieve comprehensive API coverage:
 // SetExemption, GetExemptions, OnDataInvalidated, GetCongestionWindow, LogOutFlowStatus, OnSpuriousCongestionEvent.
 //
-TEST(DeepTest_CubicTest, MiscFunctions_APICompleteness)
+TEST(CubicTest, MiscFunctions_APICompleteness)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
@@ -720,7 +720,7 @@ TEST(DeepTest_CubicTest, MiscFunctions_APICompleteness)
 // HyStart is an algorithm to safely exit slow start by detecting delay increases.
 // Tests HYSTART_NOT_STARTED -> HYSTART_ACTIVE -> HYSTART_DONE transitions.
 //
-TEST(DeepTest_CubicTest, HyStart_StateTransitions)
+TEST(CubicTest, HyStart_StateTransitions)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings{};
