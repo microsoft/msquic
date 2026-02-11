@@ -153,29 +153,22 @@ public:
 };
 
 class InteropStream {
-    HQUIC Stream;
-    CXPLAT_EVENT RequestComplete;
+    HQUIC Stream{};
+    CXPLAT_EVENT RequestComplete{};
     GetRequest SendRequest;
-    const char* RequestPath;
-    const char* FileName;
-    FILE* File;
-    uint64_t DownloadStartTime;
-    uint64_t LastReceiveTime;
-    int64_t LastReceiveDuration;
+    const char* RequestPath{};
+    const char* FileName{};
+    FILE* File{};
+    uint64_t DownloadStartTime{};
+    uint64_t LastReceiveTime{};
+    int64_t LastReceiveDuration{};
 public:
-    bool ReceivedResponse : 1;
-    bool UsedZeroRtt : 1;
+    bool ReceivedResponse{};
+    bool UsedZeroRtt{};
+
     InteropStream(HQUIC Connection, const char* Request) :
-        Stream(nullptr),
         SendRequest(Request),
-        RequestPath(Request),
-        FileName(nullptr),
-        File(nullptr),
-        DownloadStartTime(0),
-        LastReceiveTime(0),
-        LastReceiveDuration(0),
-        ReceivedResponse(false),
-        UsedZeroRtt(false)
+        RequestPath(Request)
     {
         CxPlatEventInitialize(&RequestComplete, TRUE, FALSE);
 
@@ -343,10 +336,10 @@ class InteropConnection {
     QUIC_TLS_SECRETS TlsSecrets;
     const char* SslKeyLogFile;
 public:
-    bool VersionUnsupported : 1;
-    bool Connected : 1;
-    bool Resumed : 1;
-    bool ReceivedQuackAck : 1;
+    bool VersionUnsupported{};
+    bool Connected{};
+    bool Resumed{};
+    bool ReceivedQuackAck{};
     InteropConnection(HQUIC Configuration, bool VerNeg = false, bool LargeTP = false) :
         Configuration(Configuration),
         Connection(nullptr),
