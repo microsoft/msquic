@@ -40,7 +40,9 @@ Add or update tests so that the C/C++ files changed in the current pull request 
 
 ## Iteration loop (you drive this)
 
-You are responsible for iterating until coverage meets the target. Each iteration:
+You are responsible for iterating until coverage meets the target. You are generating tests for the {{component}} component. {{#if focal}}  The test should specifically target the {{focal}} function.{{/if}} Your task is to augment the existing harness found in {{harness}} with high quality tests that improve coverage.
+
+If a focal function name is provided, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs. So please make sure you call the skills to generate test. Each iteration:
 
 1. **Generate or improve tests** for the changed files that are below the coverage target.
    - Identify which changed files are below the target coverage.
