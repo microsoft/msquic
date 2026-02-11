@@ -102,10 +102,7 @@ You must never attempt to run `git push` as it is not supported in this environm
 
 2. For each file path, map to relevant test harnesses:
    - `src/core/*.c` → Test harnesses: `Basic*`, `Core*`, `Connection*`, `Stream*`
-   - `src/core/cubic.c` → Test harnesses: `Cubic*`, `CongestionControl*`
-   - `src/core/loss_detection.c` → Test harnesses: `Loss*`, `Recovery*`
-   - `src/core/stream.c` → Test harnesses: `Stream*`
-   - `src/core/connection.c` → Test harnesses: `Connection*`
+   - `src/core/cubic.c` → Test harnesses: `Cubic*`
    - `src/platform/*.c` → Test harnesses: `Platform*`, `Datapath*`
 
 3. Store the coverage report at `${{ env.COVERAGE_RESULT_PATH }}`.

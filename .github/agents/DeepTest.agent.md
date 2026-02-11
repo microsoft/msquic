@@ -8,31 +8,15 @@ inputs:
   - name: component
     type: string
     role: optional
-    default: "QUIC_ACK_TRACKER"
+    default: ""
   - name: focal
     type: string
     role: optional
     default: ""
-  - name: source
-    type: string
-    role: optional
-    default: ".\src\core\ack_tracker.c"
-  - name: header
-    type: string
-    role: optional
-    default: ".\src\core\ack_tracker.h"
   - name: harness
     type: string
     role: optional
-    default: ".\src\core\unittest\AckTrackerTest.cpp"
-  - name: build
-    type: string
-    role: optional
-    default: ".\scripts\build.ps1"
-  - name: test
-    type: string
-    role: optional
-    default: ".\scripts\test.ps1 -Filter *AckTrackerTest* -CodeCoverage"
+    default: ""
   - name: index_dir
     type: string
     role: optional
