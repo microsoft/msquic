@@ -10,6 +10,10 @@ permissions:
 roles: all
 sandbox: false
 strict: false
+tools:
+  bash: [":*"]
+  edit:
+  github:
 env:
   PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
   PR_REPO: ${{ inputs.repo || github.repository }}
@@ -75,7 +79,7 @@ post-steps:
       if-no-files-found: ignore
 ---
 
-# Generate Tests for PR Files with DeepTest
+# DeepTest + pwsh
 
 Analyze files changed in PR #${{ env.PR_NUMBER }} from repository `${{ env.PR_REPO }}` and generate comprehensive tests.
 
