@@ -36,7 +36,7 @@ You are generating tests for the {{component}} component. {{#if focal}} The test
   - The 2nd input to the script is the output path for the coverage report. You should use temporary paths in this form `/tmp/gh-aw/coverage-result-<iteration>.xml`.
   - You must **not** attempt to build or run the tests yourself. Rely on the script to do this and return the coverage results.
 
-3. Stop iterating if test coverage is already above 99% or after more than 3 iterations.
+3. Stop iterating if test coverage is already above 95%.
 
 4. Code change should happen within the folder `src/` only. If you notice any change outside of the folder, revert them with `git restore` and print warnings. 
 
