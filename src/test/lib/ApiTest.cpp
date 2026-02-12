@@ -3758,6 +3758,28 @@ void QuicTest_QUIC_PARAM_CONN_LOCAL_ADDRESS(MsQuicRegistration& Registration, Ms
                     &Dummy));
         }
 
+#ifndef _WIN32
+        //
+        // IPv6 link-local addresses require a non-zero scope id on POSIX.
+        //
+        {
+            TestScopeLogger LogScope2("IPv6 link-local without scope id");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+            QUIC_ADDR LinkLocalAddr = {};
+            TEST_TRUE(QuicAddrFromString("fe80::1", 0, &LinkLocalAddr));
+            LinkLocalAddr.Ipv6.sin6_scope_id = 0;
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(LinkLocalAddr),
+                    &LinkLocalAddr));
+        }
+#endif
+
         {// TODO: good after start, need to set Connection->State.HandshakeConfirmed
         }
     }
