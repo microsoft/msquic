@@ -1350,7 +1350,7 @@ AllowSendCompleteStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-void QuicTestValidateStream(bool Connect)
+void QuicTestValidateStream(const bool& Connect)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -5299,7 +5299,7 @@ TestTlsHandshakeInfoListenerCallback(
 
 void
 QuicTestTlsHandshakeInfo(
-    _In_ bool EnableResumption
+    const bool& EnableResumption
     )
 {
     MsQuicRegistration Registration;
@@ -6102,7 +6102,7 @@ RejectListenerCallback(
 
 void
 QuicTestConnectionRejection(
-    bool RejectByClosing
+    const bool& RejectByClosing
     )
 {
     CxPlatEvent ShutdownEvent;
@@ -6137,7 +6137,7 @@ QuicTestConnectionRejection(
 }
 
 void
-QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
+QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -6145,7 +6145,7 @@ QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
     MsQuicConfiguration Configuration(Registration, "MsQuicTest");
     TEST_TRUE(Configuration.IsValid());
 
-    TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(Config));
+    TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(&Config.CredConfig));
 }
 
 

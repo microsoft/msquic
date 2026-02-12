@@ -277,6 +277,13 @@ typedef struct QUIC_BINDING {
 
     } Stats;
 
+#if DEBUG
+    //
+    // The list entry in the global binding tracker list.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
+#endif
+
 } QUIC_BINDING;
 
 //
@@ -332,6 +339,15 @@ void
 QuicBindingGetRemoteAddress(
     _In_ QUIC_BINDING* Binding,
     _Out_ QUIC_ADDR* Address
+    );
+
+//
+// Queries the QTIP settings of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingGetQtipEnabled(
+    _In_ const QUIC_BINDING* Binding
     );
 
 //

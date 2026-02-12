@@ -79,6 +79,13 @@ typedef struct QUIC_LISTENER {
     //
     CXPLAT_LIST_ENTRY RegistrationLink;
 
+#if DEBUG
+    //
+    // Link into the global debug object tracker.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
+#endif
+
     //
     // The listener worker.
     //

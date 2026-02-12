@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#pragma once
+
 //
 // For official releases, disable tests for preview features:
 // the official release test binary for a version is used for down-level compatibility testing
@@ -44,6 +46,26 @@ void QuicTestInitialize();
 void QuicTestUninitialize();
 
 //
+// Parameter structures used by many tests
+//
+
+struct FamilyArgs {
+    int Family;
+};
+
+struct QUIC_CREDENTIAL_BLOB {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash;
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        QUIC_CERTIFICATE_FILE CertFile;
+        QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
+        QUIC_CERTIFICATE_PKCS12 Pkcs12;
+        char PrincipalString[100];
+    } Storage;
+};
+
+//
 // Parameter Validation Tests
 //
 
@@ -52,7 +74,7 @@ void QuicTestValidateRegistration();
 void QuicTestValidateConfiguration();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
-void QuicTestValidateStream(bool Connect);
+void QuicTestValidateStream(const bool& Connect);
 void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
 void QuicTestCommonParam();
@@ -61,12 +83,12 @@ void QuicTestConfigurationParam();
 void QuicTestListenerParam();
 void QuicTestConnectionParam();
 void QuicTestTlsParam();
-void QuicTestTlsHandshakeInfo(_In_ bool EnableResumption);
+void QuicTestTlsHandshakeInfo(const bool& EnableResumption);
 void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
-void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
+void QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config);
 void QuicTestValidateConnectionPoolCreate();
 void QuicTestValidateExecutionContext();
 void QuicTestValidatePartition();
@@ -84,17 +106,26 @@ void QuicTestConnectionCloseBeforeStreamClose();
 //
 // Rejection Tests
 //
-void QuicTestConnectionRejection(bool RejectByClosing);
+void QuicTestConnectionRejection(const bool& RejectByClosing);
 
 //
 // Event Validation Tests
 //
 
-void QuicTestValidateConnectionEvents(uint32_t Test);
+struct ValidateConnectionEventArgs {
+    uint32_t Test;
+};
+void QuicTestValidateConnectionEvents(const ValidateConnectionEventArgs& Params);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-void QuicTestValidateNetStatsConnEvent(uint32_t Test);
+struct ValidateNetStatsConnEventArgs {
+    uint32_t Test;
+};
+void QuicTestValidateNetStatsConnEvent(const ValidateNetStatsConnEventArgs& Params);
 #endif
-void QuicTestValidateStreamEvents(uint32_t Test);
+struct ValidateStreamEventArgs {
+    uint32_t Test;
+};
+void QuicTestValidateStreamEvents(const ValidateStreamEventArgs& Params);
 
 //
 // Basic Functionality Tests
@@ -104,34 +135,34 @@ void QuicTestRegistrationOpenClose();
 void QuicTestCreateListener();
 void QuicTestStartListener();
 void QuicTestStartListenerMultiAlpns();
-void QuicTestStartListenerImplicit(_In_ int Family);
+void QuicTestStartListenerImplicit(const FamilyArgs& Params);
 void QuicTestStartTwoListeners();
 void QuicTestStartTwoListenersSameALPN();
-void QuicTestStartListenerExplicit(_In_ int Family);
+void QuicTestStartListenerExplicit(const FamilyArgs& Params);
 void QuicTestCreateConnection();
-void QuicTestBindConnectionImplicit(_In_ int Family);
-void QuicTestBindConnectionExplicit(_In_ int Family);
+void QuicTestBindConnectionImplicit(const FamilyArgs& Params);
+void QuicTestBindConnectionExplicit(const FamilyArgs& Params);
 void QuicTestConnectionCloseFromCallback();
-void QuicTestAddrFunctions(_In_ int Family);
+void QuicTestAddrFunctions(const FamilyArgs& Params);
 
 //
 // MTU tests
 //
 void QuicTestMtuSettings();
-void
-QuicTestMtuDiscovery(
-    _In_ int Family,
-    _In_ BOOLEAN DropClientProbePackets,
-    _In_ BOOLEAN DropServerProbePackets,
-    _In_ BOOLEAN RaiseMinimumMtu
-    );
+
+struct MtuArgs {
+    int Family;
+    uint8_t DropMode;
+    uint8_t RaiseMinimum;
+};
+void QuicTestMtuDiscovery(const MtuArgs& Params);
 
 //
 // Path tests
 //
 void
 QuicTestLocalPathChanges(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
@@ -166,84 +197,168 @@ QuicTestConnect(
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
+struct HandshakeArgs {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultipleALPNs;
+    bool MultiPacketClientInitial;
+    bool GreaseQuicBitExtension;
+};
+
+void
+QuicTestConnect_Connect(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_Resume(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_ResumeAsync(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_ResumeRejection(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_ResumeRejectionByServerApp(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_ResumeRejectionByServerAppAsync(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_OldVersion(
+    const HandshakeArgs& Params
+    );
+
+struct HandshakeArgs4 {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultiPacketClientInitial;
+    uint8_t RandomLossPercentage;
+};
+
+void
+QuicTestConnect_RandomLoss(
+    const HandshakeArgs4& Params
+    );
+
+void
+QuicTestConnect_RandomLossResume(
+    const HandshakeArgs4& Params
+    );
+
+void
+QuicTestConnect_RandomLossResumeRejection(
+    const HandshakeArgs4& Params
+    );
+
+void
+QuicTestConnect_AsyncSecurityConfig(
+    const HandshakeArgs& Params
+    );
+
+void
+QuicTestConnect_AsyncSecurityConfig_Delayed(
+    const HandshakeArgs& Params
+    );
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestVersionNegotiationRetry(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestCompatibleVersionNegotiationRetry(
-    _In_ int Family
+    const FamilyArgs& Params
     );
+
+struct VersionNegotiationExtArgs {
+    int Family;
+    bool DisableVNEClient;
+    bool DisableVNEServer;
+};
 
 void
 QuicTestCompatibleVersionNegotiation(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     );
 
 void
 QuicTestCompatibleVersionNegotiationDefaultClient(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     );
 
 void
 QuicTestCompatibleVersionNegotiationDefaultServer(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
+    const VersionNegotiationExtArgs& Params
     );
 
 void
 QuicTestIncompatibleVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestFailedVersionNegotiation(
-    _In_ int Family
+    const FamilyArgs& Params
     );
+
+struct FeatureSupportArgs {
+    int Family;
+    bool ServerSupport;
+    bool ClientSupport;
+};
 
 void
 QuicTestReliableResetNegotiation(
-    _In_ int Family,
-    _In_ bool ServerSupport,
-    _In_ bool ClientSupport
+    const FeatureSupportArgs& Params
 );
 
 void
 QuicTestOneWayDelayNegotiation(
-    _In_ int Family,
-    _In_ bool ServerSupport,
-    _In_ bool ClientSupport
+    const FeatureSupportArgs& Params
     );
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
+struct CustomCertValidationArgs {
+    bool AcceptCert;
+    bool AsyncValidation;
+};
+
 void
 QuicTestCustomServerCertificateValidation(
-    _In_ bool AcceptCert,
-    _In_ bool AsyncValidation
+    const CustomCertValidationArgs& Params
     );
 
 void
 QuicTestCustomClientCertificateValidation(
-    _In_ bool AcceptCert,
-    _In_ bool AsyncValidation
+    const CustomCertValidationArgs& Params
     );
+
+struct ClientCertificateArgs {
+    int Family;
+    bool UseClientCertificate;
+};
 
 void
 QuicTestConnectClientCertificate(
-    _In_ int Family,
-    _In_ bool UseClientCertificate
+    const ClientCertificateArgs& Params
     );
 
 void
@@ -258,35 +373,35 @@ QuicTestInvalidAlpnLengths(
 
 void
 QuicTestLoadBalancedHandshake(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestClientSharedLocalPort(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestInterfaceBinding(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestRetryMemoryLimitConnect(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct CibirExtensionParams {
+    int Family;
+    uint8_t Mode; // server = &1, client = &2
+};
+
 void
 QuicTestCibirExtension(
-    _In_ int Family,
-    _In_ uint8_t Mode // server = &1, client = &2
+    const CibirExtensionParams& Params
     );
-#endif
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-void
-QuicTestResumptionAcrossVersions();
 #endif
 
 void
@@ -294,15 +409,23 @@ QuicTestChangeAlpn(
     void
     );
 
+struct HandshakeLossPatternsArgs {
+    int Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo;
+};
+
 void
 QuicTestHandshakeSpecificLossPatterns(
-    _In_ int Family,
-    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
+    const HandshakeLossPatternsArgs& Params
     );
+
+struct ShutdownDuringHandshakeArgs {
+    bool ClientShutdown;
+};
 
 void
 QuicTestShutdownDuringHandshake(
-    _In_ bool ClientShutdown
+    const ShutdownDuringHandshakeArgs& Params
     );
 
 //
@@ -311,7 +434,7 @@ QuicTestShutdownDuringHandshake(
 
 void
 QuicTestConnectUnreachable(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
@@ -320,72 +443,81 @@ QuicTestConnectInvalidAddress(
 
 void
 QuicTestConnectBadAlpn(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestConnectBadSni(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestConnectServerRejected(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestConnectExpiredServerCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     );
 
 void
 QuicTestConnectValidServerCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     );
 
 void
 QuicTestConnectValidClientCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     );
 
 void
 QuicTestConnectExpiredClientCertificate(
-    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    const QUIC_CREDENTIAL_BLOB& Config
     );
 
 void
 QuicTestClientBlockedSourcePort(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct OddSizeVnTpParams {
+    bool TestServer;
+    uint8_t VnTpSize;
+};
+
 void
 QuicTestVNTPOddSize(
-    _In_ bool TestServer,
-    _In_ uint16_t VNTPSize
+    const OddSizeVnTpParams& Params
     );
 
 void
 QuicTestVNTPChosenVersionMismatch(
-    _In_ bool TestServer
+    const bool& TestServer
     );
 
 void
 QuicTestVNTPChosenVersionZero(
-    _In_ bool TestServer
+    const bool& TestServer
     );
 
 void
 QuicTestVNTPOtherVersionZero(
-    _In_ bool TestServer
+    const bool& TestServer
     );
+
+struct ConnectionPoolCreateArgs {
+    int Family;
+    uint16_t NumberOfConnections;
+    bool XdpSupported;
+    bool TestCibirSupport;
+};
 
 void
 QuicTestConnectionPoolCreate(
-    _In_ int Family,
-    _In_ uint16_t NumberOfConnections,
-    _In_ bool XdpSupported,
-    _In_ bool TestCibirSupport
+    const ConnectionPoolCreateArgs& Params
     );
 #endif
 
@@ -393,10 +525,30 @@ QuicTestConnectionPoolCreate(
 // Post Handshake Tests
 //
 
+struct RebindPaddingArgs {
+    int Family;
+    uint16_t Padding;
+};
+
 void
-QuicTestNatPortRebind(
-    _In_ int Family,
-    _In_ uint16_t KeepAlivePaddingSize
+QuicTestNatPortRebind_NoPadding(
+    const FamilyArgs& Params
+    );
+
+
+void
+QuicTestNatPortRebind_WithPadding(
+    const RebindPaddingArgs& Params
+    );
+
+void
+QuicTestNatAddrRebind_WithPadding(
+    const RebindPaddingArgs& Params
+    );
+
+void
+QuicTestNatAddrRebind_NoPadding(
+    const FamilyArgs& Params
     );
 
 void
@@ -408,12 +560,12 @@ QuicTestNatAddrRebind(
 
 void
 QuicTestPathValidationTimeout(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestChangeMaxStreamID(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
@@ -439,13 +591,76 @@ QuicTestConnectAndPing(
     _In_ bool SendUdpToQtipListener
     );
 
+struct Send0RttArgs1 {
+    int Family;
+    uint64_t Length;
+    uint32_t ConnectionCount;
+    uint32_t StreamCount;
+    bool UseSendBuffer;
+    bool UnidirectionalStreams;
+};
+
+void
+QuicTestConnectAndPing_Send0Rtt(
+    const Send0RttArgs1& Params
+    );
+
+struct Send0RttArgs2 {
+    int Family;
+    uint64_t Length;
+};
+
+void
+QuicTestConnectAndPing_Reject0Rtt(
+    const Send0RttArgs2& Params
+    );
+
+struct SendLargeArgs {
+    int Family;
+    bool UseSendBuffer;
+    bool UseZeroRtt;
+};
+
+void
+QuicTestConnectAndPing_SendLarge(
+    const SendLargeArgs& Params
+    );
+
+struct SendIntermittentlyArgs {
+    int Family;
+    uint64_t Length;
+    uint32_t BurstCount;
+    uint32_t BurstDelay;
+    bool UseSendBuffer;
+};
+
+void
+QuicTestConnectAndPing_SendIntermittently(
+    const SendIntermittentlyArgs& Params
+    );
+
+struct SendArgs {
+    int Family;
+    uint64_t Length;
+    uint32_t ConnectionCount;
+    uint32_t StreamCount;
+    bool UseSendBuffer;
+    bool UnidirectionalStreams;
+    bool ServerInitiatedStreams;
+};
+
+void
+QuicTestConnectAndPing_Send(
+    const SendArgs& Params
+    );
+
 //
 // Other Data Tests
 //
 
 void
 QuicTestConnectAndIdle(
-    _In_ bool EnableKeepAlive
+    const bool& EnableKeepAlive
     );
 
 void
@@ -460,7 +675,7 @@ QuicTestServerDisconnect(
 
 void
 QuicTestClientDisconnect(
-    bool StopListenerFirst
+    const bool& StopListenerFirst
     );
 
 void
@@ -470,18 +685,22 @@ QuicTestStatelessResetKey(
 
 void
 QuicTestForceKeyUpdate(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestKeyUpdate(
-    _In_ int Family
+    const FamilyArgs& Params
     );
+
+struct KeyUpdateRandomLossArgs {
+    int Family;
+    uint8_t RandomLossPercentage;
+};
 
 void
 QuicTestKeyUpdateRandomLoss(
-    _In_ int Family,
-    _In_ uint8_t RandomLossPercentage
+    const KeyUpdateRandomLossArgs& Params
     );
 
 typedef enum QUIC_ABORTIVE_TRANSFER_DIRECTION {
@@ -505,21 +724,33 @@ typedef union QUIC_ABORTIVE_TRANSFER_FLAGS {
     uint32_t IntValue;
 } QUIC_ABORTIVE_TRANSFER_FLAGS;
 
+struct AbortiveArgs {
+    int Family;
+    QUIC_ABORTIVE_TRANSFER_FLAGS Flags;
+};
+
 void
 QuicAbortiveTransfers(
-    _In_ int Family,
-    _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
+    const AbortiveArgs& Params
     );
+
+struct CancelOnLossArgs {
+    bool DropPackets;
+};
 
 void
 QuicCancelOnLossSend(
-    _In_ bool DropPackets
+    const CancelOnLossArgs& Params
     );
+
+struct CidUpdateArgs {
+    int Family;
+    uint16_t Iterations;
+};
 
 void
 QuicTestCidUpdate(
-    _In_ int Family,
-    _In_ uint16_t Iterations
+    const CidUpdateArgs& Params
     );
 
 typedef enum QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE {
@@ -534,40 +765,45 @@ typedef enum QUIC_RECEIVE_RESUME_TYPE {
     ReturnStatusContinue
 } QUIC_RECEIVE_RESUME_TYPE;
 
-void
-QuicTestReceiveResume(
-    _In_ int Family,
-    _In_ int SendBytes,
-    _In_ int ConsumeBytes,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType,
-    _In_ QUIC_RECEIVE_RESUME_TYPE PauseType,
-    _In_ bool PauseFirst
-    );
-
-void
-QuicTestReceiveResumeNoData(
-    _In_ int Family,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
-    );
-
-struct FamilyArgs2 {
+struct ReceiveResumeArgs {
     int Family;
+    int SendBytes;
+    int ConsumeBytes;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType;
+    QUIC_RECEIVE_RESUME_TYPE PauseType;
+    bool PauseFirst;
 };
 
 void
-QuicTestAckSendDelay(
-    const FamilyArgs2& Params
+QuicTestReceiveResume(
+    const ReceiveResumeArgs& Params
     );
 
-typedef enum QUIC_ABORT_RECEIVE_TYPE {
-    QUIC_ABORT_RECEIVE_PAUSED,
-    QUIC_ABORT_RECEIVE_PENDING,
-    QUIC_ABORT_RECEIVE_INCOMPLETE
-} QUIC_ABORT_RECEIVE_TYPE;
+struct ReceiveResumeNoDataArgs {
+    int Family;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType;
+};
 
 void
-QuicTestAbortReceive(
-    _In_ QUIC_ABORT_RECEIVE_TYPE Type
+QuicTestReceiveResumeNoData(
+    const ReceiveResumeNoDataArgs& Params
+    );
+
+void
+QuicTestAckSendDelay(
+    const FamilyArgs& Params
+    );
+
+void
+QuicTestAbortReceive_Paused(
+    );
+
+void
+QuicTestAbortReceive_Pending(
+    );
+
+void
+QuicTestAbortReceive_Incomplete(
     );
 
 void
@@ -615,8 +851,11 @@ QuicTestStreamMultiReceive(
     );
 
 void
-QuicTestStreamBlockUnblockConnFlowControl(
-    _In_ BOOLEAN Bidirectional
+QuicTestStreamBlockUnblockConnFlowControl_Unidi(
+    );
+
+void
+QuicTestStreamBlockUnblockConnFlowControl_Bidi(
     );
 
 void
@@ -633,13 +872,44 @@ QuicTestConnectionStreamStartSendPriority(
 
 void
 QuicTestEcn(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
-void QuicTestStreamAppProvidedBuffers(
+struct AppProvidedBuffersConfig {
+    uint32_t StreamStartBuffersNum;
+    uint32_t StreamStartBuffersSize;
+    uint32_t AdditionalBuffersNum;
+    uint32_t AdditionalBuffersSize;
+};
+
+void
+QuicTestStreamAppProvidedBuffers_ClientSend(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
-void QuicTestStreamAppProvidedBuffersOutOfSpace(
+void
+QuicTestStreamAppProvidedBuffers_ServerSend(
+    const AppProvidedBuffersConfig& BufferConfig
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
+    const AppProvidedBuffersConfig& BufferConfig
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
+    const AppProvidedBuffersConfig& BufferConfig
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
+    const AppProvidedBuffersConfig& BufferConfig
+    );
+
+void
+QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
+    const AppProvidedBuffersConfig& BufferConfig
     );
 
 //
@@ -649,47 +919,59 @@ void
 QuicDrillTestVarIntEncoder(
     );
 
+struct DrillInitialPacketCidArgs {
+    int Family;
+    bool SourceOrDest;
+    bool ActualCidLengthValid;
+    bool ShortCidLength;
+    bool CidLengthFieldValid;
+};
+
 void
 QuicDrillTestInitialCid(
-    _In_ int Family,
-    _In_ bool Source, // or Dest
-    _In_ bool ValidActualLength, // or invalid
-    _In_ bool Short, // or long
-    _In_ bool ValidLengthField // or invalid
+    const DrillInitialPacketCidArgs& Params
     );
+
+struct DrillInitialPacketTokenArgs {
+    int Family;
+};
 
 void
 QuicDrillTestInitialToken(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     );
 
 void
 QuicDrillTestServerVNPacket(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     );
 
 void
 QuicDrillTestKeyUpdateDuringHandshake(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     );
 
 //
 // Datagram tests
 //
+struct DatagramNegotiationArgs {
+    int Family;
+    bool DatagramReceiveEnabled;
+};
+
 void
 QuicTestDatagramNegotiation(
-    _In_ int Family,
-    _In_ bool DatagramReceiveEnabled
+    const DatagramNegotiationArgs& Params
     );
 
 void
 QuicTestDatagramSend(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 void
 QuicTestDatagramDrop(
-    _In_ int Family
+    const FamilyArgs& Params
     );
 
 //
@@ -1094,18 +1376,6 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS \
     QUIC_CTL_CODE(58, METHOD_BUFFERED, FILE_WRITE_DATA)
-
-typedef struct {
-    QUIC_CREDENTIAL_CONFIG CredConfig;
-    union {
-        QUIC_CERTIFICATE_HASH CertHash;
-        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
-        QUIC_CERTIFICATE_FILE CertFile;
-        QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
-        QUIC_CERTIFICATE_PKCS12 Pkcs12;
-        char PrincipalString[100];
-    };
-} QUIC_RUN_CRED_VALIDATION;
 
 #define IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT \
     QUIC_CTL_CODE(59, METHOD_BUFFERED, FILE_WRITE_DATA)

@@ -2667,8 +2667,13 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             0,
             "AcceptEx Completed!");
 
-
+        //
+        // Mark IO Started before taking a rundown reference,
+        // otherwise the cleanup might not wait for the rundown.
+        //
+        AcceptSocketProc->IoStarted = TRUE;
         if (!CxPlatRundownAcquire(&AcceptSocketProc->RundownRef)) {
+            AcceptSocketProc = NULL;
             goto Error;
         }
 
@@ -2736,8 +2741,6 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         }
 
         ListenerSocketProc->AcceptSocket = NULL;
-
-        AcceptSocketProc->IoStarted = TRUE;
         CxPlatDataPathStartReceiveAsync(AcceptSocketProc);
 
     } else {

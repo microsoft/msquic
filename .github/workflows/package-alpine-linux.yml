@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
     - name: Set up QEMU
       uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
     - name: Generate APKBUILD
@@ -47,7 +47,7 @@ jobs:
                 -v $(pwd):/msquic \
                 ${{ matrix.vec.image }} /msquic/scripts/package-build.sh
     - name: Upload Package
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
       with:
         name: ${{ matrix.vec.friendlyName }}-package
         path: packages/*.apk
@@ -64,16 +64,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
     - name: Download Package
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: ${{ matrix.vec.friendlyName }}-package
         path: artifacts
     - name: Set up QEMU
       uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
     - name: Set up .NET 9.0
-      uses: actions/setup-dotnet@2016bd2012dba4e32de620c46fe006a3ac9f0602
+      uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309
       with:
         dotnet-version: ${{ matrix.vec.dotnetVersion }}
     - name: Build .NET QUIC Test Project (self-contained)

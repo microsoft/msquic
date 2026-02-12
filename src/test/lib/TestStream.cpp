@@ -14,6 +14,8 @@ Abstract:
 #include "TestStream.cpp.clog.h"
 #endif
 
+#include "TestStream.h"
+
 TestStream::TestStream(
     _In_ HQUIC Handle,
     _In_opt_ STREAM_SHUTDOWN_CALLBACK_HANDLER StreamShutdownHandler,

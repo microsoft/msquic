@@ -86,6 +86,7 @@ QuicConnAlloc(
 
 #if DEBUG
     InterlockedIncrement(&MsQuicLib.ConnectionCount);
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONNECTION, &Connection->DbgObjectLink);
 #endif
     QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_CREATED);
     QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_ACTIVE);
@@ -413,6 +414,9 @@ QuicConnFree(
         CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
     }
     Connection->State.Freed = TRUE;
+#if DEBUG
+    QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONNECTION, &Connection->DbgObjectLink);
+#endif
     QuicTraceEvent(
         ConnDestroyed,
         "[conn][%p] Destroyed",
@@ -5910,6 +5914,11 @@ QuicConnRecvDatagrams(
 
     if (!Connection->State.UpdateWorker && Connection->State.Connected &&
         !Connection->State.ShutdownComplete && RecvState.UpdatePartitionId) {
+        //
+        // Packets were received on a different partition than the one assigned to the connection.
+        // Migrate the connection to a new worker. New CIDs must be generated since the partition
+        // id is encoded in the CID.
+        //
         CXPLAT_DBG_ASSERT(Connection->Registration);
         CXPLAT_DBG_ASSERT(!Connection->Registration->NoPartitioning);
         CXPLAT_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));

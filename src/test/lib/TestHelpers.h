@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#pragma once
+
 #ifdef QUIC_CLOG
 #include "TestHelpers.h.clog.h"
 #endif
@@ -1062,29 +1064,15 @@ WaitForMsQuicInUse() {
     return MsQuicInUse && Status == QUIC_STATUS_SUCCESS;
 }
 
-//
-// Call Condition every RetryIntervalMs until TimeoutMs has elapsed.
-// Returns QUIC_STATUS_CONNECTION_TIMEOUT if it runs until TimeoutMs
-// has elapsed.
-// The Condition lambda takes no parameters, and returns a QUIC_STATUS.
-// If Condition returns QUIC_STATUS_CONTINUE, TryUntil will keep trying.
-// Any other QUIC_STATUS, TryUntil will stop and return that value.
-//
-template<class Predicate>
-QUIC_STATUS
-TryUntil(
-    uint32_t RetryIntervalMs,
-    uint32_t TimeoutMs,
-    Predicate Condition)
-{
-    uint32_t Tries = TimeoutMs / RetryIntervalMs + 1;
-    for (uint32_t i = 0; i < Tries; i++) {
-        QUIC_STATUS Status = Condition();
-        if (Status == QUIC_STATUS_CONTINUE) {
-            CxPlatSleep(RetryIntervalMs);
-        } else {
-            return Status;
-        }
-    }
-    return QUIC_STATUS_CONNECTION_TIMEOUT;
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_INLINE
+void
+DrainConnectionWorkQueue(HQUIC Connection) {
+    //
+    // Call the GetParam API: it schedules a work item on the connection and waits for its completion,
+    // ensuring all prior work items have completed.
+    //
+    QUIC_STATISTICS_V2 Stats{};
+    uint32_t StatsSize = sizeof(Stats);
+    (void)MsQuic->GetParam(Connection, QUIC_PARAM_CONN_STATISTICS_V2, &StatsSize, &Stats);
 }

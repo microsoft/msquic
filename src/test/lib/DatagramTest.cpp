@@ -38,10 +38,11 @@ ListenerAcceptConnection(
 
 void
 QuicTestDatagramNegotiation(
-    _In_ int Family,
-    _In_ bool DatagramReceiveEnabled
+    const DatagramNegotiationArgs& Params
     )
 {
+    const int Family = Params.Family;
+    const bool DatagramReceiveEnabled = Params.DatagramReceiveEnabled;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -138,9 +139,10 @@ QuicTestDatagramNegotiation(
 
 void
 QuicTestDatagramSend(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -271,9 +273,10 @@ QuicTestDatagramSend(
 
 void
 QuicTestDatagramDrop(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 

@@ -40,6 +40,13 @@ typedef struct QUIC_CONFIGURATION {
     //
     CXPLAT_LIST_ENTRY Link;
 
+#if DEBUG
+    //
+    // Link into the global debug object tracker.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
+#endif
+
     //
     // Reference count for tracking lifetime.
     //

@@ -137,8 +137,9 @@ void QuicTestStartListenerMultiAlpns()
     }
 }
 
-void QuicTestStartListenerImplicit(_In_ int Family)
+void QuicTestStartListenerImplicit(const FamilyArgs& Params)
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn("MsQuicTest");
@@ -245,8 +246,9 @@ void QuicTestStartTwoListenersSameALPN()
     }
 }
 
-void QuicTestStartListenerExplicit(_In_ int Family)
+void QuicTestStartListenerExplicit(const FamilyArgs& Params)
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn("MsQuicTest");
@@ -282,8 +284,9 @@ void QuicTestCreateConnection()
     }
 }
 
-void QuicTestBindConnectionImplicit(_In_ int Family)
+void QuicTestBindConnectionImplicit(const FamilyArgs& Params)
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -296,8 +299,9 @@ void QuicTestBindConnectionImplicit(_In_ int Family)
     }
 }
 
-void QuicTestBindConnectionExplicit(_In_ int Family)
+void QuicTestBindConnectionExplicit(const FamilyArgs& Params)
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -319,8 +323,9 @@ void QuicTestBindConnectionExplicit(_In_ int Family)
     }
 }
 
-void QuicTestAddrFunctions(_In_ int Family)
+void QuicTestAddrFunctions(const FamilyArgs& Params)
 {
+    const int Family = Params.Family;
     QUIC_ADDR SockAddr;
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 

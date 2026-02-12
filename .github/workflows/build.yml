@@ -246,19 +246,19 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
     - name: Download Build Artifacts
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
       if: matrix.vec.tls != 'quictls' # TODO: Remove once quictls is supported
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
@@ -267,7 +267,7 @@ jobs:
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
       with:
         name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg
