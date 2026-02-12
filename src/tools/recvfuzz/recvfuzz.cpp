@@ -529,22 +529,166 @@ void WriteHandshakeDoneFrame(
     Buffer[(*Offset)++] = QUIC_FRAME_HANDSHAKE_DONE;
 }
 
-void WriteStreamFrame(
+void WritePingFrame(
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    uint64_t StreamId = GetRandom<uint8_t>(4); // Use stream IDs 0-3 (bidirectional client-initiated)
+    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    Buffer[(*Offset)++] = QUIC_FRAME_PING;
+}
+
+void WriteConnectionCloseFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    Buffer[(*Offset)++] = QUIC_FRAME_CONNECTION_CLOSE;
+    
+    // Error code
+    uint64_t ErrorCode = GetRandom<uint16_t>();
+    QuicVarIntEncode(ErrorCode, Buffer + *Offset);
+    *Offset += QuicVarIntSize(ErrorCode);
+    
+    // Frame type (if present)
+    QuicVarIntEncode(0, Buffer + *Offset);
+    *Offset += QuicVarIntSize((uint64_t)0);
+    
+    // Reason phrase length and phrase
+    uint8_t ReasonLen = GetRandom<uint8_t>(20);
+    QuicVarIntEncode(ReasonLen, Buffer + *Offset);
+    *Offset += QuicVarIntSize((uint64_t)ReasonLen);
+    
+    if (*Offset + ReasonLen <= BufferLength) {
+        GetRandomBytes(ReasonLen, Buffer + *Offset);
+        *Offset += ReasonLen;
+    }
+}
+
+void WriteResetStreamFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    Buffer[(*Offset)++] = QUIC_FRAME_RESET_STREAM;
+    
+    // Stream ID
+    uint64_t StreamId = GetRandom<uint8_t>(4) * 4; // Client-initiated bidi
+    QuicVarIntEncode(StreamId, Buffer + *Offset);
+    *Offset += QuicVarIntSize(StreamId);
+    
+    // Error code
+    uint64_t ErrorCode = GetRandom<uint16_t>();
+    QuicVarIntEncode(ErrorCode, Buffer + *Offset);
+    *Offset += QuicVarIntSize(ErrorCode);
+    
+    // Final size
+    uint64_t FinalSize = GetRandom<uint16_t>(1000);
+    QuicVarIntEncode(FinalSize, Buffer + *Offset);
+    *Offset += QuicVarIntSize(FinalSize);
+}
+
+void WriteStopSendingFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    Buffer[(*Offset)++] = QUIC_FRAME_STOP_SENDING;
+    
+    // Stream ID
+    uint64_t StreamId = GetRandom<uint8_t>(4) * 4; // Client-initiated bidi
+    QuicVarIntEncode(StreamId, Buffer + *Offset);
+    *Offset += QuicVarIntSize(StreamId);
+    
+    // Error code
+    uint64_t ErrorCode = GetRandom<uint16_t>();
+    QuicVarIntEncode(ErrorCode, Buffer + *Offset);
+    *Offset += QuicVarIntSize(ErrorCode);
+}
+
+void WriteMaxDataFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    Buffer[(*Offset)++] = QUIC_FRAME_MAX_DATA;
+    
+    // Maximum data
+    uint64_t MaxData = GetRandom<uint32_t>();
+    QuicVarIntEncode(MaxData, Buffer + *Offset);
+    *Offset += QuicVarIntSize(MaxData);
+}
+
+void WriteMaxStreamDataFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    Buffer[(*Offset)++] = QUIC_FRAME_MAX_STREAM_DATA;
+    
+    // Stream ID
+    uint64_t StreamId = GetRandom<uint8_t>(4) * 4;
+    QuicVarIntEncode(StreamId, Buffer + *Offset);
+    *Offset += QuicVarIntSize(StreamId);
+    
+    // Maximum stream data
+    uint64_t MaxStreamData = GetRandom<uint32_t>();
+    QuicVarIntEncode(MaxStreamData, Buffer + *Offset);
+    *Offset += QuicVarIntSize(MaxStreamData);
+}
+
+void WriteUnknownFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    // Use an unassigned or reserved frame type
+    uint8_t UnknownType = GetRandom<uint8_t>();
+    // Avoid known frame types - use high values or reserved ranges
+    if (UnknownType < 0x20) {
+        UnknownType = 0x20 + GetRandom<uint8_t>(20); // Use 0x20-0x33 range
+    }
+    Buffer[(*Offset)++] = UnknownType;
+    
+    // Add random payload (invalid frame format)
+    uint8_t PayloadLen = GetRandom<uint8_t>(32);
+    if (*Offset + PayloadLen <= BufferLength) {
+        GetRandomBytes(PayloadLen, Buffer + *Offset);
+        *Offset += PayloadLen;
+    }
+}
+
+void WriteStreamFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer,
+    _In_ uint8_t FrameType
+    )
+{
+    // Mix bidirectional (0x00) and unidirectional (0x02) client-initiated streams
+    uint64_t StreamType = GetRandom<uint8_t>(2) == 0 ? 0x00 : 0x02; // Bidi or Uni
+    uint64_t StreamIndex = GetRandom<uint8_t>(4); // 0-3
+    uint64_t StreamId = (StreamIndex * 4) | StreamType; // Generate stream ID
     uint64_t StreamOffset = GetRandom<uint8_t>(2) == 0 ? 0 : GetRandom<uint16_t>(1000);
     uint16_t DataLength = GetRandom<uint8_t>(200) + 10; // 10-210 bytes of data
-    uint8_t Fin = GetRandom<uint8_t>(4) == 0 ? 1 : 0; // 25% chance of FIN
 
-    // STREAM frame type with LEN and OFF bits set (0x0A)
-    uint8_t FrameType = 0x08; // Base STREAM frame
-    if (StreamOffset > 0) FrameType |= 0x04; // OFF bit
-    FrameType |= 0x02; // LEN bit (always include length)
-    if (Fin) FrameType |= 0x01; // FIN bit
+    // Use the provided frame type (which encodes FIN, LEN, and OFF bits)
+    bool HasOffset = (FrameType & 0x04) != 0;
+    bool HasLength = (FrameType & 0x02) != 0;
+    bool HasFin = (FrameType & 0x01) != 0;
 
     CXPLAT_FRE_ASSERT(*Offset < BufferLength);
     Buffer[(*Offset)++] = FrameType;
@@ -553,20 +697,35 @@ void WriteStreamFrame(
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
 
-    // Encode Offset if present
-    if (StreamOffset > 0) {
+    // Encode Offset if frame type indicates it should be present
+    if (HasOffset) {
         QuicVarIntEncode(StreamOffset, Buffer + *Offset);
         *Offset += QuicVarIntSize(StreamOffset);
     }
 
-    // Encode Length
-    QuicVarIntEncode(DataLength, Buffer + *Offset);
-    *Offset += QuicVarIntSize(DataLength);
+    // Encode Length (only if LEN bit is set in frame type)
+    if (HasLength) {
+        QuicVarIntEncode(DataLength, Buffer + *Offset);
+        *Offset += QuicVarIntSize(DataLength);
+    }
 
-    // Write random stream data
-    CXPLAT_FRE_ASSERT(*Offset + DataLength <= BufferLength);
-    GetRandomBytes(DataLength, Buffer + *Offset);
-    *Offset += DataLength;
+    // Write random stream data (sometimes with mismatched length for fuzzing)
+    uint16_t ActualDataLength = DataLength;
+    uint8_t LengthFuzz = GetRandom<uint8_t>(20);
+    if (LengthFuzz == 0) {
+        // 5% chance: write fewer bytes than promised
+        ActualDataLength = DataLength > 5 ? DataLength - GetRandom<uint8_t>(5) - 1 : 0;
+    } else if (LengthFuzz == 1) {
+        // 5% chance: write more bytes than promised (if space allows)
+        uint16_t Extra = GetRandom<uint8_t>(10) + 1;
+        if (*Offset + DataLength + Extra <= BufferLength) {
+            ActualDataLength = DataLength + Extra;
+        }
+    }
+    
+    CXPLAT_FRE_ASSERT(*Offset + ActualDataLength <= BufferLength);
+    GetRandomBytes(ActualDataLength, Buffer + *Offset);
+    *Offset += ActualDataLength;
 }
 
 void WriteCryptoFrame(
@@ -607,10 +766,87 @@ void WriteCryptoFrame(
             Buffer));
 }
 
+void WriteFrames(
+    _Inout_ uint16_t* PayloadLength,
+    _In_ uint16_t BufferSize,
+    _Out_writes_to_(BufferSize, *PayloadLength) uint8_t* Buffer,
+    _In_ PacketParams* PacketParams,
+    _In_opt_ TlsContext* ClientContext = nullptr
+    )
+{
+    for (int i = 0; i < PacketParams->NumFrames; i++) {
+        *PayloadLength += GetRandom<uint8_t>(64); // Random padding
+
+        if (PacketParams->FrameTypes[i] == QUIC_FRAME_ACK) {
+            WriteAckFrame(
+                PacketParams->LargestAcknowledge,
+                PayloadLength,
+                BufferSize,
+                Buffer);
+
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_CRYPTO) {
+            WriteCryptoFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer,
+                ClientContext,
+                PacketParams);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_HANDSHAKE_DONE) {
+            WriteHandshakeDoneFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_PING) {
+            WritePingFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_CONNECTION_CLOSE) {
+            WriteConnectionCloseFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_RESET_STREAM) {
+            WriteResetStreamFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_STOP_SENDING) {
+            WriteStopSendingFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_MAX_DATA) {
+            WriteMaxDataFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_MAX_STREAM_DATA) {
+            WriteMaxStreamDataFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer);
+        } else if (PacketParams->FrameTypes[i] >= QUIC_FRAME_STREAM && PacketParams->FrameTypes[i] <= QUIC_FRAME_STREAM_7) {
+            // STREAM frame (types 0x08-0x0f)
+            WriteStreamFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer,
+                (uint8_t)PacketParams->FrameTypes[i]);
+        } else {
+            // Unknown/invalid frame type - write as-is for fuzzing
+            WriteUnknownFrame(
+                PayloadLength,
+                BufferSize,
+                Buffer);
+        }
+    }
+}
+
 //
-// Build up the packet header and payload.
+// Build up the long header packet header and payload.
 //
-void WriteClientPacket(
+void WriteLongHeaderPacket(
     _In_ uint32_t PacketNumber,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *PacketLength)
@@ -660,37 +896,7 @@ void WriteClientPacket(
 
     uint16_t BufferSize = BufferLength - *HeaderLength;
     uint16_t PayloadLength = 0;
-    for (int i = 0; i < PacketParams->NumFrames; i++) {
-        PayloadLength += GetRandom<uint8_t>(64); // Random padding
-
-        if (PacketParams->FrameTypes[i] == QUIC_FRAME_ACK) {
-            WriteAckFrame(
-                PacketParams->LargestAcknowledge,
-                &PayloadLength,
-                BufferSize,
-                Buffer + *HeaderLength);
-
-        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_CRYPTO) {
-            WriteCryptoFrame(
-                &PayloadLength,
-                BufferSize,
-                Buffer + *HeaderLength,
-                ClientContext,
-                PacketParams);
-        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_HANDSHAKE_DONE) {
-            WriteHandshakeDoneFrame(
-                &PayloadLength,
-                BufferSize,
-                Buffer + *HeaderLength);
-        } else if (PacketParams->FrameTypes[i] >= QUIC_FRAME_STREAM && PacketParams->FrameTypes[i] <= QUIC_FRAME_STREAM_7) {
-            // STREAM frame (types 0x08-0x0f)
-            WriteStreamFrame(
-                &PayloadLength,
-                BufferSize,
-                Buffer + *HeaderLength);
-        }
-    }
-
+    WriteFrames(&PayloadLength, BufferSize, Buffer + *HeaderLength, PacketParams, ClientContext);
     PayloadLength += GetRandom<uint8_t>(64); // More random padding
 
     *PacketLength = *HeaderLength + PayloadLength + CXPLAT_ENCRYPTION_OVERHEAD;
@@ -701,9 +907,9 @@ void WriteClientPacket(
 }
 
 //
-// Finalizes the packet number, encryption, and header protection.
-//d
-void FinalizePacket(
+// Finalizes the long header packet number, encryption, and header protection.
+//
+void FinalizeLongHeaderPacket(
     _Out_writes_(PacketLength)
         uint8_t* Packet,
     _In_ uint16_t PacketLength,
@@ -792,7 +998,7 @@ void BuildAndSendLongHeaderPackets(
 
         uint16_t PacketLength, HeaderLength;
         uint64_t PacketNum = PacketParams->PacketNumber++;
-        WriteClientPacket(
+        WriteLongHeaderPacket(
             (uint32_t)PacketNum,
             (uint16_t)SendBuffer->Length,
             SendBuffer->Buffer,
@@ -805,7 +1011,7 @@ void BuildAndSendLongHeaderPackets(
             RandomizeSomeBytes(PacketLength, SendBuffer->Buffer);
         }
 
-        FinalizePacket(
+        FinalizeLongHeaderPacket(
             SendBuffer->Buffer,
             PacketLength,
             HeaderLength,
@@ -864,32 +1070,9 @@ void WriteShortHeaderPacket(
     uint16_t BufferSize = BufferLength - *HeaderLength;
     uint16_t PayloadLength = 0;
     
-    // Build frames
-    for (int i = 0; i < PacketParams->NumFrames; i++) {
-        PayloadLength += GetRandom<uint8_t>(64); // Random padding
-
-        if (PacketParams->FrameTypes[i] == QUIC_FRAME_ACK) {
-            WriteAckFrame(
-                PacketParams->LargestAcknowledge,
-                &PayloadLength,
-                BufferSize,
-                Buffer + *HeaderLength);
-        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_HANDSHAKE_DONE) {
-            WriteHandshakeDoneFrame(
-                &PayloadLength,
-                BufferSize,
-                Buffer + *HeaderLength);
-        } else if (PacketParams->FrameTypes[i] >= QUIC_FRAME_STREAM && PacketParams->FrameTypes[i] <= QUIC_FRAME_STREAM_7) {
-            // STREAM frame (types 0x08-0x0f)
-            WriteStreamFrame(
-                &PayloadLength,
-                BufferSize,
-                Buffer + *HeaderLength);
-        }
-        // 1-RTT packets typically contain STREAM frames, PING, etc.
-        // For fuzzing purposes, we'll use STREAM frames, ACK frames and padding
-    }
-
+    // Build frames (1-RTT packets typically contain STREAM frames, PING, etc.
+    // For fuzzing purposes, we'll use STREAM frames, ACK frames and padding)
+    WriteFrames(&PayloadLength, BufferSize, Buffer + *HeaderLength, PacketParams);
     PayloadLength += GetRandom<uint8_t>(64); // More random padding
 
     *PacketLength = *HeaderLength + PayloadLength + CXPLAT_ENCRYPTION_OVERHEAD;
@@ -1275,12 +1458,43 @@ void Fuzz1Rtt(
             }
 
             //
-            // Send fuzzed 1-RTT packets with STREAM frames
+            // Send fuzzed 1-RTT packets with randomized frame types
             //
             PacketParams.NumFrames = 1;
-            PacketParams.FrameTypes[0] = QUIC_FRAME_STREAM; // STREAM frame base type
+            // Randomly select frame type for fuzzing
+            uint8_t FrameChoice = GetRandom<uint8_t>(50);
+            if (FrameChoice == 0) {
+                // 2%: Unknown/invalid frame
+                PacketParams.FrameTypes[0] = (QUIC_FRAME_TYPE)(0x20 + GetRandom<uint8_t>(20));
+            } else if (FrameChoice < 31) {
+                // 60%: Randomize stream frame type (0x08-0x0f) to vary FIN, LEN, and OFF bits
+                PacketParams.FrameTypes[0] = (QUIC_FRAME_TYPE)(QUIC_FRAME_STREAM + GetRandom<uint8_t>(8));
+            } else if (FrameChoice < 36) {
+                // 10%: PING
+                PacketParams.FrameTypes[0] = QUIC_FRAME_PING;
+            } else if (FrameChoice < 41) {
+                // 10%: RESET_STREAM
+                PacketParams.FrameTypes[0] = QUIC_FRAME_RESET_STREAM;
+            } else if (FrameChoice < 46) {
+                // 10%: MAX_DATA
+                PacketParams.FrameTypes[0] = QUIC_FRAME_MAX_DATA;
+            } else {
+                // 8%: MAX_STREAM_DATA
+                PacketParams.FrameTypes[0] = QUIC_FRAME_MAX_STREAM_DATA;
+            }
             PacketParams.NumPackets = GetRandom<uint8_t>(10) + 5;
             BuildAndSendShortHeaderPackets(Binding, Route, &PacketParams, &ClientContext, true);
+
+            //
+            // 5% chance: Send a late Handshake packet during 1-RTT phase
+            //
+            if (GetRandom<uint8_t>(20) == 0) {
+                PacketParams.PacketType = QUIC_HANDSHAKE_V1;
+                PacketParams.NumFrames = 1;
+                PacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
+                PacketParams.NumPackets = 1;
+                BuildAndSendLongHeaderPackets(Binding, Route, &PacketParams, &ClientContext, true);
+            }
         }
     }
 }
@@ -1293,6 +1507,7 @@ void FuzzReceivePath(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE* Route) {
             Stats.Print();
         }
         uint8_t FuzzMode = GetRandom<uint8_t>(32);
+        FuzzMode = 18;
         if (FuzzMode == 0) {
             FuzzInitial(Binding, Route);
         } else if (FuzzMode < 16) {
