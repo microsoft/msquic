@@ -395,11 +395,6 @@ error:
     WdfRequestComplete(Request, Status);
 }
 
-#define QuicTestCtlRun(X) \
-    Client->TestFailure = false; \
-    X; \
-    Status = Client->TestFailure ? STATUS_FAIL_FAST_EXCEPTION : STATUS_SUCCESS;
-
 // Base template providing a readable error for unsupported scenarios
 template<class... Args>
 QUIC_STATUS InvokeTestFunction(void(Args...), const uint8_t*, uint32_t) {
@@ -456,6 +451,8 @@ ExecuteTestRequest(
     Request->FunctionName[sizeof(Request->FunctionName) - 1] = '\0';
 
     // Register any test functions here
+    RegisterTestFunction(QuicTestValidateApi);
+    RegisterTestFunction(QuicTestValidateRegistration);
     RegisterTestFunction(QuicTestGlobalParam);
     RegisterTestFunction(QuicTestCommonParam);
     RegisterTestFunction(QuicTestRegistrationParam);
@@ -751,13 +748,13 @@ QuicTestCtlEvtIoDeviceControl(
             break;
         }
 
-        UseDuoNic = TestConfig.UseDuoNic;
+        UseDuoNic = TestConfig->UseDuoNic;
         RtlCopyMemory(CurrentWorkingDirectory, "\\DosDevices\\", sizeof("\\DosDevices\\"));
         Status =
             RtlStringCbCatExA(
                 CurrentWorkingDirectory,
                 sizeof(CurrentWorkingDirectory),
-                TestConfig.CurrentDirectory,
+                TestConfig->CurrentDirectory,
                 nullptr,
                 nullptr,
                 STRSAFE_NULL_ON_FAILURE);
@@ -782,7 +779,7 @@ QuicTestCtlEvtIoDeviceControl(
         QUIC_RUN_CERTIFICATE_PARAMS* CertParams{};
         Status =
             WdfRequestRetrieveInputBuffer(
-                Request, sizeof(CertParams), reinterpret_cast<void**>(&CertParams), nullptr);
+                Request, sizeof(*CertParams), reinterpret_cast<void**>(&CertParams), nullptr);
 
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
@@ -802,11 +799,11 @@ QuicTestCtlEvtIoDeviceControl(
             QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
             QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
         ServerSelfSignedCredConfigClientAuth.CertificateHash = &SelfSignedCertHash;
-        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &CertParams.ServerCertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &CertParams->ServerCertHash, sizeof(QUIC_CERTIFICATE_HASH));
         ClientCertCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
         ClientCertCredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
         ClientCertCredConfig.CertificateHash = &ClientCertHash;
-        RtlCopyMemory(&ClientCertHash.ShaHash, &CertParams.ClientCertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        RtlCopyMemory(&ClientCertHash.ShaHash, &CertParams->ClientCertHash, sizeof(QUIC_CERTIFICATE_HASH));
 
         Status = QUIC_STATUS_SUCCESS;
         break;
