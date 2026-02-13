@@ -641,8 +641,8 @@ TEST(CubicTest, OnDataLost_WindowReduction)
 
     // Verify window was reduced (CUBIC multiplicative decrease)
     // New window = InitialWindow * 0.7 = InitialWindow * 7 / 10
-    // InitialWindow = (1280 - 62) * 20 = 24360
-    // Expected = 24360 * 7 / 10 = 17052
+    // InitialWindow = (1280 - 48) * 20 = 24640 (IPv6 formula: MTU - 40 - 8)
+    // Expected = 24640 * 7 / 10 = 17248
     uint32_t ExpectedWindow = InitialWindow * 7 / 10;
     ASSERT_EQ(Cubic->CongestionWindow, ExpectedWindow);
     ASSERT_EQ(Cubic->SlowStartThreshold, ExpectedWindow);
@@ -686,8 +686,8 @@ TEST(CubicTest, OnEcn_CongestionSignal)
         &EcnEvent);
 
     // Verify window was reduced due to ECN congestion signal (same as loss: 0.7x)
-    // InitialWindow = (1280 - 62) * 20 = 24360
-    // Expected = 24360 * 7 / 10 = 17052
+    // InitialWindow = (1280 - 48) * 20 = 24640 (IPv6 formula: MTU - 40 - 8)
+    // Expected = 24640 * 7 / 10 = 17248
     uint32_t ExpectedWindow = InitialWindow * 7 / 10;
     ASSERT_EQ(Cubic->CongestionWindow, ExpectedWindow);
 }
