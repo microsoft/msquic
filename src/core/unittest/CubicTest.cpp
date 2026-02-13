@@ -551,7 +551,6 @@ TEST(CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
 // Test 12: OnDataAcknowledged - Basic ACK Processing and CUBIC Growth
 // Scenario: Tests the core CUBIC congestion control algorithm by acknowledging sent data.
 // Exercises CubicCongestionControlOnDataAcknowledged and internally calls CubeRoot for CUBIC calculations.
-// Verifies congestion window grows appropriately after successful ACK.
 //
 TEST(CubicTest, OnDataAcknowledged_BasicAck)
 {
@@ -561,10 +560,12 @@ TEST(CubicTest, OnDataAcknowledged_BasicAck)
     Settings.SendIdleTimeoutMs = 1000;
 
     InitializeMockConnection(Connection, 1280);
-    Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000; // 50ms in microseconds
-    Connection.Settings.NetStatsEventEnabled = TRUE; // Enable logging
+
+    // This test also explores the logging path without any callback set explicitly
+    Connection.Settings.NetStatsEventEnabled = TRUE; 
+
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
@@ -594,7 +595,7 @@ TEST(CubicTest, OnDataAcknowledged_BasicAck)
     Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
         &Connection.CongestionControl,
         &AckEvent);
-    // Window should remain unchanged since HyStart is enabled and may affect growth
+
     // We verify the exact value matches what the implementation produces
     ASSERT_EQ(Cubic->CongestionWindow, InitialWindow);
 }
@@ -2970,6 +2971,8 @@ TEST(CubicTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
         if (round < QUIC_CONSERVATIVE_SLOW_START_DEFAULT_ROUNDS - 1) {
             // Still in HYSTART_ACTIVE for first n-1 rounds
             ASSERT_EQ(Cubic->HyStartState, HYSTART_ACTIVE);
+            ASSERT_NE(Cubic->SlowStartThreshold, Cubic->CongestionWindow);
+            ASSERT_EQ(Cubic->ConservativeSlowStartRounds, QUIC_CONSERVATIVE_SLOW_START_DEFAULT_ROUNDS - 1 - round);
         } else {
             // for the rest of the rounds, state should transition
             // to HYSTART_DONE and stay there
