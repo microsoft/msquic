@@ -357,7 +357,6 @@ TEST(CubicTest, GetSendAllowanceWithActivePacing)
 
     // Set BytesInFlight to half the window to have available capacity
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, CongestionWindow / 2);
-    uint32_t AvailableWindow = Cubic->CongestionWindow - Cubic->BytesInFlight;
 
     // Simulate 10ms elapsed since last send
     // Expected pacing calculation: (CongestionWindow * 10ms) / 50ms = CongestionWindow / 5
@@ -1894,7 +1893,6 @@ TEST(CubicTest, HyStart_T4_AnyToDone_ViaPersistentCongestion)
 
     uint32_t WindowBeforePersistent = Cubic->CongestionWindow;
     // Verify window is large (InitialWindow = 30 * 1232 = 36960)
-    uint32_t MinAllowedWindow = 2 * DatagramPayloadLength;  // 2464
     ASSERT_EQ(WindowBeforePersistent, InitialWindow);
 
     // Send data
