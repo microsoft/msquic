@@ -56,59 +56,59 @@ typedef CONN_SHUTDOWN_COMPLETE_CALLBACK *CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER
 //
 class TestConnection
 {
-    HQUIC QuicConnection;
+    HQUIC QuicConnection{};
 
     // Lock protecting the TestConnection members used in the connection callback.
     mutable CxPlatLock Lock{};
 
-    bool IsServer           : 1;
-    bool IsStarted          : 1;
-    bool IsConnected        : 1;
-    bool Resumed            : 1;
-    bool PeerAddrChanged    : 1;
-    bool PeerClosed         : 1;
-    bool TransportClosed    : 1;
-    bool IsShutdown         : 1;
-    bool ShutdownTimedOut   : 1;
-    bool AutoDelete         : 1;
-    bool HasRandomLoss      : 1;
-    bool AsyncCustomValidation : 1;
-    bool CustomValidationResultSet : 1;
+    bool IsServer{};
+    bool IsStarted{};
+    bool IsConnected{};
+    bool Resumed{};
+    bool PeerAddrChanged{};
+    bool PeerClosed{};
+    bool TransportClosed{};
+    bool IsShutdown{};
+    bool ShutdownTimedOut{};
+    bool AutoDelete{};
+    bool HasRandomLoss{};
+    bool AsyncCustomValidation{};
+    bool CustomValidationResultSet{};
 
-    bool ExpectedResumed    : 1;
-    QUIC_STATUS ExpectedCustomTicketValidationResult;
-    QUIC_STATUS ExpectedTransportCloseStatus;
-    QUIC_UINT62 ExpectedPeerCloseErrorCode;
-    QUIC_STATUS ExpectedClientCertValidationResult[2];
-    uint32_t ExpectedClientCertValidationResultCount;
-    bool ExpectedCustomValidationResult;
-    QUIC_STATUS PeerCertEventReturnStatus;
+    bool ExpectedResumed{};
+    QUIC_STATUS ExpectedCustomTicketValidationResult{};
+    QUIC_STATUS ExpectedTransportCloseStatus{};
+    QUIC_UINT62 ExpectedPeerCloseErrorCode{};
+    QUIC_STATUS ExpectedClientCertValidationResult[2]{};
+    uint32_t ExpectedClientCertValidationResultCount{};
+    bool ExpectedCustomValidationResult{};
+    QUIC_STATUS PeerCertEventReturnStatus{};
 
-    QUIC_STATUS TransportCloseStatus;
-    QUIC_UINT62 PeerCloseErrorCode;
+    QUIC_STATUS TransportCloseStatus{};
+    QUIC_UINT62 PeerCloseErrorCode{};
 
-    CXPLAT_EVENT EventConnectionComplete;
-    CXPLAT_EVENT EventPeerClosed;
-    CXPLAT_EVENT EventShutdownComplete;
-    CXPLAT_EVENT EventResumptionTicketReceived;
-    CXPLAT_EVENT* EventDeleted;
+    CXPLAT_EVENT EventConnectionComplete{};
+    CXPLAT_EVENT EventPeerClosed{};
+    CXPLAT_EVENT EventShutdownComplete{};
+    CXPLAT_EVENT EventResumptionTicketReceived{};
+    CXPLAT_EVENT* EventDeleted{};
 
-    NEW_STREAM_CALLBACK_HANDLER NewStreamCallback;
-    CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER ShutdownCompleteCallback;
+    NEW_STREAM_CALLBACK_HANDLER NewStreamCallback{};
+    CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER ShutdownCompleteCallback{};
 
-    QUIC_BUFFER* ResumptionTicket {nullptr};
+    QUIC_BUFFER* ResumptionTicket{};
 
-    uint32_t DatagramsSent;
-    uint32_t DatagramsCanceled;
-    uint32_t DatagramsSuspectLost;
-    uint32_t DatagramsLost;
-    uint32_t DatagramsAcknowledged;
+    uint32_t DatagramsSent{};
+    uint32_t DatagramsCanceled{};
+    uint32_t DatagramsSuspectLost{};
+    uint32_t DatagramsLost{};
+    uint32_t DatagramsAcknowledged{};
 
-    const uint8_t* NegotiatedAlpn;
-    uint8_t NegotiatedAlpnLength;
+    const uint8_t* NegotiatedAlpn{};
+    uint8_t NegotiatedAlpnLength{};
 
-    QUIC_TLS_SECRETS TlsSecrets;
-    const char* SslKeyLogFileName;
+    QUIC_TLS_SECRETS TlsSecrets{};
+    const char* SslKeyLogFileName{};
 
     QUIC_STATUS
     HandleConnectionEvent(
@@ -205,7 +205,7 @@ public:
     // State
     //
 
-    void* Context; // Not used internally.
+    void* Context{}; // Not used internally.
 
     HQUIC GetConnection() { return QuicConnection; }
     bool GetIsServer() const {
