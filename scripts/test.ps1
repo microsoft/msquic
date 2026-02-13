@@ -217,11 +217,11 @@ if ($CodeCoverage) {
     if ($Debugger) {
         Write-Error "-CodeCoverage switch is not supported with debugging";
     }
-    if ($IsWindows) {
-        if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+    if ($IsWindows -and !(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
             Write-Error "Code coverage tools are not installed";
-        }
-    }
+    } elseif ($IsLinux -and !(Get-Command gcovr -ErrorAction SilentlyContinue)) {
+        Write-Error "Code coverage tools for linux (gcovr) are not installed (missing 'gcovr')."
+    } 
 }
 
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
@@ -245,6 +245,7 @@ if ($CodeCoverage) {
     # Clear old coverage data
     if (Test-Path $CoverageDir) {
         Remove-Item -Path (Join-Path $CoverageDir '*.cov') -Force
+        Remove-Item -Path (Join-Path $RootDir '*.gcda') -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -399,14 +400,34 @@ if ($CodeCoverage) {
             Write-Warning "No coverage results to merge!"
         }
     } elseif ($IsLinux) {
-        # Linux: Use gcovr to generate coverage report from .gcda files
+        # Use gcovr to generate coverage report from .gcda files
         $CoverageOutput = Join-Path $CoverageDir "msquiccoverage.xml"
-        $BuildDir = Join-Path $RootDir "build"
-        gcovr -r $RootDir --filter "$RootDir/src/core" --cobertura $CoverageOutput $BuildDir
+        $BuildDir       = Join-Path $RootDir "build"
+
+        # Build regexes (gcovr treats --filter/--exclude as regex)
+        $coreFilter     = [regex]::Escape((Join-Path $RootDir 'src/core'))     + '([\/\\].*)?$'
+        $platformFilter = [regex]::Escape((Join-Path $RootDir 'src/platform')) + '([\/\\].*)?$'
+        $testExclude    = '(?i).*[\/\\].*test.*([\/\\].*)?$'   # exclude any path containing "test" (case-insensitive)
+
+        $GcovrParams = ""
+
+        if ($Clang) {
+            $GcovrParams += ' --gcov-executable "llvm-cov gcov"'
+        }
+
+        $GcovrParams += " -r `"$RootDir`""
+        $GcovrParams += " --filter `"$coreFilter`""
+        $GcovrParams += " --filter `"$platformFilter`""
+        $GcovrParams += " --exclude `"$testExclude`""
+        $GcovrParams += " --cobertura `"$CoverageOutput`""
+        $GcovrParams += " `"$BuildDir`""
+
+        Invoke-Expression ("gcovr" + $GcovrParams) | Out-Null
+
         if (Test-Path $CoverageOutput) {
             Write-Host "Coverage report generated at $CoverageOutput"
         } else {
-            Write-Warning "No coverage results to merge!"
+            Write-Warning "Coverage generation was not successful"
         }
     }
 }

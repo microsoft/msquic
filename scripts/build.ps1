@@ -111,7 +111,7 @@ This script provides helpers for building msquic.
 .PARAMETER OneBranch
     Build is occuring from Onebranch pipeline.
 
-.PARAMETER CodeCoverage
+.PARAMETER EnableGCov
     Builds with code coverage instrumentation enabled (Linux-only, uses gcov).
 
 .EXAMPLE
@@ -241,7 +241,7 @@ param (
     [string]$ToolchainFile = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$EnableGCov = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -534,12 +534,11 @@ function CMake-Generate {
     if ($EnableHighResolutionTimers) {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
-    if ($CodeCoverage) {
+    if ($EnableGCov) {
         if ($IsLinux) {
             $Arguments += " -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage"
-        }
-        else {
-            Write-Warning "-CodeCoverage is only supported on Linux systems. Ignoring flag."
+        } else {
+            Write-Warning "-EnableGCov is only supported on Linux systems. Ignoring flag."
         } 
     }
     if ($Platform -eq "android") {

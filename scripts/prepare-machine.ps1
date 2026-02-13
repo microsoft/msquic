@@ -335,7 +335,7 @@ function Install-JOM {
 }
 
 # Installs OpenCppCoverage on Windows or gcovr on Linux.
-function Install-OpenCppCoverage {
+function Install-CodeCoverage {
     if ($IsWindows) {
         if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
             # Download the installer.
@@ -354,6 +354,22 @@ function Install-OpenCppCoverage {
             Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
             Remove-Item -Path $ExeFile
         }
+    } elseif ($IsLinux) {
+        $GcovrVersion = 8.6
+        # Check if gcovr is already installed, and if not
+        if (Get-Command gcovr -ErrorAction SilentlyContinue) {
+            Write-Host "gcovr is already installed"
+            return
+        }
+        # Check if pip is already installed, and if not, install it
+        if (Get-Command pip -ErrorAction SilentlyContinue) {
+            Write-Host "pip is already installed"
+        } else {
+            Write-Host "Installing pip"
+            sudo apt-get update -y
+            sudo apt-get install -y pip
+        }
+        pip install gcovr==$GcovrVersion
     } 
 }
 
@@ -553,7 +569,7 @@ if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallPerl) { Install-Perl }
-if ($InstallCodeCoverage) { Install-OpenCppCoverage }
+if ($InstallCodeCoverage) { Install-CodeCoverage }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {
@@ -636,22 +652,6 @@ if ($IsLinux) {
         Write-Host "Setting core dump pattern"
         sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
         #sudo cat /proc/sys/kernel/core_pattern
-        if ($InstallCodeCoverage){
-            # Check if gcovr is already installed, and if not
-            if (Get-Command gcovr -ErrorAction SilentlyContinue) {
-                Write-Host "gcovr is already installed"
-                return
-            }
-            # Check if pip is already installed, and if not, install it
-            if (Get-Command pip -ErrorAction SilentlyContinue) {
-                Write-Host "pip is already installed"
-            } else {
-                Write-Host "Installing pip"
-                sudo apt-get update -y
-                sudo apt-get install -y pip
-            }
-            pip install gcovr==8.6
-        }
     }
 }
 
