@@ -293,7 +293,7 @@ TEST(CubicTest, GetSendAllowanceScenarios)
     // Scenario 2: Available window without pacing - should return full window
     // Reset by acknowledging half the data
     Connection.Settings.PacingEnabled = FALSE;
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1000000;
     AckEvent.LargestAck = 5;
@@ -435,7 +435,7 @@ TEST(CubicTest, ResetScenarios)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
 
     // Trigger congestion event via loss
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 1200;
     LossEvent.PersistentCongestion = FALSE;
@@ -575,7 +575,7 @@ TEST(CubicTest, OnDataAcknowledged_BasicAck)
     Cubic->BytesInFlight = 5000;
 
     // Create ACK event with correct structure
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = CxPlatTimeUs64();
     AckEvent.LargestAck = 5;
@@ -627,7 +627,7 @@ TEST(CubicTest, OnDataLost_WindowReduction)
     Cubic->BytesInFlight = 10000;
 
     // Create loss event with correct structure
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 3600; // 3 packets * 1200 bytes
     LossEvent.PersistentCongestion = FALSE;
@@ -675,7 +675,7 @@ TEST(CubicTest, OnEcn_CongestionSignal)
     Cubic->BytesInFlight = 10000;
 
     // Create ECN event with correct structure
-    QUIC_ECN_EVENT EcnEvent;
+    QUIC_ECN_EVENT EcnEvent{};
     CxPlatZeroMemory(&EcnEvent, sizeof(EcnEvent));
     EcnEvent.LargestPacketNumberAcked = 10;
     EcnEvent.LargestSentPacketNumber = 15;
@@ -820,7 +820,7 @@ TEST(CubicTest, FastConvergence_AdditionalReduction)
     Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &FirstLoss);
 
     // Grow the window by acknowledging data and sending more (simulate recovery and growth)
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1000000;
     AckEvent.LargestAck = 10;
@@ -843,7 +843,7 @@ TEST(CubicTest, FastConvergence_AdditionalReduction)
 
     // Trigger second loss event (before reaching previous WindowMax)
     // Must use LargestPacketNumberLost > RecoverySentPacketNumber (which is 10 from first loss)
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 3000;
     LossEvent.PersistentCongestion = FALSE;
@@ -891,7 +891,7 @@ TEST(CubicTest, Recovery_ExitOnNewAck)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
     Connection.Send.NextPacketNumber = 10; // Set packet number before loss
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 1200;
     LossEvent.PersistentCongestion = TRUE; // Trigger persistent congestion
@@ -906,7 +906,7 @@ TEST(CubicTest, Recovery_ExitOnNewAck)
     // Send new packet after recovery started
     Connection.Send.NextPacketNumber = 15;
 
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1000000;
     AckEvent.LargestAck = 15; // ACK for packet after recovery started
@@ -956,7 +956,7 @@ TEST(CubicTest, ZeroBytesAcked_EarlyExit)
     // Send some data to have bytes in flight
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
 
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1000000;
     AckEvent.LargestAck = 5;
@@ -1066,7 +1066,7 @@ TEST(CubicTest, Pacing_CongestionAvoidanceEstimation)
     // BytesInFlight = 12320
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 1200;
     LossEvent.PersistentCongestion = FALSE;
@@ -1091,8 +1091,7 @@ TEST(CubicTest, Pacing_CongestionAvoidanceEstimation)
     // - BytesInFlight = 11120
     // - CongestionWindow < BytesInFlight, so CanSend = FALSE
     // We're CC blocked due to window reduction from loss
-
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1100000;
     AckEvent.LargestAck = 15;
@@ -1204,7 +1203,7 @@ TEST(CubicTest, CongestionAvoidance_AIMDvsCubicSelection)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, Cubic->CongestionWindow);
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -1224,7 +1223,7 @@ TEST(CubicTest, CongestionAvoidance_AIMDvsCubicSelection)
     // Send more data
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, Cubic->CongestionWindow / 2);
 
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 2000000; // 1 second later
     AckEvent.LargestAck = 10;  // NOT > RecoverySentPacketNumber(10), so stays in recovery
@@ -1278,7 +1277,7 @@ TEST(CubicTest, AIMD_AccumulatorBelowWindowPrior)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, Cubic->CongestionWindow);
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -1293,7 +1292,7 @@ TEST(CubicTest, AIMD_AccumulatorBelowWindowPrior)
     // Send data and ACK to trigger AIMD logic
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
 
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1050000;
     AckEvent.LargestAck = 15;
@@ -1343,7 +1342,7 @@ TEST(CubicTest, AIMD_AccumulatorAboveWindowPrior)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, Cubic->CongestionWindow);
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -1358,7 +1357,7 @@ TEST(CubicTest, AIMD_AccumulatorAboveWindowPrior)
     // Send data and ACK
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
 
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1050000;
     AckEvent.LargestAck = 15;
@@ -1411,7 +1410,7 @@ TEST(CubicTest, CubicWindow_OverflowToBytesInFlightMax)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, Cubic->CongestionWindow / 2);
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -1424,7 +1423,7 @@ TEST(CubicTest, CubicWindow_OverflowToBytesInFlightMax)
     ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss);
     ASSERT_TRUE(Cubic->IsInRecovery);
 
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 5000000; // 4 seconds later - huge gap
     AckEvent.LargestAck = 10;   // NOT > RecoverySentPacketNumber(10), stays in recovery
@@ -1479,7 +1478,7 @@ TEST(CubicTest, UpdateBlockedState_UnblockFlow)
 
     // Now free up space by acknowledging half the data
     uint32_t BytesAcked = InitialWindow / 2;  // 6160
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1000000;
     AckEvent.LargestAck = 5;
@@ -1546,7 +1545,7 @@ TEST(CubicTest, SpuriousCongestion_StateRollback)
     ASSERT_EQ(WindowBeforeLoss, InitialWindow);
     Connection.Send.NextPacketNumber = 15;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -1630,7 +1629,7 @@ TEST(CubicTest, TimeGap_IdlePeriodHandling)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesSent);
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 1200;
     LossEvent.PersistentCongestion = FALSE;
@@ -1787,7 +1786,7 @@ TEST(CubicTest, HyStart_T5_NotStartedToDone_ViaLoss)
     Connection.Send.NextPacketNumber = 10;
 
     // Trigger loss event while still in NOT_STARTED
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -1845,7 +1844,7 @@ TEST(CubicTest, HyStart_T5_NotStartedToDone_ViaECN)
     Connection.Send.NextPacketNumber = 15;
 
     // Trigger ECN event
-    QUIC_ECN_EVENT EcnEvent;
+    QUIC_ECN_EVENT EcnEvent{};
     CxPlatZeroMemory(&EcnEvent, sizeof(EcnEvent));
     EcnEvent.LargestPacketNumberAcked = 10;
     EcnEvent.LargestSentPacketNumber = 15;
@@ -1953,7 +1952,7 @@ TEST(CubicTest, HyStart_TerminalState_DoneIsAbsorbing)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -1999,7 +1998,7 @@ TEST(CubicTest, HyStart_TerminalState_DoneIsAbsorbing)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 2000000 + (i * 10000);
         AckEvent.LargestAck = 20 + i;
@@ -2115,7 +2114,7 @@ TEST(CubicTest, HyStart_Disabled_NoTransitions)
     for (int i = 0; i < 2 * QUIC_HYSTART_DEFAULT_N_SAMPLING; i++) {
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 1200);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1000000 + (i * 10000);
         AckEvent.LargestAck = i;
@@ -2145,7 +2144,7 @@ TEST(CubicTest, HyStart_Disabled_NoTransitions)
     // First send more data to have BytesInFlight for the loss
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -2195,7 +2194,7 @@ TEST(CubicTest, HyStart_StateInvariant_GrowthDivisor)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -2293,7 +2292,7 @@ TEST(CubicTest, HyStart_MultipleCongestionEvents_StateStability)
 
     // Third congestion event via ECN: DONE → DONE
     Connection.Send.NextPacketNumber = 40;
-    QUIC_ECN_EVENT EcnEvent;
+    QUIC_ECN_EVENT EcnEvent{};
     CxPlatZeroMemory(&EcnEvent, sizeof(EcnEvent));
     EcnEvent.LargestPacketNumberAcked = 35;
     EcnEvent.LargestSentPacketNumber = 40;
@@ -2330,7 +2329,7 @@ TEST(CubicTest, HyStart_RecoveryExit_StatePersistence)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 8000);
     Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 2400;
     LossEvent.PersistentCongestion = FALSE;
@@ -2403,7 +2402,7 @@ TEST(CubicTest, HyStart_SpuriousCongestion_StateNotRolledBack)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 10000);
     Connection.Send.NextPacketNumber = 15;
 
-    QUIC_LOSS_EVENT LossEvent;
+    QUIC_LOSS_EVENT LossEvent{};
     CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
     LossEvent.NumRetransmittableBytes = 3600;
     LossEvent.PersistentCongestion = FALSE;
@@ -2430,7 +2429,7 @@ TEST(CubicTest, HyStart_SpuriousCongestion_StateNotRolledBack)
     ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
 
     // Verify HyStart logic is still bypassed after spurious recovery
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = 1200000;
     AckEvent.LargestAck = 20;
@@ -2494,7 +2493,7 @@ TEST(CubicTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondition)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1000000 + (i * 10000);
         AckEvent.LargestAck = 10 + i;  // 10..17, all < 100
@@ -2526,7 +2525,7 @@ TEST(CubicTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondition)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1100000;
         AckEvent.LargestAck = 20;  // Still < 100, so no round boundary crossing
@@ -2599,7 +2598,7 @@ TEST(CubicTest, HyStart_DelayIncreaseDetection_TriggerActiveTransition)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1000000 + (i * 10000);
         AckEvent.LargestAck = 10 + i;  // 10..17, all < 100
@@ -2635,7 +2634,7 @@ TEST(CubicTest, HyStart_DelayIncreaseDetection_TriggerActiveTransition)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1100000;
         AckEvent.LargestAck = 20;  // Still < 100, no round crossing
@@ -2700,7 +2699,7 @@ TEST(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1000000 + (i * 10000);
         AckEvent.LargestAck = 10 + i;
@@ -2729,7 +2728,7 @@ TEST(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1100000;
         AckEvent.LargestAck = 20;
@@ -2763,7 +2762,7 @@ TEST(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1200000;
         AckEvent.LargestAck = 100; // Cross round boundary (>= HyStartRoundEnd which was 100)
@@ -2798,7 +2797,7 @@ TEST(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1300000 + (i * 10000);
         AckEvent.LargestAck = 110 + i; // Stay below next HyStartRoundEnd
@@ -2829,7 +2828,7 @@ TEST(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1400000;
         AckEvent.LargestAck = 120; // Stay below round boundary
@@ -2889,7 +2888,7 @@ TEST(CubicTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1000000 + (i * 10000);
         AckEvent.LargestAck = 10 + i;
@@ -2915,7 +2914,7 @@ TEST(CubicTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1100000;
         AckEvent.LargestAck = 20;
@@ -2949,7 +2948,7 @@ TEST(CubicTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
         uint32_t BytesToSend = 1200;
         Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent;
+        QUIC_ACK_EVENT AckEvent{};
         CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
         AckEvent.TimeNow = 1200000 + (round * 100000);
         // Use LargestAck >= current HyStartRoundEnd to trigger round boundary
@@ -3031,7 +3030,7 @@ TEST(CubicTest, CongestionAvoidance_TimeGapOverflowProtection)
     uint32_t BytesToSend = 1200;
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = TimeNowUs;
     AckEvent.LargestAck = 10;
@@ -3099,7 +3098,7 @@ TEST(CubicTest, CongestionAvoidance_CubicWindowOverflow)
     uint32_t BytesToSend = 1200;
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, BytesToSend);
 
-    QUIC_ACK_EVENT AckEvent;
+    QUIC_ACK_EVENT AckEvent{};
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
     AckEvent.TimeNow = TimeNowUs;
     AckEvent.LargestAck = 10;
