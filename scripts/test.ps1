@@ -404,10 +404,10 @@ if ($CodeCoverage) {
         $CoverageOutput = Join-Path $CoverageDir "msquiccoverage.xml"
         $BuildDir       = Join-Path $RootDir "build"
 
-        # Build regexes (gcovr treats --filter/--exclude as regex)
-        $coreFilter     = [regex]::Escape((Join-Path $RootDir 'src/core'))     + '([\/\\].*)?$'
-        $platformFilter = [regex]::Escape((Join-Path $RootDir 'src/platform')) + '([\/\\].*)?$'
-        $testExclude    = '(?i).*[\/\\].*test.*([\/\\].*)?$'   # exclude any path containing "test" (case-insensitive)
+        # Build filter and exclude expressions
+        $coreFilter     = Join-Path $RootDir 'src/core'
+        $platformFilter = Join-Path $RootDir 'src/platform'
+        $testExclude    = '(?i).*/.*test.*(/.*)?$'
 
         $GcovrParams = ""
 
