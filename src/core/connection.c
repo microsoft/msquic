@@ -4455,6 +4455,20 @@ QuicConnRecvFrames(
     uint64_t RecvTime = CxPlatTimeUs64();
 
     //
+    // RFC 9000 §12.4 - Packets that contain no frames are invalid and must be
+    // treated as a connection error of type PROTOCOL_VIOLATION.
+    //
+    if (PayloadLength == 0) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Packet contained no frames");
+        QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+        return FALSE;
+    }
+
+    //
     // In closing state, respond to any packet with a new close frame (rate-limited).
     // Note this excludes the draining state (i.e., ClosedRemotely == TRUE)
     // in which we should be silent.
