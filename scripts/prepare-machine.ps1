@@ -356,7 +356,7 @@ function Install-CodeCoverage {
         }
     } elseif ($IsLinux) {
         $GcovrVersion = 8.6
-        # Check if gcovr is already installed, and if not
+        # Nothing to do if gcovr is already installed
         if (Get-Command gcovr -ErrorAction SilentlyContinue) {
             Write-Host "gcovr is already installed"
             return
