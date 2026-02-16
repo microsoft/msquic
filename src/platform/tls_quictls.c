@@ -943,9 +943,7 @@ CxPlatTlsSecConfigPemPasswordCallback(
         return 0; // We don't support writing
     }
 
-    if (UserInfo == NULL) {
-        return 0;
-    }
+    CXPLAT_DBG_ASSERT(UserInfo != NULL);
 
     CertificatePem = (QUIC_CERTIFICATE_PEM *)UserInfo;
 
