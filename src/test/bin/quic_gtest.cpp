@@ -620,14 +620,14 @@ TEST(ParameterValidation, ValidatePemCredentialConfig) {
 
     static const uint8_t Dummy = 'x';
 
-    Pem.CertificatePem = &Dummy;
-    Pem.CertificatePemLength = 1;
+    Pem.Certificate = &Dummy;
+    Pem.CertificateLength = 1;
     EXPECT_EQ(QUIC_STATUS_INVALID_PARAMETER, Configuration.LoadCredential(&CredConfig));
 
-    Pem.CertificatePem = NULL;
-    Pem.CertificatePemLength = 0;
-    Pem.PrivateKeyPem = &Dummy;
-    Pem.PrivateKeyPemLength = 1;
+    Pem.Certificate = NULL;
+    Pem.CertificateLength = 0;
+    Pem.PrivateKey = &Dummy;
+    Pem.PrivateKeyLength = 1;
     EXPECT_EQ(QUIC_STATUS_INVALID_PARAMETER, Configuration.LoadCredential(&CredConfig));
 }
 #endif // QUIC_TEST_OPENSSL_FLAGS

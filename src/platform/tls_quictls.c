@@ -1042,10 +1042,10 @@ CxPlatTlsSecConfigCreate(
         }
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
         if (CredConfig->CertificatePem == NULL ||
-            CredConfig->CertificatePem->CertificatePem == NULL ||
-            CredConfig->CertificatePem->CertificatePemLength == 0 ||
-            CredConfig->CertificatePem->PrivateKeyPem == NULL ||
-            CredConfig->CertificatePem->PrivateKeyPemLength == 0) {
+            CredConfig->CertificatePem->Certificate == NULL ||
+            CredConfig->CertificatePem->CertificateLength == 0 ||
+            CredConfig->CertificatePem->PrivateKey == NULL ||
+            CredConfig->CertificatePem->PrivateKeyLength == 0) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
@@ -1377,8 +1377,8 @@ CxPlatTlsSecConfigCreate(
         unsigned long Error = 0;
 
         BioKey = BIO_new_mem_buf(
-            CredConfig->CertificatePem->PrivateKeyPem,
-            (int) CredConfig->CertificatePem->PrivateKeyPemLength);
+            CredConfig->CertificatePem->PrivateKey,
+            (int) CredConfig->CertificatePem->PrivateKeyLength);
         if (!BioKey) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -1414,8 +1414,8 @@ CxPlatTlsSecConfigCreate(
         }
 
         BioCert = BIO_new_mem_buf(
-            CredConfig->CertificatePem->CertificatePem,
-            (int) CredConfig->CertificatePem->CertificatePemLength);
+            CredConfig->CertificatePem->Certificate,
+            (int) CredConfig->CertificatePem->CertificateLength);
         if (!BioCert) {
             QuicTraceEvent(
                 LibraryErrorStatus,

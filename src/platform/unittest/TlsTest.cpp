@@ -1687,16 +1687,16 @@ TEST_F(TlsTest, PeerCertificateChainFromRuntimeCerts)
             ASSERT_NE(nullptr, ChainFile);
             Params.CertFileProtected.CertificateFile = ChainFile;
         } else if (TestCase.CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
-            OriginalCertPem = Params.Pem.CertificatePem;
-            OriginalCertPemLength = Params.Pem.CertificatePemLength;
+            OriginalCertPem = Params.Pem.Certificate;
+            OriginalCertPemLength = Params.Pem.CertificateLength;
             ChainBuffer = BuildPemChainBuffer(
                 OriginalCertPem,
                 OriginalCertPemLength,
                 CaFile,
                 &ChainBufferLength);
             ASSERT_NE(nullptr, ChainBuffer);
-            Params.Pem.CertificatePem = ChainBuffer;
-            Params.Pem.CertificatePemLength = ChainBufferLength;
+            Params.Pem.Certificate = ChainBuffer;
+            Params.Pem.CertificateLength = ChainBufferLength;
         } else {
             FAIL() << "Unsupported credential type for chain test";
         }
@@ -1727,8 +1727,8 @@ TEST_F(TlsTest, PeerCertificateChainFromRuntimeCerts)
         ASSERT_GE(ClientContext.ObservedPeerChainCount, ClientContext.ExpectedPeerChainMin);
 
         if (TestCase.CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
-            Params.Pem.CertificatePem = OriginalCertPem;
-            Params.Pem.CertificatePemLength = OriginalCertPemLength;
+            Params.Pem.Certificate = OriginalCertPem;
+            Params.Pem.CertificateLength = OriginalCertPemLength;
         } else if (OriginalCertPath != nullptr) {
             if (TestCase.CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
                 Params.CertFile.CertificateFile = OriginalCertPath;

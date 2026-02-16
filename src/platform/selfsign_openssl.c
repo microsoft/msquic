@@ -90,10 +90,6 @@ ReadFileToBuffer(
     return Buffer;
 }
 
-static uint8_t* ReadPkcs12(const char* Name, uint32_t* Length) {
-    return ReadFileToBuffer(Name, Length);
-}
-
 //
 // Generates a signed cert using low level OpenSSL APIs.
 // Issue certificate from provided CA, or create self-signed
@@ -1274,19 +1270,19 @@ CxPlatGetTestCertificate(
             CertFilePath = NULL;
         } else if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
             _Analysis_assume_(Pem != NULL);
-            Pem->PrivateKeyPem = ReadFileToBuffer(KeyFilePath, &Pem->PrivateKeyPemLength);
-            if (Pem->PrivateKeyPem == NULL) {
+            Pem->PrivateKey = ReadFileToBuffer(KeyFilePath, &Pem->PrivateKeyLength);
+            if (Pem->PrivateKey == NULL) {
                 goto Error;
             }
-            Pem->CertificatePem = ReadFileToBuffer(CertFilePath, &Pem->CertificatePemLength);
-            if (Pem->CertificatePem == NULL) {
+            Pem->Certificate = ReadFileToBuffer(CertFilePath, &Pem->CertificateLength);
+            if (Pem->Certificate == NULL) {
                 goto Error;
             }
             Params->CertificatePem = Pem;
         } else {
             _Analysis_assume_(Pkcs12 != NULL);
             Params->CertificatePkcs12 = Pkcs12;
-            Pkcs12->Asn1Blob = ReadPkcs12(CertFilePath, &Pkcs12->Asn1BlobLength);
+            Pkcs12->Asn1Blob = ReadFileToBuffer(CertFilePath, &Pkcs12->Asn1BlobLength);
             if (Pkcs12->Asn1Blob == NULL) {
                 goto Error;
             }
@@ -1301,15 +1297,15 @@ CxPlatGetTestCertificate(
         Result = TRUE;
 Error:
         if (!Result && CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM && Pem != NULL) {
-            if (Pem->PrivateKeyPem != NULL) {
-                free((uint8_t*)Pem->PrivateKeyPem);
-                Pem->PrivateKeyPem = NULL;
-                Pem->PrivateKeyPemLength = 0;
+            if (Pem->PrivateKey != NULL) {
+                free((uint8_t*)Pem->PrivateKey);
+                Pem->PrivateKey = NULL;
+                Pem->PrivateKeyLength = 0;
             }
-            if (Pem->CertificatePem != NULL) {
-                free((uint8_t*)Pem->CertificatePem);
-                Pem->CertificatePem = NULL;
-                Pem->CertificatePemLength = 0;
+            if (Pem->Certificate != NULL) {
+                free((uint8_t*)Pem->Certificate);
+                Pem->Certificate = NULL;
+                Pem->CertificateLength = 0;
             }
         }
         if (CertFilePath != NULL) {
@@ -1337,8 +1333,8 @@ CxPlatFreeTestCert(
         free((char*)Params->CertificatePkcs12->PrivateKeyPassword);
     } else if (Params->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
         if (Params->CertificatePem != NULL) {
-            free((uint8_t*)Params->CertificatePem->PrivateKeyPem);
-            free((uint8_t*)Params->CertificatePem->CertificatePem);
+            free((uint8_t*)Params->CertificatePem->PrivateKey);
+            free((uint8_t*)Params->CertificatePem->Certificate);
         }
     }
 }

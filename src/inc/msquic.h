@@ -399,11 +399,11 @@ typedef struct QUIC_CERTIFICATE_PKCS12 {
 } QUIC_CERTIFICATE_PKCS12;
 
 typedef struct QUIC_CERTIFICATE_PEM {
-    const uint8_t *PrivateKeyPem;
-    uint32_t PrivateKeyPemLength;
+    const uint8_t *PrivateKey;
+    uint32_t PrivateKeyLength;
     const char *PrivateKeyPassword;     // Optional: used if provided. Ignored if NULL
-    const uint8_t *CertificatePem;
-    uint32_t CertificatePemLength;
+    const uint8_t *Certificate;
+    uint32_t CertificateLength;
 } QUIC_CERTIFICATE_PEM;
 
 typedef void QUIC_CERTIFICATE;          // Platform specific certificate object
