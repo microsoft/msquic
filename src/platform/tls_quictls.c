@@ -936,12 +936,8 @@ CxPlatTlsSecConfigPemPasswordCallback(
 
     int OutSize = 0;
 
-    if (RWFlag != 0) {
-        UNREFERENCED_PARAMETER(Password);
-        UNREFERENCED_PARAMETER(PasswordSize);
-        UNREFERENCED_PARAMETER(UserInfo);
-        return 0; // We don't support writing
-    }
+    CXPLAT_DBG_ASSERT(RWFlag == 0);
+    UNREFERENCED_PARAMETER(RWFlag);
 
     CXPLAT_DBG_ASSERT(UserInfo != NULL);
 
