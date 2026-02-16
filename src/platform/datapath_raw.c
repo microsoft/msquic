@@ -216,7 +216,8 @@ CxPlatDpRawRxEthernet(
                 CxPlatGetSocket(
                     &Datapath->SocketPool,
                     &PacketChain->Route->LocalAddress,
-                    &PacketChain->Route->RemoteAddress);
+                    &PacketChain->Route->RemoteAddress,
+                    PacketChain->Route->UseQTIP);
         }
 
         if (Socket) {
@@ -238,7 +239,7 @@ CxPlatDpRawRxEthernet(
                     if (i == PacketCount - 1 ||
                         Packets[i+1]->Reserved != SocketType ||
                         Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
-                        !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
+                        !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress, Packets[i+1]->Route->UseQTIP)) {
                         break;
                     }
                     Packets[i]->Next = Packets[i+1];

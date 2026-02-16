@@ -387,6 +387,121 @@ NewPingConnection(
 }
 
 void
+QuicTestConnectAndPing_Send0Rtt(
+    const Send0RttArgs1& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        Params.ConnectionCount,
+        Params.StreamCount,
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        true,   // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        Params.UnidirectionalStreams,
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_Reject0Rtt(
+    const Send0RttArgs2& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        true,   // ClientZeroRtt
+        true,   // ServerRejectZeroRtt
+        false,  // UseSendBuffer
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_Send(
+    const SendArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        Params.ConnectionCount,
+        Params.StreamCount,
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        false,  // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        Params.UnidirectionalStreams,
+        Params.ServerInitiatedStreams,
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_SendLarge(
+    const SendLargeArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        100000000llu,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        Params.UseZeroRtt,
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        true,   // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_SendIntermittently(
+    const SendIntermittentlyArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        Params.BurstCount,
+        Params.BurstDelay,
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        false,  // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
 QuicTestConnectAndPing(
     _In_ int Family,
     _In_ uint64_t Length,
@@ -1172,10 +1287,11 @@ QuicAbortiveListenerHandler(
 
 void
 QuicAbortiveTransfers(
-    _In_ int Family,
-    _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
+    const AbortiveArgs& Params
     )
 {
+    int Family = Params.Family;
+    QUIC_ABORTIVE_TRANSFER_FLAGS Flags = Params.Flags;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
@@ -1538,9 +1654,10 @@ QuicCancelOnLossConnectionHandler(
 
 void
 QuicCancelOnLossSend(
-    _In_ bool DropPackets
+    const CancelOnLossArgs& Params
     )
 {
+    bool DropPackets = Params.DropPackets;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -1867,14 +1984,15 @@ QuicRecvResumeListenerHandler(
 
 void
 QuicTestReceiveResume(
-    _In_ int Family,
-    _In_ int SendBytes,
-    _In_ int ConsumeBytes,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType,
-    _In_ QUIC_RECEIVE_RESUME_TYPE PauseType,
-    _In_ bool PauseFirst
+    const ReceiveResumeArgs& Params
     )
 {
+    int Family = Params.Family;
+    int SendBytes = Params.SendBytes;
+    int ConsumeBytes = Params.ConsumeBytes;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType = Params.ShutdownType;
+    QUIC_RECEIVE_RESUME_TYPE PauseType = Params.PauseType;
+    bool PauseFirst = Params.PauseFirst;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
@@ -1989,6 +2107,11 @@ QuicTestReceiveResume(
                 TEST_FAILURE("PauseFirst MsQuic->StreamReceiveSetEnabled(FALSE) failed, 0x%x", Status);
                 return;
             }
+
+            //
+            // Ensure the receive pause task is processed.
+            //
+            DrainConnectionWorkQueue(ServerContext.Conn.Handle);
         }
 
         Status =
@@ -2099,10 +2222,11 @@ QuicTestReceiveResume(
 
 void
 QuicTestReceiveResumeNoData(
-    _In_ int Family,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
+    const ReceiveResumeNoDataArgs& Params
     )
 {
+    int Family = Params.Family;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType = Params.ShutdownType;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
@@ -2206,6 +2330,9 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
+        //
+        // Disable receive notifications on the server.
+        //
         Status =
             MsQuic->StreamReceiveSetEnabled(
                 ServerContext.Stream.Handle,
@@ -2214,6 +2341,12 @@ QuicTestReceiveResumeNoData(
             TEST_FAILURE("PauseFirst MsQuic->StreamReceiveSetEnabled(FALSE) failed, 0x%x", Status);
             return;
         }
+
+        //
+        // Ensure the StreamReceiveSetEnabled task is processed so it doesn't race with receiving
+        // the shutdown.
+        //
+        DrainConnectionWorkQueue(ServerContext.Conn.Handle);
 
         Status =
             MsQuic->StreamShutdown(
@@ -2227,10 +2360,18 @@ QuicTestReceiveResumeNoData(
         }
 
         if (ShutdownType == GracefulShutdown) {
+            //
+            // On a graceful shutdown, the shutdown notification is emitted only after all data
+            // was delivered (in this case, zero bytes and a FIN).
+            //
             if (CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server got shutdown event when it shouldn't have!");
                 return;
             }
+
+            //
+            // Re-enable receive notifications.
+            //
             Status =
                 MsQuic->StreamReceiveSetEnabled(
                     ServerContext.Stream.Handle,
@@ -2242,7 +2383,7 @@ QuicTestReceiveResumeNoData(
         }
 
         //
-        // Validate the test was shutdown as expected.
+        // Validate the stream was shutdown as expected.
         //
         if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get shutdown before timeout!");
