@@ -955,7 +955,7 @@ CxPlatTlsSecConfigPemPasswordCallback(
 
     OutSize = (int) strlen(CertificatePem->PrivateKeyPassword);
 
-    if (OutSize + 1 > PasswordSize) {
+    if (OutSize >= PasswordSize) {
         return 0;
     }
 
