@@ -926,7 +926,7 @@ CxPlatTlsGetProvider(
 
 int
 CxPlatTlsSecConfigPemPasswordCallback(
-    _In_ char *Password,
+    _Out_writes_(PasswordSize) char *Password,
     _In_ int PasswordSize,
     _In_ int RWFlag,
     _In_ void *UserInfo
