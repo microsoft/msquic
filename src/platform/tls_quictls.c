@@ -1091,6 +1091,8 @@ CxPlatTlsSecConfigCreate(
     CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
     X509* X509Cert = NULL;
     EVP_PKEY* PrivateKey = NULL;
+    BIO *BioKey = NULL;
+    BIO *BioCert = NULL;
     char* CipherSuiteString = NULL;
 
     //
@@ -1371,134 +1373,114 @@ CxPlatTlsSecConfigCreate(
             goto Exit;
         }
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM) {
-        BIO *BioKey = NULL;
-        BIO *BioCert = NULL;
+        X509 *CaCert = NULL;
+        unsigned long Error = 0;
 
-        {
-            BioKey = BIO_new_mem_buf(
-                CredConfig->CertificatePem->PrivateKeyPem,
-                (int) CredConfig->CertificatePem->PrivateKeyPemLength);
-
-            if (!BioKey) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "BIO_new failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto ExitInner;
-            }
-
-            PEM_read_bio_PrivateKey(BioKey, &PrivateKey, CxPlatTlsSecConfigPemPasswordCallback, CredConfig->CertificatePem);
-
-            if (!PrivateKey) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "PEM_read_bio_PrivateKey failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto ExitInner;
-            }
-
-            Ret = SSL_CTX_use_PrivateKey(
-                SecurityConfig->SSLCtx,
-                PrivateKey);
-
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_PrivateKey failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto ExitInner;
-            }
-        }
-
-        {
-            BioCert = BIO_new_mem_buf(
-                CredConfig->CertificatePem->CertificatePem,
-                (int) CredConfig->CertificatePem->CertificatePemLength);
-
-            if (!BioCert) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "BIO_new failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto ExitInner;
-            }
-
-            PEM_read_bio_X509(BioCert, &X509Cert, NULL, NULL);
-
-            if (!X509Cert) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "PEM_read_bio_X509 failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto ExitInner;
-            }
-
-            Ret = SSL_CTX_use_certificate(
-                SecurityConfig->SSLCtx,
-                X509Cert);
-
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_certificate failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto ExitInner;
-            }
-
-            {
-                X509 *CaCert = NULL;
-
-                while ((CaCert = PEM_read_bio_X509(BioCert, NULL, NULL, NULL)) != NULL) {
-                    if (SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert) != 1) {
-                        X509_free(CaCert);
-                        QuicTraceEvent(
-                            LibraryErrorStatus,
-                            "[ lib] ERROR, %u, %s.",
-                            ERR_get_error(),
-                            "SSL_CTX_add_extra_chain_cert failed");
-                        Status = QUIC_STATUS_TLS_ERROR;
-                        goto ExitInner;
-                    }
-                }
-
-                unsigned long Error = ERR_peek_last_error();
-                if (ERR_GET_LIB(Error) == ERR_LIB_PEM &&
-                    ERR_GET_REASON(Error) == PEM_R_NO_START_LINE) {
-                    ERR_clear_error();
-                } else {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        ERR_get_error(),
-                        "PEM_read_bio_X509 failed");
-                    Status = QUIC_STATUS_TLS_ERROR;
-                    goto ExitInner;
-                }
-            }
-
-            goto SuccessInner;
-
-            ExitInner:
-            BIO_free(BioCert);
-            BIO_free(BioKey);
+        BioKey = BIO_new_mem_buf(
+            CredConfig->CertificatePem->PrivateKeyPem,
+            (int) CredConfig->CertificatePem->PrivateKeyPemLength);
+        if (!BioKey) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "BIO_new failed");
+            Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
-
-            SuccessInner:
-            BIO_free(BioCert);
-            BIO_free(BioKey);
         }
+
+        PEM_read_bio_PrivateKey(BioKey, &PrivateKey, CxPlatTlsSecConfigPemPasswordCallback, CredConfig->CertificatePem);
+        if (!PrivateKey) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "PEM_read_bio_PrivateKey failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret = SSL_CTX_use_PrivateKey(
+            SecurityConfig->SSLCtx,
+            PrivateKey);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_PrivateKey failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        BioCert = BIO_new_mem_buf(
+            CredConfig->CertificatePem->CertificatePem,
+            (int) CredConfig->CertificatePem->CertificatePemLength);
+        if (!BioCert) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "BIO_new failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        PEM_read_bio_X509(BioCert, &X509Cert, NULL, NULL);
+        if (!X509Cert) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "PEM_read_bio_X509 failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret = SSL_CTX_use_certificate(
+            SecurityConfig->SSLCtx,
+            X509Cert);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_certificate failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        while ((CaCert = PEM_read_bio_X509(BioCert, NULL, NULL, NULL)) != NULL) {
+            if (SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert) != 1) {
+                X509_free(CaCert);
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_add_extra_chain_cert failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+        }
+
+        Error = ERR_peek_last_error();
+        if (ERR_GET_LIB(Error) == ERR_LIB_PEM &&
+            ERR_GET_REASON(Error) == PEM_R_NO_START_LINE) {
+            ERR_clear_error();
+        } else {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "PEM_read_bio_X509 failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        BIO_free(BioCert);
+        BioCert = NULL;
+        BIO_free(BioKey);
+        BioKey = NULL;
     } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
         BIO* Bio = BIO_new(BIO_s_mem());
         PKCS12 *Pkcs12 = NULL;
@@ -1748,6 +1730,14 @@ Exit:
 
     if (CipherSuiteString != NULL) {
         CxPlatFree(CipherSuiteString, QUIC_POOL_TLS_CIPHER_SUITE_STRING);
+    }
+
+    if (BioCert != NULL) {
+        BIO_free(BioCert);
+    }
+
+    if (BioKey != NULL) {
+        BIO_free(BioKey);
     }
 
     if (X509Cert != NULL) {
