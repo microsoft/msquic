@@ -715,7 +715,6 @@ TEST(Basic, RegistrationOpenClose) {
 }
 #endif
 
-#ifdef QUIC_TEST_OPENSSL_FLAGS
 TEST(ParameterValidation, ValidatePemCredentialConfig) {
     TestLogger Logger("QuicTestValidatePemCredentialConfig");
     if (TestingKernelMode) {
@@ -724,7 +723,6 @@ TEST(ParameterValidation, ValidatePemCredentialConfig) {
         QuicTestValidatePemCredentialConfig();
     }
 }
-#endif // QUIC_TEST_OPENSSL_FLAGS
 
 TEST(Basic, CreateListener) {
     TestLogger Logger("QuicTestCreateListener");

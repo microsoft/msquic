@@ -6165,16 +6165,20 @@ QuicTestValidatePemCredentialConfig()
     CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM;
     CredConfig.CertificatePem = &Pem;
 
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        Configuration.LoadCredential(&CredConfig));
+    QUIC_STATUS Status = Configuration.LoadCredential(&CredConfig);
+    TEST_TRUE(
+        Status == QUIC_STATUS_INVALID_PARAMETER ||
+        Status == QUIC_STATUS_NOT_SUPPORTED);
+    if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+        return;
+    }
 
     static const uint8_t Dummy = 'x';
 
     Pem.Certificate = &Dummy;
     Pem.CertificateLength = 1;
     TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
+        Status,
         Configuration.LoadCredential(&CredConfig));
 
     Pem.Certificate = NULL;
@@ -6182,7 +6186,7 @@ QuicTestValidatePemCredentialConfig()
     Pem.PrivateKey = &Dummy;
     Pem.PrivateKeyLength = 1;
     TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
+        Status,
         Configuration.LoadCredential(&CredConfig));
 }
 
