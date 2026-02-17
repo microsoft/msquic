@@ -90,6 +90,7 @@ void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config);
+void QuicTestValidatePemCredentialConfig();
 void QuicTestValidateConnectionPoolCreate();
 void QuicTestValidateExecutionContext();
 void QuicTestValidatePartition();

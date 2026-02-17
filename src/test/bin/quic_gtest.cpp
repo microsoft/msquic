@@ -627,6 +627,8 @@ std::ostream& operator << (std::ostream& o, const QUIC_CREDENTIAL_TYPE& type) {
         return o << "FileProtected";
     case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12:
         return o << "Pkcs12";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM:
+        return o << "Pem";
     default:
         return o << "Unknown";
     }
@@ -718,35 +720,9 @@ TEST(ParameterValidation, ValidatePemCredentialConfig) {
     TestLogger Logger("QuicTestValidatePemCredentialConfig");
     if (TestingKernelMode) {
         GTEST_SKIP_("PEM credentials not supported in kernel mode");
+    } else {
+        QuicTestValidatePemCredentialConfig();
     }
-
-    MsQuicRegistration Registration;
-    ASSERT_TRUE(Registration.IsValid());
-
-    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
-    ASSERT_TRUE(Configuration.IsValid());
-
-    QUIC_CERTIFICATE_PEM Pem;
-    QUIC_CREDENTIAL_CONFIG CredConfig;
-    CxPlatZeroMemory(&Pem, sizeof(Pem));
-    CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
-
-    CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM;
-    CredConfig.CertificatePem = &Pem;
-
-    EXPECT_EQ(QUIC_STATUS_INVALID_PARAMETER, Configuration.LoadCredential(&CredConfig));
-
-    static const uint8_t Dummy = 'x';
-
-    Pem.Certificate = &Dummy;
-    Pem.CertificateLength = 1;
-    EXPECT_EQ(QUIC_STATUS_INVALID_PARAMETER, Configuration.LoadCredential(&CredConfig));
-
-    Pem.Certificate = NULL;
-    Pem.CertificateLength = 0;
-    Pem.PrivateKey = &Dummy;
-    Pem.PrivateKeyLength = 1;
-    EXPECT_EQ(QUIC_STATUS_INVALID_PARAMETER, Configuration.LoadCredential(&CredConfig));
 }
 #endif // QUIC_TEST_OPENSSL_FLAGS
 

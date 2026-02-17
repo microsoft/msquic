@@ -6148,6 +6148,44 @@ QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config)
     TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(&Config.CredConfig));
 }
 
+void
+QuicTestValidatePemCredentialConfig()
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
+    TEST_TRUE(Configuration.IsValid());
+
+    QUIC_CERTIFICATE_PEM Pem;
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    CxPlatZeroMemory(&Pem, sizeof(Pem));
+    CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
+
+    CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PEM;
+    CredConfig.CertificatePem = &Pem;
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        Configuration.LoadCredential(&CredConfig));
+
+    static const uint8_t Dummy = 'x';
+
+    Pem.Certificate = &Dummy;
+    Pem.CertificateLength = 1;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        Configuration.LoadCredential(&CredConfig));
+
+    Pem.Certificate = NULL;
+    Pem.CertificateLength = 0;
+    Pem.PrivateKey = &Dummy;
+    Pem.PrivateKeyLength = 1;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        Configuration.LoadCredential(&CredConfig));
+}
+
 
 class QuicStorageSettingScopeGuard {
 public:
