@@ -1008,7 +1008,25 @@ void BuildAndSendLongHeaderPackets(
             PacketParams);
 
         if (FuzzPacket) {
+            //
+            // Save the destination CID before fuzzing so we can
+            // optionally restore it. Many fuzzed packets get rejected
+            // at the routing layer because the CID no longer matches.
+            // 50% of the time, preserve the original destination CID.
+            //
+            uint16_t DestCidOffset = sizeof(QUIC_LONG_HEADER_V1); // DestCid field offset
+            uint8_t DestCidLen = PacketParams->DestCidLen;
+            uint8_t SavedDestCid[20];
+            CXPLAT_FRE_ASSERT(DestCidLen <= sizeof(SavedDestCid));
+            memcpy(SavedDestCid, SendBuffer->Buffer + DestCidOffset, DestCidLen);
+
             RandomizeSomeBytes(PacketLength, SendBuffer->Buffer);
+
+            if (GetRandom<uint8_t>(2) == 0) {
+                // Restore destination CID so the packet routes to the right connection
+                SendBuffer->Buffer[DestCidOffset - 1] = DestCidLen; // Restore CID length
+                memcpy(SendBuffer->Buffer + DestCidOffset, SavedDestCid, DestCidLen);
+            }
         }
 
         FinalizeLongHeaderPacket(
@@ -1151,7 +1169,23 @@ void BuildAndSendShortHeaderPackets(
             PacketParams);
 
         if (FuzzPacket) {
+            //
+            // Save the destination CID before fuzzing so we can
+            // optionally restore it. 50% of the time, preserve the
+            // original destination CID to avoid routing rejection.
+            //
+            uint16_t DestCidOffset = 1; // Short header: CID starts after 1-byte flags
+            uint8_t DestCidLen = PacketParams->DestCidLen;
+            uint8_t SavedDestCid[20];
+            CXPLAT_FRE_ASSERT(DestCidLen <= sizeof(SavedDestCid));
+            memcpy(SavedDestCid, SendBuffer->Buffer + DestCidOffset, DestCidLen);
+
             RandomizeSomeBytes(PacketLength, SendBuffer->Buffer);
+
+            if (GetRandom<uint8_t>(2) == 0) {
+                // Restore destination CID so the packet routes to the right connection
+                memcpy(SendBuffer->Buffer + DestCidOffset, SavedDestCid, DestCidLen);
+            }
         }
 
         FinalizeShortHeaderPacket(
@@ -1400,7 +1434,7 @@ void FuzzHandshake(
         PacketParams.PacketType = QUIC_HANDSHAKE_V1;
         PacketParams.NumFrames = 1;
         PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
-        PacketParams.NumPackets = GetRandom<uint8_t>(3) + 1;
+        PacketParams.NumPackets = GetRandom<uint8_t>(10) + 1;
         BuildAndSendLongHeaderPackets(Binding, Route, &PacketParams, &ClientContext);
     }
 }
