@@ -1273,7 +1273,7 @@ SocketCreateUdp(
 
     if (Socket->ReserveAuxTcpSock && !IsServerSocket) {
         //
-        // Client will skip normal socket settings to use AuxSocket in raw socket.
+        // QTIP clients will skip normal UDP socket reservation to use AuxSocket (TCP socket reservation) in raw socket.
         //
         goto Skip;
     }
@@ -1724,6 +1724,27 @@ SocketCreateUdp(
                         Socket,
                         WsaError,
                         "SIO_ACQUIRE_PORT_RESERVATION");
+
+                    if (Config->CibirIdLength > 0 && IsServerSocket) {
+                        //
+                        // CIBIR is configured. A port collision here is actually
+                        // expected if multiple server processes were configured to share
+                        // the same UDP and/or TCP port.
+                        //
+                        CxPlatRefInitializeEx(&Socket->RefCount, 1);
+                        Socket->SkipCreatingOsSockets = TRUE;
+                        BOOLEAN XdpAvailable = Datapath->RawDataPath != NULL;
+                        BOOLEAN XdpEnabled = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
+                        if (!XdpAvailable || !XdpEnabled) {
+                            QuicTraceLogWarning(
+                                DatapathCibirSkipNoXdp,
+                                "[data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s",
+                                Socket,
+                                !XdpAvailable ? "available" : "enabled");
+                        }
+                        goto Skip;
+                    }
+
                     Status = HRESULT_FROM_WIN32(WsaError);
                     goto Error;
                 }
@@ -1831,6 +1852,25 @@ SocketCreateUdp(
 
 Skip:
 
+    if (Socket->SkipCreatingOsSockets) {
+        //
+        // Clean up all partially-initialized per-proc sockets since
+        // we're skipping OS socket creation (XDP-only via CIBIR).
+        //
+        for (uint16_t i = 0; i < SocketCount; i++) {
+            CXPLAT_SOCKET_PROC* Proc = &Socket->PerProcSockets[i];
+            if (Proc->Socket != INVALID_SOCKET) {
+                closesocket(Proc->Socket);
+                Proc->Socket = INVALID_SOCKET;
+            }
+            if (Proc->DatapathProc) {
+                CxPlatProcessorContextRelease(Proc->DatapathProc);
+                Proc->DatapathProc = NULL;
+            }
+            CxPlatRundownUninitialize(&Proc->RundownRef);
+        }
+    }
+
     if (Config->RemoteAddress != NULL) {
         Socket->RemoteAddress = *Config->RemoteAddress;
     } else {
@@ -1843,7 +1883,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->ReserveAuxTcpSock) {
+    if (!Socket->ReserveAuxTcpSock && !Socket->SkipCreatingOsSockets) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
@@ -2380,8 +2420,12 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->ReserveAuxTcpSock && Socket->HasFixedRemoteAddress) {
-        // QTIP did not initialize PerProcSockets only for Client sockets.
+    if ((Socket->ReserveAuxTcpSock && Socket->HasFixedRemoteAddress) ||
+        Socket->SkipCreatingOsSockets) {
+        //
+        // QTIP client or CIBIR skip: PerProcSockets were not initialized
+        // (or already cleaned up). Just release the socket directly.
+        //
         CxPlatSocketRelease(Socket);
     } else {
         const uint16_t SocketCount =

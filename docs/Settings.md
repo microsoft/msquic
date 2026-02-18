@@ -169,7 +169,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
-| `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | The CIBIR well-known idenfitier.                          |
+| `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | Sets a CIBIR (CID-Based Identification and Routing) well-known identifier. CIBIR does 2 things when set: 1. XDP will now steer packets to the correct process/listener by matching the CIBIR prefix within the packet QUIC Connection ID. 2. In the case of a port collision when reserving OS UDP/TCP sockets, MsQuic will continue with initializing the datapath. If XDP is not available/enabled, then no traffic will flow for the listener that experiences a collision. |
 | `QUIC_PARAM_DOS_MODE_EVENTS`<br> 2        | BOOLEAN                   | Both      | The Listener opted in for DoS Mode event.                 |
 | `QUIC_PARAM_LISTENER_PARTITION_INDEX`<br> (preview) | uint16_t           | Both      | The partition to use for listener callback events and incoming connections. |
 

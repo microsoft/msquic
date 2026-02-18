@@ -212,6 +212,8 @@ typedef struct CXPLAT_SOCKET {
     uint8_t HasFixedRemoteAddress : 1;
     uint8_t RawSocketAvailable : 1;
 
+    uint8_t SkipCreatingOsSockets : 1;
+
     CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
 
 } CXPLAT_SOCKET;
@@ -595,6 +597,8 @@ typedef struct CXPLAT_SOCKET {
 
     uint8_t RawSocketAvailable : 1;
 
+    uint8_t SkipCreatingOsSockets : 1;
+
     //
     // Per-processor socket contexts.
     //
@@ -899,6 +903,8 @@ typedef struct CXPLAT_SOCKET {
     uint8_t ReserveAuxTcpSock : 1;                  // Quic over TCP
 
     uint8_t RawSocketAvailable : 1;
+
+    uint8_t SkipCreatingOsSockets : 1;
 
     //
     // Set of socket contexts one per proc.

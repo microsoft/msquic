@@ -584,3 +584,26 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSend,
         ctf_sequence(char, arg7, arg7, unsigned int, arg7_len)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathCibirSkipNoXdp
+// [data][%p] CIBIR configured, skipping OS socket but XDP not %s
+// QuicTraceLogWarning(
+                            DatapathCibirSkipNoXdp,
+                            "[data][%p] CIBIR configured, skipping OS socket but XDP not %s",
+                            Socket,
+                            !XdpAvailable ? "available" : "enabled");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = !XdpAvailable ? "available" : "enabled" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCibirSkipNoXdp,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
+    )
+)
