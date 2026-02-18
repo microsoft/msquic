@@ -929,6 +929,14 @@ CxPlatTryAddSocket(
         }
 
         if (Socket->CibirIdLength) {
+            //
+            // Setting SO_REUSEADDR does NOT robustly allow
+            // multiple processes to share the same port on
+            // Windows (WinSock).
+            // This code was added primarily for Linux XDP,
+            // where Linux sockets DO actually allow robust
+            // port sharing...
+            //
             Option = TRUE;
             Result =
                 setsockopt(
