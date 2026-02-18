@@ -165,10 +165,10 @@ extern
     "C"
 #endif
 void //__attribute__((no_instrument_function, format(printf, 2, 3)))
-clog_stdout(struct clog_param * head, const char * format, ...);
+clog_stdout(struct clog_param ** head, const char * format, ...);
 #else
 QUIC_INLINE void //__attribute__((no_instrument_function, format(printf, 2, 3)))
-clog_stdout(struct clog_param * head, const char * format, ...)
+clog_stdout(struct clog_param ** head, const char * format, ...)
 {
     UNREFERENCED_PARAMETER(head);
     UNREFERENCED_PARAMETER(format);
@@ -178,7 +178,7 @@ clog_stdout(struct clog_param * head, const char * format, ...)
 #define clog(Fmt, ...)                                                         \
     do {                                                                       \
         struct clog_param * __head = 0;                                        \
-        clog_stdout(__head, (Fmt), ##__VA_ARGS__);                             \
+        clog_stdout(&__head, (Fmt), ##__VA_ARGS__);                            \
     } while (0)
 
 #endif
