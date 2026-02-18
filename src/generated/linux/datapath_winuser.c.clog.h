@@ -160,6 +160,26 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed , arg2
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathCibirSkipNoXdp
+// [data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s
+// QuicTraceLogWarning(
+                                DatapathCibirSkipNoXdp,
+                                "[data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s",
+                                Socket,
+                                !XdpAvailable ? "available" : "enabled");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = !XdpAvailable ? "available" : "enabled" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DatapathCibirSkipNoXdp
+#define _clog_4_ARGS_TRACE_DatapathCibirSkipNoXdp(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCibirSkipNoXdp , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathRecvEmpty
 // [data][%p] Dropping datagram with empty payload.
 // QuicTraceLogWarning(
@@ -533,26 +553,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathRecv , arg2, arg3, arg4, arg5_len, a
 #ifndef _clog_10_ARGS_TRACE_DatapathSend
 #define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_len, arg6, arg7_len, arg7);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathCibirSkipNoXdp
-// [data][%p] CIBIR configured, skipping OS socket but XDP not %s
-// QuicTraceLogWarning(
-                            DatapathCibirSkipNoXdp,
-                            "[data][%p] CIBIR configured, skipping OS socket but XDP not %s",
-                            Socket,
-                            !XdpAvailable ? "available" : "enabled");
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = !XdpAvailable ? "available" : "enabled" = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_DatapathCibirSkipNoXdp
-#define _clog_4_ARGS_TRACE_DatapathCibirSkipNoXdp(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCibirSkipNoXdp , arg2, arg3);\
 
 #endif
 
