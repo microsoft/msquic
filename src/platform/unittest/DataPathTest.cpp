@@ -853,13 +853,16 @@ TEST_P(DataPathTest, UdpData)
 TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_CIBIR)) {
+        GTEST_SKIP_("CIBIR port sharing is only supported on Windows usermode datapath.");
+    }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     auto unspecAddress = GetNewUnspecAddr();
     CxPlatSocket Server1;
     //
     // Set CibirIdLength to some non-zero value to trigger the cibir path in the datapath code,
     // which should allow multiple cxplat sockets to be created on the same udp port so long as
-    // cibir is configured. 
+    // cibir is configured.
     //
     Server1.CibirIdLength = 8;
     Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);

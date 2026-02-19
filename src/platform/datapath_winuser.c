@@ -688,6 +688,8 @@ DataPathInitialize(
     }
 #endif
 
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_CIBIR;
+
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
         //
         // UDP send batching is actually supported on even earlier Windows
