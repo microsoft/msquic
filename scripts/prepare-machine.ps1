@@ -242,6 +242,9 @@ function Install-Xdp-Driver {
     Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
     Write-Host "Installing XDP driver"
     msiexec.exe /i $MsiPath /quiet | Out-Null
+
+    Write-Host "Setting XDP XskDisableTxBounce=1"
+    reg.exe add HKLM\SYSTEM\CurrentControlSet\Services\xdp\Parameters /v XskDisableTxBounce /d 1 /t REG_DWORD /f
 }
 
 # Completely removes the XDP driver and SDK.

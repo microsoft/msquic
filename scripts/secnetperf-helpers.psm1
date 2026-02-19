@@ -154,6 +154,9 @@ function Install-XDP {
     Invoke-Command -Session $Session -ScriptBlock {
         & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
     }
+
+    Write-Host "Setting XDP XskDisableTxBounce=1"
+    reg.exe add HKLM\SYSTEM\CurrentControlSet\Services\xdp\Parameters /v XskDisableTxBounce /d 1 /t REG_DWORD /f
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
