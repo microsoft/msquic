@@ -487,7 +487,11 @@ CxPlatGetAbsoluteTime(
     CxPlatZeroMemory(Time, sizeof(struct timespec));
 
 #if defined(CX_PLATFORM_LINUX)
+#if defined(HAS_PTHREAD_SET_CLOCK)
     ErrorCode = clock_gettime(CLOCK_MONOTONIC, Time);
+#else
+    ErrorCode = clock_gettime(CLOCK_REALTIME, Time);
+#endif
 #elif defined(CX_PLATFORM_DARWIN)
     //
     // timespec_get is used on darwin, as CLOCK_MONOTONIC isn't actually

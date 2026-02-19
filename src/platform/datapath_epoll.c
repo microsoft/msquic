@@ -1782,13 +1782,24 @@ CxPlatSocketReceiveCoalesced(
         RecvIov.iov_base = (char*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
         RecvIov.iov_len = CXPLAT_LARGE_IO_BUFFER_SIZE;
 
-        int Ret =
-            recvmmsg(
+        int Ret = 0;
+#ifdef HAS_RECVMMSG
+        Ret = recvmmsg(
                 SocketContext->SocketFd,
                 &RecvMsgHdr,
                 1,
                 0,
                 NULL);
+#else
+        Ret = recvmsg(
+                SocketContext->SocketFd,
+                &RecvMsgHdr.msg_hdr,
+                0);
+        if (Ret > 0) {
+            RecvMsgHdr.msg_len = Ret;
+            Ret = 1;
+        }
+#endif
         if (Ret < 0) {
             if (errno != EAGAIN && errno != EWOULDBLOCK) {
                 QuicTraceEvent(
@@ -1858,13 +1869,24 @@ CxPlatSocketReceiveMessages(
             RecvIov[i].iov_len = CXPLAT_SMALL_IO_BUFFER_SIZE;
         }
 
-        int Ret =
-            recvmmsg(
+        int Ret = 0;
+#ifdef HAS_RECVMMSG
+        Ret = recvmmsg(
                 SocketContext->SocketFd,
                 RecvMsgHdr,
                 (int)CXPLAT_MAX_IO_BATCH_SIZE,
                 0,
                 NULL);
+#else
+        Ret = recvmsg(
+                SocketContext->SocketFd,
+                &RecvMsgHdr[0].msg_hdr,
+                0);
+        if (Ret > 0) {
+            RecvMsgHdr[0].msg_len = Ret;
+            Ret = 1;
+        }
+#endif
         if (Ret < 0) {
             if (errno != EAGAIN && errno != EWOULDBLOCK) {
                 QuicTraceEvent(
