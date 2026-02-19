@@ -27,7 +27,12 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     //
     // Event queue to drive execution.
     //
-    CXPLAT_EVENTQ EventQ;
+    CXPLAT_EVENTQ* EventQ;
+
+    //
+    // Owned event queue (only valid for internally-managed workers).
+    //
+    CXPLAT_EVENTQ OwnedEventQ;
 
     //
     // Submission queue entry for shutting down the worker thread.
@@ -187,19 +192,20 @@ CxPlatWorkerPoolInitWorker(
     Worker->CleanupEvent = &WorkerPool->CleanupEvent;
 
     if (EventQ != NULL) {
-        Worker->EventQ = *EventQ;
+        Worker->EventQ = EventQ;
     } else {
-        if (!CxPlatEventQInitialize(&Worker->EventQ)) {
+        if (!CxPlatEventQInitialize(&Worker->OwnedEventQ)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "CxPlatEventQInitialize");
             return FALSE;
         }
+        Worker->EventQ = &Worker->OwnedEventQ;
         Worker->InitializedEventQ = TRUE;
     }
 
-    if (!CxPlatSqeInitialize(&Worker->EventQ, ShutdownCompletion, &Worker->ShutdownSqe)) {
+    if (!CxPlatSqeInitialize(Worker->EventQ, ShutdownCompletion, &Worker->ShutdownSqe)) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -208,7 +214,7 @@ CxPlatWorkerPoolInitWorker(
     }
     Worker->InitializedShutdownSqe = TRUE;
 
-    if (!CxPlatSqeInitialize(&Worker->EventQ, WakeCompletion, &Worker->WakeSqe)) {
+    if (!CxPlatSqeInitialize(Worker->EventQ, WakeCompletion, &Worker->WakeSqe)) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -217,7 +223,7 @@ CxPlatWorkerPoolInitWorker(
     }
     Worker->InitializedWakeSqe = TRUE;
 
-    if (!CxPlatSqeInitialize(&Worker->EventQ, UpdatePollCompletion, &Worker->UpdatePollSqe)) {
+    if (!CxPlatSqeInitialize(Worker->EventQ, UpdatePollCompletion, &Worker->UpdatePollSqe)) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -246,7 +252,7 @@ CxPlatWorkerPoolDestroyWorker(
 {
     if (Worker->InitializedThread) {
         Worker->StoppingThread = TRUE;
-        CXPLAT_FRE_ASSERT(CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe));
+        CXPLAT_FRE_ASSERT(CxPlatEventQEnqueue(Worker->EventQ, &Worker->ShutdownSqe));
         CxPlatThreadWait(&Worker->Thread);
         CxPlatThreadDelete(&Worker->Thread);
 #if DEBUG
@@ -258,16 +264,16 @@ CxPlatWorkerPoolDestroyWorker(
         // TODO - Handle synchronized cleanup for external event queues?
     }
     if (Worker->InitializedUpdatePollSqe) {
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
+        CxPlatSqeCleanup(Worker->EventQ, &Worker->UpdatePollSqe);
     }
     if (Worker->InitializedWakeSqe) {
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
+        CxPlatSqeCleanup(Worker->EventQ, &Worker->WakeSqe);
     }
     if (Worker->InitializedShutdownSqe) {
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
+        CxPlatSqeCleanup(Worker->EventQ, &Worker->ShutdownSqe);
     }
     if (Worker->InitializedEventQ) {
-        CxPlatEventQCleanup(&Worker->EventQ);
+        CxPlatEventQCleanup(&Worker->OwnedEventQ);
     }
     if (Worker->InitializedECLock) {
         CxPlatLockUninitialize(&Worker->ECLock);
@@ -572,7 +578,7 @@ CxPlatWorkerPoolGetEventQ(
 {
     CXPLAT_DBG_ASSERT(WorkerPool);
     CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
-    return &WorkerPool->Workers[Index].EventQ;
+    return WorkerPool->Workers[Index].EventQ;
 }
 
 void
@@ -594,7 +600,7 @@ CxPlatWorkerPoolAddExecutionContext(
     CxPlatLockRelease(&Worker->ECLock);
 
     if (QueueEvent) {
-        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->UpdatePollSqe);
+        CxPlatEventQEnqueue(Worker->EventQ, &Worker->UpdatePollSqe);
     }
 }
 
@@ -605,7 +611,7 @@ CxPlatWakeExecutionContext(
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
     if (!InterlockedFetchAndSetBoolean(&Worker->Running)) {
-        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe);
+        CxPlatEventQEnqueue(Worker->EventQ, &Worker->WakeSqe);
     }
 }
 
@@ -783,7 +789,7 @@ CxPlatProcessEvents(
     CXPLAT_CQE Cqes[16];
     uint32_t CqeCount =
         CxPlatEventQDequeue(
-            &Worker->EventQ,
+            Worker->EventQ,
             Cqes,
             ARRAYSIZE(Cqes),
             Worker->State.WaitTime);
@@ -819,7 +825,7 @@ CxPlatProcessEvents(
             CurrentCqeCount--;
 #endif
         }
-        CxPlatEventQReturn(&Worker->EventQ, CqeCount);
+        CxPlatEventQReturn(Worker->EventQ, CqeCount);
     }
 }
 
