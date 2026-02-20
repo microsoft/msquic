@@ -178,6 +178,10 @@ clog_stdout(struct clog_param ** head, const char * format, ...)
 #define clog(Fmt, ...)                                                         \
     do {                                                                       \
         struct clog_param * __head = 0;                                        \
+        /* Pass &__head (not __head) because CASTED_CLOG_BYTEARRAY in */       \
+        /* __VA_ARGS__ updates __head via the same pointer, and C does */      \
+        /* not guarantee argument evaluation order. Using the address */        \
+        /* ensures clog_stdout always sees the final linked list head. */       \
         clog_stdout(&__head, (Fmt), ##__VA_ARGS__);                            \
     } while (0)
 
