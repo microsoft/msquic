@@ -119,6 +119,10 @@ QUIC_STATUS StreamCallback(
             ForwardedSend::Delete(SendContext);
             return QUIC_STATUS_SUCCESS;
         }
+        // Any other failure is an unexpected invariant violation — free before fatal assert.
+        if (QUIC_FAILED(Status)) {
+            ForwardedSend::Delete(SendContext);
+        }
         CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(Status));
         return BufferedMode ? QUIC_STATUS_SUCCESS : QUIC_STATUS_PENDING;
     }
@@ -171,7 +175,16 @@ QUIC_STATUS ConnectionCallback(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
         //printf("c[%p] Peer stream started\n", Connection);
         auto PeerStream = new(std::nothrow) MsQuicStream(*PeerConn, Event->PEER_STREAM_STARTED.Flags, CleanUpAutoDelete, StreamCallback);
+        if (!PeerStream) {
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+            return QUIC_STATUS_SUCCESS;
+        }
         auto LocalStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, PeerStream);
+        if (!LocalStream) {
+            delete PeerStream;
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+            return QUIC_STATUS_SUCCESS;
+        }
         PeerStream->Context = LocalStream;
         //printf("s[%p] Started -> [%p]\n", LocalStream, PeerStream);
         break;
@@ -194,7 +207,14 @@ QUIC_STATUS ListenerCallback(
 {
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
         auto BackEndConn = new(std::nothrow) MsQuicConnection(*Registration, CleanUpAutoDelete, ConnectionCallback);
+        if (!BackEndConn) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
         auto FrontEndConn = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, ConnectionCallback, BackEndConn);
+        if (!FrontEndConn) {
+            delete BackEndConn;
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
         BackEndConn->Context = FrontEndConn;
         //printf("c[%p] Created -> [%p]\n", FrontEndConn, BackEndConn);
         CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(BackEndConn->Start(*BackEndConfiguration, BackEndTarget, BackEndPort)));
