@@ -1257,7 +1257,7 @@ SocketCreateUdp(
     Socket->NumPerProcessorSockets = NumPerProcessorSockets;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
-    Socket->ReserveAuxTcpSock = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
+    Socket->ReserveAuxTcpSockForQtip = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
 
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
@@ -1271,9 +1271,9 @@ SocketCreateUdp(
     //
     // Servers always initialize per-proc UDP sockets.
     //
-    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSock && !IsServerSocket) ? 1 : SocketCount);
+    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) ? 1 : SocketCount);
 
-    if (Socket->ReserveAuxTcpSock && !IsServerSocket) {
+    if (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) {
         //
         // QTIP clients will skip normal UDP socket reservation to use AuxSocket (TCP socket reservation) in raw socket.
         //
@@ -1727,7 +1727,8 @@ SocketCreateUdp(
                         WsaError,
                         "SIO_ACQUIRE_PORT_RESERVATION");
 
-                    if (Config->CibirIdLength > 0 && IsServerSocket) {
+                    if (Config->CibirIdLength > 0 && IsServerSocket &&
+                        (WsaError == WSAEADDRINUSE || WsaError == WSAEACCES)) {
                         //
                         // CIBIR is configured. A port collision here is actually
                         // expected if multiple server processes were configured to share
@@ -1885,7 +1886,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->ReserveAuxTcpSock && !Socket->SkipCreatingOsSockets) {
+    if (!Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
@@ -2422,7 +2423,7 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if ((Socket->ReserveAuxTcpSock && Socket->HasFixedRemoteAddress) ||
+    if ((Socket->ReserveAuxTcpSockForQtip && Socket->HasFixedRemoteAddress) ||
         Socket->SkipCreatingOsSockets) {
         //
         // QTIP client or CIBIR skip: PerProcSockets were not initialized

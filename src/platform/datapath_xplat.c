@@ -232,7 +232,7 @@ CxPlatSocketGetQtipEnabled(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    return Socket->ReserveAuxTcpSock;
+    return Socket->ReserveAuxTcpSockForQtip;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -436,16 +436,16 @@ CxPlatResolveRoute(
     if (Socket->HasFixedRemoteAddress) {
         //
         // For clients,
-        // It must be true that Route->UseQTIP == Socket->ReserveAuxTcpSock because client
+        // It must be true that Route->UseQTIP == Socket->ReserveAuxTcpSockForQtip because client
         // connections can only send/recv either UDP or TCP traffic.
         //
         // For servers,
-        // It could be the case that Route->UseQTIP != Socket->ReserveAuxTcpSock. The state of
-        // Socket->ReserveAuxTcpSock simply determines whether or not we initialize an auxiliary TCP socket
+        // It could be the case that Route->UseQTIP != Socket->ReserveAuxTcpSockForQtip. The state of
+        // Socket->ReserveAuxTcpSockForQtip simply determines whether or not we initialize an auxiliary TCP socket
         // to prevent XDP from hijacking traffic from other processes. Therefore, servers rely
         // on the receive path to set Route->UseQTIP, depending on the type of XDP traffic it sees.
         //
-        Route->UseQTIP = Socket->ReserveAuxTcpSock;
+        Route->UseQTIP = Socket->ReserveAuxTcpSockForQtip;
     }
 
     #if defined(_KERNEL_MODE) || defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)

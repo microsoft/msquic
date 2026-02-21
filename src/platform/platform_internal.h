@@ -204,7 +204,7 @@ typedef struct CXPLAT_SOCKET {
         UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     };
 
-    uint8_t ReserveAuxTcpSock : 1; // always false?
+    uint8_t ReserveAuxTcpSockForQtip : 1; // always false?
 
     //
     // Flag indicates the socket has a default remote destination.
@@ -285,7 +285,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     uint32_t ProcCount;
 
-    uint8_t ReserveAuxTcpSock : 1; // Not supported. always false
+    uint8_t ReserveAuxTcpSockForQtip : 1; // Not supported. always false
 
     //
     // Per-processor completion contexts.
@@ -525,7 +525,7 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
-    uint8_t ReserveAuxTcpSock : 1;
+    uint8_t ReserveAuxTcpSockForQtip : 1;
 
     //
     // Per-processor completion contexts.
@@ -593,7 +593,7 @@ typedef struct CXPLAT_SOCKET {
     // TCP socket, or per-proc UDP sockets. For servers, we always create
     // per-proc UDP sockets, and optionally create an auxiliary TCP socket.
     //
-    uint8_t ReserveAuxTcpSock : 1;
+    uint8_t ReserveAuxTcpSockForQtip : 1;
 
     uint8_t RawSocketAvailable : 1;
 
@@ -900,7 +900,7 @@ typedef struct CXPLAT_SOCKET {
     uint8_t Freed : 1;
 #endif
 
-    uint8_t ReserveAuxTcpSock : 1;                  // Quic over TCP
+    uint8_t ReserveAuxTcpSockForQtip : 1;                  // Quic over TCP
 
     uint8_t RawSocketAvailable : 1;
 
@@ -1036,7 +1036,7 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Freed : 1;
 #endif
 
-    uint8_t ReserveAuxTcpSock : 1;
+    uint8_t ReserveAuxTcpSockForQtip : 1;
 
     //
     // The per proc datapath contexts.
