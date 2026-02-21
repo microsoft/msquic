@@ -204,7 +204,7 @@ typedef struct CXPLAT_SOCKET {
         UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     };
 
-    uint8_t ReserveAuxTcpSockForQtip : 1; // always false?
+    uint8_t ReserveAuxTcpSockForQtip : 1; // always false in kernel mode.
 
     //
     // Flag indicates the socket has a default remote destination.
@@ -285,7 +285,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     uint32_t ProcCount;
 
-    uint8_t ReserveAuxTcpSockForQtip : 1; // Not supported. always false
+    uint8_t ReserveAuxTcpSockForQtip : 1; // Not supported. always false.
 
     //
     // Per-processor completion contexts.
