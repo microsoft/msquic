@@ -36,7 +36,7 @@ set(OPENSSL_CONFIG_FLAGS
     no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
     no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt no-seed
     no-weak-ssl-ciphers no-shared no-tests
-    no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
+    no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated no-asm --libdir=lib)
 
 if (WIN32)
 
