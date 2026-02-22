@@ -102,10 +102,20 @@ This setting can be overridden per client connection, allowing you to create som
 <h5>Important</h5>
 <p>Crucial information necessary for users to succeed.</p>
 </div>
-<p>Using QTIP will initialize a TCP socket and attempt to bind to your listener's local address. This is to reserve a TCP port for your listener to ensure
-XDP does not steal any TCP traffic from your other processes later. That also means you need to ensure no other processes are listening on the same TCP port as your listener's local address prior
+<p>Listeners with QTIP enabled will initialize a TCP and UDP socket and attempt to bind to your listener's local address. This is to reserve a TCP/UDP port for your listener to ensure
+XDP does not steal any traffic from other sockets later. That also means you need to ensure no other processes are listening on the same port as your listener's local address prior
 to starting your listener, otherwise the OS will throw a socket access denied / address in use error,
 and your listener will fail to initialize.</p>
+<p><strong>Client connections with different QTIP enablements CAN exist on the same local port.</strong></p>
+<p>MsQuic connections over XDP/UDP creates an OS UDP socket only, and relies on the OS to assign the app an ephemeral UDP port to reserve it. XDP will be configured to intercept UDP packets on that port.</p>
+<p>MsQuic connections over XDP/QTIP creates an OS TCP socket only, and relies on the OS to assign the app an ephemeral TCP port to reserve it. XDP will be configured to intercept TCP traffic on that port.</p>
+<p>Since apps can create many client connections with different QTIP enablements, sometimes the OS assigns
+the same TCP and UDP port number. If using client connections with and without QTIP enabled simultaneously, the application should not assume 4-tuples uniquely identify a connection and also track the QTIP state.</p>
+<p><strong>Listeners with different QTIP enablements shall NOT be able to exist on the same local port.</strong></p>
+<p>A QTIP-enabled listener will reserve both UDP/TCP ports equal to the local port of the listener
+and configure XDP to intercept UDP/TCP packets on that local port. A non-QTIP listener will just reserve a UDP port
+and have XDP intercept UDP packets on that port. To avoid conflicting traffic, we disallow 2 listeners with the same
+local port but different QTIP enablements to exist.</p>
 
 </article>
 

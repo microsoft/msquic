@@ -279,6 +279,23 @@ QuicTestProbePath(
 }
 
 void
+QuicTestProbePath_NoShareBinding(
+    const ProbePathArgs& Params
+    )
+{
+    QuicTestProbePath(Params.Family, FALSE, Params.DeferConnIDGen, Params.DropPacketCount);
+}
+
+void
+QuicTestProbePath_WithShareBinding(
+    const ProbePathArgs& Params
+    )
+{
+    QuicTestProbePath(Params.Family, TRUE, Params.DeferConnIDGen, Params.DropPacketCount);
+}
+
+
+void
 QuicTestProbePathFailed(
     _In_ int Family,
     _In_ BOOLEAN ShareBinding
@@ -347,6 +364,131 @@ QuicTestProbePathFailed(
     CxPlatSleep(5000);
 
     delete ProbeHelper;
+}
+
+void
+QuicTestProbePathFailed_NoShareBinding(
+    const FamilyArgs& Params
+    )
+{
+    QuicTestProbePathFailed(Params.Family, FALSE);
+}
+
+void
+QuicTestProbePathFailed_WithShareBinding(
+    const FamilyArgs& Params
+    )
+{
+    QuicTestProbePathFailed(Params.Family, TRUE);
+}
+
+void
+QuicTestAddPathBeforeStart(
+    _In_ int Family,
+    _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN DeferConnIDGen
+    )
+{
+    PathTestContext Context;
+    CxPlatEvent AddedPathValidatedEvent;
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    if (DeferConnIDGen) {
+        BOOLEAN DisableConnIdGeneration = TRUE;
+        TEST_QUIC_SUCCEEDED(
+            ServerConfiguration.SetParam(
+                QUIC_PARAM_CONFIGURATION_CONN_ID_GENERATION_DISABLED,
+                sizeof(DisableConnIdGeneration),
+                &DisableConnIdGeneration));
+    }
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    QuicAddr RemoteAddr(QuicAddrFamily);
+    if (UseDuoNic) {
+        QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+        RemoteAddr.SetPort(ServerLocalAddr.GetPort());
+    } else {
+        if (Family == 4) {
+            QuicAddrFromString("127.0.0.1", ServerLocalAddr.GetPort(), &RemoteAddr.SockAddr);
+        } else {
+            QuicAddrFromString("::1", ServerLocalAddr.GetPort(), &RemoteAddr.SockAddr);
+        }
+    }
+
+    MsQuicConnection* Connection = nullptr;
+    QuicAddr FirstLocalAddr(QuicAddrFamily), SecondLocalAddr(QuicAddrFamily);
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t Try = 0;
+    do {
+        Connection = new(std::nothrow) MsQuicConnection(Registration, CleanUpManual, ClientCallback2, &AddedPathValidatedEvent);
+        TEST_QUIC_SUCCEEDED(Connection->GetInitStatus());
+
+        if (ShareBinding) {
+            Connection->SetShareUdpBinding();
+        }
+
+        FirstLocalAddr.SetEphemeralPort();
+        TEST_QUIC_SUCCEEDED(Connection->SetParam(
+            QUIC_PARAM_CONN_LOCAL_ADDRESS,
+            sizeof(FirstLocalAddr.SockAddr),
+            &FirstLocalAddr.SockAddr));
+        QUIC_PATH_PARAM PathParam = { &SecondLocalAddr.SockAddr, &RemoteAddr.SockAddr };
+        
+        TEST_QUIC_SUCCEEDED(Connection->SetParam(
+            QUIC_PARAM_CONN_ADD_PATH,
+            sizeof(PathParam),
+            &PathParam));
+
+        TEST_QUIC_SUCCEEDED(Connection->Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+        TEST_TRUE(Connection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        if (Connection->TransportShutdownStatus == 0) {
+            break;
+        }
+        Status = Connection->TransportShutdownStatus;
+        delete Connection;
+    } while (QUIC_FAILED(Status) && ++Try < 3);
+
+    TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_NOT_EQUAL(nullptr, Context.Connection);
+
+    if (DeferConnIDGen) {
+        TEST_QUIC_SUCCEEDED(Context.Connection->SetParam(QUIC_PARAM_CONN_GENERATE_CONN_ID, 0, NULL));
+    }
+
+    TEST_TRUE(AddedPathValidatedEvent.WaitTimeout(TestWaitTimeout * 20));
+    TEST_TRUE(Context.AddedPathValidatedEvent.WaitTimeout(TestWaitTimeout * 20));
+
+    delete Connection;
+}
+
+void
+QuicTestAddPathBeforeStart_NoShareBinding(
+    const AddPathBeforeStartArgs& Params
+    )
+{
+    QuicTestAddPathBeforeStart(Params.Family, FALSE, Params.DeferConnIDGen);
+}
+
+void
+QuicTestAddPathBeforeStart_WithShareBinding(
+    const AddPathBeforeStartArgs& Params
+    )
+{
+    QuicTestAddPathBeforeStart(Params.Family, TRUE, Params.DeferConnIDGen);
 }
 
 void
@@ -590,96 +732,19 @@ QuicTestMigration(
 }
 
 void
-QuicTestAddPathBeforeStart(
-    _In_ int Family,
-    _In_ BOOLEAN ShareBinding,
-    _In_ BOOLEAN DeferConnIDGen
+QuicTestMigration_NoShareBinding(
+    const MigrationArgs& Params
     )
 {
-    PathTestContext Context;
-    CxPlatEvent AddedPathValidatedEvent;
-    MsQuicRegistration Registration(true);
-    TEST_TRUE(Registration.IsValid());
+    QuicTestMigration(Params.Family, FALSE, Params.AddressType, Params.Type);
+}
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
-    TEST_TRUE(ServerConfiguration.IsValid());
-
-    if (DeferConnIDGen) {
-        BOOLEAN DisableConnIdGeneration = TRUE;
-        TEST_QUIC_SUCCEEDED(
-            ServerConfiguration.SetParam(
-                QUIC_PARAM_CONFIGURATION_CONN_ID_GENERATION_DISABLED,
-                sizeof(DisableConnIdGeneration),
-                &DisableConnIdGeneration));
-    }
-
-    MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
-    TEST_TRUE(ClientConfiguration.IsValid());
-
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestContext::ConnCallback, &Context);
-    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-    QuicAddr ServerLocalAddr(QuicAddrFamily);
-    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
-    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-    QuicAddr RemoteAddr(QuicAddrFamily);
-    if (UseDuoNic) {
-        QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
-        RemoteAddr.SetPort(ServerLocalAddr.GetPort());
-    } else {
-        if (Family == 4) {
-            QuicAddrFromString("127.0.0.1", ServerLocalAddr.GetPort(), &RemoteAddr.SockAddr);
-        } else {
-            QuicAddrFromString("::1", ServerLocalAddr.GetPort(), &RemoteAddr.SockAddr);
-        }
-    }
-
-    MsQuicConnection* Connection = nullptr;
-    QuicAddr FirstLocalAddr(QuicAddrFamily), SecondLocalAddr(QuicAddrFamily);
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    uint32_t Try = 0;
-    do {
-        Connection = new(std::nothrow) MsQuicConnection(Registration, CleanUpManual, ClientCallback2, &AddedPathValidatedEvent);
-        TEST_QUIC_SUCCEEDED(Connection->GetInitStatus());
-
-        if (ShareBinding) {
-            Connection->SetShareUdpBinding();
-        }
-
-        FirstLocalAddr.SetEphemeralPort();
-        TEST_QUIC_SUCCEEDED(Connection->SetParam(
-            QUIC_PARAM_CONN_LOCAL_ADDRESS,
-            sizeof(FirstLocalAddr.SockAddr),
-            &FirstLocalAddr.SockAddr));
-        QUIC_PATH_PARAM PathParam = { &SecondLocalAddr.SockAddr, &RemoteAddr.SockAddr };
-        
-        TEST_QUIC_SUCCEEDED(Connection->SetParam(
-            QUIC_PARAM_CONN_ADD_PATH,
-            sizeof(PathParam),
-            &PathParam));
-
-        TEST_QUIC_SUCCEEDED(Connection->Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-        TEST_TRUE(Connection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-        if (Connection->TransportShutdownStatus == 0) {
-            break;
-        }
-        Status = Connection->TransportShutdownStatus;
-        delete Connection;
-    } while (QUIC_FAILED(Status) && ++Try < 3);
-
-    TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-    TEST_NOT_EQUAL(nullptr, Context.Connection);
-
-    if (DeferConnIDGen) {
-        TEST_QUIC_SUCCEEDED(Context.Connection->SetParam(QUIC_PARAM_CONN_GENERATE_CONN_ID, 0, NULL));
-    }
-
-    TEST_TRUE(AddedPathValidatedEvent.WaitTimeout(TestWaitTimeout * 20));
-    TEST_TRUE(Context.AddedPathValidatedEvent.WaitTimeout(TestWaitTimeout * 20));
-
-    delete Connection;
+void
+QuicTestMigration_WithShareBinding(
+    const MigrationArgs& Params
+    )
+{
+    QuicTestMigration(Params.Family, TRUE, Params.AddressType, Params.Type);
 }
 
 struct AddressDiscoveryTestContext {
@@ -709,7 +774,7 @@ struct AddressDiscoveryTestContext {
 
 void
 QuicTestAddressDiscovery(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
     AddressDiscoveryTestContext ServerContext;
@@ -726,7 +791,7 @@ QuicTestAddressDiscovery(
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AddressDiscoveryTestContext::ConnCallback, &ServerContext);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Params.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
     QuicAddr ClientLocalAddr(QuicAddrFamily);
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
@@ -739,7 +804,7 @@ QuicTestAddressDiscovery(
         ServerObservedAddr.SetPort(ServerLocalAddr.GetPort());
         QuicAddrSetToDuoNicClient(&ClientLocalAddr.SockAddr);
     } else {
-        if (Family == 4) {
+        if (Params.Family == 4) {
             QuicAddrFromString("127.0.0.1", ServerLocalAddr.GetPort(), &ServerObservedAddr.SockAddr);
             QuicAddrFromString("127.0.0.1", 0, &ClientLocalAddr.SockAddr);
         } else {
@@ -795,9 +860,7 @@ QuicTestAddressDiscovery(
 
 void
 QuicTestServerProbePath(
-    _In_ int Family,
-    _In_ BOOLEAN DeferConnIDGen,
-    _In_ uint32_t DropPacketCount
+    const ProbePathArgs& Params
     )
 {
     PathTestContext ClientContext;
@@ -814,7 +877,7 @@ QuicTestServerProbePath(
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    if (DeferConnIDGen) {
+    if (Params.DeferConnIDGen) {
         BOOLEAN DisableConnIdGeneration = TRUE;
         TEST_QUIC_SUCCEEDED(
             ClientConfiguration.SetParam(
@@ -825,7 +888,7 @@ QuicTestServerProbePath(
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestClientContext::ConnCallback, &ServerContext);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Params.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -850,7 +913,7 @@ QuicTestServerProbePath(
     QuicAddr SecondRemoteAddr;
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondRemoteAddr));
     SecondRemoteAddr.SetEphemeralPort();
-    PathProbeHelper *ProbeHelper = new(std::nothrow) PathProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
+    PathProbeHelper *ProbeHelper = new(std::nothrow) PathProbeHelper(SecondLocalAddr.GetPort(), Params.DropPacketCount, Params.DropPacketCount);
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t Try = 0;
@@ -877,12 +940,12 @@ QuicTestServerProbePath(
         if (QUIC_FAILED(Status)) {
             delete ProbeHelper;
             SecondLocalAddr.SetEphemeralPort();
-            ProbeHelper = new(std::nothrow) PathProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
+            ProbeHelper = new(std::nothrow) PathProbeHelper(SecondLocalAddr.GetPort(), Params.DropPacketCount, Params.DropPacketCount);
         }
     } while (QUIC_FAILED(Status) && ++Try <= 3);
     TEST_EQUAL(Status, QUIC_STATUS_SUCCESS);
 
-    if (DeferConnIDGen) {
+    if (Params.DeferConnIDGen) {
         TEST_QUIC_SUCCEEDED(Connection.SetParam(QUIC_PARAM_CONN_GENERATE_CONN_ID, 0, NULL));
     }
     
@@ -893,9 +956,7 @@ QuicTestServerProbePath(
 
 void
 QuicTestServerMigration(
-    _In_ int Family,
-    _In_ QUIC_MIGRATION_ADDRESS_TYPE AddressType,
-    _In_ QUIC_MIGRATION_TYPE Type
+    const MigrationArgs& Params
     )
 {
     PathTestContext ClientContext;
@@ -914,7 +975,7 @@ QuicTestServerMigration(
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestClientContext::ConnCallback, &ServerContext);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Params.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -938,11 +999,11 @@ QuicTestServerMigration(
     QuicAddr SecondAddr;
     QuicAddr PairAddr;
     QUIC_PATH_PARAM PathParam = { 0 };
-    if (AddressType == NewLocalAddress) {
+    if (Params.AddressType == NewLocalAddress) {
         TEST_QUIC_SUCCEEDED(Connection.GetRemoteAddr(SecondAddr));
         SecondAddr.SetEphemeralPort();
         TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(PairAddr));
-    } else if (AddressType == NewRemoteAddress) {
+    } else if (Params.AddressType == NewRemoteAddress) {
         TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondAddr));
         SecondAddr.SetEphemeralPort();
         TEST_QUIC_SUCCEEDED(Connection.GetRemoteAddr(PairAddr));
@@ -953,12 +1014,12 @@ QuicTestServerMigration(
         PairAddr.SetEphemeralPort();
     }
 
-    if (Type == MigrateWithProbe || Type == DeleteAndMigrate) {
+    if (Params.Type == MigrateWithProbe || Params.Type == DeleteAndMigrate) {
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-        PathProbeHelper* ProbeHelper = new(std::nothrow) PathProbeHelper(SecondAddr.GetPort(), 0, 0, AddressType == NewRemoteAddress);
+        PathProbeHelper* ProbeHelper = new(std::nothrow) PathProbeHelper(SecondAddr.GetPort(), 0, 0, Params.AddressType == NewRemoteAddress);
         int Try = 0;
 
-        if (AddressType == NewLocalAddress) {
+        if (Params.AddressType == NewLocalAddress) {
             Status = Connection.SetParam(
                 QUIC_PARAM_CONN_ADD_BOUND_ADDRESS,
                 sizeof(PairAddr.SockAddr),
@@ -977,12 +1038,12 @@ QuicTestServerMigration(
                 if (QUIC_FAILED(Status)) {
                     delete ProbeHelper;
                     SecondAddr.SetEphemeralPort();
-                    ProbeHelper = new(std::nothrow) PathProbeHelper(SecondAddr.GetPort(), 0, 0, AddressType == NewRemoteAddress);
+                    ProbeHelper = new(std::nothrow) PathProbeHelper(SecondAddr.GetPort(), 0, 0, Params.AddressType == NewRemoteAddress);
                 }
             } while (QUIC_FAILED(Status) && ++Try <= 3);
         }
         TEST_QUIC_SUCCEEDED(Status);
-        if (AddressType == NewRemoteAddress) {
+        if (Params.AddressType == NewRemoteAddress) {
             PathParam = { &PairAddr.SockAddr, &SecondAddr.SockAddr };
             Status = ServerContext.Connection->SetParam(
                 QUIC_PARAM_CONN_ADD_PATH,
@@ -992,7 +1053,7 @@ QuicTestServerMigration(
             delete ProbeHelper;
             return;
         } else {
-            if (AddressType == NewLocalAddress) {
+            if (Params.AddressType == NewLocalAddress) {
                 PathParam = { &SecondAddr.SockAddr, &PairAddr.SockAddr };
             } else {
                 PathParam = { &PairAddr.SockAddr, &SecondAddr.SockAddr };
@@ -1013,7 +1074,7 @@ QuicTestServerMigration(
         TEST_TRUE(ProbeHelper->ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout));
         delete ProbeHelper;
 
-        if (Type == MigrateWithProbe) {
+        if (Params.Type == MigrateWithProbe) {
             TEST_QUIC_SUCCEEDED(
                 ServerContext.Connection->SetParam(
                     QUIC_PARAM_CONN_ACTIVATE_PATH,
@@ -1033,7 +1094,7 @@ QuicTestServerMigration(
     } else {
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
         int Try = 0;
-        if (AddressType == NewLocalAddress) {
+        if (Params.AddressType == NewLocalAddress) {
             Status = Connection.SetParam(
                 QUIC_PARAM_CONN_ADD_BOUND_ADDRESS,
                 sizeof(PairAddr.SockAddr),
@@ -1054,7 +1115,7 @@ QuicTestServerMigration(
             } while (QUIC_FAILED(Status) && ++Try <= 3);
         }
         TEST_QUIC_SUCCEEDED(Status);
-        if (AddressType == NewRemoteAddress) {
+        if (Params.AddressType == NewRemoteAddress) {
             PathParam = { &PairAddr.SockAddr, &SecondAddr.SockAddr };
             Status = ServerContext.Connection->SetParam(
                 QUIC_PARAM_CONN_ACTIVATE_PATH,
@@ -1063,7 +1124,7 @@ QuicTestServerMigration(
             TEST_TRUE(QUIC_FAILED(Status));
             return;
         } else {
-            if (AddressType == NewLocalAddress) {
+            if (Params.AddressType == NewLocalAddress) {
                 PathParam = { &SecondAddr.SockAddr, &PairAddr.SockAddr };
             } else {
                 PathParam = { &PairAddr.SockAddr, &SecondAddr.SockAddr };
@@ -1085,9 +1146,9 @@ QuicTestServerMigration(
     QuicAddr ServerNewRemoteAddr, ServerNewLocalAddr;
     TEST_QUIC_SUCCEEDED(Connection.GetRemoteAddr(ServerNewRemoteAddr));
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(ServerNewLocalAddr));
-    if (AddressType == NewLocalAddress) {
+    if (Params.AddressType == NewLocalAddress) {
         TEST_TRUE(QuicAddrCompare(&SecondAddr.SockAddr, &ServerNewRemoteAddr.SockAddr));
-    } else { // AddressType == NewBothAddresses
+    } else { // Params.AddressType == NewBothAddresses
         TEST_TRUE(QuicAddrCompare(&SecondAddr.SockAddr, &ServerNewLocalAddr.SockAddr));
         TEST_TRUE(QuicAddrCompare(&PairAddr.SockAddr, &ServerNewRemoteAddr.SockAddr));
     }

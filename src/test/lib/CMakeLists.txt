@@ -17,6 +17,7 @@ set(SOURCES
     TestListener.cpp
     TestStream.cpp
     TestHelpers.h
+    TestUtility.h
 )
 
 add_library(testlib STATIC ${SOURCES})

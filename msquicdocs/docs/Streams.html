@@ -196,6 +196,7 @@ Note that up to the number of buffers the application provided can be indicated 
 There is no guarantee the <code>QUIC_BUFFER</code>s indicated in a receive notification will match the ones the application provided.</p>
 <p>The application is responsible for tracking the amount of data received and when a buffer it provided has been fully used.
 The application regains full ownership of a buffer after it get a receive notification for all bytes in the buffer and accept them by calling <a href="api/StreamReceiveComplete.html">StreamReceiveComplete</a>.
+MsQuic will not re-use a buffer for subsequent receives once it has been fully written, unless the app submits the same buffer again.
 If the application accepts all the buffer's bytes <strong>inline</strong> from the receive notification, by returning <code>QUIC_STATUS_SUCCESS</code> and setting <code>TotalBufferLength</code> appropriately,
 it can free or reuse the buffer while in the notification handler.</p>
 <p>If more data is received on the stream than buffer space was provided by the application, MsQuic will emit a <code>QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED</code> notification.

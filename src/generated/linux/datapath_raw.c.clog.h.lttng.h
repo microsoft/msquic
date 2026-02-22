@@ -64,11 +64,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathSend
-// [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
+// Decoder Ring for RawDatapathSend
+// [data][%p] Raw send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(
-        DatapathSend,
-        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        RawDatapathSend,
+        "[data][%p] Raw send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
         SendData->Buffer.Length,
         1,
@@ -82,7 +82,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg6
 // arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg7
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathSend,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, RawDatapathSend,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,

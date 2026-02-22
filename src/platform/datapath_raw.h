@@ -334,21 +334,29 @@ BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     )
 {
     CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
     if (Socket->Wildcard) {
-        return TRUE; // The local port match is all that is needed.
+        //
+        // For a listener socket, always give a match if the listener
+        // socket has enabled QTIP (can accept both UDP/QTIP traffic).
+        // Otherwise, we want to NOT match if UseQtip is TRUE but the listener socket does not enable QTIP.
+        //
+        return Socket->ReserveAuxTcpSock || !UseQtip;
     }
 
     //
-    // Make sure the local IP matches and the full remote address matches.
+    // For a client socket, make sure the local IP matches and the full
+    // remote address matches along with QTIP settings.
     //
     CXPLAT_DBG_ASSERT(Socket->Connected);
     return
         QuicAddrCompareIp(&Socket->LocalAddress, LocalAddress) &&
-        QuicAddrCompare(&Socket->RemoteAddress, RemoteAddress);
+        QuicAddrCompare(&Socket->RemoteAddress, RemoteAddress) &&
+        Socket->ReserveAuxTcpSock == UseQtip;
 }
 
 //
@@ -358,7 +366,8 @@ CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     );
 
 QUIC_STATUS

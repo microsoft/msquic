@@ -824,6 +824,29 @@
       "version": ""
     },
     {
+      "type": "Conceptual",
+      "source_relative_path": "docs/experimental/RDMA.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/experimental/RDMA.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/experimental/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "docs/experimental/toc.html"
+        },
+        ".json": {
+          "relative_path": "docs/experimental/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
       "type": "Resource",
       "source_relative_path": "docs/images/cpu-debug-1.png",
       "output": {

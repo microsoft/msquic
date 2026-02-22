@@ -689,6 +689,15 @@ CxPlatSocketUpdateQeo(
     );
 
 //
+// Queries the QTIP settings of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketGetQtipEnabled(
+    _In_ CXPLAT_SOCKET* Socket
+    );
+
+//
 // Queries the locally bound interface's MTU.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
