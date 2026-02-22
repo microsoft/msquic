@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>QUIC_CONNECTION_EVENT structure </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="QUIC_CONNECTION_EVENT structure ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/seera-networks/msquic/blob/main/docs/api/QUIC_CONNECTION_EVENT.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="quic_connection_event-structure">QUIC_CONNECTION_EVENT structure</h1>
+
+<p>QUIC connection events and the corresponding payload</p>
+<h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef enum QUIC_CONNECTION_EVENT_TYPE {
+    QUIC_CONNECTION_EVENT_CONNECTED                         = 0,
+    QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT   = 1,    // The transport started the shutdown process.
+    QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER        = 2,    // The peer application started the shutdown process.
+    QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE                 = 3,    // Ready for the handle to be closed.
+    QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED             = 4,
+    QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED              = 5,
+    QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED               = 6,
+    QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
+    QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
+    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
+    QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED            = 10,
+    QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
+    QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12,
+    QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
+    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
+    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15    // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+#endif
+
+} QUIC_CONNECTION_EVENT_TYPE;
+</code></pre>
+<p>The payload for QUIC connection events.</p>
+<pre><code class="lang-C">typedef struct QUIC_CONNECTION_EVENT {
+    QUIC_CONNECTION_EVENT_TYPE Type;
+    union {
+        struct {
+            BOOLEAN SessionResumed;
+            _Field_range_(&gt;, 0)
+            uint8_t NegotiatedAlpnLength;
+            _Field_size_(NegotiatedAlpnLength)
+            const uint8_t* NegotiatedAlpn;
+        } CONNECTED;
+        struct {
+            QUIC_STATUS Status;
+            QUIC_UINT62 ErrorCode; // Wire format error code.
+        } SHUTDOWN_INITIATED_BY_TRANSPORT;
+        struct {
+            QUIC_UINT62 ErrorCode;
+        } SHUTDOWN_INITIATED_BY_PEER;
+        struct {
+            BOOLEAN HandshakeCompleted          : 1;
+            BOOLEAN PeerAcknowledgedShutdown    : 1;
+            BOOLEAN AppCloseInProgress          : 1;
+        } SHUTDOWN_COMPLETE;
+        struct {
+            const QUIC_ADDR* Address;
+        } LOCAL_ADDRESS_CHANGED;
+        struct {
+            const QUIC_ADDR* Address;
+        } PEER_ADDRESS_CHANGED;
+        struct {
+            HQUIC Stream;
+            QUIC_STREAM_OPEN_FLAGS Flags;
+        } PEER_STREAM_STARTED;
+        struct {
+            uint16_t BidirectionalCount;
+            uint16_t UnidirectionalCount;
+        } STREAMS_AVAILABLE;
+        struct {
+            uint16_t IdealProcessor;
+        } IDEAL_PROCESSOR_CHANGED;
+        struct {
+            BOOLEAN SendEnabled;
+            uint16_t MaxSendLength;
+        } DATAGRAM_STATE_CHANGED;
+        struct {
+            const QUIC_BUFFER* Buffer;
+            QUIC_RECEIVE_FLAGS Flags;
+        } DATAGRAM_RECEIVED;
+        struct {
+            /* inout */ void* ClientContext;
+            QUIC_DATAGRAM_SEND_STATE State;
+        } DATAGRAM_SEND_STATE_CHANGED;
+        struct {
+            uint16_t ResumptionStateLength;
+            const uint8_t* ResumptionState;
+        } RESUMED;
+        struct {
+            _Field_range_(&gt;, 0)
+            uint32_t ResumptionTicketLength;
+            _Field_size_(ResumptionTicketLength)
+            const uint8_t* ResumptionTicket;
+        } RESUMPTION_TICKET_RECEIVED;
+        struct {
+            QUIC_CERTIFICATE* Certificate;
+            uint32_t DeferredErrorFlags;
+            QUIC_STATUS DeferredStatus;
+            QUIC_CERTIFICATE_CHAIN* Chain;
+        } PEER_CERTIFICATE_RECEIVED;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            BOOLEAN IsNegotiated;
+        } RELIABLE_RESET_NEGOTIATED;
+        struct {
+            BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
+            BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
+        } ONE_WAY_DELAY_NEGOTIATED;
+        QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
+#endif
+
+    };
+} QUIC_CONNECTION_EVENT;
+</code></pre>
+<h1 id="parameters">Parameters</h1>
+<p><code>Type</code></p>
+<p>The <code>QUIC_CONNECTION_EVENT_TYPE</code> that indicates which type of event this is, and which payload to reference (if any) for additional information.</p>
+<h1 id="remarks">Remarks</h1>
+<h2 id="quic_connection_event_connected">QUIC_CONNECTION_EVENT_CONNECTED</h2>
+<p>This event is delivered when the handshake has completed. This means the peer has been securely authenticated. This happens after one full round trip on the client side. The server side considers the handshake complete once the client responds after this.</p>
+<h3 id="connected">Connected</h3>
+<p>Additional state can be found in the <code>CONNECTED</code> struct/union.</p>
+<p><code>SessionResumed</code></p>
+<p>A flag that indicates if a previous TLS session was successfully resumed.</p>
+<p><code>NegotiatedAlpnLength</code></p>
+<p>The length of the <code>NegotiatedAlpn</code> field.</p>
+<p><code>NegotiatedAlpn</code></p>
+<p>The buffer (not null terminated) that holds the ALPN that was negotiated during the handshake.</p>
+<h2 id="quic_connection_event_shutdown_initiated_by_transport">QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT</h2>
+<p>This event is delivered whenever the transport (e.g. QUIC layer) determines the connection has been terminated. This can happen for a number of different reasons. Some are as follows.</p>
+<ul>
+<li>The handshake failed (any number of reasons).</li>
+<li>The connection was idle for long enough.</li>
+<li>The connection disconnected (lost contact with peer; no acknowledgments).</li>
+<li>The connection encountered a protocol violation.</li>
+</ul>
+<h3 id="shutdown_initiated_by_transport">SHUTDOWN_INITIATED_BY_TRANSPORT</h3>
+<p>Additional status can be found in the <code>SHUTDOWN_INITIATED_BY_TRANSPORT</code> struct/union.</p>
+<p><code>Status</code></p>
+<p>The platform status code that indicates the reason for the shutdown.</p>
+<p><code>ErrorCode</code></p>
+<p>The wire format error code that indicates the reason for the shutdown.</p>
+<h2 id="quic_connection_event_shutdown_initiated_by_peer">QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER</h2>
+<p>This event is delivered when the peer application has terminated the application, with an application's protocol specific, 62-bit error code.</p>
+<h3 id="shutdown_initiated_by_peer">SHUTDOWN_INITIATED_BY_PEER</h3>
+<p>Error code is found in the <code>SHUTDOWN_INITIATED_BY_PEER</code> struct/union.</p>
+<p><code>ErrorCode</code></p>
+<p>The error code received from the peer for the shutdown.</p>
+<h2 id="quic_connection_event_shutdown_complete">QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE</h2>
+<p>This event is the last one delivered to the application, and indicates the connection may now be safely closed.</p>
+<h3 id="shutdown_complete">SHUTDOWN_COMPLETE</h3>
+<p>Various state flags are contained in the <code>SHUTDOWN_COMPLETE</code> struct/union.</p>
+<p><code>HandshakeCompleted</code></p>
+<p>A flag indicating if the QUIC handshake completed before the connection was shutdown.</p>
+<p><code>PeerAcknowledgedShutdown</code></p>
+<p>A flag indicating if the peer explicitly acknowledged the connection shutdown.</p>
+<p><code>AppCloseInProgress</code></p>
+<p>A flag indicating that the application called <a href="ConnectionClose.html">ConnectionClose</a> on this connection.</p>
+<h2 id="quic_connection_event_local_address_changed">QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED</h2>
+<p>This event is delivered when the local address used for the primary/active path communication has changed.</p>
+<h3 id="local_address_changed">LOCAL_ADDRESS_CHANGED</h3>
+<p>New local address is passed in the <code>LOCAL_ADDRESS_CHANGED</code> struct/union.</p>
+<p><code>Address</code></p>
+<p>The new local IP address.</p>
+<h2 id="quic_connection_event_peer_address_changed">QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED</h2>
+<p>This event is delivered when the remote address used for the primary/active path communication has changed.</p>
+<h3 id="peer_address_changed">PEER_ADDRESS_CHANGED</h3>
+<p>New peer ip address is passed in the <code>PEER_ADDRESS_CHANGED</code> struct/union.</p>
+<p><code>Address</code></p>
+<p>The new peer IP address.</p>
+<h2 id="quic_connection_event_peer_stream_started">QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</h2>
+<p>This event is delivered when the peer has created a new stream.</p>
+<h3 id="peer_stream_started">PEER_STREAM_STARTED</h3>
+<p>Details of the new stream are passed in the <code>PEER_STREAM_STARTED</code> struct/union.</p>
+<p><code>Stream</code></p>
+<p>A handle to the newly peer-created stream.</p>
+<p><code>Flags</code></p>
+<p>A set of flags indicating describing the newly opened stream:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QUIC_STREAM_OPEN_FLAG_NONE</strong><br>0</td>
+<td>No special behavior. Defaults to bidirectional stream.</td>
+</tr>
+<tr>
+<td><strong>QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL</strong><br>1</td>
+<td>A unidirectional stream.</td>
+</tr>
+<tr>
+<td><strong>QUIC_STREAM_OPEN_FLAG_0_RTT</strong><br>2</td>
+<td>The stream was received in 0-RTT.</td>
+</tr>
+</tbody>
+</table>
+<p>If a server wishes to use <code>QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES</code> for the newly started stream, it may append this flag to <code>Flags</code> before it returns from the callback.</p>
+<h2 id="quic_connection_event_streams_available">QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE</h2>
+<p>This event indicates the number of streams the peer is willing to accept has changed.</p>
+<h3 id="streams_available">STREAMS_AVAILABLE</h3>
+<p>New stream counts are passed in the <code>STREAMS_AVAILABLE</code> struct/union.</p>
+<p><code>BidirectionalCount</code></p>
+<p>The number of bidirectional streams the peer is willing to accept.</p>
+<p><code>UnidirectionalCount</code></p>
+<p>The number of unidirectional streams the peer is willing to accept.</p>
+<h2 id="quic_connection_event_peer_needs_streams">QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS</h2>
+<p>This event indicates the peer is currently blocked on the number of parallel streams the app has configured it is willing to accept.</p>
+<h2 id="quic_connection_event_ideal_processor_changed">QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED</h2>
+<p>This event indicates the processor or CPU that MsQuic has determined would be the best for processing the given connection.</p>
+<h3 id="ideal_processor_changed">IDEAL_PROCESSOR_CHANGED</h3>
+<p>The new processor number is passed in the <code>IDEAL_PROCESSOR_CHANGED</code> struct/union.</p>
+<p><code>IdealProcessor</code></p>
+<p>The processor number that should be ideally used for processing the connection.</p>
+<h2 id="quic_connection_event_datagram_state_changed">QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED</h2>
+<p>This event indicates the current state for sending unreliable datagrams has changed.</p>
+<h3 id="datagram_state_changed">DATAGRAM_STATE_CHANGED</h3>
+<p>New datagram state is passed in the <code>DATAGRAM_STATE_CHANGED</code> struct/union.</p>
+<p><code>SendEnabled</code></p>
+<p>A flag that indicates datagrams are allowed to be sent.</p>
+<p><code>MaxSendLength</code></p>
+<p>When enabled, indicates the maximum length of a single datagram that can fit in a packet.</p>
+<h2 id="quic_connection_event_datagram_received">QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED</h2>
+<p>This event indicates a received unreliable datagram from the peer.</p>
+<h3 id="datagram_received">DATAGRAM_RECEIVED</h3>
+<p>Unreliable datagram buffer and metadata are passed in the <code>DATAGRAM_RECEIVED</code> struct/union.</p>
+<p><code>Buffer</code></p>
+<p>Contains a pointer to the received data along with the length of the data.</p>
+<p><code>Flags</code></p>
+<p>A set of flags indicating describing the received datagram data:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QUIC_RECEIVE_FLAG_NONE</strong><br>0</td>
+<td>No special behavior.</td>
+</tr>
+<tr>
+<td><strong>QUIC_RECEIVE_FLAG_0_RTT</strong><br>1</td>
+<td>The data was received in 0-RTT.</td>
+</tr>
+<tr>
+<td><strong>QUIC_RECEIVE_FLAG_FIN</strong><br>2</td>
+<td>N/A. Only used for Stream data. Unused for datagrams.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="quic_connection_event_datagram_send_state_changed">QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED</h2>
+<p>This event indicates a state change for a previous unreliable datagram send via <a href="DatagramSend.html">DatagramSend</a>.</p>
+<h3 id="send_state_changed">SEND_STATE_CHANGED</h3>
+<p>Unreliable datagram send state is passed in the <code>SEND_STATE_CHANGED</code> struct/union.</p>
+<p><code>ClientContext</code></p>
+<p>The context pointer passed into <a href="DatagramSend.html">DatagramSend</a> as <code>ClientSendContext</code>.</p>
+<p><code>State</code></p>
+<p>The latest state for the sent datagram.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QUIC_DATAGRAM_SEND_SENT</strong><br>1</td>
+<td>Indicates the datagram has now been sent out on the network. This is the earliest the app may free the <code>Buffers</code> passed into <a href="DatagramSend.html">DatagramSend</a>.</td>
+</tr>
+<tr>
+<td><strong>QUIC_DATAGRAM_SEND_LOST_SUSPECT</strong><br>2</td>
+<td>The sent datagram is suspected to be lost. If desired, the app could retransmit the data now.</td>
+</tr>
+<tr>
+<td><strong>QUIC_DATAGRAM_SEND_LOST_DISCARDED</strong><br>3</td>
+<td>The sent datagram is lost and no longer tracked by MsQuic.</td>
+</tr>
+<tr>
+<td><strong>QUIC_DATAGRAM_SEND_ACKNOWLEDGED</strong><br>4</td>
+<td>The sent datagram has been acknowledged.</td>
+</tr>
+<tr>
+<td><strong>QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS</strong><br>5</td>
+<td>The sent datagram has been acknowledged after previously being suspected as lost.</td>
+</tr>
+<tr>
+<td><strong>QUIC_DATAGRAM_SEND_CANCELED</strong><br>6</td>
+<td>The queued datagram was canceled; either because the connection was shutdown or the peer did not negotiate the feature.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="quic_connection_event_resumed">QUIC_CONNECTION_EVENT_RESUMED</h2>
+<p>This event indicates that a previous session has been successfully resumed at the TLS layer. This event is delivered for the server side only. The server app must indicate acceptance or rejection of the resumption ticket by returning a successful or failure status code from the event. If rejected by the server app, then resumption is rejected and a normal handshake will be performed.</p>
+<h3 id="resumed">RESUMED</h3>
+<p>Connection resumption state is passed in the <code>Resumed</code> struct/union.</p>
+<p><code>ResumptionStateLength</code></p>
+<p>The length of the <code>ResumptionState</code> buffer.</p>
+<p><code>ResumptionState</code></p>
+<p>The resumption ticket data previously sent to the client via <a href="ConnectionSendResumptionTicket.html">ConnectionSendResumptionTicket</a>.</p>
+<h2 id="quic_connection_event_resumption_ticket_received">QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED</h2>
+<p>This event indicates to the client that a TLS resumption ticket has been received from the server.</p>
+<h3 id="resumption_ticket_received">RESUMPTION_TICKET_RECEIVED</h3>
+<p>Resumption ticket state is passed in the <code>RESUMPTION_TICKET_RECEIVED</code> struct/union.</p>
+<p><code>ResumptionTicketLength</code></p>
+<p>The length of the <code>ResumptionTicket</code> buffer.</p>
+<p><code>ResumptionTicket</code></p>
+<p>The resumption ticket data received from the server. For a client to later resume the session in a new connection, it must pass this data to the new connection via the <code>QUIC_PARAM_CONN_RESUMPTION_TICKET</code> parameter.</p>
+<h2 id="quic_connection_event_peer_certificate_received">QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED</h2>
+<p>This event indicates a certificate has been received from the peer.</p>
+<h3 id="peer_certificate_received">PEER_CERTIFICATE_RECEIVED</h3>
+<p>The peer certificate and related data is passed in the <code>PEER_CERTIFICATE_RECEIVED</code> struct/union.</p>
+<p><code>Certificate</code></p>
+<p>Pointer to a platform/TLS specific certificate. Valid only during the callback.</p>
+<p>If <code>QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES</code> was specified in the <a href="QUIC_CREDENTIAL_CONFIG.html">QUIC_CREDENTIAL_CONFIG</a>, this will be a <code>QUIC_BUFFER</code> containing the DER (binary) encoded remote X.509 certificate.</p>
+<p><code>DeferredErrorFlags</code></p>
+<p>Bit flag of errors encountered when doing deferring validation of the certificate. Valid only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION flag specified upfront. Only supported with Schannel currently.</p>
+<p><code>DeferredStatus</code></p>
+<p>Most severe error status when doing deferred validation of the certificate. Valid only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION flag specified upfront.</p>
+<p><code>Chain</code></p>
+<p>Pointer to a platform/TLS specific certificate chain. Valid only during the callback.</p>
+<p>If <code>QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES</code> was specified in the <a href="QUIC_CREDENTIAL_CONFIG.html">QUIC_CREDENTIAL_CONFIG</a>, this will be a <code>QUIC_BUFFER</code> containing the PKCS #7 DER (binary) encoded certificate chain.</p>
+<h2 id="quic_connection_event_reliable_reset_negotiated">QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED</h2>
+<p><strong>Preview feature</strong>: This event is in <a href="../PreviewFeatures.html">preview</a>. It should be considered unstable and can be subject to breaking changes.</p>
+<p>This event indicates the result of reliable reset negotiation. This is only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.</p>
+<h3 id="reliable_reset_negotiated">RELIABLE_RESET_NEGOTIATED</h3>
+<p>Result of reliable reset negotiation is passed in the <code>RELIABLE_RESET_NEGOTIATED</code> struct/union.</p>
+<p><code>IsNegotiated</code></p>
+<p>If TRUE, reliable reset has been negotiated.</p>
+<h2 id="quic_connection_event_one_way_delay_negotiated">QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED</h2>
+<p><strong>Preview feature</strong>: This event is in <a href="../PreviewFeatures.html">preview</a>. It should be considered unstable and can be subject to breaking changes.</p>
+<p>This event indicates the result of one way delay negotiation. This is only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.</p>
+<h3 id="one_way_delay_negotiated">ONE_WAY_DELAY_NEGOTIATED</h3>
+<p>Details of the one way delay negotiation are passed in the <code>ONE_WAY_DELAY_NEGOTIATED</code> struct/union.</p>
+<p><code>SendNegotiated</code></p>
+<p>If TRUE, sending one-way delay timestamps has been negotiated.</p>
+<p><code>ReceiveNegotiated</code></p>
+<p>If TRUE, receiving one-way delay timestamps has been negotiated.</p>
+<h2 id="quic_connection_event_network_statistics">QUIC_CONNECTION_EVENT_NETWORK_STATISTICS</h2>
+<p><strong>Preview feature</strong>: This event is in <a href="../PreviewFeatures.html">preview</a>. It should be considered unstable and can be subject to breaking changes.</p>
+<p>This event is only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE. This event indicates the latest network statistics generated during the QUIC protocol handling in the MsQuic library.</p>
+<h3 id="network_statistics">NETWORK_STATISTICS</h3>
+<p>Detailed networking statistics are passed in the <code>QUIC_NETWORK_STATISTICS</code> struct/union.</p>
+<p><code>BytesInFlight</code></p>
+<p>Bytes that were sent on the wire, but not yet acked</p>
+<p><code>PostedBytes</code></p>
+<p>Total bytes queued, but not yet acked. These may contain sent bytes that may have portentially lost too.</p>
+<p><code>IdealBytes</code></p>
+<p>Ideal number of bytes required to be available to avoid limiting throughput.</p>
+<p><code>SmoothedRTT</code></p>
+<p>Smoothed RTT value</p>
+<p><code>CongestionWindow</code></p>
+<p>Congestion Window</p>
+<p><code>Bandwidth</code></p>
+<p>Estimated bandwidth</p>
+<h1 id="see-also">See Also</h1>
+<p><a href="ConnectionOpen.html">ConnectionOpen</a><br>
+<a href="QUIC_CONNECTION_CALLBACK.html">QUIC_CONNECTION_CALLBACK</a><br>
+<a href="SetCallbackHandler.html">SetCallbackHandler</a><br>
+<a href="SetContext.html">SetContext</a><br>
+<a href="QUIC_CREDENTIAL_CONFIG.html">QUIC_CREDENTIAL_CONFIG</a><br>
+<a href="../PreviewFeatures.html">Preview Features</a><br></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/seera-networks/msquic/blob/main/docs/api/QUIC_CONNECTION_EVENT.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
