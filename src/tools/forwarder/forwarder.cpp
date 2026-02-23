@@ -119,10 +119,6 @@ QUIC_STATUS StreamCallback(
             ForwardedSend::Delete(SendContext);
             return QUIC_STATUS_SUCCESS;
         }
-        // Any other failure is an unexpected invariant violation — free before fatal assert.
-        if (QUIC_FAILED(Status)) {
-            ForwardedSend::Delete(SendContext);
-        }
         CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(Status));
         return BufferedMode ? QUIC_STATUS_SUCCESS : QUIC_STATUS_PENDING;
     }
