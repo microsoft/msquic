@@ -3935,6 +3935,70 @@ QuicTestCibirExtension(
     TEST_EQUAL(Connection.HandshakeComplete, ShouldConnnect);
 }
 
+void
+QuicTestCibirSharedPortListeners(
+    const FamilyArgs& Params
+    )
+{
+    const int Family = Params.Family;
+
+    //
+    // Two different CIBIR IDs to distinguish multiple listeners on the
+    // same port.
+    //
+    const uint8_t CibirId1[] = { 0 /* offset */, 4, 3, 2, 1 };
+    const uint8_t CibirId2[] = { 0 /* offset */, 5, 6, 7, 8 };
+    const uint8_t CibirIdLength = sizeof(CibirId1);
+
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+
+    //
+    // Start the first CIBIR-enabled listener and let it pick a port.
+    //
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    MsQuicAutoAcceptListener Listener1(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener1.SetCibirId(CibirId1, CibirIdLength));
+    TEST_QUIC_SUCCEEDED(Listener1.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener1.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener1.GetLocalAddr(ServerLocalAddr));
+
+    //
+    // Start the second CIBIR-enabled listener on the SAME port.
+    // This exercises the SO_REUSEADDR path added for CIBIR port sharing.
+    //
+    QuicAddr ServerLocalAddr2(QuicAddrFamily);
+    ServerLocalAddr2.SetPort(ServerLocalAddr.GetPort());
+    MsQuicAutoAcceptListener Listener2(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener2.SetCibirId(CibirId2, CibirIdLength));
+    TEST_QUIC_SUCCEEDED(Listener2.Start("MsQuicTest", &ServerLocalAddr2.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener2.GetInitStatus());
+
+    //
+    // Verify a client with the first CIBIR ID can connect via the shared port.
+    //
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.SetShareUdpBinding());
+    TEST_QUIC_SUCCEEDED(Connection.SetCibirId(CibirId1, CibirIdLength));
+    TEST_QUIC_SUCCEEDED(
+        Connection.Start(
+            ClientConfiguration,
+            ServerLocalAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+            ServerLocalAddr.GetPort()));
+    Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
+    TEST_TRUE(Connection.HandshakeComplete);
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
