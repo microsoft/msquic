@@ -539,6 +539,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(INT32),
+    sizeof(INT32),                           // IOCTL_QUIC_RUN_CIBIR_SHARED_PORT_LISTENERS
 };
 
 CXPLAT_STATIC_ASSERT(
