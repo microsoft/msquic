@@ -24,8 +24,6 @@ Abstract:
 
 #define CXPLAT_CERT_CREATION_EVENT_NAME                 L"MsQuicCertEvent"
 #define CXPLAT_CERT_CREATION_EVENT_WAIT                 10000
-#define CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME           L"MsQuicTestCert2"
-#define CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME    L"MsQuicTestClientCert"
 #define CXPLAT_KEY_CONTAINER_NAME                       L"MsQuicSelfSignKey2"
 #define CXPLAT_KEY_SIZE                                 2048
 
@@ -33,12 +31,14 @@ Abstract:
 #define CXPLAT_TEST_CERT_VALID_CLIENT_FRIENDLY_NAME         L"MsQuicTestClient"
 #define CXPLAT_TEST_CERT_EXPIRED_SERVER_FRIENDLY_NAME       L"MsQuicTestExpiredServer"
 #define CXPLAT_TEST_CERT_EXPIRED_CLIENT_FRIENDLY_NAME       L"MsQuicTestExpiredClient"
+#define CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_FRIENDLY_NAME   L"MsQuicTestSelfSignServer"
+#define CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_FRIENDLY_NAME   L"MsQuicTestSelfSignClient"
 #define CXPLAT_TEST_CERT_VALID_SERVER_SUBJECT_NAME          "MsQuicTestServer"
 #define CXPLAT_TEST_CERT_VALID_CLIENT_SUBJECT_NAME          "MsQuicTestClient"
 #define CXPLAT_TEST_CERT_EXPIRED_SERVER_SUBJECT_NAME        "MsQuicTestExpiredServer"
 #define CXPLAT_TEST_CERT_EXPIRED_CLIENT_SUBJECT_NAME        "MsQuicTestExpiredClient"
-#define CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_SUBJECT_NAME    "MsQuicClient"
-#define CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_SUBJECT_NAME    "localhost"
+#define CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_SUBJECT_NAME    "MsQuicTestSelfSignClient"
+#define CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_SUBJECT_NAME    "MsQuicTestSelfSignServer"
 
 void
 CleanTestCertificatesFromStore(BOOLEAN UserStore)
@@ -73,12 +73,12 @@ CleanTestCertificatesFromStore(BOOLEAN UserStore)
             &FriendlyNamePropId,
             Cert))) {
 
-        BYTE FriendlyName[sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME)+sizeof(WCHAR)];
+        BYTE FriendlyName[sizeof(CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_FRIENDLY_NAME)+sizeof(WCHAR)];
         DWORD NameSize = sizeof(FriendlyName);
 
 #pragma prefast(suppress:6054, "SAL doesn't track null terminator correctly")
         if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
-            wcscmp((wchar_t*)FriendlyName, CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
+            wcscmp((wchar_t*)FriendlyName, CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_FRIENDLY_NAME) != 0) {
             ++Found;
             continue;
         }
@@ -257,11 +257,15 @@ CreateSubjAltNameExtension(
     _Out_ PCERT_EXTENSION CertExtension
     )
 {
-    CERT_ALT_NAME_ENTRY AltName = { CERT_ALT_NAME_DNS_NAME };
-    AltName.pwszDNSName = L"localhost";
+    LPWSTR AltNameStrings[] = { L"localhost", L"127.0.0.1", L"::1", L"192.168.1.11", L"192.168.1.12", L"fc00::1:11", L"fc00::1:12" };
+    CERT_ALT_NAME_ENTRY AltNames[ARRAYSIZE(AltNameStrings)];
+    for (uint32_t i = 0; i < ARRAYSIZE(AltNameStrings); i++) {
+        AltNames[i].dwAltNameChoice = CERT_ALT_NAME_DNS_NAME;
+        AltNames[i].pwszDNSName = AltNameStrings[i];
+    }
     CERT_ALT_NAME_INFO NameInfo;
-    NameInfo.cAltEntry = 1;
-    NameInfo.rgAltEntry = &AltName;
+    NameInfo.cAltEntry = ARRAYSIZE(AltNames);
+    NameInfo.rgAltEntry = AltNames;
 
     ZeroMemory(CertExtension, sizeof(*CertExtension));
     CertExtension->fCritical = FALSE;
@@ -746,11 +750,11 @@ CreateSelfSignedCertificate(
 
     CRYPT_DATA_BLOB FriendlyNameBlob;
     if (IsClient) {
-        FriendlyNameBlob.cbData = sizeof(CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME);
-        FriendlyNameBlob.pbData = (BYTE*) CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME;
+        FriendlyNameBlob.cbData = sizeof(CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_FRIENDLY_NAME);
+        FriendlyNameBlob.pbData = (BYTE*) CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_FRIENDLY_NAME;
     } else {
-        FriendlyNameBlob.cbData = sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME);
-        FriendlyNameBlob.pbData = (BYTE*) CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME;
+        FriendlyNameBlob.cbData = sizeof(CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_FRIENDLY_NAME);
+        FriendlyNameBlob.pbData = (BYTE*) CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_FRIENDLY_NAME;
     }
 
     if (!CertSetCertificateContextProperty(
@@ -792,7 +796,11 @@ CreateClientCertificate(
     )
 {
     PCCERT_CONTEXT CertContext;
-    if (FAILED(CreateSelfSignedCertificate(L"CN=MsQuicClient", TRUE, &CertContext))) {
+    if (FAILED(
+            CreateSelfSignedCertificate(
+                L"CN=" CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_SUBJECT_NAME,
+                TRUE,
+                &CertContext))) {
         return NULL;
     }
 
@@ -804,7 +812,11 @@ CreateServerCertificate(
     )
 {
     PCCERT_CONTEXT CertContext;
-    if (FAILED(CreateSelfSignedCertificate(L"CN=localhost", FALSE, &CertContext))) {
+    if (FAILED(
+            CreateSelfSignedCertificate(
+                L"CN=" CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_SUBJECT_NAME,
+                FALSE,
+                &CertContext))) {
         return NULL;
     }
 
@@ -867,7 +879,7 @@ FindCertificate(
             &FriendlyNamePropId,
             Cert))) {
 
-        BYTE FriendlyName[200];
+        BYTE FriendlyName[200] = { 0 };
         DWORD NameSize = sizeof(FriendlyName);
 
 #pragma prefast(suppress:6054, "SAL doesn't track null terminator correctly")
@@ -984,8 +996,8 @@ FindOrCreateCertificate(
         CertStore,
         FALSE,
         IsClient ?
-            CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME :
-            CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME,
+            CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_FRIENDLY_NAME :
+            CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_FRIENDLY_NAME,
         CertHash);
 
     if (Cert != NULL) {
@@ -1139,11 +1151,11 @@ CxPlatGetTestCertificate(
         SubjectName = CXPLAT_TEST_CERT_EXPIRED_CLIENT_SUBJECT_NAME;
         break;
     case CXPLAT_TEST_CERT_SELF_SIGNED_SERVER:
-        FriendlyName = CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME;
+        FriendlyName = CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_FRIENDLY_NAME;
         SubjectName = CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_SUBJECT_NAME;
         break;
     case CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT:
-        FriendlyName = CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME;
+        FriendlyName = CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_FRIENDLY_NAME;
         SubjectName = CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_SUBJECT_NAME;
         break;
     default:
