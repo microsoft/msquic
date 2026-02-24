@@ -1381,6 +1381,15 @@ INSTANTIATE_TEST_SUITE_P(
     WithCibirExtensionParams,
     testing::ValuesIn(WithCibirExtensionParams::Generate()));
 
+TEST_P(WithFamilyArgs, CibirSharedPortListeners) {
+    TestLoggerT<ParamType> Logger("QuicTestCibirSharedPortListeners", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCibirSharedPortListeners), GetParam()));
+    } else {
+        QuicTestCibirSharedPortListeners(GetParam());
+    }
+}
+
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

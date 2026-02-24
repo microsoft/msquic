@@ -1694,7 +1694,34 @@ SocketCreateUdp(
             }
         }
 
-        if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS &&
+        if (Config->CibirIdLength > 0 &&
+            Config->LocalAddress &&
+            Config->LocalAddress->Ipv4.sin_port != 0) {
+            //
+            // When CIBIR is in use, multiple listeners may share the same
+            // port (distinguished by CIBIR ID). Use SO_REUSEADDR instead
+            // of exclusive port reservations to allow port sharing.
+            //
+            Option = TRUE;
+            Result =
+                setsockopt(
+                    SocketProc->Socket,
+                    SOL_SOCKET,
+                    SO_REUSEADDR,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set SO_REUSEADDR");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+        } else if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS &&
             Config->LocalAddress &&
             Config->LocalAddress->Ipv4.sin_port != 0) {
             if (i == 0) {

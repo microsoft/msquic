@@ -402,6 +402,11 @@ void
 QuicTestCibirExtension(
     const CibirExtensionParams& Params
     );
+
+void
+QuicTestCibirSharedPortListeners(
+    const FamilyArgs& Params
+    );
 #endif
 
 void
@@ -1488,6 +1493,10 @@ typedef struct {
     QUIC_CTL_CODE(85, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_CIBIR_EXTENSION
 
+#define IOCTL_QUIC_RUN_CIBIR_SHARED_PORT_LISTENERS \
+    QUIC_CTL_CODE(139, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
 #define IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP \
     QUIC_CTL_CODE(86, METHOD_BUFFERED, FILE_WRITE_DATA)
 
@@ -1689,7 +1698,7 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
     QUIC_CTL_CODE(138, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 138
+#define QUIC_MAX_IOCTL_FUNC_CODE 139
 
 // Generic IOCTL for invoking functions 
 

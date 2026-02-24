@@ -736,6 +736,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestCustomClientCertificateValidation);
     RegisterTestFunction(QuicTestConnectClientCertificate);
     RegisterTestFunction(QuicTestCibirExtension);
+    RegisterTestFunction(QuicTestCibirSharedPortListeners);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #if QUIC_TEST_DISABLE_VNE_TP_GENERATION
     RegisterTestFunction(QuicTestVNTPOddSize);
