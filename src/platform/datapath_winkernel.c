@@ -1695,6 +1695,34 @@ SocketCreateUdp(
         }
     }
 
+    if (Config->CibirIdLength > 0 &&
+        Config->LocalAddress &&
+        Config->LocalAddress->Ipv4.sin_port != 0) {
+        //
+        // When CIBIR is in use, multiple listeners may share the same
+        // port (distinguished by CIBIR ID). Use SO_REUSEADDR instead
+        // of exclusive binding to allow port sharing.
+        //
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                SO_REUSEADDR,
+                SOL_SOCKET,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set SO_REUSEADDR");
+            goto Error;
+        }
+    }
+
     IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
         &Binding->Irp,
