@@ -234,7 +234,7 @@ include(GNUInstallDirs)
 
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
-    set(QUIC_COMMON_FLAGS "")
+    set(QUIC_COMMON_FLAGS /utf-8)
 
     include(CheckCCompilerFlag)
 
