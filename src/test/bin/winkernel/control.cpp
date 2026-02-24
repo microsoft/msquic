@@ -773,7 +773,20 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestNatPortRebind_WithPadding);
     RegisterTestFunction(QuicTestNatAddrRebind_NoPadding);
     RegisterTestFunction(QuicTestNatAddrRebind_WithPadding);
-#endif
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestProbePath_NoShareBinding);
+    RegisterTestFunction(QuicTestProbePath_WithShareBinding);
+    RegisterTestFunction(QuicTestProbePathFailed_NoShareBinding);
+    RegisterTestFunction(QuicTestProbePathFailed_WithShareBinding);
+    RegisterTestFunction(QuicTestAddPathBeforeStart_NoShareBinding);
+    RegisterTestFunction(QuicTestAddPathBeforeStart_WithShareBinding);
+    RegisterTestFunction(QuicTestMigration_NoShareBinding);
+    RegisterTestFunction(QuicTestMigration_WithShareBinding);
+    RegisterTestFunction(QuicTestAddressDiscovery);
+    RegisterTestFunction(QuicTestServerProbePath);
+    RegisterTestFunction(QuicTestServerMigration);
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestChangeMaxStreamID);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestLoadBalancedHandshake);
