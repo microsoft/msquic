@@ -57,7 +57,7 @@ jobs:
     permissions:
       contents: read # for actions/checkout to fetch code
     name: Run Tests
-    runs-on: windows-2022
+    runs-on: windows-latest
     needs: build-perf
     env:
       seed: 41473a2e60b6958500ec0add7dcfb9 # TODO - Randomize?

@@ -29,7 +29,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [windows, uwp] # TODO: Support gamecore_console
-        os: ['windows-2022']
+        os: ['windows-2022', 'windows-2025']
         arch: [x86, x64, arm64]
         tls: [schannel, quictls, openssl]
         static: ['', '-Static']
@@ -80,7 +80,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [winkernel]
-        os: ['windows-2022']
+        os: ['windows-2022', 'windows-2025']
         arch: [x64, arm64]
         tls: [schannel]
     uses: ./.github/workflows/build-reuse-winkernel.yml
