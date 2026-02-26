@@ -171,7 +171,17 @@ QUIC_STATUS ConnectionCallback(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
         //printf("c[%p] Peer stream started\n", Connection);
         auto PeerStream = new(std::nothrow) MsQuicStream(*PeerConn, Event->PEER_STREAM_STARTED.Flags, CleanUpAutoDelete, StreamCallback);
+        if (!PeerStream || !PeerStream->IsValid()) {
+            if (PeerStream) PeerStream->Close();
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+            return QUIC_STATUS_SUCCESS;
+        }
         auto LocalStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, PeerStream);
+        if (!LocalStream) {
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+            PeerStream->Close();
+            return QUIC_STATUS_SUCCESS;
+        }
         PeerStream->Context = LocalStream;
         //printf("s[%p] Started -> [%p]\n", LocalStream, PeerStream);
         break;
@@ -194,7 +204,15 @@ QUIC_STATUS ListenerCallback(
 {
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
         auto BackEndConn = new(std::nothrow) MsQuicConnection(*Registration, CleanUpAutoDelete, ConnectionCallback);
+        if (!BackEndConn || !BackEndConn->IsValid()) {
+            if (BackEndConn) BackEndConn->Close();
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
         auto FrontEndConn = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, ConnectionCallback, BackEndConn);
+        if (!FrontEndConn) {
+            BackEndConn->Close();
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
         BackEndConn->Context = FrontEndConn;
         //printf("c[%p] Created -> [%p]\n", FrontEndConn, BackEndConn);
         CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(BackEndConn->Start(*BackEndConfiguration, BackEndTarget, BackEndPort)));
