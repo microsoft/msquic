@@ -9,6 +9,10 @@
 #include "operation.h.clog.h"
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct QUIC_SEND_REQUEST QUIC_SEND_REQUEST;
 
 //
@@ -414,3 +418,7 @@ QuicOperationQueueClear(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
     _In_ QUIC_PARTITION* Partition
     );
+
+#if defined(__cplusplus)
+}
+#endif
