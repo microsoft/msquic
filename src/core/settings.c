@@ -246,8 +246,8 @@ QuicSettingsCopy(
     if (!Destination->IsSet.TlsClientMaxSendBuffer) {
         Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
     }
-    if (!Destination->IsSet.TlsClientMaxSendBuffer) {
-        Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
+    if (!Destination->IsSet.TlsServerMaxSendBuffer) {
+        Destination->TlsServerMaxSendBuffer = Source->TlsServerMaxSendBuffer;
     }
     if (!Destination->IsSet.StreamRecvWindowDefault) {
         Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
