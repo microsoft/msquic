@@ -9,6 +9,7 @@ set(SOURCES
     PartitionTest.cpp
     RangeTest.cpp
     RecvBufferTest.cpp
+    SendTest.cpp
     SettingsTest.cpp
     SlidingWindowExtremumTest.cpp
     SpinFrame.cpp
