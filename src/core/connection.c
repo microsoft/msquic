@@ -6708,12 +6708,18 @@ QuicConnParamSet(
         Connection->CibirId[0] = (uint8_t)BufferLength - 1;
         memcpy(Connection->CibirId + 1, Buffer, BufferLength);
 
+        uint64_t CibirIdValue = 0;
+        for (uint8_t i = 0; i < Connection->CibirId[0]; ++i) {
+            CibirIdValue = (CibirIdValue << 8) | Connection->CibirId[2 + i];
+        }
+
         QuicTraceLogConnInfo(
             CibirIdSet,
             Connection,
-            "CIBIR ID set (len %hhu, offset %hhu)",
+            "CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Connection->CibirId[0],
-            Connection->CibirId[1]);
+            Connection->CibirId[1],
+            (unsigned long long)CibirIdValue);
 
         return QUIC_STATUS_SUCCESS;
     }

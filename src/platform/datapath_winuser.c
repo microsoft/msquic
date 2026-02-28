@@ -1734,16 +1734,25 @@ SocketCreateUdp(
                         // expected if multiple server processes were configured to share
                         // the same UDP and/or TCP port.
                         //
+                        QuicTraceLogWarning(
+                            DatapathCibirWarning,
+                            "[data][%p] CIBIR detected,  %s",
+                            Socket,
+                            "ignoring port collision by assuming some \
+                             other MsQuic CIBIR process has reserved the OS port. \
+                             Let's continue with initialization and skip port reservation.");
                         CxPlatRefInitializeEx(&Socket->RefCount, 1);
                         Socket->SkipCreatingOsSockets = TRUE;
                         BOOLEAN XdpAvailable = Datapath->RawDataPath != NULL;
                         BOOLEAN XdpEnabled = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
                         if (!XdpAvailable || !XdpEnabled) {
                             QuicTraceLogWarning(
-                                DatapathCibirSkipNoXdp,
-                                "[data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s",
+                                DatapathCibirWarning,
+                                "[data][%p] CIBIR detected,  %s",
                                 Socket,
-                                !XdpAvailable ? "available" : "enabled");
+                                !XdpAvailable ?
+                                "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
+                                "but XPD not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER.");
                         }
                         goto Skip;
                     }
@@ -1872,6 +1881,25 @@ Skip:
             }
             CxPlatRundownUninitialize(&Proc->RundownRef);
         }
+    } else if (Config->CibirIdLength > 0 && IsServerSocket) {
+        QuicTraceLogWarning(
+            DatapathCibirWarning,
+            "[data][%p] CIBIR detected,  %s",
+            Socket,
+            "We just reserved the OS port. Other CIBIR processes can share this port.");
+    }
+
+    if (Config->CibirIdLength > 0) {
+        uint64_t CibirIdValue = 0;
+        for (uint8_t i = 0; i < Config->CibirIdLength; ++i) {
+            CibirIdValue = (CibirIdValue << 8) | Config->CibirId[i];
+        }
+        QuicTraceLogWarning(
+            DatapathCibirIdUsed,
+            "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+            Socket,
+            Config->CibirIdLength,
+            (unsigned long long)CibirIdValue);
     }
 
     if (Config->RemoteAddress != NULL) {
