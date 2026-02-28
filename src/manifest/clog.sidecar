@@ -2503,6 +2503,22 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DatapathCibirWarning": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] CIBIR detected,  %s",
+      "UniqueId": "DatapathCibirWarning",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
     "DatapathCreated": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
@@ -14120,6 +14136,11 @@
         "UniquenessHash": "8343563a-502d-077c-44f6-6dfd65e927f5",
         "TraceID": "DatapathCibirSkipNoXdp",
         "EncodingString": "[data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s"
+      },
+      {
+        "UniquenessHash": "4ff6ac9f-5909-ae45-8bb3-a69837b156fe",
+        "TraceID": "DatapathCibirWarning",
+        "EncodingString": "[data][%p] CIBIR detected,  %s"
       },
       {
         "UniquenessHash": "1cde4174-4172-15b7-b59b-dcbb6410b43a",

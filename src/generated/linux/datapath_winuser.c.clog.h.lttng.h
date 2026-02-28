@@ -135,6 +135,33 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathCibirWarning
+// [data][%p] CIBIR detected,  %s
+// QuicTraceLogWarning(
+                            DatapathCibirWarning,
+                            "[data][%p] CIBIR detected,  %s",
+                            Socket,
+                            "ignoring port collision by assuming some \
+                             other MsQuic CIBIR process has reserved the OS port. \
+                             Let's continue with initialization and skip port reservation.");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = "ignoring port collision by assuming some \
+                             other MsQuic CIBIR process has reserved the OS port. \
+                             Let's continue with initialization and skip port reservation." = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCibirWarning,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathCibirIdUsed
 // [data][%p] Using CIBIR ID (len %hhu, id 0x%llx)
 // QuicTraceLogWarning(
