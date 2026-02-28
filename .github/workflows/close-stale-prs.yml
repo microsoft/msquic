@@ -1,0 +1,128 @@
+---
+name: "Close Stale PRs"
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warn and close stale PRs
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd 
+        with:
+          script: |
+            const daysUntilStale = 46;  // Tag as stale after 46 days
+            const daysUntilClose = 60;  // Close after 60 days total
+
+            // Add the 'no-autoclose' label to any PR to prevent automatic closure
+            const exemptLabel = 'no-autoclose';
+            const staleLabel = 'stale';
+
+            const now = new Date();
+
+            // Get all open pull requests
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            console.log(`Found ${pulls.length} open pull requests`);
+
+            for (const pr of pulls) {
+              console.log(`\nProcessing PR #${pr.number}: ${pr.title}`);
+
+              // Get PR labels
+              const labels = pr.labels.map(l => l.name);
+
+              // Skip if PR has the no-autoclose label
+              if (labels.includes(exemptLabel)) {
+                console.log(`  Skipping: has '${exemptLabel}' label`);
+                continue;
+              }
+
+              // Calculate days since last update
+              const updatedAt = new Date(pr.updated_at);
+              const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24));
+              console.log(`  Days since update: ${daysSinceUpdate}`);
+
+              // Check if the last activity was setting the stale label
+              const events = await github.rest.issues.listEvents({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                per_page: 10
+              });
+
+              const lastEvent = events.data.length > 0 ? events.data[events.data.length - 1] : null;
+              const isStaleLastActivity = lastEvent && 
+                lastEvent.event === 'labeled' && 
+                lastEvent.label && 
+                lastEvent.label.name === staleLabel;
+
+              // If PR was updated and has stale label, remove it (unless the last activity was setting the stale label)
+              if (labels.includes(staleLabel) && daysSinceUpdate < daysUntilStale && !isStaleLastActivity) {
+                console.log(`  Removing stale label (PR was updated)`);
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    name: staleLabel
+                  });
+                } catch (error) {
+                  console.log(`    Error removing stale label: ${error.message}`);
+                }
+              }
+              // If PR is old enough and not yet tagged as stale, tag it
+              else if (!labels.includes(staleLabel) && daysSinceUpdate >= daysUntilStale) {
+                console.log(`  Tagging as stale (${daysSinceUpdate} days inactive)`);
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `This pull request has been inactive for ${daysSinceUpdate} days and will be closed in approximately ${daysUntilClose - daysSinceUpdate} days if no further activity (commits, comments...) occurs.\n\n💡 **Tip:** Add the \`${exemptLabel}\` label to prevent automatic closure.`
+                  });
+
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    labels: [staleLabel]
+                  });
+                } catch (error) {
+                  console.log(`    Error tagging as stale: ${error.message}`);
+                }
+              }
+              // If PR is tagged as stale and old enough, close it
+              else if (labels.includes(staleLabel) && daysSinceUpdate >= daysUntilClose - daysUntilStale) {
+                console.log(`  Closing stale PR (${daysSinceUpdate} days inactive)`);
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `This pull request has been closed due to inactivity (${daysUntilClose} days with no updates). If you would like to continue this work, please feel free to reopen the PR or create a new one. Thank you for your contribution!`
+                  });
+
+                  await github.rest.pulls.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pr.number,
+                    state: 'closed'
+                  });
+                } catch (error) {
+                  console.log(`    Error closing PR: ${error.message}`);
+                }
+              }
+            }
