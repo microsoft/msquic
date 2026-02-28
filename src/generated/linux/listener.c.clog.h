@@ -68,21 +68,23 @@ tracepoint(CLOG_LISTENER_C, ListenerIndicateNewConnection , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ListenerCibirIdSet
-// [list][%p] CIBIR ID set (len %hhu, offset %hhu)
+// Decoder Ring for ListenerCibirIdSetInfo
+// [list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)
 // QuicTraceLogVerbose(
-            ListenerCibirIdSet,
-            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            ListenerCibirIdSetInfo,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Listener,
             Listener->CibirId[0],
-            Listener->CibirId[1]);
+            Listener->CibirId[1],
+            (unsigned long long)CibirIdValue);
 // arg2 = arg2 = Listener = arg2
 // arg3 = arg3 = Listener->CibirId[0] = arg3
 // arg4 = arg4 = Listener->CibirId[1] = arg4
+// arg5 = arg5 = (unsigned long long)CibirIdValue = arg5
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_ListenerCibirIdSet
-#define _clog_5_ARGS_TRACE_ListenerCibirIdSet(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_LISTENER_C, ListenerCibirIdSet , arg2, arg3, arg4);\
+#ifndef _clog_6_ARGS_TRACE_ListenerCibirIdSetInfo
+#define _clog_6_ARGS_TRACE_ListenerCibirIdSetInfo(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_LISTENER_C, ListenerCibirIdSetInfo , arg2, arg3, arg4, arg5);\
 
 #endif
 

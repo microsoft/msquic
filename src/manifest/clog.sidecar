@@ -571,6 +571,30 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "CibirIdSetInfo": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
+      "UniqueId": "CibirIdSetInfo",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llx",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "ClearSendFlags": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Removing flags %x",
@@ -2442,6 +2466,58 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "DatapathCibirIdUsed": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+      "UniqueId": "DatapathCibirIdUsed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llx",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathCibirSkipNoXdp": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s",
+      "UniqueId": "DatapathCibirSkipNoXdp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathCibirWarning": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] CIBIR detected,  %s",
+      "UniqueId": "DatapathCibirWarning",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathCreated": {
       "ModuleProperites": {},
@@ -6698,6 +6774,30 @@
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "ListenerCibirIdSetInfo": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
+      "UniqueId": "ListenerCibirIdSetInfo",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llx",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -13508,6 +13608,11 @@
         "EncodingString": "[conn][%p] CIBIR ID set (len %hhu, offset %hhu)"
       },
       {
+        "UniquenessHash": "5fedb12a-65c8-d4db-2cdc-ca38de910da6",
+        "TraceID": "CibirIdSetInfo",
+        "EncodingString": "[conn][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)"
+      },
+      {
         "UniquenessHash": "3a9eb05d-dcdf-b054-391e-e360e5d27e51",
         "TraceID": "ClearSendFlags",
         "EncodingString": "[strm][%p] Removing flags %x"
@@ -14021,6 +14126,21 @@
         "UniquenessHash": "152723b4-2b46-a936-ffaf-9cc429e8e66f",
         "TraceID": "DatagramSendStateChanged",
         "EncodingString": "[conn][%p] Indicating DATAGRAM_SEND_STATE_CHANGED to %u"
+      },
+      {
+        "UniquenessHash": "0e710e08-49d0-3faf-911e-961d4f785262",
+        "TraceID": "DatapathCibirIdUsed",
+        "EncodingString": "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)"
+      },
+      {
+        "UniquenessHash": "8343563a-502d-077c-44f6-6dfd65e927f5",
+        "TraceID": "DatapathCibirSkipNoXdp",
+        "EncodingString": "[data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s"
+      },
+      {
+        "UniquenessHash": "4ff6ac9f-5909-ae45-8bb3-a69837b156fe",
+        "TraceID": "DatapathCibirWarning",
+        "EncodingString": "[data][%p] CIBIR detected,  %s"
       },
       {
         "UniquenessHash": "1cde4174-4172-15b7-b59b-dcbb6410b43a",
@@ -15311,6 +15431,11 @@
         "UniquenessHash": "d1af42ed-141c-9600-a11e-61b6bfce2853",
         "TraceID": "ListenerCibirIdSet",
         "EncodingString": "[list][%p] CIBIR ID set (len %hhu, offset %hhu)"
+      },
+      {
+        "UniquenessHash": "5abe2a74-07fd-d41a-4e83-5c816ea4725a",
+        "TraceID": "ListenerCibirIdSetInfo",
+        "EncodingString": "[list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)"
       },
       {
         "UniquenessHash": "135ad665-a1b8-32ac-555d-8d1c65c94206",

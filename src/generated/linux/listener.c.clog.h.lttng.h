@@ -44,27 +44,31 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateNewConnection,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ListenerCibirIdSet
-// [list][%p] CIBIR ID set (len %hhu, offset %hhu)
+// Decoder Ring for ListenerCibirIdSetInfo
+// [list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)
 // QuicTraceLogVerbose(
-            ListenerCibirIdSet,
-            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            ListenerCibirIdSetInfo,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Listener,
             Listener->CibirId[0],
-            Listener->CibirId[1]);
+            Listener->CibirId[1],
+            (unsigned long long)CibirIdValue);
 // arg2 = arg2 = Listener = arg2
 // arg3 = arg3 = Listener->CibirId[0] = arg3
 // arg4 = arg4 = Listener->CibirId[1] = arg4
+// arg5 = arg5 = (unsigned long long)CibirIdValue = arg5
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCibirIdSet,
+TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCibirIdSetInfo,
     TP_ARGS(
         const void *, arg2,
         unsigned char, arg3,
-        unsigned char, arg4), 
+        unsigned char, arg4,
+        unsigned long long, arg5), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
     )
 )
 
