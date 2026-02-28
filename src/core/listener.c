@@ -890,7 +890,7 @@ QuicListenerParamSet(
         }
 
         QuicTraceLogVerbose(
-            ListenerCibirIdSet,
+            ListenerCibirIdSetInfo,
             "[list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Listener,
             Listener->CibirId[0],

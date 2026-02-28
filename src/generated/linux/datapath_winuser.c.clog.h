@@ -160,19 +160,21 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed , arg2
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathCibirSkipNoXdp
-// [data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s
+// Decoder Ring for DatapathCibirIdUsed
+// [data][%p] Using CIBIR ID (len %hhu, id 0x%llx)
 // QuicTraceLogWarning(
-                                DatapathCibirSkipNoXdp,
-                                "[data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s",
-                                Socket,
-                                !XdpAvailable ? "available" : "enabled");
+            DatapathCibirIdUsed,
+            "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+            Socket,
+            Config->CibirIdLength,
+            (unsigned long long)CibirIdValue);
 // arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = !XdpAvailable ? "available" : "enabled" = arg3
+// arg3 = arg3 = Config->CibirIdLength = arg3
+// arg4 = arg4 = (unsigned long long)CibirIdValue = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_DatapathCibirSkipNoXdp
-#define _clog_4_ARGS_TRACE_DatapathCibirSkipNoXdp(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCibirSkipNoXdp , arg2, arg3);\
+#ifndef _clog_5_ARGS_TRACE_DatapathCibirIdUsed
+#define _clog_5_ARGS_TRACE_DatapathCibirIdUsed(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCibirIdUsed , arg2, arg3, arg4);\
 
 #endif
 

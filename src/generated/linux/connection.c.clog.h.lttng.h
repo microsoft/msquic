@@ -912,27 +912,31 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, LocalInterfaceSet,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CibirIdSet
-// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// Decoder Ring for CibirIdSetInfo
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)
 // QuicTraceLogConnInfo(
-            CibirIdSet,
+            CibirIdSetInfo,
             Connection,
-            "CIBIR ID set (len %hhu, offset %hhu)",
+            "CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Connection->CibirId[0],
-            Connection->CibirId[1]);
+            Connection->CibirId[1],
+            (unsigned long long)CibirIdValue);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->CibirId[0] = arg3
 // arg4 = arg4 = Connection->CibirId[1] = arg4
+// arg5 = arg5 = (unsigned long long)CibirIdValue = arg5
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, CibirIdSet,
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, CibirIdSetInfo,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned char, arg4), 
+        unsigned char, arg4,
+        unsigned long long, arg5), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
     )
 )
 

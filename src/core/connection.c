@@ -6714,7 +6714,7 @@ QuicConnParamSet(
         }
 
         QuicTraceLogConnInfo(
-            CibirIdSet,
+            CibirIdSetInfo,
             Connection,
             "CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Connection->CibirId[0],

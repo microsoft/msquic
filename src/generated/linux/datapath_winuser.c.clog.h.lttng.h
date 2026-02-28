@@ -135,23 +135,27 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathCibirSkipNoXdp
-// [data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s
+// Decoder Ring for DatapathCibirIdUsed
+// [data][%p] Using CIBIR ID (len %hhu, id 0x%llx)
 // QuicTraceLogWarning(
-                                DatapathCibirSkipNoXdp,
-                                "[data][%p] CIBIR configured, skipping OS socket reservation but XDP not %s",
-                                Socket,
-                                !XdpAvailable ? "available" : "enabled");
+            DatapathCibirIdUsed,
+            "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+            Socket,
+            Config->CibirIdLength,
+            (unsigned long long)CibirIdValue);
 // arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = !XdpAvailable ? "available" : "enabled" = arg3
+// arg3 = arg3 = Config->CibirIdLength = arg3
+// arg4 = arg4 = (unsigned long long)CibirIdValue = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCibirSkipNoXdp,
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCibirIdUsed,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        unsigned char, arg3,
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_string(arg3, arg3)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
     )
 )
 
