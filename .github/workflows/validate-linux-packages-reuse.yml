@@ -100,7 +100,7 @@ jobs:
           dotnet publish QuicHello.net9.0.csproj -c Release -o ../../../dotnet-artifacts/arm -r linux-arm --self-contained true
 
       - name: Upload .NET Artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: dotnet-test-artifacts
           path: dotnet-artifacts/
@@ -432,7 +432,7 @@ jobs:
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
 
       - name: Download Test Artifacts
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
         with:
           # TLS mapping: for 2.4.x, quictls -> openssl3
           name: ${{ inputs.config }}-linux-ubuntu-22.04-${{ matrix.arch }}-${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}-Test
@@ -440,7 +440,7 @@ jobs:
 
       - name: Download .NET Artifacts
         if: ${{ !inputs.skip_dotnet_tests }}
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
         with:
           name: dotnet-test-artifacts
           path: dotnet-artifacts
@@ -629,7 +629,7 @@ jobs:
 
       - name: Upload Logs on Failure
         if: failure()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: logs-${{ matrix.friendlyName }}
           path: |
