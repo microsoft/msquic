@@ -1,0 +1,22 @@
+name: Summarize Latest Commits
+
+on:
+  push:
+    branches:
+      - 'meiyang/**'
+  workflow_dispatch:
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Summarize latest 3 commits
+        run: |
+          echo "## Latest 3 Commits Summary"
+          echo ""
+          git log -3 --pretty=format:"### %h - %s%n**Author:** %an <%ae>%n**Date:** %ad%n%n%b%n---" --date=short
