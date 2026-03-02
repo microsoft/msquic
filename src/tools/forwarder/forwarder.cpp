@@ -207,7 +207,9 @@ QUIC_STATUS ListenerCallback(
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
         auto BackEndConn = new(std::nothrow) MsQuicConnection(*Registration, CleanUpAutoDelete, ConnectionCallback);
         if (!BackEndConn || !BackEndConn->IsValid()) {
-            if (BackEndConn) BackEndConn->Close();
+            if (BackEndConn) {
+                BackEndConn->Close();
+            }
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
         auto FrontEndConn = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, ConnectionCallback, BackEndConn);
