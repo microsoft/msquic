@@ -2110,7 +2110,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnRecvResumptionTicket(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint16_t TicketLength,
+    _In_ uint32_t TicketLength,
     _In_reads_(TicketLength)
         const uint8_t* Ticket
     )
