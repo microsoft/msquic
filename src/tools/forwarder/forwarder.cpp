@@ -172,7 +172,9 @@ QUIC_STATUS ConnectionCallback(
         //printf("c[%p] Peer stream started\n", Connection);
         auto PeerStream = new(std::nothrow) MsQuicStream(*PeerConn, Event->PEER_STREAM_STARTED.Flags, CleanUpAutoDelete, StreamCallback);
         if (!PeerStream || !PeerStream->IsValid()) {
-            if (PeerStream) PeerStream->Close();
+            if (PeerStream) {
+                PeerStream->Close();
+            }
             MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
             return QUIC_STATUS_SUCCESS;
         }
