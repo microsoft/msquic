@@ -3589,7 +3589,31 @@ void QuicTestListenerParam()
                     &Length,
                     nullptr));
             TEST_EQUAL(Length, 0);
-            // TODO: Stateful test once Listener->CibrId is filled
+
+            //
+            // Stateful test: set CIBIR_ID and verify all bytes are returned correctly.
+            //
+            {
+                TestScopeLogger LogScope2("GetParam after SetParam");
+                uint8_t SetPayload[] = { 0, 0xDE, 0xAD, 0xBE, 0xAB };
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        Listener.Handle,
+                        QUIC_PARAM_LISTENER_CIBIR_ID,
+                        sizeof(SetPayload),
+                        SetPayload));
+
+                uint8_t GetBuffer[16];
+                CxPlatZeroMemory(GetBuffer, sizeof(GetBuffer));
+                uint32_t GetLength = sizeof(GetBuffer);
+                TEST_QUIC_SUCCEEDED(
+                    Listener.GetParam(
+                        QUIC_PARAM_LISTENER_CIBIR_ID,
+                        &GetLength,
+                        GetBuffer));
+                TEST_EQUAL(GetLength, sizeof(SetPayload));
+                TEST_TRUE(memcmp(GetBuffer, SetPayload, sizeof(SetPayload)) == 0);
+            }
         }
     }
 
