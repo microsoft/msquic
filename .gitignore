@@ -388,5 +388,6 @@ _site
 APKBUILD
 
 # Temporary package download folder by validation script
-msquic-packages/_codeql_build_dir/
+msquic-packages/
+_codeql_build_dir/
 _codeql_detected_source_root

@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../../obj/Release/libcore_fuzz.a CMakeFiles/core_fuzz.dir/frame.c.o CMakeFiles/core_fuzz.dir/range.c.o CMakeFiles/core_fuzz.dir/crypto_tls.c.o
-/usr/bin/ranlib ../../obj/Release/libcore_fuzz.a
