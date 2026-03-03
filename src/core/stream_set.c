@@ -423,7 +423,7 @@ QuicStreamSetInitializeTransportParameters(
         }
     }
 
-    if (UpdateAvailableStreams) {
+    if (UpdateAvailableStreams && FlushIfUnblocked) {
         QuicStreamSetIndicateStreamsAvailable(StreamSet);
     }
 
