@@ -2131,13 +2131,22 @@ QuicConnRecvResumptionTicket(
         }
         Connection->Crypto.TicketValidationPending = TRUE;
 
+        if (TicketLength > UINT16_MAX) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket length too large");
+            goto Error;
+        }
+
         const uint8_t* AppData = NULL;
         uint32_t AppDataLength = 0;
 
         QUIC_STATUS Status =
             QuicCryptoDecodeServerTicket(
                 Connection,
-                TicketLength,
+                (uint16_t)TicketLength,
                 Ticket,
                 Connection->Configuration->AlpnList,
                 Connection->Configuration->AlpnListLength,
