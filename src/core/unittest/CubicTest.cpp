@@ -769,3 +769,33 @@ TEST(CubicTest, HyStart_StateTransitions)
                 Cubic->HyStartState <= HYSTART_DONE);
     ASSERT_GE(Cubic->CWndSlowStartGrowthDivisor, 1u);
 }
+
+//
+// Test 18: GetNetworkStatistics - Zero RTT Graceful Handling
+// Scenario: Verifies that GetNetworkStatistics does not divide by zero when
+// SmoothedRtt is 0 (before the first RTT sample is received). It should
+// return Bandwidth=0 instead of crashing.
+//
+TEST(CubicTest, GetNetworkStatistics_ZeroRtt)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(Connection, 1280);
+    // SmoothedRtt is 0 by default (no RTT sample received yet)
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_NETWORK_STATISTICS NetworkStats;
+    CxPlatZeroMemory(&NetworkStats, sizeof(NetworkStats));
+
+    Connection.CongestionControl.QuicCongestionControlGetNetworkStatistics(
+        &Connection,
+        &Connection.CongestionControl,
+        &NetworkStats);
+
+    // Bandwidth should be 0 when SmoothedRtt is 0 (graceful degradation)
+    ASSERT_EQ(NetworkStats.Bandwidth, 0u);
+}
