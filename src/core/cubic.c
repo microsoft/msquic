@@ -430,7 +430,8 @@ CubicCongestionControlGetNetworkStatistics(
     NetworkStatistics->IdealBytes = Connection->SendBuffer.IdealBytes;
     NetworkStatistics->SmoothedRTT = Path->SmoothedRtt;
     NetworkStatistics->CongestionWindow = Cubic->CongestionWindow;
-    NetworkStatistics->Bandwidth = Cubic->CongestionWindow / Path->SmoothedRtt;
+    NetworkStatistics->Bandwidth =
+        Path->SmoothedRtt == 0 ? 0 : Cubic->CongestionWindow / Path->SmoothedRtt;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
