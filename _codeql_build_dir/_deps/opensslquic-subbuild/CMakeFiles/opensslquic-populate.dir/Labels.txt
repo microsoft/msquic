@@ -1,0 +1,14 @@
+# Target labels
+ opensslquic-populate
+# Source files and their labels
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/CMakeFiles/opensslquic-populate
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/CMakeFiles/opensslquic-populate.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/CMakeFiles/opensslquic-populate-complete.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/opensslquic-populate-prefix/src/opensslquic-populate-stamp/opensslquic-populate-build.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/opensslquic-populate-prefix/src/opensslquic-populate-stamp/opensslquic-populate-configure.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/opensslquic-populate-prefix/src/opensslquic-populate-stamp/opensslquic-populate-download.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/opensslquic-populate-prefix/src/opensslquic-populate-stamp/opensslquic-populate-install.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/opensslquic-populate-prefix/src/opensslquic-populate-stamp/opensslquic-populate-mkdir.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/opensslquic-populate-prefix/src/opensslquic-populate-stamp/opensslquic-populate-patch.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/opensslquic-populate-prefix/src/opensslquic-populate-stamp/opensslquic-populate-test.rule
+/home/runner/work/msquic/msquic/_codeql_build_dir/_deps/opensslquic-subbuild/opensslquic-populate-prefix/src/opensslquic-populate-stamp/opensslquic-populate-update.rule
