@@ -423,8 +423,19 @@ QuicStreamSetInitializeTransportParameters(
         }
     }
 
-    if (UpdateAvailableStreams && FlushIfUnblocked) {
-        QuicStreamSetIndicateStreamsAvailable(StreamSet);
+    if (UpdateAvailableStreams) {
+        if (FlushIfUnblocked) {
+            QuicStreamSetIndicateStreamsAvailable(StreamSet);
+        } else {
+            //
+            // Defer the streams-available notification to avoid reentrant
+            // callbacks when called from the resumption ticket path.
+            //
+            QUIC_OPERATION* Oper;
+            if ((Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_STREAMS_AVAILABLE)) != NULL) {
+                QuicConnQueueOper(Connection, Oper);
+            }
+        }
     }
 
     if (MightBeUnblocked && FlushIfUnblocked) {

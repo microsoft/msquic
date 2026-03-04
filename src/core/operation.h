@@ -31,6 +31,8 @@ typedef enum QUIC_OPERATION_TYPE {
     QUIC_OPER_TYPE_TIMER_EXPIRED,       // A timer expired.
     QUIC_OPER_TYPE_TRACE_RUNDOWN,       // A trace rundown was triggered.
     QUIC_OPER_TYPE_ROUTE_COMPLETION,    // Process route completion event.
+    QUIC_OPER_TYPE_STREAMS_AVAILABLE,    // Indicate streams available to the app.
+    QUIC_OPER_TYPE_DATAGRAM_STATE_CHANGED, // Indicate datagram state changed to the app.
 
     //
     // All stateless operations follow.
