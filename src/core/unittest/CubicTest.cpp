@@ -25,7 +25,6 @@ static void InitializeMockConnection(
     QUIC_CONNECTION& Connection,
     uint16_t Mtu)
 {
-    CxPlatZeroMemory(&Connection, sizeof(Connection));
     Connection.Paths[0].Mtu = Mtu;
     Connection.Paths[0].IsActive = TRUE;
     Connection.Send.NextPacketNumber = 0;
@@ -82,19 +81,19 @@ static QUIC_LOSS_EVENT MakeLossEvent(
 //
 // GoogleTest fixture for CUBIC congestion control tests.
 // Provides Connection, Settings, and Cubic members with a parameterized
-// Initialize() helper that covers the common setup variations.
+// InitializeWithDefaults() helper that covers the common setup variations.
 //
-class CubicFixturedTest : public ::testing::Test {
+class CubicTest : public ::testing::Test {
 protected:
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
+    QUIC_CONNECTION Connection{};
+    QUIC_SETTINGS_INTERNAL Settings{};
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic;
 
     //
     // Common setup: initializes mock connection, configures settings, and
     // calls CubicCongestionControlInitialize. Covers all recurring variations.
     //
-    void Initialize(
+    void InitializeWithDefaults(
         uint32_t WindowPackets = 10,
         bool HyStart = false,
         uint16_t Mtu = 1280,
@@ -106,7 +105,6 @@ protected:
         uint64_t RttVariance = 5000
     )
     {
-        CxPlatZeroMemory(&Settings, sizeof(Settings));
         Settings.InitialWindowPackets = WindowPackets;
         Settings.SendIdleTimeoutMs = IdleTimeoutMs;
         if (HyStart) {
@@ -129,6 +127,11 @@ protected:
         CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
         Cubic = &Connection.CongestionControl.Cubic;
     }
+
+
+    void InitializeDefaultWithRtt(uint32_t WindowPacket = 10, bool HyStart = true) {
+        InitializeWithDefaults(/*WindowPackets=*/WindowPacket, /*HyStart=*/HyStart, /*Mtu=*/1280, /*IdleTimeoutMs=*/1000, /*GotRttSample=*/true, /*SmoothedRtt=*/50000);
+    }
 };
 
 
@@ -138,9 +141,9 @@ protected:
 // including settings, function pointers, state flags, HyStart fields, and zero-initialized fields.
 // This consolidates basic initialization, function pointer, state flags, HyStart, and zero-field checks.
 //
-TEST_F(CubicFixturedTest, InitializeComprehensive)
+TEST_F(CubicTest, InitializeComprehensive)
 {
-    Initialize(); // With default parameters
+    InitializeWithDefaults();
 
     Cubic->BytesInFlight = 12345;
     Cubic->Exemptions = 5;
@@ -197,24 +200,24 @@ TEST_F(CubicFixturedTest, InitializeComprehensive)
 // Scenario: Tests initialization with extreme boundary values for MTU, InitialWindowPackets,
 // and SendIdleTimeoutMs to ensure robustness across all valid configurations.
 //
-TEST_F(CubicFixturedTest, InitializeBoundaries)
+TEST_F(CubicTest, InitializeBoundaries)
 {
     // Test minimum MTU with minimum window
-    Initialize(/*WindowPackets=*/ 1, /*HyStart=*/ false, /*Mtu=*/ QUIC_DPLPMTUD_MIN_MTU, /*IdleTimeoutMs=*/ 0);
+    InitializeWithDefaults(/*WindowPackets=*/ 1, /*HyStart=*/ false, /*Mtu=*/ QUIC_DPLPMTUD_MIN_MTU, /*IdleTimeoutMs=*/ 0);
     uint32_t ExpectedMinWindow = (QUIC_DPLPMTUD_MIN_MTU - 48) * 1;  // 1232
     ASSERT_EQ(Cubic->CongestionWindow, ExpectedMinWindow);
     ASSERT_EQ(Cubic->InitialWindowPackets, 1u);
     ASSERT_EQ(Cubic->SendIdleTimeoutMs, 0u);
 
     // Test maximum MTU with maximum window and timeout
-    Initialize(/*WindowPackets=*/1000, /*HyStart=*/false, /*Mtu=*/65535, /*IdleTimeoutMs=*/UINT32_MAX);
+    InitializeWithDefaults(/*WindowPackets=*/1000, /*HyStart=*/false, /*Mtu=*/65535, /*IdleTimeoutMs=*/UINT32_MAX);
     uint32_t ExpectedMaxWindow = (65535 - 48) * 1000;  // 65487000
     ASSERT_EQ(Cubic->CongestionWindow, ExpectedMaxWindow);
     ASSERT_EQ(Cubic->InitialWindowPackets, 1000u);
     ASSERT_EQ(Cubic->SendIdleTimeoutMs, UINT32_MAX);
 
     // Test very small MTU (below minimum)
-    Initialize(/*WindowPackets=*/10, /*HyStart=*/false, /*Mtu=*/500);
+    InitializeWithDefaults(/*WindowPackets=*/10, /*HyStart=*/false, /*Mtu=*/500);
     uint32_t ExpectedSmallWindow = (500 - 48) * 10;  // 4520
     ASSERT_EQ(Cubic->CongestionWindow, ExpectedSmallWindow);
 }
@@ -226,9 +229,9 @@ TEST_F(CubicFixturedTest, InitializeBoundaries)
 // properly resets state and applies new settings (e.g., doubling InitialWindowPackets should
 // double the CongestionWindow). Important for connection migration or settings updates.
 //
-TEST_F(CubicFixturedTest, MultipleSequentialInitializations)
+TEST_F(CubicTest, MultipleSequentialInitializations)
 {
-    Initialize(); // Initial initialization with default parameters
+    InitializeWithDefaults();
 
     uint32_t FirstCongestionWindow = Connection.CongestionControl.Cubic.CongestionWindow;
 
@@ -247,9 +250,9 @@ TEST_F(CubicFixturedTest, MultipleSequentialInitializations)
 // congestion blocked (cannot send), and exemptions (bypass blocking). Tests the core
 // congestion control decision logic.
 //
-TEST_F(CubicFixturedTest, CanSendScenarios)
+TEST_F(CubicTest, CanSendScenarios)
 {
-    Initialize();
+    InitializeWithDefaults();
 
     uint32_t CongestionWindow = Cubic->CongestionWindow;
 
@@ -278,9 +281,9 @@ TEST_F(CubicFixturedTest, CanSendScenarios)
 // Scenario: Tests SetExemption to verify it correctly sets the number of packets that
 // can bypass congestion control. Used for probe packets and other special cases.
 //
-TEST_F(CubicFixturedTest, SetExemption)
+TEST_F(CubicTest, SetExemption)
 {
-    Initialize();
+    InitializeWithDefaults();
     // Initially should be 0
     ASSERT_EQ(Cubic->Exemptions, 0u);
 
@@ -303,9 +306,9 @@ TEST_F(CubicFixturedTest, SetExemption)
 // available window without pacing (returns full window), and invalid time (skips pacing).
 // Covers the main decision paths in send allowance calculation.
 //
-TEST_F(CubicFixturedTest, GetSendAllowanceScenarios)
+TEST_F(CubicTest, GetSendAllowanceScenarios)
 {
-    Initialize(); // With default parameters
+    InitializeWithDefaults();
     uint32_t CongestionWindow = Cubic->CongestionWindow;
 
     // Scenario 1: Congestion blocked - should return 0
@@ -346,9 +349,9 @@ TEST_F(CubicFixturedTest, GetSendAllowanceScenarios)
 // This test verifies that with pacing enabled, the allowance is rate-limited based on elapsed
 // time, resulting in a smaller allowance than the full available congestion window.
 //
-TEST_F(CubicFixturedTest, GetSendAllowanceWithActivePacing)
+TEST_F(CubicTest, GetSendAllowanceWithActivePacing)
 {
-    Initialize(/*WindowPackets=*/10, /*HyStart=*/false, /*Mtu=*/1280, /*IdleTimeoutMs=*/1000, /*GotRttSample=*/true, /*SmoothedRtt=*/50000);
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ false);
     uint32_t CongestionWindow = Cubic->CongestionWindow;
 
     // Set BytesInFlight to half the window to have available capacity
@@ -373,9 +376,9 @@ TEST_F(CubicFixturedTest, GetSendAllowanceWithActivePacing)
 // Verifies GetExemptions, GetBytesInFlightMax, and GetCongestionWindow all return
 // correct values matching the internal CUBIC state.
 //
-TEST_F(CubicFixturedTest, GetterFunctions)
+TEST_F(CubicTest, GetterFunctions)
 {
-    Initialize(); // With default parameters
+    InitializeWithDefaults();
 
     // Test GetExemptions
     uint8_t Exemptions = Connection.CongestionControl.QuicCongestionControlGetExemptions(&Connection.CongestionControl);
@@ -403,9 +406,9 @@ TEST_F(CubicFixturedTest, GetterFunctions)
 // FullReset=TRUE (zeros BytesInFlight). Verifies that reset properly reinitializes CUBIC
 // state while respecting the FullReset parameter for connection recovery scenarios.
 //
-TEST_F(CubicFixturedTest, ResetScenarios)
+TEST_F(CubicTest, ResetScenarios)
 {
-    Initialize(); // With default parameters
+    InitializeWithDefaults();
 
     // Scenario 1: Partial reset (FullReset=FALSE) - preserves BytesInFlight
     // First, send some data and trigger a congestion event to set internal flags
@@ -448,9 +451,9 @@ TEST_F(CubicFixturedTest, ResetScenarios)
 // in the network and consumes exemptions. Verifies BytesInFlightMax is updated when
 // BytesInFlight reaches a new maximum.
 //
-TEST_F(CubicFixturedTest, OnDataSent_IncrementsBytesInFlight)
+TEST_F(CubicTest, OnDataSent_IncrementsBytesInFlight)
 {
-    Initialize(); // With default parameters
+    InitializeWithDefaults();
 
     uint32_t InitialBytesInFlight = Cubic->BytesInFlight;
     uint32_t InitialBytesInFlightMax = Cubic->BytesInFlightMax;
@@ -489,9 +492,9 @@ TEST_F(CubicFixturedTest, OnDataSent_IncrementsBytesInFlight)
 // phase change). BytesInFlight should decrease by the invalidated bytes since they're
 // no longer considered in-flight. Critical for accurate congestion window management.
 //
-TEST_F(CubicFixturedTest, OnDataInvalidated_DecrementsBytesInFlight)
+TEST_F(CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
 {
-    Initialize(); // With default parameters
+    InitializeWithDefaults();
 
     // Send some data first
     Cubic->BytesInFlight = 5000;
@@ -512,9 +515,9 @@ TEST_F(CubicFixturedTest, OnDataInvalidated_DecrementsBytesInFlight)
 // in slow start (CongestionWindow < SlowStartThreshold) with HyStart disabled
 // (CWndSlowStartGrowthDivisor = 1).
 //
-TEST_F(CubicFixturedTest, OnDataAcknowledged_BasicAck)
+TEST_F(CubicTest, OnDataAcknowledged_BasicAck)
 {
-    Initialize(/*WindowPackets=*/10, /*HyStart=*/false, /*Mtu=*/1280, /*IdleTimeoutMs=*/1000, /*GotRttSample=*/true, /*SmoothedRtt=*/50000);
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ false);
 
     uint32_t InitialWindow = Cubic->CongestionWindow;
 
@@ -544,22 +547,9 @@ TEST_F(CubicFixturedTest, OnDataAcknowledged_BasicAck)
 // the congestion window should be reduced according to CUBIC algorithm (multiplicative decrease).
 // Verifies proper loss recovery state transitions.
 //
-TEST_F(CubicFixturedTest, OnDataLost_WindowReduction)
+TEST_F(CubicTest, OnDataLost_WindowReduction)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(/*WindowPackets=*/20, /*HyStart=*/true, /*Mtu=*/1280, /*IdleTimeoutMs=*/1000, /*GotRttSample=*/true, /*SmoothedRtt=*/50000);
+    InitializeWithDefaults(/*WindowPackets=*/20, /*HyStart=*/true, /*Mtu=*/1280, /*IdleTimeoutMs=*/1000, /*GotRttSample=*/true, /*SmoothedRtt=*/50000);
     uint32_t InitialWindow = Cubic->CongestionWindow;
 
     // Simulate data in flight
@@ -585,23 +575,9 @@ TEST_F(CubicFixturedTest, OnDataLost_WindowReduction)
 // Scenario: Tests Explicit Congestion Notification (ECN) handling. When ECN-marked packets
 // are received, CUBIC should treat it as a congestion signal and reduce the window appropriately.
 //
-TEST_F(CubicFixturedTest, OnEcn_CongestionSignal)
+TEST_F(CubicTest, OnEcn_CongestionSignal)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.EcnEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(/*WindowPackets=*/20, /*HyStart=*/true, /*Mtu=*/1280, /*IdleTimeoutMs=*/1000, /*GotRttSample=*/true, /*SmoothedRtt=*/50000);
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20, /*HyStart = */ true);
     uint32_t InitialWindow = Cubic->CongestionWindow;
 
     // Simulate data in flight
@@ -627,24 +603,9 @@ TEST_F(CubicFixturedTest, OnEcn_CongestionSignal)
 // Scenario: Tests retrieval of network statistics including congestion window, RTT estimates,
 // and throughput metrics. Used for monitoring and diagnostics.
 //
-TEST_F(CubicFixturedTest, GetNetworkStatistics_RetrieveStats)
+TEST_F(CubicTest, GetNetworkStatistics_RetrieveStats)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000; // 50ms
-    // Connection.Paths[0].MinRtt = 40000; // 40ms
-    // Connection.Paths[0].RttVariance = 5000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
+    InitializeWithDefaults(
         /*WindowPackets=*/10,
         /*HyStart=*/true,
         /*Mtu=*/1280,
@@ -678,18 +639,9 @@ TEST_F(CubicFixturedTest, GetNetworkStatistics_RetrieveStats)
 // Scenario: Tests remaining small functions to achieve comprehensive API coverage:
 // SetExemption, GetExemptions, OnDataInvalidated, GetCongestionWindow, LogOutFlowStatus, OnSpuriousCongestionEvent.
 //
-TEST_F(CubicFixturedTest, MiscFunctions_APICompleteness)
+TEST_F(CubicTest, MiscFunctions_APICompleteness)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize();
+    InitializeWithDefaults();
 
     // Test SetExemption
     Connection.CongestionControl.QuicCongestionControlSetExemption(
@@ -730,29 +682,9 @@ TEST_F(CubicFixturedTest, MiscFunctions_APICompleteness)
 // before reaching the previous WindowMax, CUBIC applies an additional reduction factor
 // to converge faster with other flows. This tests the WindowLastMax > WindowMax path.
 //
-TEST_F(CubicFixturedTest, FastConvergence_AdditionalReduction)
+TEST_F(CubicTest, FastConvergence_AdditionalReduction)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 30;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/30,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 30, /*HyStart = */ true);
 
     // Simulate first congestion event to establish WindowMax
     // Send data to fill the window
@@ -797,29 +729,9 @@ TEST_F(CubicFixturedTest, FastConvergence_AdditionalReduction)
 // Scenario: Tests exiting from recovery state when an ACK is received for a packet
 // sent after recovery started. This is the recovery completion logic.
 //
-TEST_F(CubicFixturedTest, Recovery_ExitOnNewAck)
+TEST_F(CubicTest, Recovery_ExitOnNewAck)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
 
     // Set recovery state by triggering a loss event
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
@@ -851,29 +763,9 @@ TEST_F(CubicFixturedTest, Recovery_ExitOnNewAck)
 // Scenario: Tests the early exit path when BytesAcked is zero in recovery state.
 // This can occur with ACKs that don't contain retransmittable data.
 //
-TEST_F(CubicFixturedTest, ZeroBytesAcked_EarlyExit)
+TEST_F(CubicTest, ZeroBytesAcked_EarlyExit)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ true);
     uint32_t InitialWindow = Cubic->CongestionWindow;
 
     // Send some data to have bytes in flight
@@ -895,29 +787,9 @@ TEST_F(CubicFixturedTest, ZeroBytesAcked_EarlyExit)
 // the estimated window is 2x current window (exponential growth). This covers
 // the EstimatedWnd calculation branch in GetSendAllowance.
 //
-TEST_F(CubicFixturedTest, Pacing_SlowStartWindowEstimation)
+TEST_F(CubicTest, Pacing_SlowStartWindowEstimation)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.PacingEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/false,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ false);
     Connection.Settings.PacingEnabled = TRUE;
 
     // Ensure in slow start (SlowStartThreshold is UINT32_MAX by default after init)
@@ -957,29 +829,9 @@ TEST_F(CubicFixturedTest, Pacing_SlowStartWindowEstimation)
 // Scenario: Tests pacing calculation during congestion avoidance phase.
 // When past slow start, estimated window is 1.25x current window (linear growth).
 //
-TEST_F(CubicFixturedTest, Pacing_CongestionAvoidanceEstimation)
+TEST_F(CubicTest, Pacing_CongestionAvoidanceEstimation)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.PacingEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/false,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ false);
     Connection.Settings.PacingEnabled = TRUE;
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     // MTU=1280, payload = 1280 - 48 = 1232
@@ -1052,29 +904,9 @@ TEST_F(CubicFixturedTest, Pacing_CongestionAvoidanceEstimation)
 // Scenario: Tests the overflow detection in pacing calculation. When the pacing
 // calculation causes SendAllowance to overflow, it should be capped at the available window.
 //
-TEST_F(CubicFixturedTest, Pacing_OverflowHandling)
+TEST_F(CubicTest, Pacing_OverflowHandling)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.PacingEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 1000; // Very small RTT
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/false,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/1000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ false);
     Connection.Settings.PacingEnabled = TRUE;
 
     // Send data
@@ -1098,29 +930,9 @@ TEST_F(CubicFixturedTest, Pacing_OverflowHandling)
 // ACK in congestion avoidance exercises the CUBIC formula and AIMD accumulator.
 // The max(CUBIC, AIMD) selection determines the new window.
 //
-TEST_F(CubicFixturedTest, CongestionAvoidance_AIMDvsCubicSelection)
+TEST_F(CubicTest, CongestionAvoidance_AIMDvsCubicSelection)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
@@ -1176,29 +988,9 @@ TEST_F(CubicFixturedTest, CongestionAvoidance_AIMDvsCubicSelection)
 // accumulator grows at half rate (BytesAcked / 2). This tests the Reno-friendly
 // region where CUBIC is still catching up to the previous maximum window.
 //
-TEST_F(CubicFixturedTest, AIMD_AccumulatorBelowWindowPrior)
+TEST_F(CubicTest, AIMD_AccumulatorBelowWindowPrior)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
 
     // Trigger congestion avoidance by causing a loss
     Connection.CongestionControl.QuicCongestionControlOnDataSent(
@@ -1245,29 +1037,9 @@ TEST_F(CubicFixturedTest, AIMD_AccumulatorBelowWindowPrior)
 // accumulator grows at full rate (BytesAcked). This tests the path where CUBIC
 // has surpassed its previous maximum and enters the convex region.
 //
-TEST_F(CubicFixturedTest, AIMD_AccumulatorAboveWindowPrior)
+TEST_F(CubicTest, AIMD_AccumulatorAboveWindowPrior)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
 
     // Trigger congestion avoidance
     Connection.CongestionControl.QuicCongestionControlOnDataSent(
@@ -1317,29 +1089,9 @@ TEST_F(CubicFixturedTest, AIMD_AccumulatorAboveWindowPrior)
 // we manipulate TimeOfCongAvoidStart so the CUBIC formula's DeltaT produces a large
 // negative value (KCubic >> TimeInCongAvoid), causing the cubic term to overflow.
 //
-TEST_F(CubicFixturedTest, CubicWindow_OverflowToBytesInFlightMax)
+TEST_F(CubicTest, CubicWindow_OverflowToBytesInFlightMax)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
@@ -1409,18 +1161,9 @@ TEST_F(CubicFixturedTest, CubicWindow_OverflowToBytesInFlightMax)
 // (CanSend transitions from FALSE to TRUE), the function should return TRUE and
 // remove the congestion control blocked reason.
 //
-TEST_F(CubicFixturedTest, UpdateBlockedState_UnblockFlow)
+TEST_F(CubicTest, UpdateBlockedState_UnblockFlow)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize();
+    InitializeWithDefaults();
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     // MTU=1280, payload = 1280 - 48 = 1232
     // InitialWindow = 10 * 1232 = 12320
@@ -1462,29 +1205,9 @@ TEST_F(CubicFixturedTest, UpdateBlockedState_UnblockFlow)
 // is determined to be spurious (false positive), CUBIC should restore the previous
 // state before the congestion event occurred.
 //
-TEST_F(CubicFixturedTest, SpuriousCongestion_StateRollback)
+TEST_F(CubicTest, SpuriousCongestion_StateRollback)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
@@ -1519,16 +1242,9 @@ TEST_F(CubicFixturedTest, SpuriousCongestion_StateRollback)
 // CUBIC implementation, these are stub functions that don't track app-limited state.
 // This test verifies the API is callable and doesn't crash.
 //
-TEST_F(CubicFixturedTest, AppLimited_APICoverage)
+TEST_F(CubicTest, AppLimited_APICoverage)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-    Initialize(/*WindowPackets=*/20);
+    InitializeWithDefaults(/*WindowPackets=*/20);
 
     // IsAppLimited currently always returns FALSE (stub implementation)
     BOOLEAN IsAppLimited = Connection.CongestionControl.QuicCongestionControlIsAppLimited(
@@ -1552,30 +1268,9 @@ TEST_F(CubicFixturedTest, AppLimited_APICoverage)
 // and RTT+4*RttVariance) should advance TimeOfCongAvoidStart to prevent the
 // CUBIC formula from producing unrealistic window growth.
 //
-TEST_F(CubicFixturedTest, TimeGap_IdlePeriodHandling)
+TEST_F(CubicTest, TimeGap_IdlePeriodHandling)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000; // 1 second idle timeout
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;  // 50ms
-    // Connection.Paths[0].RttVariance = 5000;   // 5ms
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
     Connection.Paths[0].RttVariance = 5000;
 
     // Trigger loss → recovery
@@ -1655,30 +1350,9 @@ TEST_F(CubicFixturedTest, TimeGap_IdlePeriodHandling)
 // to HYSTART_NOT_STARTED with all supporting variables correctly set.
 // This establishes the precondition for all other HyStart++ transitions.
 //
-TEST_F(CubicFixturedTest, HyStart_InitialStateVerification)
+TEST_F(CubicTest, HyStart_InitialStateVerification)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;  // Enable HyStart++
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
@@ -1701,30 +1375,9 @@ TEST_F(CubicFixturedTest, HyStart_InitialStateVerification)
 // occurs before HyStart++ detection logic activates. This is the most common
 // path when network conditions cause loss during initial slow start.
 //
-TEST_F(CubicFixturedTest, HyStart_T5_NotStartedToDone_ViaLoss)
+TEST_F(CubicTest, HyStart_T5_NotStartedToDone_ViaLoss)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
@@ -1763,31 +1416,9 @@ TEST_F(CubicFixturedTest, HyStart_T5_NotStartedToDone_ViaLoss)
 // Scenario: Tests direct transition from NOT_STARTED to DONE when ECN marking
 // is received, indicating congestion before HyStart++ activates.
 //
-TEST_F(CubicFixturedTest, HyStart_T5_NotStartedToDone_ViaECN)
+TEST_F(CubicTest, HyStart_T5_NotStartedToDone_ViaECN)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-    // Settings.EcnEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
     Settings.EcnEnabled = TRUE;
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
@@ -1827,30 +1458,9 @@ TEST_F(CubicFixturedTest, HyStart_T5_NotStartedToDone_ViaECN)
 // is detected. This is the most severe congestion signal, causing drastic
 // window reduction to minimum (2 packets).
 //
-TEST_F(CubicFixturedTest, HyStart_T4_AnyToDone_ViaPersistentCongestion)
+TEST_F(CubicTest, HyStart_T4_AnyToDone_ViaPersistentCongestion)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 30;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/30,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 30, /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
@@ -1890,30 +1500,9 @@ TEST_F(CubicFixturedTest, HyStart_T4_AnyToDone_ViaPersistentCongestion)
 // Once in DONE, no further state transitions can occur (all HyStart++ logic is
 // bypassed). This verifies the guard.
 //
-TEST_F(CubicFixturedTest, HyStart_TerminalState_DoneIsAbsorbing)
+TEST_F(CubicTest, HyStart_TerminalState_DoneIsAbsorbing)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
 
     // Transition to DONE state via loss
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
@@ -2001,30 +1590,9 @@ TEST_F(CubicFixturedTest, HyStart_TerminalState_DoneIsAbsorbing)
 // NOT_STARTED because the code path `Cubic->HyStartState = HYSTART_DONE` is only
 // executed when HyStartEnabled=TRUE. Recovery still occurs normally.
 //
-TEST_F(CubicFixturedTest, HyStart_Disabled_NoTransitions)
+TEST_F(CubicTest, HyStart_Disabled_NoTransitions)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = FALSE;  // Explicitly disabled
-
-    // InitializeMockConnection(Connection, 1280);
-    // Do NOT set Connection.Settings.HyStartEnabled - keep it FALSE for this test
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/false,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20, /*HyStart = */ false);
 
     // Initial state should be NOT_STARTED
     ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
@@ -2074,30 +1642,9 @@ TEST_F(CubicFixturedTest, HyStart_Disabled_NoTransitions)
 // - ACTIVE → divisor = 4 (triggered via delay increase detection)
 // - DONE → divisor = 1 (triggered via loss)
 //
-TEST_F(CubicFixturedTest, HyStart_StateInvariant_GrowthDivisor)
+TEST_F(CubicTest, HyStart_StateInvariant_GrowthDivisor)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20,  /*HyStart = */ true);
 
     // Invariant 1: NOT_STARTED → divisor = 1
     ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
@@ -2154,30 +1701,9 @@ TEST_F(CubicFixturedTest, HyStart_StateInvariant_GrowthDivisor)
 // don't cause state corruption. Each event should trigger recovery logic but
 // state should remain DONE.
 //
-TEST_F(CubicFixturedTest, HyStart_MultipleCongestionEvents_StateStability)
+TEST_F(CubicTest, HyStart_MultipleCongestionEvents_StateStability)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 30;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/30,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 30, /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
@@ -2230,30 +1756,9 @@ TEST_F(CubicFixturedTest, HyStart_MultipleCongestionEvents_StateStability)
 // Scenario: When exiting recovery (IsInRecovery: TRUE → FALSE), the HyStart
 // state should remain unchanged. Recovery is orthogonal to HyStart++ state.
 //
-TEST_F(CubicFixturedTest, HyStart_RecoveryExit_StatePersistence)
+TEST_F(CubicTest, HyStart_RecoveryExit_StatePersistence)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 20;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/20,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 20, /*HyStart = */ true);
 
     // Transition to DONE and enter recovery
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 8000);
@@ -2285,30 +1790,10 @@ TEST_F(CubicFixturedTest, HyStart_RecoveryExit_StatePersistence)
 // back but HyStart state is NOT rolled back (it remains DONE). This is because
 // HyStart++ state transitions are one-way and not part of the spurious recovery.
 //
-TEST_F(CubicFixturedTest, HyStart_SpuriousCongestion_StateNotRolledBack)
+TEST_F(CubicTest, HyStart_SpuriousCongestion_StateNotRolledBack)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 25;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
+    InitializeDefaultWithRtt(/*WindowPacket = */ 25, /*HyStart = */ true);
 
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/25,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
@@ -2357,30 +1842,9 @@ TEST_F(CubicFixturedTest, HyStart_SpuriousCongestion_StateNotRolledBack)
 // detection logic after sampling phase completes. Tests the Eta calculation and
 // the condition that checks if RTT has increased beyond the threshold.
 //
-TEST_F(CubicFixturedTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondition)
+TEST_F(CubicTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondition)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ true);
 
     // Verify initial state
     ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
@@ -2440,30 +1904,9 @@ TEST_F(CubicFixturedTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondit
 // Scenario: Triggers the delay increase detection logic with
 // a significant RTT increase that causes transition from NOT_STARTED to ACTIVE state.
 //
-TEST_F(CubicFixturedTest, HyStart_DelayIncreaseDetection_TriggerActiveTransition)
+TEST_F(CubicTest, HyStart_DelayIncreaseDetection_TriggerActiveTransition)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ true);
 
     // Verify initial state
     ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
@@ -2533,30 +1976,9 @@ TEST_F(CubicFixturedTest, HyStart_DelayIncreaseDetection_TriggerActiveTransition
 // When in HYSTART_ACTIVE state, if RTT decreases below the baseline, the algorithm
 // assumes the previous slow start exit was spurious and returns to NOT_STARTED state.
 //
-TEST_F(CubicFixturedTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
+TEST_F(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ true);
 
     // Set Connection.Send.NextPacketNumber high to avoid round boundary crossing
     Connection.Send.NextPacketNumber = 100;
@@ -2665,30 +2087,9 @@ TEST_F(CubicFixturedTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
 // when in HYSTART_ACTIVE state. After completing the configured number of
 // conservative slow start rounds, the algorithm transitions to HYSTART_DONE.
 //
-TEST_F(CubicFixturedTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
+TEST_F(CubicTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-    // Settings.HyStartEnabled = TRUE;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Settings.HyStartEnabled = TRUE;
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/true,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ true);
 
     // Set Connection.Send.NextPacketNumber to control round boundaries
     Connection.Send.NextPacketNumber = 100;
@@ -2768,29 +2169,9 @@ TEST_F(CubicFixturedTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
 // TimeOfCongAvoidStart adjustment to overflow. Tests the boundary condition
 // where TimeOfCongAvoidStart might exceed TimeNowUs after adjustment.
 //
-TEST_F(CubicFixturedTest, CongestionAvoidance_TimeGapOverflowProtection)
+TEST_F(CubicTest, CongestionAvoidance_TimeGapOverflowProtection)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-    // Connection.Paths[0].RttVariance = 10000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/false,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ false);
     Connection.Paths[0].RttVariance = 10000;
 
     // Force into congestion avoidance by setting window >= threshold
@@ -2835,28 +2216,9 @@ TEST_F(CubicFixturedTest, CongestionAvoidance_TimeGapOverflowProtection)
 // When WindowMax is extremely large, the cubic formula can overflow,
 // causing CubicWindow to become negative.
 //
-TEST_F(CubicFixturedTest, CongestionAvoidance_CubicWindowOverflow)
+TEST_F(CubicTest, CongestionAvoidance_CubicWindowOverflow)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
-
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/false,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ false);
 
     // Force into congestion avoidance
     Cubic->SlowStartThreshold = 10000;
@@ -2898,28 +2260,10 @@ TEST_F(CubicFixturedTest, CongestionAvoidance_CubicWindowOverflow)
 // remains at a higher value, creating window < threshold condition. A large ACK
 // can then trigger the overflow logic where window grows beyond threshold.
 //
-TEST_F(CubicFixturedTest, SlowStart_WindowOverflowAfterPersistentCongestion)
+TEST_F(CubicTest, SlowStart_WindowOverflowAfterPersistentCongestion)
 {
-    // QUIC_CONNECTION Connection;
-    // QUIC_SETTINGS_INTERNAL Settings{};
-    // Settings.InitialWindowPackets = 10;
-    // Settings.SendIdleTimeoutMs = 1000;
+    InitializeDefaultWithRtt(/*WindowPacket = */ 10, /*HyStart = */ false);
 
-    // InitializeMockConnection(Connection, 1280);
-    // Connection.Paths[0].GotFirstRttSample = TRUE;
-    // Connection.Paths[0].SmoothedRtt = 50000;
-
-    // CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    // QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
-    Initialize(
-        /*WindowPackets=*/10,
-        /*HyStart=*/false,
-        /*Mtu=*/1280,
-        /*IdleTimeoutMs=*/1000,
-        /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000
-    );
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
     uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
     ASSERT_EQ(Cubic->CongestionWindow, InitialWindow);
