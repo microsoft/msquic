@@ -1381,7 +1381,13 @@ TEST(CubicTest, CubicWindow_OverflowToBytesInFlightMax)
     // The final CW is determined by max(CubicWindow, AimdWindow) and then the
     // BytesInFlightMax clamp. Verify the window is reasonable (not overflowed).
     ASSERT_FALSE(Cubic->IsInRecovery);
-    ASSERT_LE(Cubic->CongestionWindow, 2 * Cubic->BytesInFlightMax);
+    // CUBIC formula overflow: CubicWindow < 0, capped to 2*BytesInFlightMax (58080).
+    // But bounded growth limits TargetWindow to 1.5*CW = 1.5*17248 = 25872.
+    // Growth = (25872 - 17248) * 1232 / 17248 = 616. New CW = 17248 + 616 = 17864.
+    ASSERT_EQ(
+        Cubic->CongestionWindow,
+        WindowAfterLoss + (uint32_t)((uint64_t)(WindowAfterLoss * 3 / 2 - WindowAfterLoss) * DatagramPayloadLength / WindowAfterLoss)
+    );
 }
 
 //
@@ -1518,7 +1524,7 @@ TEST(CubicTest, AppLimited_APICoverage)
 
 //
 // Test 30: Time Gap in ACKs - Idle Period Handling
-// Scenario: Tests the idle-period time gap clamping logic at cubic.c:580-588.
+// Scenario: Tests the idle-period time gap clamping logic.
 // After exiting recovery, a large gap between ACKs (exceeding SendIdleTimeoutMs
 // and RTT+4*RttVariance) should advance TimeOfCongAvoidStart to prevent the
 // CUBIC formula from producing unrealistic window growth.
@@ -1589,8 +1595,10 @@ TEST(CubicTest, TimeGap_IdlePeriodHandling)
     Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
         &Connection.CongestionControl, &IdleAck);
 
-    // Time gap clamping fired: TimeOfCongAvoidStart was advanced by the idle gap
-    ASSERT_GT(Cubic->TimeOfCongAvoidStart, TimeOfCongAvoidBefore);
+    // Time gap clamping fired: TimeOfCongAvoidStart advanced by the 5s idle gap.
+    // TimeSinceLastAck = 6100000 - 1100000 = 5000000 µs.
+    // New TimeOfCongAvoidStart = 1050000 + 5000000 = 6050000.
+    ASSERT_EQ(Cubic->TimeOfCongAvoidStart, TimeOfCongAvoidBefore + 5000000);
 }
 
 //
@@ -1815,7 +1823,7 @@ TEST(CubicTest, HyStart_T4_AnyToDone_ViaPersistentCongestion)
 // Transition: Verification that DONE has no outgoing transitions
 // Scenario: Tests the mathematical proof that HYSTART_DONE is an absorbing state.
 // Once in DONE, no further state transitions can occur (all HyStart++ logic is
-// bypassed). This verifies the guard at cubic.c:476.
+// bypassed). This verifies the guard.
 //
 TEST(CubicTest, HyStart_TerminalState_DoneIsAbsorbing)
 {
@@ -2792,7 +2800,7 @@ TEST(CubicTest, SlowStart_WindowOverflowAfterPersistentCongestion)
 
     // Before ACK: verify we're in slow start
     // Window after recovery exit + BytesInFlight may be < threshold
-    
+
     Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
         &Connection.CongestionControl,
         &LargeAck);
