@@ -135,6 +135,15 @@ QuicStreamSetInitializeTransportParameters(
     );
 
 //
+// Indicates available streams to the app via a connection event.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamSetIndicateStreamsAvailable(
+    _Inout_ QUIC_STREAM_SET* StreamSet
+    );
+
+//
 // Invoked when the peer sends a MAX_STREAMS frame.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
