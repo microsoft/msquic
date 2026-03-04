@@ -4,6 +4,9 @@
     Licensed under the MIT License.
 
 --*/
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define SEND_PACKET_SHORT_HEADER_TYPE 0xff
 
@@ -523,3 +526,7 @@ QuicSendClearStreamSendFlag(
     _In_ QUIC_STREAM* Stream,
     _In_ uint32_t SendFlag
     );
+
+#if defined(__cplusplus)
+}
+#endif
