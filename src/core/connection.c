@@ -3089,7 +3089,9 @@ QuicConnProcessPeerTransportParameters(
         Connection->PeerTransportParams.InitialMaxUniStreams,
         !FromResumptionTicket);
 
-    QuicDatagramOnSendStateChanged(&Connection->Datagram);
+    if (!FromResumptionTicket) {
+        QuicDatagramOnSendStateChanged(&Connection->Datagram);
+    }
 
     if (Connection->State.Started) {
         if (Connection->State.Disable1RttEncrytion &&
