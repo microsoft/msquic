@@ -246,6 +246,10 @@ protected:
         SelfSignedCertParams = nullptr;
         CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
+        CxPlatFreeSelfSignedCert(CaSelfSignedCertParams);
+        CaSelfSignedCertParams = nullptr;
+        CxPlatFreeSelfSignedCert(CaClientCertParams);
+        CaClientCertParams = nullptr;
         CxPlatFreeSelfSignedCertCaFile(ServerCaCertificateFile);
         ServerCaCertificateFile = nullptr;
         CxPlatFreeSelfSignedCertCaFile(ClientCaCertificateFile);

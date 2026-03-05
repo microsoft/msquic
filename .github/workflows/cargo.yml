@@ -75,7 +75,7 @@ jobs:
     - name: Upload the patch file
       if: steps.bindings_diff.outputs.diff-found == 'true'
       id: upload_patch
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
       with:
         name: cargo_binding_update_${{ matrix.os }}
         path: cargo_binding_update.patch

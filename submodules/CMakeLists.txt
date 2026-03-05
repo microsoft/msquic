@@ -164,7 +164,7 @@ if (WIN32)
         $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
     )
 
-    add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
+    add_library(MsQuic::OpenSSL ALIAS OpenSSLQuic)
 
 else()
 
@@ -387,6 +387,6 @@ else()
         )
     endif()
 
-    add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
+    add_library(MsQuic::OpenSSL ALIAS OpenSSLQuic)
 
 endif()
