@@ -133,7 +133,7 @@ protected:
 
 
 //
-// Test 1: Comprehensive initialization verification
+// Test: Comprehensive initialization verification
 // Scenario: Verifies CubicCongestionControlInitialize correctly sets up all CUBIC state
 // including settings, function pointers, state flags, HyStart fields, and zero-initialized fields.
 // This consolidates basic initialization, function pointer, state flags, HyStart, and zero-field checks.
@@ -141,7 +141,6 @@ protected:
 TEST_F(CubicTest, InitializeComprehensive)
 {
     InitializeWithDefaults();
-
 
     // Verify settings stored correctly
     ASSERT_EQ(Cubic->InitialWindowPackets, 10u);
@@ -191,7 +190,7 @@ TEST_F(CubicTest, InitializeComprehensive)
 }
 
 //
-// Test 2: Initialization with boundary parameter values
+// Test: Initialization with boundary parameter values
 // Scenario: Tests initialization with extreme boundary values for MTU, InitialWindowPackets,
 // and SendIdleTimeoutMs to ensure robustness across all valid configurations.
 //
@@ -218,7 +217,7 @@ TEST_F(CubicTest, InitializeBoundaries)
 }
 
 //
-// Test 3: Re-initialization behavior
+// Test: Re-initialization behavior
 // Scenario: Tests that CUBIC can be re-initialized with different settings and correctly
 // updates its state. Verifies that calling CubicCongestionControlInitialize() multiple times
 // properly resets state and applies new settings (e.g., doubling InitialWindowPackets should
@@ -240,7 +239,7 @@ TEST_F(CubicTest, MultipleSequentialInitializations)
 }
 
 //
-// Test 4: CanSend scenarios (via function pointer)
+// Test: CanSend scenarios (via function pointer)
 // Scenario: Comprehensive test of CanSend logic covering: available window (can send),
 // congestion blocked (cannot send), and exemptions (bypass blocking). Tests the core
 // congestion control decision logic.
@@ -272,7 +271,7 @@ TEST_F(CubicTest, CanSendScenarios)
 }
 
 //
-// Test 5: SetExemption (via function pointer)
+// Test: SetExemption (via function pointer)
 // Scenario: Tests SetExemption to verify it correctly sets the number of packets that
 // can bypass congestion control. Used for probe packets and other special cases.
 //
@@ -296,7 +295,7 @@ TEST_F(CubicTest, SetExemption)
 }
 
 //
-// Test 6: GetSendAllowance scenarios (via function pointer)
+// Test: GetSendAllowance scenarios (via function pointer)
 // Scenario: Tests GetSendAllowance under different conditions: congestion blocked (returns 0),
 // available window without pacing (returns full window), and invalid time (skips pacing).
 // Covers the main decision paths in send allowance calculation.
@@ -336,11 +335,12 @@ TEST_F(CubicTest, GetSendAllowanceScenarios)
 }
 
 //
-// Test 7: GetSendAllowance with active pacing (via function pointer)
+// Test: GetSendAllowance with active pacing (via function pointer)
 // Scenario: Tests the pacing logic that limits send rate based on RTT and congestion window.
 // When pacing is enabled with valid RTT samples, the function calculates a pacing rate to
 // smooth out packet transmission. This prevents burst sending and improves performance over
-// certain network paths. The pacing calculation is: (CongestionWindow * TimeSinceLastSend) / RTT.
+// certain network paths. The pacing calculation is: (EstimatedWnd * TimeSinceLastSend) / RTT,
+// where EstimatedWnd = min(2*CW, SSThresh) in slow start.
 // This test verifies that with pacing enabled, the allowance is rate-limited based on elapsed
 // time, resulting in a smaller allowance than the full available congestion window.
 //
@@ -370,7 +370,7 @@ TEST_F(CubicTest, GetSendAllowanceWithActivePacing)
 }
 
 //
-// Test 8: Getter functions (via function pointers)
+// Test: Getter functions (via function pointers)
 // Scenario: Tests all simple getter functions that return internal state values.
 // Verifies GetExemptions, GetBytesInFlightMax, and GetCongestionWindow all return
 // correct values matching the internal CUBIC state.
@@ -400,7 +400,7 @@ TEST_F(CubicTest, GetterFunctions)
 }
 
 //
-// Test 9: Reset scenarios (via function pointer)
+// Test: Reset scenarios (via function pointer)
 // Scenario: Tests Reset function with both FullReset=FALSE (preserves BytesInFlight) and
 // FullReset=TRUE (zeros BytesInFlight). Verifies that reset properly reinitializes CUBIC
 // state: CongestionWindow, BytesInFlightMax, SlowStartThreshold, recovery flags,
@@ -470,7 +470,7 @@ TEST_F(CubicTest, ResetScenarios)
 }
 
 //
-// Test 10: CubicCongestionControlOnDataSent - BytesInFlight increases and exemptions decrement
+// Test: CubicCongestionControlOnDataSent - BytesInFlight increases and exemptions decrement
 // Scenario: Tests that OnDataSent correctly increments BytesInFlight when data is sent
 // and decrements exemptions when probe packets are sent. This tracks outstanding data
 // in the network and consumes exemptions. Verifies BytesInFlightMax is updated when
@@ -514,7 +514,7 @@ TEST_F(CubicTest, OnDataSent_IncrementsBytesInFlight)
 }
 
 //
-// Test 11: CubicCongestionControlOnDataInvalidated - BytesInFlight decreases
+// Test: CubicCongestionControlOnDataInvalidated - BytesInFlight decreases
 // Scenario: Tests OnDataInvalidated when sent packets are discarded (e.g., due to key
 // phase change). BytesInFlight should decrease by the invalidated bytes since they're
 // no longer considered in-flight. Critical for accurate congestion window management.
@@ -536,7 +536,7 @@ TEST_F(CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
 }
 
 //
-// Test 12: OnDataAcknowledged - Basic ACK Processing in Slow Start
+// Test: OnDataAcknowledged - Basic ACK Processing in Slow Start
 // Scenario: Tests CubicCongestionControlOnDataAcknowledged for basic slow-start
 // window growth. Sends data via OnDataSent (properly tracking BytesInFlightMax),
 // then acknowledges a portion. The window should grow by BytesAcked since we are
@@ -570,7 +570,7 @@ TEST_F(CubicTest, OnDataAcknowledged_BasicAck)
 }
 
 //
-// Test 13: OnDataLost - Packet Loss Handling and Window Reduction
+// Test: OnDataLost - Packet Loss Handling and Window Reduction
 // Scenario: Tests CUBIC's response to packet loss. When packets are declared lost,
 // the congestion window should be reduced by beta (0.7) and the connection enters
 // recovery. Verifies window reduction, threshold update, and recovery state flags.
@@ -604,7 +604,7 @@ TEST_F(CubicTest, OnDataLost_WindowReduction)
 }
 
 //
-// Test 14: OnEcn - ECN Marking Handling
+// Test: OnEcn - ECN Marking Handling
 // Scenario: Tests Explicit Congestion Notification (ECN) handling. When ECN-marked packets
 // are received, CUBIC should treat it as a congestion signal and reduce the window.
 // Unlike loss, ECN does NOT save previous state (`if (!Ecn)` guard),
@@ -648,7 +648,7 @@ TEST_F(CubicTest, OnEcn_CongestionSignal)
 }
 
 //
-// Test 15: GetNetworkStatistics - Statistics Retrieval
+// Test: GetNetworkStatistics - Statistics Retrieval
 // Scenario: Tests retrieval of network statistics including congestion window, RTT estimates,
 // and throughput metrics. Used for monitoring and diagnostics.
 //
@@ -692,7 +692,7 @@ TEST_F(CubicTest, GetNetworkStatistics_RetrieveStats)
 }
 
 //
-// Test 16: Miscellaneous Small Functions - LogOutFlowStatus and SpuriousCongestionEvent
+// Test: Miscellaneous Small Functions - LogOutFlowStatus and SpuriousCongestionEvent
 // Scenario: Tests the two small functions not covered by other tests: LogOutFlowStatus
 // (no-crash logging call) and OnSpuriousCongestionEvent (no-crash when no prior loss).
 // SetExemption/GetExemptions are covered by Tests 5/8, OnDataInvalidated by Test 11,
@@ -712,7 +712,7 @@ TEST_F(CubicTest, MiscFunctions_APICompleteness)
 }
 
 //
-// Test 17: Fast Convergence - Window Reduction Path
+// Test: Fast Convergence - Window Reduction Path
 // Scenario: Tests CUBIC's fast convergence algorithm. When a new congestion event occurs
 // before reaching the previous WindowMax, CUBIC applies an additional reduction factor
 // to converge faster with other flows. This tests the WindowLastMax > WindowMax path.
@@ -758,7 +758,7 @@ TEST_F(CubicTest, FastConvergence_AdditionalReduction)
 }
 
 //
-// Test 18: Recovery Exit Path
+// Test: Recovery Exit Path
 // Scenario: Tests exiting from recovery state when an ACK is received for a packet
 // sent after recovery started (LargestAck > RecoverySentPacketNumber). Uses a
 // non-persistent loss to enter recovery cleanly.
@@ -794,7 +794,7 @@ TEST_F(CubicTest, Recovery_ExitOnNewAck)
 }
 
 //
-// Test 19: Zero Bytes Acknowledged - Early Exit
+// Test: Zero Bytes Acknowledged - Early Exit
 // Scenario: Tests the early exit path when BytesAcked is zero.
 // This can occur with ACKs that don't contain retransmittable data.
 //
@@ -817,7 +817,7 @@ TEST_F(CubicTest, ZeroBytesAcked_EarlyExit)
 }
 
 //
-// Test 20: Pacing with Slow Start Window Estimation
+// Test: Pacing with Slow Start Window Estimation
 // Scenario: Tests pacing calculation during slow start phase. When in slow start,
 // the estimated window is 2x current window (exponential growth). This covers
 // the EstimatedWnd calculation branch in GetSendAllowance.
@@ -837,8 +837,11 @@ TEST_F(CubicTest, Pacing_SlowStartWindowEstimation)
     // Pacing formula: (EstimatedWnd * TimeSinceLastSend) / SmoothedRtt
     // In slow start: EstimatedWnd = min(2 * CongestionWindow, SlowStartThreshold) = 24640
     // CongestionWindow = (1280 - 48) * 10 = 12320
-    // Allowance = (24640 * 10000) / 50000 = 4928
-    uint32_t ExpectedAllowance = 4928;
+    uint32_t CongestionWindow = Cubic->CongestionWindow;
+    uint64_t SmoothedRtt = Connection.Paths[0].SmoothedRtt;
+    uint32_t TimeSinceLastSend = 10000;
+    uint32_t EstimatedWnd = 2 * CongestionWindow; // SSThresh == UINT32_MAX, so min(2*CW, SST) = 2*CW
+    uint32_t ExpectedAllowance = (uint32_t)(((uint64_t)EstimatedWnd * TimeSinceLastSend) / SmoothedRtt);
     ASSERT_EQ(Allowance, ExpectedAllowance);
 
     // Now test the case where estimated window (2x current) exceeds threshold
@@ -860,7 +863,7 @@ TEST_F(CubicTest, Pacing_SlowStartWindowEstimation)
 }
 
 //
-// Test 21: Pacing with Congestion Avoidance Window Estimation
+// Test: Pacing with Congestion Avoidance Window Estimation
 // Scenario: Tests pacing calculation during congestion avoidance phase.
 // When past slow start, estimated window is 1.25x current window (linear growth).
 //
@@ -935,7 +938,7 @@ TEST_F(CubicTest, Pacing_CongestionAvoidanceEstimation)
 }
 
 //
-// Test 22: Pacing SendAllowance Capped at Available Window
+// Test: Pacing SendAllowance Capped at Available Window
 // Scenario: When the pacing formula produces an allowance larger than the available
 // congestion window (CW − BytesInFlight), it is capped to the available window.
 // A large TimeSinceLastSend (1 second >> SmoothedRtt of 50ms) causes the pacing
@@ -960,7 +963,7 @@ TEST_F(CubicTest, Pacing_CappedAtAvailableWindow)
 }
 
 //
-// Test 23: Congestion Avoidance AIMD vs CUBIC Window Selection
+// Test: Congestion Avoidance AIMD vs CUBIC Window Selection
 // Scenario: After loss triggers recovery and an ACK exits recovery, a subsequent
 // ACK in congestion avoidance exercises the CUBIC formula and AIMD accumulator.
 // The max(CUBIC, AIMD) selection determines the new window.
@@ -1030,7 +1033,7 @@ TEST_F(CubicTest, CongestionAvoidance_AIMDvsCubicSelection)
 }
 
 //
-// Test 24: AIMD Accumulator - Below WindowPrior (half-rate growth)
+// Test: AIMD Accumulator - Below WindowPrior (half-rate growth)
 // Scenario: In congestion avoidance with AimdWindow < WindowPrior, the AIMD
 // accumulator grows at half rate (BytesAcked / 2). This tests the Reno-friendly
 // region where CUBIC is still catching up to the previous maximum window.
@@ -1079,7 +1082,7 @@ TEST_F(CubicTest, AIMD_AccumulatorBelowWindowPrior)
 }
 
 //
-// Test 25: AIMD Accumulator - Above WindowPrior (full-rate growth)
+// Test: AIMD Accumulator - Above WindowPrior (full-rate growth)
 // Scenario: In congestion avoidance with AimdWindow >= WindowPrior, the AIMD
 // accumulator grows at full rate (BytesAcked). This tests the path where CUBIC
 // has surpassed its previous maximum and enters the convex region.
@@ -1130,7 +1133,7 @@ TEST_F(CubicTest, AIMD_AccumulatorAboveWindowPrior)
 }
 
 //
-// Test 26: AIMD Accumulator - Triggers Window Growth
+// Test: AIMD Accumulator - Triggers Window Growth
 // Scenario: When AimdAccumulator exceeds AimdWindow, AimdWindow grows by one
 // DatagramPayloadLength (1 MSS). We set AimdWindow
 // to a small value so a single ACK of sufficient size triggers the growth, and
@@ -1188,7 +1191,91 @@ TEST_F(CubicTest, AIMD_AccumulatorTriggersWindowGrowth)
 }
 
 //
-// Test 27: CubicWindow Overflow to BytesInFlightMax
+// Test: AIMD Sequential Linear Convergence
+// Scenario: Verifies that multiple sequential ACKs produce linear AIMD window
+// growth across several rounds. After entering congestion avoidance with
+// AimdWindow >= WindowPrior (full-rate accumulation), each ACK of BytesAcked
+// bytes adds BytesAcked to AimdAccumulator. When AimdAccumulator exceeds
+// AimdWindow, the window grows by 1 DatagramPayloadLength and the accumulator
+// wraps by subtracting the new AimdWindow. Over N ACKs, AimdWindow should
+// grow by exactly floor(totalBytesAcked / averageAimdWindow) * DPL,
+// demonstrating the linear AIMD convergence required by RFC 8312 §4.3.
+//
+TEST_F(CubicTest, AIMD_SequentialLinearConvergence)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ true);
+    const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+
+    // Trigger loss → recovery → exit recovery (standard pattern)
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, Cubic->CongestionWindow);
+    Connection.Send.NextPacketNumber = 10;
+
+    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 5, 10);
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(
+        &Connection.CongestionControl, &LossEvent);
+    ASSERT_TRUE(Cubic->IsInRecovery);
+
+    // Exit recovery
+    Connection.Send.NextPacketNumber = 15;
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, 5000);
+
+    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1050000, 11, 20, 1200);
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &ExitAck);
+    ASSERT_FALSE(Cubic->IsInRecovery);
+
+    // Set up for full-rate AIMD (AimdWindow >= WindowPrior).
+    // Use a small AimdWindow so each ACK triggers exactly one growth.
+    // BytesAcked per ACK = AimdWindow + DPL + 100 ensures:
+    //   1. Accumulator exceeds AimdWindow → triggers growth
+    //   2. Remainder is small → no double-growth in a single ACK
+    uint32_t InitialAimdWindow = 1000;
+    Cubic->AimdWindow = InitialAimdWindow;
+    Cubic->WindowPrior = InitialAimdWindow; // full-rate path
+    Cubic->AimdAccumulator = 0;
+
+    // Send data to cover upcoming ACKs
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, 20000);
+
+    // Track expected state manually across multiple ACKs
+    uint32_t ExpectedAimdWindow = InitialAimdWindow;
+    uint32_t ExpectedAccumulator = 0;
+    uint64_t TimeUs = 1100000;
+    uint32_t PacketNum = 21;
+
+    const int NumAcks = 5;
+    for (int i = 0; i < NumAcks; i++) {
+        uint32_t BytesAcked = ExpectedAimdWindow + DatagramPayloadLength + 100;
+
+        QUIC_ACK_EVENT Ack = MakeAckEvent(TimeUs, PacketNum, PacketNum + 1, BytesAcked);
+        Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+            &Connection.CongestionControl, &Ack);
+
+        // Full-rate: accumulator += BytesAcked
+        ExpectedAccumulator += BytesAcked;
+        // Accumulator exceeds AimdWindow → grow by 1 DPL
+        ExpectedAimdWindow += DatagramPayloadLength;
+        ExpectedAccumulator -= ExpectedAimdWindow;
+
+        ASSERT_EQ(Cubic->AimdWindow, ExpectedAimdWindow)
+            << "AimdWindow mismatch after ACK " << (i + 1);
+        ASSERT_EQ(Cubic->AimdAccumulator, ExpectedAccumulator)
+            << "AimdAccumulator mismatch after ACK " << (i + 1);
+
+        TimeUs += 50000; // advance 50ms per ACK
+        PacketNum += 2;
+    }
+
+    // After 5 ACKs, AimdWindow should have grown by exactly 5 * DPL
+    ASSERT_EQ(Cubic->AimdWindow, InitialAimdWindow + NumAcks * DatagramPayloadLength);
+}
+
+
+//
+// Test: CubicWindow Overflow to BytesInFlightMax
 // Scenario: Tests that when the CUBIC window formula overflows (producing a negative
 // int64 result), the window is capped at 2*BytesInFlightMax. After exiting recovery,
 // we manipulate TimeOfCongAvoidStart so the CUBIC formula's DeltaT produces a large
@@ -1261,7 +1348,7 @@ TEST_F(CubicTest, CubicWindow_OverflowToBytesInFlightMax)
 }
 
 //
-// Test 28: UpdateBlockedState - Unblock Flow
+// Test: UpdateBlockedState - Unblock Flow
 // Scenario: Tests the flow control unblocking path. When congestion window opens up
 // (CanSend transitions from FALSE to TRUE), the function should return TRUE and
 // remove the congestion control blocked reason.
@@ -1305,7 +1392,7 @@ TEST_F(CubicTest, UpdateBlockedState_UnblockFlow)
 }
 
 //
-// Test 29: Spurious Congestion Event Rollback
+// Test: Spurious Congestion Event Rollback
 // Scenario: Tests the spurious congestion event handling. When a congestion event
 // is determined to be spurious (false positive), CUBIC should restore the previous
 // state before the congestion event occurred.
@@ -1348,7 +1435,7 @@ TEST_F(CubicTest, SpuriousCongestion_StateRollback)
 }
 
 //
-// Test 30: App Limited API Coverage
+// Test: App Limited API Coverage
 // Scenario: Tests the IsAppLimited and SetAppLimited API functions. In the current
 // CUBIC implementation, these are stub functions that don't track app-limited state.
 // This test verifies the API is callable and doesn't crash.
@@ -1373,7 +1460,7 @@ TEST_F(CubicTest, AppLimited_APICoverage)
 }
 
 //
-// Test 31: Time Gap in ACKs - Idle Period Handling
+// Test: Time Gap in ACKs - Idle Period Handling
 // Scenario: Tests the idle-period time gap clamping logic.
 // After exiting recovery, a large gap between ACKs (exceeding SendIdleTimeoutMs
 // and RTT+4*RttVariance) should advance TimeOfCongAvoidStart to prevent the
@@ -1455,7 +1542,7 @@ TEST_F(CubicTest, TimeGap_IdlePeriodHandling)
 //
 
 //
-// Test 32: HyStart++ Initialization State Verification
+// Test: HyStart++ Initialization State Verification
 // Transition: Initial state check
 // Scenario: Verifies that when HyStartEnabled=TRUE, the system initializes
 // to HYSTART_NOT_STARTED with all supporting variables correctly set.
@@ -1480,7 +1567,7 @@ TEST_F(CubicTest, HyStart_InitialStateVerification)
 }
 
 //
-// Test 33: HyStart++ T5 - Direct Transition NOT_STARTED → DONE via Loss
+// Test: HyStart++ T5 - Direct Transition NOT_STARTED → DONE via Loss
 // Transition: T5 in state model
 // Scenario: Tests direct transition from NOT_STARTED to DONE when packet loss
 // occurs before HyStart++ detection logic activates. This is the most common
@@ -1522,7 +1609,7 @@ TEST_F(CubicTest, HyStart_T5_NotStartedToDone_ViaLoss)
 }
 
 //
-// Test 34: HyStart++ T5 - Direct Transition NOT_STARTED → DONE via ECN
+// Test: HyStart++ T5 - Direct Transition NOT_STARTED → DONE via ECN
 // Transition: T5 in state model
 // Scenario: Tests direct transition from NOT_STARTED to DONE when ECN marking
 // is received, indicating congestion before HyStart++ activates.
@@ -1563,7 +1650,7 @@ TEST_F(CubicTest, HyStart_T5_NotStartedToDone_ViaECN)
 }
 
 //
-// Test 35: HyStart++ T4 - Transition to DONE via Persistent Congestion
+// Test: HyStart++ T4 - Transition to DONE via Persistent Congestion
 // Transition: T4 in state model
 // Scenario: Tests transition from any state to DONE when persistent congestion
 // is detected. This is the most severe congestion signal, causing drastic
@@ -1605,7 +1692,7 @@ TEST_F(CubicTest, HyStart_T4_AnyToDone_ViaPersistentCongestion)
 }
 
 //
-// Test 36: HyStart++ Terminal State - DONE is Absorbing
+// Test: HyStart++ Terminal State - DONE is Absorbing
 // Transition: Verification that DONE has no outgoing transitions
 // Scenario: Tests the mathematical proof that HYSTART_DONE is an absorbing state.
 // Once in DONE, no further state transitions can occur (all HyStart++ logic is
@@ -1694,7 +1781,7 @@ TEST_F(CubicTest, HyStart_TerminalState_DoneIsAbsorbing)
 }
 
 //
-// Test 37: HyStart++ Disabled - State Unchanged on Congestion Events
+// Test: HyStart++ Disabled - State Unchanged on Congestion Events
 // Transition: Verification of early-exit guard
 // Scenario: When HyStartEnabled=FALSE (on Connection.Settings), the loss handler's
 // HyStart state transition logic is guarded by the enabled flag. The state remains
@@ -1745,7 +1832,7 @@ TEST_F(CubicTest, HyStart_Disabled_NoTransitions)
 }
 
 //
-// Test 38: HyStart++ State Invariant - Growth Divisor Consistency
+// Test: HyStart++ State Invariant - Growth Divisor Consistency
 // Transition: Verification of Growth Divisor Invariant from state model
 // Scenario: Verifies CWndSlowStartGrowthDivisor is consistent across all
 // three states by transitioning NOT_STARTED → ACTIVE → DONE:
@@ -1806,7 +1893,7 @@ TEST_F(CubicTest, HyStart_StateInvariant_GrowthDivisor)
 }
 
 //
-// Test 39: HyStart++ Multiple Congestion Events - State Stability
+// Test: HyStart++ Multiple Congestion Events - State Stability
 // Transition: Multiple T5/T4 transitions
 // Scenario: Tests that multiple congestion events keep the state in DONE and
 // don't cause state corruption. Each event should trigger recovery logic but
@@ -1862,7 +1949,7 @@ TEST_F(CubicTest, HyStart_MultipleCongestionEvents_StateStability)
 }
 
 //
-// Test 40: HyStart++ Recovery Exit with State Persistence
+// Test: HyStart++ Recovery Exit with State Persistence
 // Transition: Verification that recovery exit doesn't affect HyStart state
 // Scenario: When exiting recovery (IsInRecovery: TRUE → FALSE), the HyStart
 // state should remain unchanged. Recovery is orthogonal to HyStart++ state.
@@ -1895,7 +1982,7 @@ TEST_F(CubicTest, HyStart_RecoveryExit_StatePersistence)
 }
 
 //
-// Test 41: HyStart++ Spurious Congestion with State Verification
+// Test: HyStart++ Spurious Congestion with State Verification
 // Transition: State behavior during spurious congestion recovery
 // Scenario: When a congestion event is declared spurious, window state is rolled
 // back but HyStart state is NOT rolled back (it remains DONE). This is because
@@ -1948,7 +2035,7 @@ TEST_F(CubicTest, HyStart_SpuriousCongestion_StateNotRolledBack)
 }
 
 //
-// Test 42: HyStart++ Delay Increase Detection - Eta Calculation and Condition Check
+// Test: HyStart++ Delay Increase Detection - Eta Calculation and Condition Check
 // Scenario: Covers the case of  triggering the delay increase
 // detection logic after sampling phase completes. Tests the Eta calculation and
 // the condition that checks if RTT has increased beyond the threshold.
@@ -2011,7 +2098,7 @@ TEST_F(CubicTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondition)
 }
 
 //
-// Test 43: HyStart++ Delay Increase Detection - Trigger ACTIVE Transition
+// Test: HyStart++ Delay Increase Detection - Trigger ACTIVE Transition
 // Scenario: Triggers the delay increase detection logic with
 // a significant RTT increase that causes transition from NOT_STARTED to ACTIVE state.
 //
@@ -2082,7 +2169,7 @@ TEST_F(CubicTest, HyStart_DelayIncreaseDetection_TriggerActiveTransition)
 }
 
 //
-// Test 44: HyStart++ RTT Decrease Detection - Return to NOT_STARTED
+// Test: HyStart++ RTT Decrease Detection - Return to NOT_STARTED
 // Scenario: Covers the RTT decrease detection logic.
 // When in HYSTART_ACTIVE state, if RTT decreases below the baseline, the algorithm
 // assumes the previous slow start exit was spurious and returns to NOT_STARTED state.
@@ -2193,7 +2280,7 @@ TEST_F(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
 }
 
 //
-// Test 45: HyStart++ Conservative Slow Start Rounds - Transition to DONE
+// Test: HyStart++ Conservative Slow Start Rounds - Transition to DONE
 // Scenario: Covers the round boundary crossing logic
 // when in HYSTART_ACTIVE state. After completing the configured number of
 // conservative slow start rounds, the algorithm transitions to HYSTART_DONE.
@@ -2275,7 +2362,7 @@ TEST_F(CubicTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
 }
 
 //
-// Test 46: Congestion Avoidance Time Gap - Overflow Protection
+// Test: Congestion Avoidance Time Gap - Overflow Protection
 // Scenario: Covers the overflow protection logic when a large time gap causes
 // TimeOfCongAvoidStart adjustment to overflow. Tests the boundary condition
 // where TimeOfCongAvoidStart might exceed TimeNowUs after adjustment.
@@ -2322,7 +2409,7 @@ TEST_F(CubicTest, CongestionAvoidance_TimeGapOverflowProtection)
 }
 
 //
-// Test 47: Congestion Avoidance - Bounded Growth Clamp
+// Test: Congestion Avoidance - Bounded Growth Clamp
 // Scenario: When the CUBIC formula produces a window far exceeding the current
 // CongestionWindow (e.g., due to large DeltaT with KCubic=0), the bounded
 // growth clamp constrains TargetWindow to at most 1.5×CW.
@@ -2372,7 +2459,7 @@ TEST_F(CubicTest, CongestionAvoidance_BoundedGrowthClamp)
 }
 
 //
-// Test 48: Slow Start Window Overflow After Persistent Congestion
+// Test: Slow Start Window Overflow After Persistent Congestion
 // Scenario: After persistent congestion, window is reset to 2*MTU while threshold
 // remains at a higher value, creating window < threshold condition. A large ACK
 // can then trigger the overflow logic where window grows beyond threshold.
@@ -2447,7 +2534,7 @@ TEST_F(CubicTest, SlowStart_WindowOverflowAfterPersistentCongestion)
 }
 
 //
-// Test 49: Reno-Friendly Region (CW = AimdWindow path)
+// Test: Reno-Friendly Region (CW = AimdWindow path)
 // Scenario: After a loss with a small initial window (3 packets), a large ACK
 // in congestion avoidance grows AimdWindow past CubicWindow via the AIMD
 // accumulator. Since AimdWindow > CubicWindow, the Reno-friendly region
@@ -2514,9 +2601,9 @@ TEST_F(CubicTest, CongestionAvoidance_RenoFriendlyRegion)
 }
 
 //
-// Test 50: ECN Spurious Rollback Restores Stale State
-// Scenario: When ECN triggers a congestion event, the `if (!Ecn)` guard at
-// cubic.c:297 skips saving previous state (PrevCongestionWindow, etc.).
+// Test: ECN Spurious Rollback Restores Stale State
+// Scenario: When ECN triggers a congestion event, the `if (!Ecn)` guard
+// skips saving previous state (PrevCongestionWindow, etc.).
 // If OnSpuriousCongestionEvent is called afterward, it enters the rollback path
 // (IsInRecovery is TRUE) but restores the stale/zero Prev* values—NOT the
 // pre-ECN state. This confirms the asymmetry between loss-based and ECN-based
