@@ -688,6 +688,8 @@ DataPathInitialize(
     }
 #endif
 
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_CIBIR;
+
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
         //
         // UDP send batching is actually supported on even earlier Windows
@@ -1255,7 +1257,7 @@ SocketCreateUdp(
     Socket->NumPerProcessorSockets = NumPerProcessorSockets;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
-    Socket->ReserveAuxTcpSock = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
+    Socket->ReserveAuxTcpSockForQtip = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
 
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
@@ -1269,11 +1271,11 @@ SocketCreateUdp(
     //
     // Servers always initialize per-proc UDP sockets.
     //
-    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSock && !IsServerSocket) ? 1 : SocketCount);
+    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) ? 1 : SocketCount);
 
-    if (Socket->ReserveAuxTcpSock && !IsServerSocket) {
+    if (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) {
         //
-        // Client will skip normal socket settings to use AuxSocket in raw socket.
+        // QTIP clients will skip normal UDP socket reservation to use AuxSocket (TCP socket reservation) in raw socket.
         //
         goto Skip;
     }
@@ -1724,6 +1726,37 @@ SocketCreateUdp(
                         Socket,
                         WsaError,
                         "SIO_ACQUIRE_PORT_RESERVATION");
+
+                    if (Config->CibirIdLength > 0 && IsServerSocket &&
+                        (WsaError == WSAEADDRINUSE || WsaError == WSAEACCES)) {
+                        //
+                        // CIBIR is configured. A port collision here is actually
+                        // expected if multiple server processes were configured to share
+                        // the same UDP and/or TCP port.
+                        //
+                        QuicTraceLogWarning(
+                            DatapathCibirWarning,
+                            "[data][%p] CIBIR detected,  %s",
+                            Socket,
+                            "ignoring port collision by assuming some \
+                             other MsQuic CIBIR process has reserved the OS port. \
+                             Let's continue with initialization and skip port reservation.");
+                        CxPlatRefInitializeEx(&Socket->RefCount, 1);
+                        Socket->SkipCreatingOsSockets = TRUE;
+                        BOOLEAN XdpAvailable = Datapath->RawDataPath != NULL;
+                        BOOLEAN XdpEnabled = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
+                        if (!XdpAvailable || !XdpEnabled) {
+                            QuicTraceLogWarning(
+                                DatapathCibirWarning,
+                                "[data][%p] CIBIR detected,  %s",
+                                Socket,
+                                !XdpAvailable ?
+                                "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
+                                "but XPD not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER.");
+                        }
+                        goto Skip;
+                    }
+
                     Status = HRESULT_FROM_WIN32(WsaError);
                     goto Error;
                 }
@@ -1831,6 +1864,44 @@ SocketCreateUdp(
 
 Skip:
 
+    if (Socket->SkipCreatingOsSockets) {
+        //
+        // Clean up all partially-initialized per-proc sockets since
+        // we're skipping OS socket creation (XDP-only via CIBIR).
+        //
+        for (uint16_t i = 0; i < SocketCount; i++) {
+            CXPLAT_SOCKET_PROC* Proc = &Socket->PerProcSockets[i];
+            if (Proc->Socket != INVALID_SOCKET) {
+                closesocket(Proc->Socket);
+                Proc->Socket = INVALID_SOCKET;
+            }
+            if (Proc->DatapathProc) {
+                CxPlatProcessorContextRelease(Proc->DatapathProc);
+                Proc->DatapathProc = NULL;
+            }
+            CxPlatRundownUninitialize(&Proc->RundownRef);
+        }
+    } else if (Config->CibirIdLength > 0 && IsServerSocket) {
+        QuicTraceLogWarning(
+            DatapathCibirWarning,
+            "[data][%p] CIBIR detected,  %s",
+            Socket,
+            "We just reserved the OS port. Other CIBIR processes can share this port.");
+    }
+
+    if (Config->CibirIdLength > 0) {
+        uint64_t CibirIdValue = 0;
+        for (uint8_t i = 0; i < Config->CibirIdLength; ++i) {
+            CibirIdValue = (CibirIdValue << 8) | Config->CibirId[i];
+        }
+        QuicTraceLogWarning(
+            DatapathCibirIdUsed,
+            "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+            Socket,
+            Config->CibirIdLength,
+            (unsigned long long)CibirIdValue);
+    }
+
     if (Config->RemoteAddress != NULL) {
         Socket->RemoteAddress = *Config->RemoteAddress;
     } else {
@@ -1843,7 +1914,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->ReserveAuxTcpSock) {
+    if (!Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
@@ -2380,8 +2451,12 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->ReserveAuxTcpSock && Socket->HasFixedRemoteAddress) {
-        // QTIP did not initialize PerProcSockets only for Client sockets.
+    if ((Socket->ReserveAuxTcpSockForQtip && Socket->HasFixedRemoteAddress) ||
+        Socket->SkipCreatingOsSockets) {
+        //
+        // QTIP client or CIBIR skip: PerProcSockets were not initialized
+        // (or already cleaned up). Just release the socket directly.
+        //
         CxPlatSocketRelease(Socket);
     } else {
         const uint16_t SocketCount =

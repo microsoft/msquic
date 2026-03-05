@@ -890,7 +890,7 @@ CxPlatTryAddSocket(
     // binding an auxiliary (dual stack) socket.
     //
 
-    if (Socket->ReserveAuxTcpSock) {
+    if (Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         Socket->AuxSocket =
             socket(
                 AF_INET6,
@@ -929,6 +929,14 @@ CxPlatTryAddSocket(
         }
 
         if (Socket->CibirIdLength) {
+            //
+            // Setting SO_REUSEADDR does NOT robustly allow
+            // multiple processes to share the same port on
+            // Windows (WinSock).
+            // This code was added primarily for Linux XDP,
+            // where Linux sockets DO actually allow robust
+            // port sharing...
+            //
             Option = TRUE;
             Result =
                 setsockopt(
@@ -960,7 +968,7 @@ CxPlatTryAddSocket(
 
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
 
-    if (Socket->ReserveAuxTcpSock) {
+    if (Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         QUIC_ADDR_STR LocalAddressString = {0};
         QuicAddrToString(&MappedAddress, &LocalAddressString);
         QuicTraceLogVerbose(
@@ -1142,7 +1150,7 @@ CxPlatTryAddSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
-        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress, Socket->ReserveAuxTcpSock)) {
+        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress, Socket->ReserveAuxTcpSockForQtip)) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;
         }

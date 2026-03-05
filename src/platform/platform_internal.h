@@ -204,13 +204,15 @@ typedef struct CXPLAT_SOCKET {
         UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     };
 
-    uint8_t ReserveAuxTcpSock : 1; // always false?
+    uint8_t ReserveAuxTcpSockForQtip : 1; // always false in kernel mode.
 
     //
     // Flag indicates the socket has a default remote destination.
     //
     uint8_t HasFixedRemoteAddress : 1;
     uint8_t RawSocketAvailable : 1;
+
+    uint8_t SkipCreatingOsSockets : 1;
 
     CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
 
@@ -283,7 +285,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     uint32_t ProcCount;
 
-    uint8_t ReserveAuxTcpSock : 1; // Not supported. always false
+    uint8_t ReserveAuxTcpSockForQtip : 1; // Not supported. always false.
 
     //
     // Per-processor completion contexts.
@@ -523,7 +525,7 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
-    uint8_t ReserveAuxTcpSock : 1;
+    uint8_t ReserveAuxTcpSockForQtip : 1;
 
     //
     // Per-processor completion contexts.
@@ -591,9 +593,11 @@ typedef struct CXPLAT_SOCKET {
     // TCP socket, or per-proc UDP sockets. For servers, we always create
     // per-proc UDP sockets, and optionally create an auxiliary TCP socket.
     //
-    uint8_t ReserveAuxTcpSock : 1;
+    uint8_t ReserveAuxTcpSockForQtip : 1;
 
     uint8_t RawSocketAvailable : 1;
+
+    uint8_t SkipCreatingOsSockets : 1;
 
     //
     // Per-processor socket contexts.
@@ -896,9 +900,11 @@ typedef struct CXPLAT_SOCKET {
     uint8_t Freed : 1;
 #endif
 
-    uint8_t ReserveAuxTcpSock : 1;                  // Quic over TCP
+    uint8_t ReserveAuxTcpSockForQtip : 1;                  // Quic over TCP
 
     uint8_t RawSocketAvailable : 1;
+
+    uint8_t SkipCreatingOsSockets : 1;
 
     //
     // Set of socket contexts one per proc.
@@ -1030,7 +1036,7 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Freed : 1;
 #endif
 
-    uint8_t ReserveAuxTcpSock : 1;
+    uint8_t ReserveAuxTcpSockForQtip : 1;
 
     //
     // The per proc datapath contexts.

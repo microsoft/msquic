@@ -531,6 +531,7 @@ struct CxPlatSocket {
     CXPLAT_SOCKET* Socket {nullptr};
     QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_STATE};
     CXPLAT_ROUTE Route {0};
+    uint8_t CibirIdLength {0};
     CxPlatSocket() { }
     CxPlatSocket(
         _In_ CxPlatDataPath& Datapath,
@@ -571,6 +572,7 @@ struct CxPlatSocket {
         UdpConfig.Flags = InternalFlags;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = CallbackContext;
+        UdpConfig.CibirIdLength = CibirIdLength;
         InitStatus =
             CxPlatSocketCreateUdp(
                 Datapath,
@@ -846,6 +848,35 @@ TEST_P(DataPathTest, UdpData)
 
     Client.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+}
+
+TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
+    UdpRecvContext RecvContext;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_CIBIR)) {
+        GTEST_SKIP_("CIBIR port sharing is only supported on Windows usermode datapath.");
+    }
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    auto unspecAddress = GetNewUnspecAddr();
+    CxPlatSocket Server1;
+    //
+    // Set CibirIdLength to some non-zero value to trigger the cibir path in the datapath code,
+    // which should allow multiple cxplat sockets to be created on the same udp port so long as
+    // cibir is configured.
+    //
+    Server1.CibirIdLength = 8;
+    Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    }
+    VERIFY_QUIC_SUCCESS(Server1.GetInitStatus());
+    ASSERT_NE(nullptr, Server1.Socket);
+    CxPlatSocket Server2;
+    Server2.CibirIdLength = 8;
+    Server2.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    VERIFY_QUIC_SUCCESS(Server2.GetInitStatus());
+    ASSERT_NE(nullptr, Server2.Socket);
 }
 
 TEST_P(DataPathTest, UdpDataPolling)
