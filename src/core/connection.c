@@ -3087,7 +3087,7 @@ QuicConnProcessPeerTransportParameters(
         &Connection->Streams,
         Connection->PeerTransportParams.InitialMaxBidiStreams,
         Connection->PeerTransportParams.InitialMaxUniStreams,
-        !FromResumptionTicket);
+        FromResumptionTicket);
 
     if (FromResumptionTicket) {
         //
