@@ -126,7 +126,6 @@ protected:
         Cubic = &CC->Cubic;
     }
 
-
     void InitializeDefaultWithRtt(uint32_t WindowPackets = 10, bool HyStart = true) {
         InitializeWithDefaults(/*WindowPackets=*/WindowPackets, /*HyStart=*/HyStart, /*Mtu=*/1280, /*IdleTimeoutMs=*/1000, /*GotRttSample=*/true, /*SmoothedRtt=*/50000);
     }
@@ -157,7 +156,6 @@ protected:
         return Cubic->CongestionWindow;
     }
 };
-
 
 //
 // Test: CanSend scenarios
@@ -385,6 +383,11 @@ TEST_F(CubicTest, OnDataSent_IncrementsBytesInFlight)
     uint32_t TinySend = 500; // Send less than allowance
     CC->QuicCongestionControlOnDataSent(CC, TinySend);
     ASSERT_EQ(Cubic->LastSendAllowance, 2000u - TinySend); // Should be reduced
+
+    // When NumRetransmittableBytes > LastSendAllowance, allowance is zeroed
+    Cubic->LastSendAllowance = 1000;
+    CC->QuicCongestionControlOnDataSent(CC, 3000); // 3000 > 1000
+    ASSERT_EQ(Cubic->LastSendAllowance, 0u);
 }
 
 //
@@ -513,10 +516,10 @@ TEST_F(CubicTest, GetNetworkStatistics_RetrieveStats)
         /*Mtu=*/1280,
         /*IdleTimeoutMs=*/1000,
         /*GotRttSample=*/true,
-        /*SmoothedRtt=*/50000,
+        /*SmoothedRtt=*/5000,
         /*SetMinRtt=*/true,
-        /*MinRtt=*/40000,
-        /*RttVariance=*/5000
+        /*MinRtt=*/4000,
+        /*RttVariance=*/500
     );
 
     // Send data via OnDataSent to properly track BytesInFlightMax
@@ -532,14 +535,14 @@ TEST_F(CubicTest, GetNetworkStatistics_RetrieveStats)
     // Verify all 6 statistics fields were populated
     ASSERT_EQ(NetworkStats.CongestionWindow, Cubic->CongestionWindow);
     ASSERT_EQ(NetworkStats.BytesInFlight, Cubic->BytesInFlight);
-    ASSERT_EQ(NetworkStats.SmoothedRTT, 50000u);
-    // Bandwidth = CongestionWindow / SmoothedRtt = 12320 / 50000 = 0 (integer truncation)
-    ASSERT_EQ(NetworkStats.Bandwidth, Cubic->CongestionWindow / 50000u);
+    ASSERT_EQ(NetworkStats.SmoothedRTT, 5000u);
+    // Bandwidth = CongestionWindow / SmoothedRtt = 12320 / 5000 = 2
+    uint64_t ExpectedBandwidth = Cubic->CongestionWindow / Connection.Paths[0].SmoothedRtt;
+    ASSERT_EQ(NetworkStats.Bandwidth, ExpectedBandwidth);
     // PostedBytes and IdealBytes come from SendBuffer, which is zero-initialized
     ASSERT_EQ(NetworkStats.PostedBytes, 0u);
     ASSERT_EQ(NetworkStats.IdealBytes, 0u);
 }
-
 
 //
 // Test: Spurious Congestion Event - No-Op When Not In Recovery
@@ -972,7 +975,6 @@ TEST_F(CubicTest, AIMD_SequentialLinearConvergence)
     // After 5 ACKs, AimdWindow should have grown by exactly 5 * DPL
     ASSERT_EQ(Cubic->AimdWindow, InitialAimdWindow + NumAcks * DatagramPayloadLength);
 }
-
 
 //
 // Test: CubicWindow Overflow to BytesInFlightMax
