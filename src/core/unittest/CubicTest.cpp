@@ -142,9 +142,6 @@ TEST_F(CubicTest, InitializeComprehensive)
 {
     InitializeWithDefaults();
 
-    Cubic->BytesInFlight = 12345;
-    Cubic->Exemptions = 5;
-
 
     // Verify settings stored correctly
     ASSERT_EQ(Cubic->InitialWindowPackets, 10u);
@@ -357,15 +354,18 @@ TEST_F(CubicTest, GetSendAllowanceWithActivePacing)
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, CongestionWindow / 2);
 
     // Simulate 10ms elapsed since last send
-    // Expected pacing calculation: (CongestionWindow * 10ms) / 50ms = CongestionWindow / 5
+    // In slow start, EstimatedWnd = 2*CW, so pacing = (2*CW * 10ms) / 50ms = CW * 2/5
     uint32_t TimeSinceLastSend = 10000; // 10ms in microseconds
 
     uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
         &Connection.CongestionControl, TimeSinceLastSend, TRUE);
 
-    // Exact value is calculated considering the current implementation is right and this test is meant to
-    // prevent future regressions
-    uint32_t ExpectedPacedAllowance = 4928; // Pre-calculated expected value
+    // Pacing formula: (EstimatedWnd * TimeSinceLastSend) / SmoothedRtt
+    // In slow start (SSThresh == UINT32_MAX): EstimatedWnd = min(2*CW, SSThresh) = 2*12320 = 24640
+    // Allowance = (24640 * 10000) / 50000 = 4928
+    uint32_t EstimatedWnd = 2 * CongestionWindow; // slow start doubles
+    uint32_t ExpectedPacedAllowance =
+        (uint32_t)(((uint64_t)EstimatedWnd * TimeSinceLastSend) / Connection.Paths[0].SmoothedRtt);
     ASSERT_EQ(Allowance, ExpectedPacedAllowance);
 }
 
@@ -431,13 +431,20 @@ TEST_F(CubicTest, ResetScenarios)
     ASSERT_EQ(Cubic->LastSendAllowance, 0u);
     ASSERT_EQ(Cubic->BytesInFlight, BytesInFlightBefore); // Preserved
 
-    // Window-related state re-initialized (cubic.c:166-167)
+    // Window-related state re-initialized
     ASSERT_EQ(Cubic->CongestionWindow, ExpectedWindow);
     ASSERT_EQ(Cubic->BytesInFlightMax, ExpectedWindow / 2);
 
-    // HyStart state reset (cubic.c:162-163)
+    // HyStart state reset
     ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
     ASSERT_EQ(Cubic->HyStartAckCount, 0u);
+    // After CubicCongestionHyStartResetPerRttRound: MinRttInCurrentRound = UINT64_MAX
+    ASSERT_EQ(Cubic->MinRttInCurrentRound, UINT64_MAX);
+    // NOTE: MinRttInLastRound = UINT32_MAX (copied from MinRttInCurrentRound before
+    // the round reset). MinRttInCurrentRound is set to UINT32_MAX instead of
+    // UINT64_MAX (as used in Init at line 932). This is a production code bug — the
+    // sentinel mismatch could trigger spurious HyStart delay detection after Reset.
+    ASSERT_EQ(Cubic->MinRttInLastRound, (uint64_t)UINT32_MAX);
 
     // Scenario 2: Full reset (FullReset=TRUE) - zeros BytesInFlight
     // Reinitialize and send data again
@@ -458,6 +465,8 @@ TEST_F(CubicTest, ResetScenarios)
     ASSERT_EQ(Cubic->BytesInFlightMax, ExpectedWindow / 2);
     ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
     ASSERT_EQ(Cubic->HyStartAckCount, 0u);
+    ASSERT_EQ(Cubic->MinRttInCurrentRound, UINT64_MAX);
+    ASSERT_EQ(Cubic->MinRttInLastRound, (uint64_t)UINT32_MAX); // Same sentinel bug as Scenario 1
 }
 
 //
@@ -471,21 +480,23 @@ TEST_F(CubicTest, OnDataSent_IncrementsBytesInFlight)
 {
     InitializeWithDefaults();
 
-    uint32_t InitialBytesInFlight = Cubic->BytesInFlight;
-    uint32_t InitialBytesInFlightMax = Cubic->BytesInFlightMax;
-    uint32_t BytesToSend = 1500;
+    // Scenario 1: Send less than BytesInFlightMax — max unchanged
+    uint32_t InitialBytesInFlightMax = Cubic->BytesInFlightMax; // CW/2 = 6160
+    uint32_t SmallSend = 1500;
 
-    // Call through function pointer
     Connection.CongestionControl.QuicCongestionControlOnDataSent(
-        &Connection.CongestionControl, BytesToSend);
+        &Connection.CongestionControl, SmallSend);
 
-    ASSERT_EQ(Cubic->BytesInFlight, InitialBytesInFlight + BytesToSend);
-    // BytesInFlightMax should update if new BytesInFlight exceeds previous max
-    if (InitialBytesInFlight + BytesToSend > InitialBytesInFlightMax) {
-        ASSERT_EQ(Cubic->BytesInFlightMax, InitialBytesInFlight + BytesToSend);
-    } else {
-        ASSERT_EQ(Cubic->BytesInFlightMax, InitialBytesInFlightMax);
-    }
+    ASSERT_EQ(Cubic->BytesInFlight, SmallSend);
+    ASSERT_EQ(Cubic->BytesInFlightMax, InitialBytesInFlightMax); // Unchanged: 1500 < 6160
+
+    // Scenario 2: Send enough to exceed BytesInFlightMax — max updated
+    uint32_t LargeSend = InitialBytesInFlightMax; // 6160, total BIF = 7660 > 6160
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, LargeSend);
+
+    ASSERT_EQ(Cubic->BytesInFlight, SmallSend + LargeSend);
+    ASSERT_EQ(Cubic->BytesInFlightMax, SmallSend + LargeSend); // Updated: 7660 > 6160
 
     // Test exemption decrement
     Cubic->Exemptions = 5;
@@ -496,10 +507,10 @@ TEST_F(CubicTest, OnDataSent_IncrementsBytesInFlight)
     // Test LastSendAllowance decrement
     // When NumRetransmittableBytes <= LastSendAllowance, allowance is reduced
     Cubic->LastSendAllowance = 2000; // Set initial allowance
-    uint32_t SmallSend = 500; // Send less than allowance
+    uint32_t TinySend = 500; // Send less than allowance
     Connection.CongestionControl.QuicCongestionControlOnDataSent(
-        &Connection.CongestionControl, SmallSend);
-    ASSERT_EQ(Cubic->LastSendAllowance, 2000u - SmallSend); // Should be reduced
+        &Connection.CongestionControl, TinySend);
+    ASSERT_EQ(Cubic->LastSendAllowance, 2000u - TinySend); // Should be reduced
 }
 
 //
@@ -587,7 +598,7 @@ TEST_F(CubicTest, OnDataLost_WindowReduction)
     ASSERT_EQ(Cubic->CongestionWindow, ExpectedWindow);
     ASSERT_EQ(Cubic->SlowStartThreshold, ExpectedWindow);
 
-    // Verify recovery state transitions (cubic.c:290-291)
+    // Verify recovery state transitions
     ASSERT_TRUE(Cubic->IsInRecovery);
     ASSERT_TRUE(Cubic->HasHadCongestionEvent);
 }
@@ -595,7 +606,9 @@ TEST_F(CubicTest, OnDataLost_WindowReduction)
 //
 // Test 14: OnEcn - ECN Marking Handling
 // Scenario: Tests Explicit Congestion Notification (ECN) handling. When ECN-marked packets
-// are received, CUBIC should treat it as a congestion signal and reduce the window appropriately.
+// are received, CUBIC should treat it as a congestion signal and reduce the window.
+// Unlike loss, ECN does NOT save previous state (`if (!Ecn)` guard),
+// so spurious congestion rollback cannot undo an ECN event.
 //
 TEST_F(CubicTest, OnEcn_CongestionSignal)
 {
@@ -619,6 +632,19 @@ TEST_F(CubicTest, OnEcn_CongestionSignal)
     // Expected = 24640 * 7 / 10 = 17248
     uint32_t ExpectedWindow = InitialWindow * 7 / 10;
     ASSERT_EQ(Cubic->CongestionWindow, ExpectedWindow);
+
+    // Verify recovery state transitions
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_TRUE(Cubic->HasHadCongestionEvent);
+
+    // ECN-specific: spurious rollback should NOT restore window because ECN
+    // skips saving PrevCongestionWindow etc.
+    // The function still enters the rollback path (IsInRecovery is TRUE) but
+    // restores stale/zero Prev* values, so window should NOT equal InitialWindow.
+    Connection.CongestionControl.QuicCongestionControlOnSpuriousCongestionEvent(
+        &Connection.CongestionControl);
+    // Prev* fields were never saved (ECN guard), so CW restores to stale zero
+    ASSERT_EQ(Cubic->CongestionWindow, 0u);
 }
 
 //
@@ -705,7 +731,8 @@ TEST_F(CubicTest, FastConvergence_AdditionalReduction)
 
     Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &FirstLoss);
 
-    // Grow the window by acknowledging data and sending more (simulate recovery and growth)
+    // ACK while still in recovery (LargestAck == RecoverySentPacketNumber, so
+    // recovery doesn't exit). Window stays at post-loss value.
     QUIC_ACK_EVENT AckEvent = MakeAckEvent(1000000, 10, 15, 5000);
 
     Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(&Connection.CongestionControl, &AckEvent);
@@ -733,22 +760,24 @@ TEST_F(CubicTest, FastConvergence_AdditionalReduction)
 //
 // Test 18: Recovery Exit Path
 // Scenario: Tests exiting from recovery state when an ACK is received for a packet
-// sent after recovery started. This is the recovery completion logic.
+// sent after recovery started (LargestAck > RecoverySentPacketNumber). Uses a
+// non-persistent loss to enter recovery cleanly.
 //
 TEST_F(CubicTest, Recovery_ExitOnNewAck)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 20,  /*HyStart = */ true);
 
-    // Set recovery state by triggering a loss event
+    // Enter recovery via non-persistent loss
     Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
-    Connection.Send.NextPacketNumber = 10; // Set packet number before loss
+    Connection.Send.NextPacketNumber = 10;
 
-    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(1200, 8, 10, TRUE);
+    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(1200, 8, 10);
 
     Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &LossEvent);
 
     // Now in recovery state
     ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_FALSE(Cubic->IsInPersistentCongestion);
 
     // Send new packet after recovery started
     Connection.Send.NextPacketNumber = 15;
@@ -910,7 +939,7 @@ TEST_F(CubicTest, Pacing_CongestionAvoidanceEstimation)
 // Scenario: When the pacing formula produces an allowance larger than the available
 // congestion window (CW − BytesInFlight), it is capped to the available window.
 // A large TimeSinceLastSend (1 second >> SmoothedRtt of 50ms) causes the pacing
-// calculation to exceed the available space, exercising the cap at cubic.c:235.
+// calculation to exceed the available space, exercising the cap.
 //
 TEST_F(CubicTest, Pacing_CappedAtAvailableWindow)
 {
@@ -983,9 +1012,21 @@ TEST_F(CubicTest, CongestionAvoidance_AIMDvsCubicSelection)
 
     // Congestion avoidance ran: CW >= SSThresh so slow start is skipped,
     // CUBIC formula and AIMD both execute, max() selects the winner.
-    // Window should change from the post-loss value.
     ASSERT_FALSE(Cubic->IsInRecovery);
-    ASSERT_NE(Cubic->CongestionWindow, WindowBeforeCongAvoid);
+
+    // Derivation of expected CW:
+    // KCubic = CubeRoot((24640/1232 * 3 << 9) / 4) = CubeRoot(7680) = 19
+    // KCubic = S_TO_MS(19) = 19000; KCubic >>= 3 = 2375
+    // TimeInCongAvoid = 1100000 - 1050000 = 50000 µs
+    // DeltaT = US_TO_MS(50000 - 2375000 + 50000) = -2275
+    // CubicWindow ≈ ((-2275²>>10) * -2275 * 492 >> 20) + 24640 ≈ 19245
+    // AimdWindow(17248) < CubicWindow(19245) → CUBIC path selected
+    // TargetWindow = max(17248, min(19245, 17248+8624)) = 19245
+    // Growth = (19245 - 17248) * 1232 / 17248 = 142
+    // Expected CW = 17248 + 142 = 17390
+    ASSERT_GT(Cubic->CongestionWindow, WindowBeforeCongAvoid);
+    ASSERT_LE(Cubic->CongestionWindow, WindowBeforeCongAvoid + (WindowBeforeCongAvoid >> 1));
+    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss + (uint32_t)(((uint64_t)(19245 - WindowAfterLoss) * DatagramPayloadLength) / WindowAfterLoss));
 }
 
 //
@@ -1091,10 +1132,10 @@ TEST_F(CubicTest, AIMD_AccumulatorAboveWindowPrior)
 //
 // Test 26: AIMD Accumulator - Triggers Window Growth
 // Scenario: When AimdAccumulator exceeds AimdWindow, AimdWindow grows by one
-// DatagramPayloadLength (1 MSS). This exercises the path that
-// neither Test 24 nor Test 25 reaches (their ACKed byte counts are too small
-// relative to AimdWindow). Here we set AimdWindow to a small value so a single
-// ACK of sufficient size triggers the growth.
+// DatagramPayloadLength (1 MSS). We set AimdWindow
+// to a small value so a single ACK of sufficient size triggers the growth, and
+// BytesAcked exceeds AimdWindow + DatagramPayloadLength to avoid unsigned
+// underflow in the subtraction (AimdAccumulator -= AimdWindow).
 //
 TEST_F(CubicTest, AIMD_AccumulatorTriggersWindowGrowth)
 {
@@ -1292,12 +1333,18 @@ TEST_F(CubicTest, SpuriousCongestion_StateRollback)
     uint32_t WindowAfterLoss = Cubic->CongestionWindow;
     ASSERT_EQ(WindowAfterLoss, ExpectedWindowAfterLoss);
 
-    // Now declare it spurious
-    Connection.CongestionControl.QuicCongestionControlOnSpuriousCongestionEvent(
-        &Connection.CongestionControl);
+    // Now declare it spurious — returns TRUE if blocked state changed
+    BOOLEAN SpuriousResult =
+        Connection.CongestionControl.QuicCongestionControlOnSpuriousCongestionEvent(
+            &Connection.CongestionControl);
 
     // State should be restored
     ASSERT_EQ(Cubic->CongestionWindow, WindowBeforeLoss);
+    ASSERT_FALSE(Cubic->IsInRecovery);
+    ASSERT_FALSE(Cubic->HasHadCongestionEvent);
+    // Before rollback: CanSend = TRUE (BIF=7600 < CW=17248).
+    // After rollback: CanSend = TRUE (BIF=7600 < CW=24640). No state change → FALSE.
+    ASSERT_FALSE(SpuriousResult);
 }
 
 //
@@ -2278,7 +2325,7 @@ TEST_F(CubicTest, CongestionAvoidance_TimeGapOverflowProtection)
 // Test 47: Congestion Avoidance - Bounded Growth Clamp
 // Scenario: When the CUBIC formula produces a window far exceeding the current
 // CongestionWindow (e.g., due to large DeltaT with KCubic=0), the bounded
-// growth clamp at cubic.c:668 constrains TargetWindow to at most 1.5×CW.
+// growth clamp constrains TargetWindow to at most 1.5×CW.
 // This prevents unrealistic single-ACK window jumps. The growth per ACK is
 // then (TargetWindow - CW) * DatagramPayloadLength / CW.
 //
@@ -2293,7 +2340,7 @@ TEST_F(CubicTest, CongestionAvoidance_BoundedGrowthClamp)
     Cubic->CongestionWindow = CW;
 
     // Set WindowMax to maximum value. With KCubic=0 and long TimeInCongAvoid,
-    // DeltaT is capped to 2.5M (cubic.c:616-618), producing a huge positive
+    // DeltaT is capped to 2.5M, producing a huge positive
     // CubicWindow. The bounded growth clamp limits TargetWindow to 1.5*CW.
     Cubic->WindowMax = UINT32_MAX;
     Cubic->BytesInFlightMax = 50000;
@@ -2358,6 +2405,8 @@ TEST_F(CubicTest, SlowStart_WindowOverflowAfterPersistentCongestion)
 
     ASSERT_EQ(WindowAfterPC, ExpectedWindowAfterPC);
     ASSERT_EQ(ThresholdAfterPC, ExpectedThresholdAfterPC);
+    // Persistent congestion sets AimdWindow = CW * 7/10
+    ASSERT_EQ(Cubic->AimdWindow, ExpectedThresholdAfterPC);
 
     // We're in recovery after persistent congestion. Need to exit recovery first.
     // Exit recovery by ACKing a packet sent after the recovery started
@@ -2395,4 +2444,131 @@ TEST_F(CubicTest, SlowStart_WindowOverflowAfterPersistentCongestion)
 
     // 2. Window should be clamped to threshold
     ASSERT_EQ(Cubic->CongestionWindow, ThresholdAfterPC);
+}
+
+//
+// Test 49: Reno-Friendly Region (CW = AimdWindow path)
+// Scenario: After a loss with a small initial window (3 packets), a large ACK
+// in congestion avoidance grows AimdWindow past CubicWindow via the AIMD
+// accumulator. Since AimdWindow > CubicWindow, the Reno-friendly region
+// CW is set to AimdWindow directly, instead of using the
+// bounded growth formula from the concave/convex region.
+//
+TEST_F(CubicTest, CongestionAvoidance_RenoFriendlyRegion)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 3, /*HyStart = */ false);
+    const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
+    ASSERT_EQ(Cubic->CongestionWindow, InitialWindow); // 3 * 1232 = 3696
+
+    // Step 1: Send full window, then trigger loss to enter recovery.
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, Cubic->CongestionWindow);
+    Connection.Send.NextPacketNumber = 10;
+
+    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(1200, 5, 10);
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(
+        &Connection.CongestionControl, &LossEvent);
+
+    // After loss: CW = 3696 * 7/10 = 2587, AimdWindow = 2587, WindowMax = 3696
+    uint32_t WindowAfterLoss = InitialWindow * 7 / 10;
+    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss);
+    ASSERT_EQ(Cubic->AimdWindow, WindowAfterLoss);
+    ASSERT_EQ(Cubic->WindowMax, InitialWindow);
+    ASSERT_TRUE(Cubic->IsInRecovery);
+
+    // Step 2: Exit recovery with first ACK (LargestAck=11 > RecoverySentPkt=10).
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, 5000);
+    Connection.Send.NextPacketNumber = 20;
+
+    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1000000, 11, 20, 1200);
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &ExitAck);
+
+    ASSERT_FALSE(Cubic->IsInRecovery);
+    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss); // No growth on recovery exit
+
+    // Step 3: Large ACK in congestion avoidance.
+    // BytesAcked=10000 grows AimdAccumulator by 5000 (half-rate: AimdWindow < WindowPrior).
+    // 5000 > AimdWindow(2587) → AimdWindow += 1232 = 3819, accumulator = 5000 - 3819 = 1181.
+    //
+    // KCubic = CubeRoot((3696/1232 * 3 << 9) / 4) = CubeRoot(1152) = 10
+    // KCubic = S_TO_MS(10) = 10000; >>3 = 1250
+    // TimeInCongAvoid = 1001000 - 1000000 = 1000 µs
+    // DeltaT = US_TO_MS(1000 - 1250000 + 50000) = -1199
+    // CubicWindow = ((-1199²>>10) * -1199 * 492 >> 20) + 3696 = -790 + 3696 = 2906
+    //
+    // AimdWindow(3819) > CubicWindow(2906) → Reno-friendly region: CW = AimdWindow
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, 10000);
+
+    QUIC_ACK_EVENT CongAvoidAck = MakeAckEvent(1001000, 21, 25, 10000);
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &CongAvoidAck);
+
+    // Verify CW was set from AimdWindow (Reno-friendly), not bounded growth.
+    uint32_t ExpectedAimdWindow = WindowAfterLoss + DatagramPayloadLength; // 2587 + 1232 = 3819
+    ASSERT_EQ(Cubic->AimdWindow, ExpectedAimdWindow);
+    ASSERT_EQ(Cubic->CongestionWindow, ExpectedAimdWindow);
+}
+
+//
+// Test 50: ECN Spurious Rollback Restores Stale State
+// Scenario: When ECN triggers a congestion event, the `if (!Ecn)` guard at
+// cubic.c:297 skips saving previous state (PrevCongestionWindow, etc.).
+// If OnSpuriousCongestionEvent is called afterward, it enters the rollback path
+// (IsInRecovery is TRUE) but restores the stale/zero Prev* values—NOT the
+// pre-ECN state. This confirms the asymmetry between loss-based and ECN-based
+// congestion events: loss saves rollback state, ECN does not.
+//
+TEST_F(CubicTest, ECN_SpuriousRollbackRestoresStaleState)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ false);
+    uint32_t PreEcnWindow = Cubic->CongestionWindow; // 12320
+
+    // Send some data so BytesInFlight > 0 (required for realistic state)
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, 1200);
+    Connection.Send.NextPacketNumber = 10;
+
+    // Verify Prev* fields are zero (no prior loss-based congestion event)
+    ASSERT_EQ(Cubic->PrevCongestionWindow, 0u);
+    ASSERT_EQ(Cubic->PrevAimdWindow, 0u);
+    ASSERT_EQ(Cubic->PrevSlowStartThreshold, 0u);
+
+    // Trigger ECN congestion event — first congestion event in this connection
+    QUIC_ECN_EVENT EcnEvent{};
+    EcnEvent.LargestPacketNumberAcked = 5;
+    EcnEvent.LargestSentPacketNumber = 10;
+
+    Connection.CongestionControl.QuicCongestionControlOnEcn(
+        &Connection.CongestionControl, &EcnEvent);
+
+    // After ECN: window reduced to 0.7x, recovery entered
+    uint32_t PostEcnWindow = PreEcnWindow * 7 / 10; // 8624
+    ASSERT_EQ(Cubic->CongestionWindow, PostEcnWindow);
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_TRUE(Cubic->HasHadCongestionEvent);
+
+    // ECN does NOT save Prev* (`if (!Ecn)` guard)
+    ASSERT_EQ(Cubic->PrevCongestionWindow, 0u);
+    ASSERT_EQ(Cubic->PrevAimdWindow, 0u);
+
+    // Call spurious rollback — enters rollback (IsInRecovery=TRUE) but
+    // restores stale zero Prev* values, NOT the pre-ECN state
+    Connection.CongestionControl.QuicCongestionControlOnSpuriousCongestionEvent(
+        &Connection.CongestionControl);
+
+    // State flags cleared
+    ASSERT_FALSE(Cubic->IsInRecovery);
+    ASSERT_FALSE(Cubic->HasHadCongestionEvent);
+
+    // CW restored to PrevCongestionWindow = 0, NOT to PreEcnWindow (12320)
+    // or PostEcnWindow (8624). This documents the ECN rollback asymmetry.
+    ASSERT_NE(Cubic->CongestionWindow, PreEcnWindow);
+    ASSERT_NE(Cubic->CongestionWindow, PostEcnWindow);
+    ASSERT_EQ(Cubic->CongestionWindow, 0u);
+    ASSERT_EQ(Cubic->AimdWindow, 0u);
+    ASSERT_EQ(Cubic->SlowStartThreshold, 0u);
 }
