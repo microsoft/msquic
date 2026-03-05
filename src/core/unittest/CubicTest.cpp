@@ -769,3 +769,41 @@ TEST(CubicTest, HyStart_StateTransitions)
                 Cubic->HyStartState <= HYSTART_DONE);
     ASSERT_GE(Cubic->CWndSlowStartGrowthDivisor, 1u);
 }
+
+//
+// Test 18: OnDataAcknowledged with NetStatsEventEnabled and SmoothedRtt=0
+// Scenario: Verifies that no division-by-zero occurs when NetStatsEventEnabled is TRUE
+// and an ACK is processed before SmoothedRtt has been set (SmoothedRtt=0).
+//
+TEST(CubicTest, OnDataAcknowledged_NetStatsEventDivByZero)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(Connection, 1280);
+    Connection.Settings.NetStatsEventEnabled = TRUE;
+    // SmoothedRtt is 0 by default (from InitializeMockConnection)
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+    Cubic->BytesInFlight = 5000;
+
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = 1000000;
+    AckEvent.LargestAck = 5;
+    AckEvent.LargestSentPacketNumber = 10;
+    AckEvent.NumRetransmittableBytes = 1000;
+    AckEvent.NumTotalAckedRetransmittableBytes = 1000;
+    AckEvent.SmoothedRtt = 0; // No RTT sample yet
+    AckEvent.MinRtt = 0;
+    AckEvent.MinRttValid = FALSE;
+    AckEvent.AckedPackets = NULL;
+
+    // Should not crash with division-by-zero when SmoothedRtt=0
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl, &AckEvent);
+}
