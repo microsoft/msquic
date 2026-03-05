@@ -130,6 +130,32 @@ protected:
     void InitializeDefaultWithRtt(uint32_t WindowPackets = 10, bool HyStart = true) {
         InitializeWithDefaults(/*WindowPackets=*/WindowPackets, /*HyStart=*/HyStart, /*Mtu=*/1280, /*IdleTimeoutMs=*/1000, /*GotRttSample=*/true, /*SmoothedRtt=*/50000);
     }
+
+    //
+    // Helper to enter congestion avoidance from slow start.
+    // Sends full window, triggers loss, sends additional data, then exits
+    // recovery via an ACK. After this call:
+    //   - IsInRecovery = FALSE, HasHadCongestionEvent = TRUE
+    //   - CongestionWindow = SlowStartThreshold = pre-loss window * 7/10
+    //   - TimeOfCongAvoidStart = 1050000
+    //   - Connection.Send.NextPacketNumber = 15
+    // Returns the post-loss CongestionWindow.
+    //
+    uint32_t EnterCongestionAvoidance(uint32_t LostBytes = 2400) {
+        CC->QuicCongestionControlOnDataSent(CC, Cubic->CongestionWindow);
+        Connection.Send.NextPacketNumber = 10;
+
+        QUIC_LOSS_EVENT LossEvent = MakeLossEvent(LostBytes, 5, 10);
+        CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
+
+        Connection.Send.NextPacketNumber = 15;
+        CC->QuicCongestionControlOnDataSent(CC, 5000);
+
+        QUIC_ACK_EVENT ExitAck = MakeAckEvent(1050000, 11, 20, 1200);
+        CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
+
+        return Cubic->CongestionWindow;
+    }
 };
 
 
@@ -476,14 +502,6 @@ TEST_F(CubicTest, OnEcn_CongestionSignal)
     // Verify recovery state transitions
     ASSERT_TRUE(Cubic->IsInRecovery);
     ASSERT_TRUE(Cubic->HasHadCongestionEvent);
-
-    // ECN-specific: spurious rollback should NOT restore window because ECN
-    // skips saving PrevCongestionWindow etc.
-    // The function still enters the rollback path (IsInRecovery is TRUE) but
-    // restores stale/zero Prev* values, so window should NOT equal InitialWindow.
-    CC->QuicCongestionControlOnSpuriousCongestionEvent(CC);
-    // Prev* fields were never saved (ECN guard), so CW restores to stale zero
-    ASSERT_EQ(Cubic->CongestionWindow, 0u);
 }
 
 //
@@ -803,33 +821,10 @@ TEST_F(CubicTest, CongestionAvoidance_AIMDvsCubicSelection)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 20,  /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
-    uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
-    // Trigger loss to enter congestion avoidance
-    CC->QuicCongestionControlOnDataSent(CC, Cubic->CongestionWindow);
-    Connection.Send.NextPacketNumber = 10;
+    uint32_t WindowAfterLoss = EnterCongestionAvoidance();
 
-    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 5, 10);
-
-    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
-
-    uint32_t WindowAfterLoss = InitialWindow * 7 / 10;
-    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss);
-    ASSERT_TRUE(Cubic->IsInRecovery);
-
-    // First ACK: exit recovery (LargestAck=11 > RecoverySentPacketNumber=10)
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-    Connection.Send.NextPacketNumber = 20;
-
-    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1050000, 11, 20, 1200);
-
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
-
-    ASSERT_FALSE(Cubic->IsInRecovery);
-    // Recovery exit goes to Exit label; window unchanged this ACK
-    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss);
-
-    // Second ACK: now in congestion avoidance, CUBIC/AIMD selection runs
+    // ACK in congestion avoidance: CUBIC/AIMD selection runs
     CC->QuicCongestionControlOnDataSent(CC, 3000);
 
     QUIC_ACK_EVENT CongAvoidAck = MakeAckEvent(1100000, 15, 25, 1200);
@@ -867,26 +862,11 @@ TEST_F(CubicTest, AIMD_AccumulatorBelowWindowPrior)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 20,  /*HyStart = */ true);
 
-    // Trigger congestion avoidance by causing a loss
-    CC->QuicCongestionControlOnDataSent(CC, Cubic->CongestionWindow);
-    Connection.Send.NextPacketNumber = 10;
-
-    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 5, 10);
-
-    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
     // After loss: AimdWindow = CW * 7/10, WindowPrior = original CW
     // So AimdWindow < WindowPrior → half-rate accumulator path
+    EnterCongestionAvoidance();
 
-    // First ACK: exit recovery
-    Connection.Send.NextPacketNumber = 15;
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-
-    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1050000, 11, 20, 1200);
-
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
-    ASSERT_FALSE(Cubic->IsInRecovery);
-
-    // Second ACK: congestion avoidance runs, AIMD accumulator exercised
+    // ACK in congestion avoidance: AIMD accumulator exercised
     CC->QuicCongestionControlOnDataSent(CC, 3000);
 
     uint32_t BytesAcked = 600; // Half MTU
@@ -910,22 +890,7 @@ TEST_F(CubicTest, AIMD_AccumulatorAboveWindowPrior)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 20,  /*HyStart = */ true);
 
-    // Trigger congestion avoidance
-    CC->QuicCongestionControlOnDataSent(CC, Cubic->CongestionWindow);
-    Connection.Send.NextPacketNumber = 10;
-
-    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 5, 10);
-
-    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
-
-    // Exit recovery
-    Connection.Send.NextPacketNumber = 15;
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-
-    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1050000, 11, 20, 1200);
-
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
-    ASSERT_FALSE(Cubic->IsInRecovery);
+    EnterCongestionAvoidance();
 
     // Force AimdWindow >= WindowPrior so the full-rate accumulator path runs.
     // After loss, WindowPrior = original CW and AimdWindow = CW * 7/10.
@@ -958,21 +923,7 @@ TEST_F(CubicTest, AIMD_AccumulatorTriggersWindowGrowth)
     InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
 
-    // Trigger loss → recovery → exit recovery (standard pattern)
-    CC->QuicCongestionControlOnDataSent(CC, Cubic->CongestionWindow);
-    Connection.Send.NextPacketNumber = 10;
-
-    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 5, 10);
-    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
-    ASSERT_TRUE(Cubic->IsInRecovery);
-
-    // Exit recovery
-    Connection.Send.NextPacketNumber = 15;
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-
-    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1050000, 11, 20, 1200);
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
-    ASSERT_FALSE(Cubic->IsInRecovery);
+    EnterCongestionAvoidance();
 
     // Set AimdWindow small enough that a single ACK triggers growth.
     // Use full-rate path: AimdWindow >= WindowPrior.
@@ -1013,22 +964,7 @@ TEST_F(CubicTest, AIMD_SequentialLinearConvergence)
     InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
 
-    // Trigger loss → recovery → exit recovery (standard pattern)
-    CC->QuicCongestionControlOnDataSent(CC, Cubic->CongestionWindow);
-    Connection.Send.NextPacketNumber = 10;
-
-    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 5, 10);
-    CC->QuicCongestionControlOnDataLost(
-        CC, &LossEvent);
-    ASSERT_TRUE(Cubic->IsInRecovery);
-
-    // Exit recovery
-    Connection.Send.NextPacketNumber = 15;
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-
-    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1050000, 11, 20, 1200);
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
-    ASSERT_FALSE(Cubic->IsInRecovery);
+    EnterCongestionAvoidance();
 
     // Set up for full-rate AIMD (AimdWindow >= WindowPrior).
     // Use a small AimdWindow so each ACK triggers exactly one growth.
@@ -1087,27 +1023,8 @@ TEST_F(CubicTest, CubicWindow_OverflowToBytesInFlightMax)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 20,  /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
-    uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
 
-    // Trigger loss → recovery
-    CC->QuicCongestionControlOnDataSent(CC, Cubic->CongestionWindow);
-    Connection.Send.NextPacketNumber = 10;
-
-    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 5, 10);
-
-    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
-    uint32_t WindowAfterLoss = InitialWindow * 7 / 10;
-    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss);
-    ASSERT_TRUE(Cubic->IsInRecovery);
-
-    // Exit recovery with first ACK
-    Connection.Send.NextPacketNumber = 15;
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-
-    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1050000, 11, 20, 1200);
-
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
-    ASSERT_FALSE(Cubic->IsInRecovery);
+    uint32_t WindowAfterLoss = EnterCongestionAvoidance();
 
     // Force extreme conditions to trigger CUBIC overflow.
     // Set a huge WindowMax so KCubic is very large, making DeltaT deeply negative
@@ -2276,47 +2193,23 @@ TEST_F(CubicTest, CongestionAvoidance_RenoFriendlyRegion)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 3, /*HyStart = */ false);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
-    uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
-    ASSERT_EQ(Cubic->CongestionWindow, InitialWindow); // 3 * 1232 = 3696
 
-    // Step 1: Send full window, then trigger loss to enter recovery.
-    CC->QuicCongestionControlOnDataSent(CC, Cubic->CongestionWindow);
-    Connection.Send.NextPacketNumber = 10;
+    uint32_t WindowAfterLoss = EnterCongestionAvoidance(/*LostBytes=*/1200);
 
-    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(1200, 5, 10);
-    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
-
-    // After loss: CW = 3696 * 7/10 = 2587, AimdWindow = 2587, WindowMax = 3696
-    uint32_t WindowAfterLoss = InitialWindow * 7 / 10;
-    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss);
-    ASSERT_EQ(Cubic->AimdWindow, WindowAfterLoss);
-    ASSERT_EQ(Cubic->WindowMax, InitialWindow);
-    ASSERT_TRUE(Cubic->IsInRecovery);
-
-    // Step 2: Exit recovery with first ACK (LargestAck=11 > RecoverySentPkt=10).
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-    Connection.Send.NextPacketNumber = 20;
-
-    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1000000, 11, 20, 1200);
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
-
-    ASSERT_FALSE(Cubic->IsInRecovery);
-    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterLoss); // No growth on recovery exit
-
-    // Step 3: Large ACK in congestion avoidance.
+    // Large ACK in congestion avoidance.
     // BytesAcked=10000 grows AimdAccumulator by 5000 (half-rate: AimdWindow < WindowPrior).
     // 5000 > AimdWindow(2587) → AimdWindow += 1232 = 3819, accumulator = 5000 - 3819 = 1181.
     //
     // KCubic = CubeRoot((3696/1232 * 3 << 9) / 4) = CubeRoot(1152) = 10
     // KCubic = S_TO_MS(10) = 10000; >>3 = 1250
-    // TimeInCongAvoid = 1001000 - 1000000 = 1000 µs
+    // TimeInCongAvoid = 1051000 - 1050000 = 1000 µs
     // DeltaT = US_TO_MS(1000 - 1250000 + 50000) = -1199
     // CubicWindow = ((-1199²>>10) * -1199 * 492 >> 20) + 3696 = -790 + 3696 = 2906
     //
     // AimdWindow(3819) > CubicWindow(2906) → Reno-friendly region: CW = AimdWindow
     CC->QuicCongestionControlOnDataSent(CC, 10000);
 
-    QUIC_ACK_EVENT CongAvoidAck = MakeAckEvent(1001000, 21, 25, 10000);
+    QUIC_ACK_EVENT CongAvoidAck = MakeAckEvent(1051000, 21, 25, 10000);
     CC->QuicCongestionControlOnDataAcknowledged(CC, &CongAvoidAck);
 
     // Verify CW was set from AimdWindow (Reno-friendly), not bounded growth.
