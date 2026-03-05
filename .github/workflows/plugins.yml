@@ -64,6 +64,8 @@ jobs:
         path: artifacts/bin/quictrace/${{ matrix.configuration }}
     - name: Package
       shell: pwsh
+      env:
+        DOTNET_ROLL_FORWARD: LatestMajor
       run: |
         $sourceDir = "src\plugins\trace\dll\bin\${{ matrix.configuration }}\netstandard2.1"
         $manifestPath = "$sourceDir/pluginManifest.json"
