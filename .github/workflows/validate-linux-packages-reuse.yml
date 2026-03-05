@@ -89,7 +89,9 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309
         with:
-          dotnet-version: '9.0'
+          dotnet-version: |
+            10.0.x
+            9.0
 
       - name: Build QuicHello
         run: |
