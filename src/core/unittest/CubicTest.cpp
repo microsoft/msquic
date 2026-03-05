@@ -142,8 +142,11 @@ protected:
 TEST_F(CubicTest, CanSendScenarios)
 {
     InitializeWithDefaults();
-
     uint32_t CongestionWindow = Cubic->CongestionWindow;
+
+    // Initial State
+    uint32_t MaxBytes = CC->QuicCongestionControlGetBytesInFlightMax(CC);
+    ASSERT_EQ(MaxBytes, Cubic->CongestionWindow / 2);
 
     // Scenario 1: Available window - can send
     // Simulate sending half the window
@@ -164,30 +167,6 @@ TEST_F(CubicTest, CanSendScenarios)
     CC->QuicCongestionControlSetExemption(CC, 2);
     ASSERT_TRUE(CC->QuicCongestionControlCanSend(CC));
 }
-
-// //
-// // Test: SetExemption
-// // Scenario: Tests SetExemption to verify it correctly sets the number of packets that
-// // can bypass congestion control. Used for probe packets and other special cases.
-// //
-// TEST_F(CubicTest, SetExemption)
-// {
-//     InitializeWithDefaults();
-//     // Initially should be 0
-//     ASSERT_EQ(Cubic->Exemptions, 0u);
-
-//     // Set exemptions via function pointer
-//     CC->QuicCongestionControlSetExemption(CC, 5);
-//     ASSERT_EQ(Cubic->Exemptions, 5u);
-
-//     // Set to zero
-//     CC->QuicCongestionControlSetExemption(CC, 0);
-//     ASSERT_EQ(Cubic->Exemptions, 0u);
-
-//     // Set to max
-//     CC->QuicCongestionControlSetExemption(CC, 255);
-//     ASSERT_EQ(Cubic->Exemptions, 255u);
-// }
 
 //
 // Test: GetSendAllowance scenarios
@@ -261,30 +240,16 @@ TEST_F(CubicTest, GetSendAllowanceWithActivePacing)
 }
 
 //
-// Test: Getter functions (via function pointers)
-// Scenario: Tests all simple getter functions that return internal state values.
-// Verifies GetExemptions, GetBytesInFlightMax, and GetCongestionWindow all return
-// correct values matching the internal CUBIC state.
+// Test: Congestion window calculation
+// Scenario: Tests that the initial congestion window is calculated correctly based on MTU and
+// InitialWindowPackets. The expected congestion window is (MTU - 48) * InitialWindowPackets,
+// where 48 bytes are reserved for IPv6 and UDP headers. This verifies that the initial
+// congestion window is set according to the standard formula.
 //
-TEST_F(CubicTest, GetterFunctions)
+TEST_F(CubicTest, CongestionWindowCalculation)
 {
-    InitializeWithDefaults();
-
-    // Test GetExemptions
-    uint8_t Exemptions = CC->QuicCongestionControlGetExemptions(CC);
-    ASSERT_EQ(Exemptions, 0u);
-    Cubic->Exemptions = 3;
-    Exemptions = CC->QuicCongestionControlGetExemptions(CC);
-    ASSERT_EQ(Exemptions, 3u);
-
-    // Test GetBytesInFlightMax
-    uint32_t MaxBytes = CC->QuicCongestionControlGetBytesInFlightMax(CC);
-    ASSERT_EQ(MaxBytes, Cubic->BytesInFlightMax);
-    ASSERT_EQ(MaxBytes, Cubic->CongestionWindow / 2);
-
-    // Test GetCongestionWindow
+    InitializeWithDefaults(/*WindowPackets=*/10, /*HyStart=*/false, /*Mtu=*/1280);
     uint32_t CongestionWindow = CC->QuicCongestionControlGetCongestionWindow(CC);
-    ASSERT_EQ(CongestionWindow, Cubic->CongestionWindow);
     // CongestionWindow = (MTU - 48) * InitialWindowPackets = (1280 - 48) * 10 = 12320
     uint32_t ExpectedCongestionWindow = (1280 - kIPv6UdpOverhead) * 10;
     ASSERT_EQ(CongestionWindow, ExpectedCongestionWindow);
@@ -388,9 +353,9 @@ TEST_F(CubicTest, OnDataSent_IncrementsBytesInFlight)
     ASSERT_EQ(Cubic->BytesInFlightMax, SmallSend + LargeSend); // Updated: 7660 > 6160
 
     // Test exemption decrement
-    Cubic->Exemptions = 5;
+    CC->QuicCongestionControlSetExemption(CC, 5); // Set 5 exemptions
     CC->QuicCongestionControlOnDataSent(CC, 1500);
-    ASSERT_EQ(Cubic->Exemptions, 4u);
+    ASSERT_EQ(CC->QuicCongestionControlGetExemptions(CC), 4u);
 
     // Test LastSendAllowance decrement
     // When NumRetransmittableBytes <= LastSendAllowance, allowance is reduced
