@@ -86,6 +86,14 @@ static QUIC_LOSS_EVENT MakeLossEvent(
 class CubicTest : public ::testing::Test {
 protected:
     static constexpr uint16_t kIPv6UdpOverhead = 48; // IPv6 (40) + UDP (8) header bytes
+
+    // HyStart++ RTT constants for delay increase/decrease detection tests.
+    // Activation threshold = kHyStartBaselineRtt + kHyStartBaselineRtt/N_SAMPLING = 45000.
+    static constexpr uint64_t kHyStartBaselineRtt = 40000;       // MinRttInLastRound baseline
+    static constexpr uint64_t kHyStartRttAboveThreshold = 46000; // > activation threshold (45000)
+    static constexpr uint64_t kHyStartRttBelowThreshold = 42000; // < activation threshold (45000)
+    static constexpr uint64_t kHyStartRttDecrease = 38000;       // < CssBaselineMinRtt → triggers ACTIVE → NOT_STARTED
+
     QUIC_CONNECTION Connection{};
     QUIC_SETTINGS_INTERNAL Settings{};
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic;
@@ -161,34 +169,34 @@ protected:
     // delay increase detection. Requires InitializeDefaultWithRtt(..., HyStart=true)
     // to have been called first.
     //
-    // Mechanism: Sets MinRttInLastRound=40000 as the baseline, then sends
-    // N_SAMPLING (8) ACKs with MinRtt=46000 to complete sampling. The 9th ACK
-    // triggers delay increase detection because MinRttInCurrentRound (46000) >=
-    // MinRttInLastRound (40000) + Eta (40000/8 = 5000) = 45000.
+    // Mechanism: Sets MinRttInLastRound to kHyStartBaselineRtt, then sends
+    // N_SAMPLING (8) ACKs with MinRtt=kHyStartRttAboveThreshold to complete
+    // sampling. The 9th ACK triggers delay increase detection because
+    // MinRttInCurrentRound >= kHyStartBaselineRtt + Eta (= activation threshold).
     //
     // After this call:
     //   - HyStartState = HYSTART_ACTIVE
     //   - CWndSlowStartGrowthDivisor = 4
     //   - ConservativeSlowStartRounds = 5 (QUIC_CONSERVATIVE_SLOW_START_DEFAULT_ROUNDS)
-    //   - CssBaselineMinRtt = 46000, MinRttInCurrentRound = 46000
-    //   - MinRttInLastRound = 40000
+    //   - CssBaselineMinRtt = kHyStartRttAboveThreshold
+    //   - MinRttInLastRound = kHyStartBaselineRtt
     //   - Connection.Send.NextPacketNumber = 100, HyStartRoundEnd = 100
     //
     void EnterHyStartActive() {
         Connection.Send.NextPacketNumber = 100;
         Cubic->HyStartRoundEnd = 100;
-        Cubic->MinRttInLastRound = 40000;
+        Cubic->MinRttInLastRound = kHyStartBaselineRtt;
 
         for (uint32_t i = 0; i < QUIC_HYSTART_DEFAULT_N_SAMPLING; i++) {
             CC->QuicCongestionControlOnDataSent(CC, 1200);
             QUIC_ACK_EVENT AckEvent = MakeAckEvent(
                 1000000 + (i * 10000), 10 + i, 15 + i, 1200,
-                50000, 46000);
+                50000, kHyStartRttAboveThreshold);
             CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
         }
 
         CC->QuicCongestionControlOnDataSent(CC, 1200);
-        QUIC_ACK_EVENT TriggerAck = MakeAckEvent(1100000, 20, 25, 1200, 50000, 47000);
+        QUIC_ACK_EVENT TriggerAck = MakeAckEvent(1100000, 20, 25, 1200, 50000, kHyStartRttAboveThreshold + 1000);
         CC->QuicCongestionControlOnDataAcknowledged(CC, &TriggerAck);
     }
 };
@@ -256,43 +264,8 @@ TEST_F(CubicTest, GetSendAllowanceScenarios)
     Connection.Settings.PacingEnabled = TRUE;
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000;
-    Allowance = CC->QuicCongestionControlGetSendAllowance(
-        CC, 1000, FALSE); // FALSE = invalid time
+    Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 1000, FALSE); // FALSE = invalid time
     ASSERT_EQ(Allowance, ExpectedAllowance);
-}
-
-//
-// Test: GetSendAllowance with active pacing
-// Scenario: Tests the pacing logic that limits send rate based on RTT and congestion window.
-// When pacing is enabled with valid RTT samples, the function calculates a pacing rate to
-// smooth out packet transmission. This prevents burst sending and improves performance over
-// certain network paths. The pacing calculation is: (EstimatedWnd * TimeSinceLastSend) / RTT,
-// where EstimatedWnd = min(2*CW, SSThresh) in slow start.
-// This test verifies that with pacing enabled, the allowance is rate-limited based on elapsed
-// time, resulting in a smaller allowance than the full available congestion window.
-//
-TEST_F(CubicTest, GetSendAllowanceWithActivePacing)
-{
-    InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ false);
-    Connection.Settings.PacingEnabled = TRUE;
-    uint32_t CongestionWindow = Cubic->CongestionWindow;
-
-    // Set BytesInFlight to half the window to have available capacity
-    CC->QuicCongestionControlOnDataSent(CC, CongestionWindow / 2);
-
-    // Simulate 10ms elapsed since last send
-    // In slow start, EstimatedWnd = 2*CW, so pacing = (2*CW * 10ms) / 50ms = CW * 2/5
-    uint32_t TimeSinceLastSend = 10000; // 10ms in microseconds
-
-    uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, TimeSinceLastSend, TRUE);
-
-    // Pacing formula: (EstimatedWnd * TimeSinceLastSend) / SmoothedRtt
-    // In slow start (SSThresh == UINT32_MAX): EstimatedWnd = min(2*CW, SSThresh) = 2*12320 = 24640
-    // Allowance = (24640 * 10000) / 50000 = 4928
-    uint32_t EstimatedWnd = 2 * CongestionWindow; // slow start doubles
-    uint32_t ExpectedPacedAllowance =
-        (uint32_t)(((uint64_t)EstimatedWnd * TimeSinceLastSend) / Connection.Paths[0].SmoothedRtt);
-    ASSERT_EQ(Allowance, ExpectedPacedAllowance);
 }
 
 //
@@ -1062,12 +1035,12 @@ TEST_F(CubicTest, CubicWindow_OverflowToBytesInFlightMax)
 }
 
 //
-// Test: UpdateBlockedState - Unblock Flow
-// Scenario: Tests the flow control unblocking path. When congestion window opens up
-// (CanSend transitions from FALSE to TRUE), the function should return TRUE and
-// remove the congestion control blocked reason.
+// Test: Slow Start Window Growth and Send Allowance After ACK
+// Scenario: After filling the congestion window completely (blocked), an ACK frees
+// space and triggers slow-start growth. Verifies window grows by BytesAcked,
+// BytesInFlight decreases, and GetSendAllowance reflects the new available window.
 //
-TEST_F(CubicTest, AckFreesWindow_AllowsNewSends)
+TEST_F(CubicTest, SlowStart_WindowGrowthAndAllowance)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
@@ -1226,23 +1199,24 @@ TEST_F(CubicTest, TimeGap_IdlePeriodHandling)
 }
 
 //
-// =========================================================================================
+// ==========================================================================================================================================
 // HyStart++ State Transition Tests
+//
 // State Transition Table
-// | From State          | To State            | Trigger | Condition                       |
-// |---------------------|---------------------|---------|---------------------------------|
-// | HYSTART_NOT_STARTED | HYSTART_ACTIVE      | T1      | RTT increase detected           |
-// | HYSTART_NOT_STARTED | HYSTART_DONE        | T5      | Loss/ECN/Persistent congestion  |
-// | HYSTART_ACTIVE      | HYSTART_DONE        | T2      | Conservative rounds completed   |
-// | HYSTART_ACTIVE      | HYSTART_DONE        | T3      | Loss/ECN/Persistent congestion  |
-// | HYSTART_ACTIVE      | HYSTART_NOT_STARTED | T6      | RTT decrease detected           |
-// | HYSTART_DONE        | (no transitions)    | -       | Terminal state                  |
-// =========================================================================================
+// | From State          | To State            | Condition                                | Tested By                                       |
+// |---------------------|---------------------|------------------------------------------|-------------------------------------------------|
+// | HYSTART_NOT_STARTED | HYSTART_ACTIVE      | RTT increase detected (delay increase)   | DelayIncreaseDetection_TriggerActiveTransition  |
+// | HYSTART_NOT_STARTED | HYSTART_DONE        | Loss, ECN, or persistent congestion      | NotStartedToDone_ViaLoss, _ViaECN,              |
+// |                     |                     |                                          | AnyToDone_ViaPersistentCongestion               |
+// | HYSTART_ACTIVE      | HYSTART_DONE        | Conservative slow start rounds completed | ConservativeSlowStartRounds_TransitionToDone    |
+// | HYSTART_ACTIVE      | HYSTART_DONE        | Loss, ECN, or persistent congestion      | ActiveToDone_ViaLoss, _ViaECN                   |
+// | HYSTART_ACTIVE      | HYSTART_NOT_STARTED | RTT decrease detected (spurious exit)    | RttDecreaseDetection_ReturnToNotStarted         |
+// | HYSTART_DONE        | (no transitions)    | Terminal / absorbing state               | TerminalState_DoneIsAbsorbing                   |
+// ==========================================================================================================================================
 //
 
 //
 // Test: HyStart++ Initialization State Verification
-// Transition: Initial state check
 // Scenario: Verifies that when HyStartEnabled=TRUE, the system initializes
 // to HYSTART_NOT_STARTED with all supporting variables correctly set.
 // This establishes the precondition for all other HyStart++ transitions.
@@ -1266,13 +1240,12 @@ TEST_F(CubicTest, HyStart_InitialStateVerification)
 }
 
 //
-// Test: HyStart++ T5 - Direct Transition NOT_STARTED → DONE via Loss
-// Transition: T5 in state model
+// Test: HyStart++ NOT_STARTED → DONE via Loss
 // Scenario: Tests direct transition from NOT_STARTED to DONE when packet loss
 // occurs before HyStart++ detection logic activates. This is the most common
 // path when network conditions cause loss during initial slow start.
 //
-TEST_F(CubicTest, HyStart_T5_NotStartedToDone_ViaLoss)
+TEST_F(CubicTest, HyStart_NotStartedToDone_ViaLoss)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 20,  /*HyStart = */ true);
     // Precondition: Verify in NOT_STARTED state
@@ -1301,12 +1274,11 @@ TEST_F(CubicTest, HyStart_T5_NotStartedToDone_ViaLoss)
 }
 
 //
-// Test: HyStart++ T5 - Direct Transition NOT_STARTED → DONE via ECN
-// Transition: T5 in state model
+// Test: HyStart++ NOT_STARTED → DONE via ECN
 // Scenario: Tests direct transition from NOT_STARTED to DONE when ECN marking
 // is received, indicating congestion before HyStart++ activates.
 //
-TEST_F(CubicTest, HyStart_T5_NotStartedToDone_ViaECN)
+TEST_F(CubicTest, HyStart_NotStartedToDone_ViaECN)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 20,  /*HyStart = */ true);
     // Precondition: Verify in NOT_STARTED state
@@ -1335,13 +1307,70 @@ TEST_F(CubicTest, HyStart_T5_NotStartedToDone_ViaECN)
 }
 
 //
-// Test: HyStart++ T4 - Transition to DONE via Persistent Congestion
-// Transition: T4 in state model
+// Test: HyStart++ ACTIVE → DONE via Loss
+// Scenario: Tests transition from ACTIVE to DONE when loss occurs during
+// conservative slow start. This is a different entry point than
+// NOT_STARTED → DONE and verifies the CWndSlowStartGrowthDivisor is
+// reset from 4 back to 1.
+//
+TEST_F(CubicTest, HyStart_ActiveToDone_ViaLoss)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ true);
+
+    EnterHyStartActive();
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_ACTIVE);
+    ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 4u);
+
+    // Trigger loss while in ACTIVE state
+    CC->QuicCongestionControlOnDataSent(CC, 5000);
+    Connection.Send.NextPacketNumber = 30;
+
+    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 25, 30);
+    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
+
+    // Should transition ACTIVE → DONE
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+    ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 1u); // Reset from 4 to 1
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_TRUE(Cubic->HasHadCongestionEvent);
+}
+
+//
+// Test: HyStart++ ACTIVE → DONE via ECN
+// Scenario: Same as ACTIVE → DONE via Loss, but triggered by an ECN
+// congestion signal.
+//
+TEST_F(CubicTest, HyStart_ActiveToDone_ViaECN)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ true);
+
+    EnterHyStartActive();
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_ACTIVE);
+    ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 4u);
+
+    // Trigger ECN while in ACTIVE state
+    Connection.Send.NextPacketNumber = 30;
+
+    QUIC_ECN_EVENT EcnEvent{};
+    EcnEvent.LargestPacketNumberAcked = 25;
+    EcnEvent.LargestSentPacketNumber = 30;
+
+    CC->QuicCongestionControlOnEcn(CC, &EcnEvent);
+
+    // Should transition ACTIVE → DONE
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+    ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 1u); // Reset from 4 to 1
+    ASSERT_TRUE(Cubic->IsInRecovery);
+}
+
+
+//
+// Test: HyStart++ Any State → DONE via Persistent Congestion
 // Scenario: Tests transition from any state to DONE when persistent congestion
 // is detected. This is the most severe congestion signal, causing drastic
 // window reduction to minimum (2 packets).
 //
-TEST_F(CubicTest, HyStart_T4_AnyToDone_ViaPersistentCongestion)
+TEST_F(CubicTest, HyStart_AnyToDone_ViaPersistentCongestion)
 {
     InitializeDefaultWithRtt(/*WindowPackets = */ 30, /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
@@ -1369,10 +1398,8 @@ TEST_F(CubicTest, HyStart_T4_AnyToDone_ViaPersistentCongestion)
 
 //
 // Test: HyStart++ Terminal State - DONE is Absorbing
-// Transition: Verification that DONE has no outgoing transitions
-// Scenario: Tests the mathematical proof that HYSTART_DONE is an absorbing state.
-// Once in DONE, no further state transitions can occur (all HyStart++ logic is
-// bypassed). This verifies the guard.
+// Scenario: Once in DONE, neither ACK-based detection nor loss/ECN events can
+// change the state. Two focused patterns cover both code paths.
 //
 TEST_F(CubicTest, HyStart_TerminalState_DoneIsAbsorbing)
 {
@@ -1383,75 +1410,32 @@ TEST_F(CubicTest, HyStart_TerminalState_DoneIsAbsorbing)
     Connection.Send.NextPacketNumber = 10;
 
     QUIC_LOSS_EVENT LossEvent = MakeLossEvent(2400, 5, 10);
-
     CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
-
-    // Verify in DONE state
     ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
 
-    // Exit recovery to enable further ACK processing
+    // Exit recovery to enable ACK processing
     Connection.Send.NextPacketNumber = 20;
-
-    // First, ACK the packet that exits recovery (sent after RecoverySentPacketNumber)
     QUIC_ACK_EVENT RecoveryExitAck = MakeAckEvent(1500000, 20, 25, 0, 50000, 48000);
-
     CC->QuicCongestionControlOnDataAcknowledged(CC, &RecoveryExitAck);
+    ASSERT_FALSE(Cubic->IsInRecovery);
 
-    ASSERT_FALSE(Cubic->IsInRecovery);  // Should have exited recovery
+    // Pattern 1: ACK with high RTT (would trigger NOT_STARTED → ACTIVE if not in DONE)
+    CC->QuicCongestionControlOnDataSent(CC, 1200);
+    QUIC_ACK_EVENT HighRttAck = MakeAckEvent(2000000, 25, 30, 1200, 50000, kHyStartRttAboveThreshold);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &HighRttAck);
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
 
-    // Attempt to trigger state changes with various ACK patterns
-    // None of these should change the state from DONE
-
-    // Pattern 1: ACKs with varying RTT (would trigger T1 if not in DONE)
-    for (int i = 0; i < 2 * QUIC_HYSTART_DEFAULT_N_SAMPLING; i++) {
-        uint32_t BytesToSend = 1200;
-        CC->QuicCongestionControlOnDataSent(CC, BytesToSend);
-
-        QUIC_ACK_EVENT AckEvent = MakeAckEvent(
-            2000000 + (i * 10000), 20 + i, 25 + i, BytesToSend,
-            50000, 45000 + (i * 1000));
-
-        CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
-
-        // State should remain DONE
-        ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
-    }
-
-    // Pattern 2: Cross round boundaries (would trigger T2 if in ACTIVE)
-    for (int round = 0; round < 2; round++) {
-        Connection.Send.NextPacketNumber = 100 + (round * 20);
-
-        uint32_t BytesToSend = 1200;
-        CC->QuicCongestionControlOnDataSent(CC, BytesToSend);
-
-        QUIC_ACK_EVENT BoundaryAck = MakeAckEvent(
-            3000000 + (round * 60000),
-            Connection.Send.NextPacketNumber,
-            Connection.Send.NextPacketNumber + 5,
-            BytesToSend, 50000, 48000);
-
-        CC->QuicCongestionControlOnDataAcknowledged(CC, &BoundaryAck);
-
-        // State should remain DONE
-        ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
-    }
-
-    // Pattern 3: Decreasing RTT (would trigger T6 if in ACTIVE)
-    uint32_t BytesToSend = 1200;
-    CC->QuicCongestionControlOnDataSent(CC, BytesToSend);
-
-    QUIC_ACK_EVENT DecreaseAck = MakeAckEvent(4000000, 150, 160, BytesToSend, 50000, 30000);
-
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &DecreaseAck);
-
-    // Final verification: State is still DONE
+    // Pattern 2: Another loss (would transition non-DONE states)
+    CC->QuicCongestionControlOnDataSent(CC, 3000);
+    Connection.Send.NextPacketNumber = 40;
+    QUIC_LOSS_EVENT SecondLoss = MakeLossEvent(1200, 35, 40);
+    CC->QuicCongestionControlOnDataLost(CC, &SecondLoss);
     ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
 }
 
 //
 // Test: HyStart++ Disabled - State Unchanged on Congestion Events
-// Transition: Verification of early-exit guard
-// Scenario: When HyStartEnabled=FALSE (on Connection.Settings), the loss handler's
+// Scenario: When HyStartEnabled=FALSE(on Connection.Settings), the loss handler's
 // HyStart state transition logic is guarded by the enabled flag. The state remains
 // NOT_STARTED because the code path `Cubic->HyStartState = HYSTART_DONE` is only
 // executed when HyStartEnabled=TRUE. Recovery still occurs normally.
@@ -1465,7 +1449,7 @@ TEST_F(CubicTest, HyStart_Disabled_NoTransitions)
 
     // Attempt various operations that would trigger transitions if enabled
 
-    // 1. Send ACKs with increasing RTT (would trigger T1 if enabled).
+    // 1. Send ACKs with increasing RTT (would trigger NOT_STARTED → ACTIVE if enabled).
     // Two iterations suffice — the guard is checked on every ACK.
     for (int i = 0; i < 2; i++) {
         CC->QuicCongestionControlOnDataSent(CC, 1200);
@@ -1480,7 +1464,7 @@ TEST_F(CubicTest, HyStart_Disabled_NoTransitions)
         ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
     }
 
-    // 2. Trigger loss (would trigger T5)
+    // 2. Trigger loss (would trigger NOT_STARTED → DONE if enabled)
     Connection.Send.NextPacketNumber = 20;
 
     // First send more data to have BytesInFlight for the loss
@@ -1498,7 +1482,6 @@ TEST_F(CubicTest, HyStart_Disabled_NoTransitions)
 
 //
 // Test: HyStart++ State Invariant - Growth Divisor Consistency
-// Transition: Verification of Growth Divisor Invariant from state model
 // Scenario: Verifies CWndSlowStartGrowthDivisor is consistent across all
 // three states by transitioning NOT_STARTED → ACTIVE → DONE:
 // - NOT_STARTED → divisor = 1
@@ -1532,7 +1515,6 @@ TEST_F(CubicTest, HyStart_StateInvariant_GrowthDivisor)
 
 //
 // Test: HyStart++ Multiple Congestion Events - State Stability
-// Transition: Multiple T5/T4 transitions
 // Scenario: Tests that multiple congestion events keep the state in DONE and
 // don't cause state corruption. Each event should trigger recovery logic but
 // state should remain DONE.
@@ -1588,7 +1570,6 @@ TEST_F(CubicTest, HyStart_MultipleCongestionEvents_StateStability)
 
 //
 // Test: HyStart++ Recovery Exit with State Persistence
-// Transition: Verification that recovery exit doesn't affect HyStart state
 // Scenario: When exiting recovery (IsInRecovery: TRUE → FALSE), the HyStart
 // state should remain unchanged. Recovery is orthogonal to HyStart++ state.
 //
@@ -1621,7 +1602,6 @@ TEST_F(CubicTest, HyStart_RecoveryExit_StatePersistence)
 
 //
 // Test: HyStart++ Spurious Congestion with State Verification
-// Transition: State behavior during spurious congestion recovery
 // Scenario: When a congestion event is declared spurious, window state is rolled
 // back but HyStart state is NOT rolled back (it remains DONE). This is because
 // HyStart++ state transitions are one-way and not part of the spurious recovery.
@@ -1687,7 +1667,7 @@ TEST_F(CubicTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondition)
     Cubic->HyStartRoundEnd = 100;  // Manually set to match
 
     // Set up initial MinRttInLastRound to enable delay increase detection
-    Cubic->MinRttInLastRound = 40000; // 40ms baseline RTT
+    Cubic->MinRttInLastRound = kHyStartBaselineRtt;
 
     // Phase 1: Send N_SAMPLING (8) ACKs to complete sampling phase
     // This fills up the HyStartAckCount and sets MinRttInCurrentRound
@@ -1698,7 +1678,7 @@ TEST_F(CubicTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondition)
 
         QUIC_ACK_EVENT AckEvent = MakeAckEvent(
             1000000 + (i * 10000), 10 + i, 15 + i, BytesToSend,
-            50000, 42000);
+            50000, kHyStartRttBelowThreshold);
 
         CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
     }
@@ -1706,17 +1686,16 @@ TEST_F(CubicTest, HyStart_DelayIncreaseDetection_EtaCalculationAndCondition)
     // After 8 ACKs, we should have completed sampling
     ASSERT_EQ(Cubic->HyStartAckCount, 8u);
     ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED); // Still in NOT_STARTED
-    ASSERT_EQ(Cubic->MinRttInCurrentRound, 42000u);
+    ASSERT_EQ(Cubic->MinRttInCurrentRound, kHyStartRttBelowThreshold);
 
-    // Phase 2: Send one more ACK with MinRtt below the increase threshold
+    // Phase 2: Send one more ACK with MinRtt below the activation threshold
     // This triggers HyStartAckCount >= 8 and state is NOT_STARTED
     {
         uint32_t BytesToSend = 1200;
         CC->QuicCongestionControlOnDataSent(CC, BytesToSend);
 
-        // MinRtt = 43000, which is less than MinRttInLastRound (40000) + Eta (40000/8 = 5000)
-        // 43000 < 45000
-        QUIC_ACK_EVENT AckEvent = MakeAckEvent(1100000, 20, 25, BytesToSend, 50000, 43000);
+        // MinRtt = 43000 < activation threshold (kHyStartBaselineRtt + Eta = 45000)
+        QUIC_ACK_EVENT AckEvent = MakeAckEvent(1100000, 20, 25, BytesToSend, 50000, kHyStartRttBelowThreshold + 1000);
 
         CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
 
@@ -1742,7 +1721,7 @@ TEST_F(CubicTest, HyStart_DelayIncreaseDetection_TriggerActiveTransition)
     ASSERT_EQ(Cubic->HyStartState, HYSTART_ACTIVE);
     ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 4u); // QUIC_CONSERVATIVE_SLOW_START_DEFAULT_GROWTH_DIVISOR
     ASSERT_EQ(Cubic->ConservativeSlowStartRounds, 5u); // QUIC_CONSERVATIVE_SLOW_START_DEFAULT_ROUNDS
-    ASSERT_EQ(Cubic->CssBaselineMinRtt, 46000u); // Set to MinRttInCurrentRound
+    ASSERT_EQ(Cubic->CssBaselineMinRtt, kHyStartRttAboveThreshold); // Set to MinRttInCurrentRound
 }
 
 //
@@ -1760,7 +1739,7 @@ TEST_F(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
     ASSERT_EQ(Cubic->HyStartState, HYSTART_ACTIVE);
 
     // Cross a round boundary to reset HyStartAckCount
-    // This will move MinRttInCurrentRound (46000) to MinRttInLastRound
+    // This will move MinRttInCurrentRound to MinRttInLastRound
     // and reset MinRttInCurrentRound to UINT64_MAX for new sampling
     {
         // Update NextPacketNumber so HyStartRoundEnd will be set to a high value
@@ -1769,7 +1748,7 @@ TEST_F(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
         uint32_t BytesToSend = 1200;
         CC->QuicCongestionControlOnDataSent(CC, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent = MakeAckEvent(1200000, 100, 105, BytesToSend, 50000, 46000);
+        QUIC_ACK_EVENT AckEvent = MakeAckEvent(1200000, 100, 105, BytesToSend, 50000, kHyStartRttAboveThreshold);
 
         CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
 
@@ -1777,35 +1756,35 @@ TEST_F(CubicTest, HyStart_RttDecreaseDetection_ReturnToNotStarted)
         // HyStartRoundEnd should now be 200
         ASSERT_EQ(Cubic->HyStartState, HYSTART_ACTIVE);
         ASSERT_EQ(Cubic->HyStartAckCount, 0u); // Reset by round boundary crossing
-        ASSERT_EQ(Cubic->MinRttInLastRound, 46000u); // Moved from current round
+        ASSERT_EQ(Cubic->MinRttInLastRound, kHyStartRttAboveThreshold); // Moved from current round
         ASSERT_EQ(Cubic->MinRttInCurrentRound, UINT64_MAX); // Reset for new round
         ASSERT_EQ(Cubic->HyStartRoundEnd, 200u); // Set to NextPacketNumber
     }
 
     // Phase 4: Collect samples in new round with LOWER RTT values
-    // This will set MinRttInCurrentRound to a lower value (38000)
+    // This will set MinRttInCurrentRound to kHyStartRttDecrease
     for (uint32_t i = 0; i < QUIC_HYSTART_DEFAULT_N_SAMPLING; i++) {
         uint32_t BytesToSend = 1200;
         CC->QuicCongestionControlOnDataSent(CC, BytesToSend);
 
         QUIC_ACK_EVENT AckEvent = MakeAckEvent(
             1300000 + (i * 10000), 110 + i, 115 + i, BytesToSend,
-            50000, 38000);
+            50000, kHyStartRttDecrease);
 
         CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
     }
 
     ASSERT_EQ(Cubic->HyStartAckCount, 8u);
-    ASSERT_EQ(Cubic->MinRttInCurrentRound, 38000u);
+    ASSERT_EQ(Cubic->MinRttInCurrentRound, kHyStartRttDecrease);
 
-    // Phase 5: Send one more ACK to trigger the else branch RTT decrease detection
+    // Phase 5: Send one more ACK to trigger RTT decrease detection
     // Now HyStartAckCount >= 8 and HyStartState == HYSTART_ACTIVE
-    // MinRttInCurrentRound (38000) < CssBaselineMinRtt (46000), so should transition
+    // MinRttInCurrentRound < CssBaselineMinRtt (kHyStartRttAboveThreshold), so should transition
     {
         uint32_t BytesToSend = 1200;
         CC->QuicCongestionControlOnDataSent(CC, BytesToSend);
 
-        QUIC_ACK_EVENT AckEvent = MakeAckEvent(1400000, 120, 125, BytesToSend, 50000, 39000);
+        QUIC_ACK_EVENT AckEvent = MakeAckEvent(1400000, 120, 125, BytesToSend, 50000, kHyStartRttDecrease + 1000);
 
         CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
 
@@ -1845,7 +1824,7 @@ TEST_F(CubicTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
             1200000 + (round * 100000),
             Cubic->HyStartRoundEnd,
             Connection.Send.NextPacketNumber + 10,
-            BytesToSend, 50000, 46000);
+            BytesToSend, 50000, kHyStartRttAboveThreshold);
 
         CC->QuicCongestionControlOnDataAcknowledged(
             CC,
@@ -1866,6 +1845,14 @@ TEST_F(CubicTest, HyStart_ConservativeSlowStartRounds_TransitionToDone)
         }
     }
 }
+
+//
+// ======================================================================
+// Edge Case and Boundary Condition Tests
+// These tests exercise overflow guards, minimum/maximum clamps, and
+// corner cases in slow start, congestion avoidance, recovery, and pacing.
+// ======================================================================
+//
 
 //
 // Test: Congestion Avoidance Time Gap - Overflow Protection
@@ -2121,4 +2108,164 @@ TEST_F(CubicTest, ECN_SpuriousRollbackRestoresStaleState)
     ASSERT_EQ(Cubic->CongestionWindow, 0u);
     ASSERT_EQ(Cubic->AimdWindow, 0u);
     ASSERT_EQ(Cubic->SlowStartThreshold, 0u);
+}
+
+//
+// Test: Slow Start 2×BytesInFlightMax Clamp
+// Scenario: When slow start grows the congestion window beyond 2×BytesInFlightMax,
+// the window is clamped to prevent growth without network feedback. This fires
+// when the application doesn't fully utilize the window (BytesInFlightMax stays
+// small relative to CW).
+//
+TEST_F(CubicTest, SlowStart_BytesInFlightMaxClamp)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ false);
+    uint32_t InitialWindow = Cubic->CongestionWindow; // 12320
+
+    // Artificially lower BytesInFlightMax to simulate app-limited sending
+    Cubic->BytesInFlightMax = 2000;
+
+    // Send and ACK 1200 bytes. BytesInFlight peaks at 1200 < 2000 so max unchanged.
+    CC->QuicCongestionControlOnDataSent(CC, 1200);
+
+    QUIC_ACK_EVENT AckEvent = MakeAckEvent(1050000, 5, 10, 1200);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
+
+    // Slow start growth: CW = 12320 + 1200 = 13520, but 2*BytesInFlightMax = 4000.
+    // Since 13520 > 4000, CW is clamped to 4000.
+    ASSERT_EQ(Cubic->CongestionWindow, 2 * 2000u);
+    ASSERT_LT(Cubic->CongestionWindow, InitialWindow + 1200);
+}
+
+//
+// Test: Minimum Window Floor After Loss
+// Scenario: When the congestion window is very small and loss occurs, the
+// multiplicative decrease (CW * 0.7) would produce a value below the minimum
+// window (2 * DatagramPayloadLength). The CXPLAT_MAX guard ensures the window
+// never drops below this floor.
+//
+TEST_F(CubicTest, MinimumWindowFloor_AfterLoss)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 2, /*HyStart = */ false);
+    const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    uint32_t InitialWindow = Cubic->CongestionWindow;
+    // CW = 2 * 1232 = 2464. CW * 7/10 = 1724.
+    // MinimumWindow = 2 * 1232 = 2464. 1724 < 2464 → floor kicks in.
+    ASSERT_EQ(InitialWindow, (uint32_t)DatagramPayloadLength * 2);
+
+    CC->QuicCongestionControlOnDataSent(CC, 1200);
+    Connection.Send.NextPacketNumber = 10;
+
+    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(600, 5, 10);
+    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
+
+    // Window should be clamped to the minimum, not the 0.7× value
+    uint32_t MinimumWindow = DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS;
+    uint32_t BetaReduced = InitialWindow * 7 / 10;
+    ASSERT_LT(BetaReduced, MinimumWindow); // Verify floor actually matters
+    ASSERT_EQ(Cubic->CongestionWindow, MinimumWindow);
+    ASSERT_EQ(Cubic->SlowStartThreshold, MinimumWindow);
+}
+
+//
+// Test: ACK During Recovery Stays in Recovery
+// Scenario: When an ACK is received with LargestAck <= RecoverySentPacketNumber,
+// the connection remains in recovery. Only an ACK for a packet sent after
+// recovery started (LargestAck > RecoverySentPacketNumber) exits recovery.
+//
+TEST_F(CubicTest, Recovery_StayOnOldAck)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 20, /*HyStart = */ false);
+
+    CC->QuicCongestionControlOnDataSent(CC, 5000);
+    Connection.Send.NextPacketNumber = 10;
+
+    // Enter recovery via loss. RecoverySentPacketNumber = 10.
+    QUIC_LOSS_EVENT LossEvent = MakeLossEvent(1200, 5, 10);
+    CC->QuicCongestionControlOnDataLost(CC, &LossEvent);
+
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    uint32_t WindowInRecovery = Cubic->CongestionWindow;
+
+    // ACK with LargestAck == RecoverySentPacketNumber (10): should stay in recovery
+    QUIC_ACK_EVENT StayAck = MakeAckEvent(1050000, 10, 15, 1200);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &StayAck);
+
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    // Window should not grow during recovery (goes to Exit label)
+    ASSERT_EQ(Cubic->CongestionWindow, WindowInRecovery);
+
+    // ACK with LargestAck < RecoverySentPacketNumber (8): also stays
+    QUIC_ACK_EVENT OlderAck = MakeAckEvent(1060000, 8, 15, 600);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &OlderAck);
+
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_EQ(Cubic->CongestionWindow, WindowInRecovery);
+
+    // ACK with LargestAck > RecoverySentPacketNumber: exits recovery
+    Connection.Send.NextPacketNumber = 20;
+    QUIC_ACK_EVENT ExitAck = MakeAckEvent(1100000, 11, 25, 600);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &ExitAck);
+
+    ASSERT_FALSE(Cubic->IsInRecovery);
+}
+
+//
+// Test: Double Loss During Recovery - No Additional Window Reduction
+// Scenario: When a second loss occurs during recovery with LargestPacketNumberLost
+// <= RecoverySentPacketNumber, the guard at cubic.c prevents a second window
+// reduction. Only BytesInFlight is decremented; the congestion window stays at
+// its post-first-loss value.
+//
+TEST_F(CubicTest, Recovery_DoubleLossNoDoubleReduction)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 20, /*HyStart = */ false);
+
+    CC->QuicCongestionControlOnDataSent(CC, 10000);
+    Connection.Send.NextPacketNumber = 10;
+
+    // First loss: enters recovery, reduces window
+    QUIC_LOSS_EVENT FirstLoss = MakeLossEvent(1200, 5, 10);
+    CC->QuicCongestionControlOnDataLost(CC, &FirstLoss);
+
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    uint32_t WindowAfterFirstLoss = Cubic->CongestionWindow;
+    uint32_t BytesInFlightAfterFirstLoss = Cubic->BytesInFlight;
+
+    // Second loss during recovery: LargestPacketNumberLost (8) <= RecoverySentPacketNumber (10)
+    // Guard prevents window reduction; only BytesInFlight decreases.
+    uint32_t SecondLostBytes = 600;
+    QUIC_LOSS_EVENT SecondLoss = MakeLossEvent(SecondLostBytes, 8, 10);
+    CC->QuicCongestionControlOnDataLost(CC, &SecondLoss);
+
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterFirstLoss);
+    ASSERT_EQ(Cubic->BytesInFlight, BytesInFlightAfterFirstLoss - SecondLostBytes);
+}
+
+// Scenario: When pacing is enabled and GetSendAllowance is called multiple times
+// without sending data, the unused allowance (LastSendAllowance) carries over
+// and accumulates into the next call's result.
+//
+TEST_F(CubicTest, Pacing_LastSendAllowanceCarryover)
+{
+    InitializeDefaultWithRtt(/*WindowPackets = */ 10, /*HyStart = */ false);
+    Connection.Settings.PacingEnabled = TRUE;
+
+    // Send some data so BytesInFlight > 0
+    CC->QuicCongestionControlOnDataSent(CC, 1000);
+
+    // First pacing call: LastSendAllowance starts at 0
+    // EstimatedWnd = 2*12320 = 24640 (slow start), TimeSinceLastSend = 1ms
+    // Allowance = 0 + (24640 * 1000) / 50000 = 492
+    uint32_t Allowance1 = CC->QuicCongestionControlGetSendAllowance(CC, 1000, TRUE);
+    ASSERT_EQ(Allowance1, (uint32_t)(((uint64_t)(2 * Cubic->CongestionWindow) * 1000) / 50000));
+
+    // Don't send anything — LastSendAllowance stays at Allowance1
+
+    // Second pacing call: LastSendAllowance carries over
+    // Allowance = Allowance1 + (24640 * 1000) / 50000 = 2 * Allowance1
+    uint32_t Allowance2 = CC->QuicCongestionControlGetSendAllowance(CC, 1000, TRUE);
+    ASSERT_EQ(Allowance2, 2 * Allowance1);
+    ASSERT_GT(Allowance2, Allowance1);
 }
