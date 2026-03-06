@@ -33,9 +33,7 @@ jobs:
     - name: Dotnet Setup
       uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309
       with:
-        dotnet-version: |
-          10.0.x
-          8.x
+        dotnet-version: 10.0.x
 
     - run: dotnet tool update -g docfx
     - run: chmod +x ./scripts/prepare-docfx.ps1

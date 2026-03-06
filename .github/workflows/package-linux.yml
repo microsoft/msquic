@@ -153,9 +153,7 @@ jobs:
     - name: Set up .NET
       uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309
       with:
-        dotnet-version: |
-          10.0.x
-          9.0.x
+        dotnet-version: 10.0.x
     - name: Build .NET QUIC Test Projects (Self-Contained)
       run: |
         # Map arch to runtime identifier
