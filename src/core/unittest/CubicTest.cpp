@@ -773,7 +773,7 @@ TEST_F(CubicTest, CongestionAvoidance_AIMDvsCubicSelection)
     InitializeDefaultWithRtt(/*WindowPackets = */ 20,  /*HyStart = */ true);
     const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
 
-    uint32_t WindowAfterLoss = EnterCongestionAvoidance();
+    EnterCongestionAvoidance();
 
     // ACK in congestion avoidance: CUBIC/AIMD selection runs
     CC->QuicCongestionControlOnDataSent(CC, 3000);
