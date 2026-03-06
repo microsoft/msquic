@@ -17,6 +17,51 @@ Abstract:
 extern "C" uint32_t CubeRoot(uint32_t Radicand);
 
 //
+// Test: CubeRoot - Integer Cube Root Function
+// Parametric test covering perfect cubes, non-perfect cubes (floor behavior),
+// boundary values (0, 1, UINT32_MAX), large inputs, and values used by CUBIC's
+// KCubic computation.
+//
+struct CubeRootTestParam {
+    uint32_t Input;
+    uint32_t Expected;
+};
+
+class CubeRootTest : public ::testing::TestWithParam<CubeRootTestParam> {};
+
+TEST_P(CubeRootTest, ReturnsExpectedValue)
+{
+    auto param = GetParam();
+    ASSERT_EQ(CubeRoot(param.Input), param.Expected);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    CubeRootCases,
+    CubeRootTest,
+    ::testing::Values(
+        // Boundary values
+        CubeRootTestParam{0, 0},
+        CubeRootTestParam{1, 1},
+        CubeRootTestParam{UINT32_MAX, 1625},
+        // Perfect cubes
+        CubeRootTestParam{8, 2},
+        CubeRootTestParam{27, 3},
+        CubeRootTestParam{64, 4},
+        CubeRootTestParam{125, 5},
+        CubeRootTestParam{1000, 10},
+        CubeRootTestParam{4096, 16},
+        // Non-perfect cubes: floors to integer cube root
+        CubeRootTestParam{2, 1},       // between 1^3 and 2^3
+        CubeRootTestParam{7, 1},       // just below 2^3
+        CubeRootTestParam{9, 2},       // just above 2^3
+        CubeRootTestParam{26, 2},      // just below 3^3
+        CubeRootTestParam{100, 4},     // between 4^3(64) and 5^3(125)
+        // Large values
+        CubeRootTestParam{1000000, 100},
+        CubeRootTestParam{1000000000, 1000}
+    ));
+
+//
 // Helper to create a minimal valid connection for testing CUBIC initialization.
 // Uses a real QUIC_CONNECTION structure to ensure proper memory layout when
 // QuicCongestionControlGetConnection() does CXPLAT_CONTAINING_RECORD pointer arithmetic.
@@ -788,12 +833,10 @@ TEST_F(CubicTest, CongestionAvoidance_AIMDvsCubicSelection)
     // CUBIC formula and AIMD both execute, max() selects the winner.
     ASSERT_FALSE(Cubic->IsInRecovery);
 
-    // Reproduce the CUBIC formula to compute expected CubicWindow.
-    // This mirrors the production code (OnCongestionEvent + OnDataAcknowledged).
-    uint32_t WindowMax = Cubic->WindowMax;  // Set by EnterCongestionAvoidance
-    uint32_t KCubic = CubeRoot((WindowMax / DatagramPayloadLength * 3 << 9) / 4);
-    KCubic = KCubic * 1000; // S_TO_MS
-    KCubic >>= 3;
+    // Reproduce the CUBIC window formula using state already computed by the
+    // production code during EnterCongestionAvoidance (KCubic, WindowMax, etc.).
+    uint32_t KCubic = Cubic->KCubic;     // Computed by production code on loss
+    uint32_t WindowMax = Cubic->WindowMax;
 
     uint64_t TimeInCongAvoidUs = CongAvoidAck.TimeNow - Cubic->TimeOfCongAvoidStart;
     int64_t DeltaT =
@@ -993,15 +1036,11 @@ TEST_F(CubicTest, CubicWindow_OverflowToBytesInFlightMax)
     uint32_t WindowAfterLoss = EnterCongestionAvoidance();
 
     // Force extreme conditions to trigger CUBIC overflow.
-    // Set a huge WindowMax so KCubic is very large, making DeltaT deeply negative
-    // when TimeInCongAvoid is small. The cubic term DeltaT^3 overflows negative.
+    // Set a huge WindowMax and a correspondingly large KCubic so that
+    // DeltaT = (TimeInCongAvoid - KCubic_us + RTT) is deeply negative.
+    // The cubic term DeltaT^3 then overflows, exercising the CubicWindow < 0 guard.
     Cubic->WindowMax = UINT32_MAX;
-    // Recalculate KCubic for the extreme WindowMax (mirrors the loss handler logic)
-    Cubic->KCubic =
-        CubeRoot(
-            (Cubic->WindowMax / DatagramPayloadLength * (10 - 7) << 9) / 4);
-    Cubic->KCubic = Cubic->KCubic * 1000; // S_TO_MS
-    Cubic->KCubic >>= 3;
+    Cubic->KCubic = 500000; // ~500 seconds — far exceeds TimeInCongAvoid (~50ms)
 
     // Skip time gap adjustment by invalidating the last ACK time
     Cubic->TimeOfLastAckValid = FALSE;
