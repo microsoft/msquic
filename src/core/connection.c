@@ -3087,9 +3087,20 @@ QuicConnProcessPeerTransportParameters(
         &Connection->Streams,
         Connection->PeerTransportParams.InitialMaxBidiStreams,
         Connection->PeerTransportParams.InitialMaxUniStreams,
-        !FromResumptionTicket);
+        FromResumptionTicket);
 
-    QuicDatagramOnSendStateChanged(&Connection->Datagram);
+    if (FromResumptionTicket) {
+        //
+        // Defer the datagram state change notification to avoid reentrant
+        // callbacks when called from the resumption ticket path.
+        //
+        QUIC_OPERATION* Oper;
+        if ((Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_DATAGRAM_STATE_CHANGED)) != NULL) {
+            QuicConnQueueOper(Connection, Oper);
+        }
+    } else {
+        QuicDatagramOnSendStateChanged(&Connection->Datagram);
+    }
 
     if (Connection->State.Started) {
         if (Connection->State.Disable1RttEncrytion &&
@@ -7957,6 +7968,20 @@ QuicConnDrainOperations(
             }
             QuicConnProcessRouteCompletion(
                 Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
+            break;
+
+        case QUIC_OPER_TYPE_STREAMS_AVAILABLE:
+            if (Connection->State.ShutdownComplete) {
+                break; // Ignore if already shutdown
+            }
+            QuicStreamSetIndicateStreamsAvailable(&Connection->Streams);
+            break;
+
+        case QUIC_OPER_TYPE_DATAGRAM_STATE_CHANGED:
+            if (Connection->State.ShutdownComplete) {
+                break; // Ignore if already shutdown
+            }
+            QuicDatagramOnSendStateChanged(&Connection->Datagram);
             break;
 
         default:

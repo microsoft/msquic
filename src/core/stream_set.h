@@ -131,7 +131,16 @@ QuicStreamSetInitializeTransportParameters(
     _Inout_ QUIC_STREAM_SET* StreamSet,
     _In_ uint64_t BidiStreamCount,
     _In_ uint64_t UnidiStreamCount,
-    _In_ BOOLEAN FlushIfUnblocked
+    _In_ BOOLEAN FromResumptionTicket
+    );
+
+//
+// Indicates available streams to the app via a connection event.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamSetIndicateStreamsAvailable(
+    _Inout_ QUIC_STREAM_SET* StreamSet
     );
 
 //
