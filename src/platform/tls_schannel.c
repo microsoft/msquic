@@ -1008,7 +1008,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) {
+    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) ||
+        (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_BLOB)) {
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
