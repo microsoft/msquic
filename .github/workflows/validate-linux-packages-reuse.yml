@@ -87,7 +87,7 @@ jobs:
           ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7
         with:
           dotnet-version: 10.0.x
 
@@ -429,7 +429,7 @@ jobs:
 
       - name: Set up QEMU
         if: matrix.arch != 'x64'
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
 
       - name: Download Test Artifacts
         uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
