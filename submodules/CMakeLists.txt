@@ -372,7 +372,7 @@ else()
             if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR
                 # 3.1 is compatible with 3.0, 3.2 and beyond maybe as well.
                 (EXPECTED_OPENSSL_VERSION VERSION_EQUAL "3.0" AND OPENSSL_MAJOR EQUAL "3"))
-                target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto)
+                target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto OpenSSL::SSL)
             else()
                 message(FATAL_ERROR "OpenSSL ${EXPECTED_OPENSSL_VERSION} not found, found ${OPENSSL_VERSION}")
             endif()
