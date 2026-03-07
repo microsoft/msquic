@@ -90,6 +90,7 @@ find = []
 # This feature enables quictls on windows, and has no effect on linux.
 # This feature enables openssl on windows, and has no effect on linux.
 openssl = []
+openssl-external = []
 quictls = []
 static = ["src"]
 preview-api = []
