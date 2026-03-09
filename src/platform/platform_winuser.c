@@ -459,6 +459,33 @@ CxPlatAlloc(
         return NULL;
     }
 
+    void* Alloc = HeapAlloc(CxPlatform.Heap, HEAP_ZERO_MEMORY, ByteCount + AllocOffset);
+    if (Alloc == NULL) {
+        return NULL;
+    }
+    *((uint32_t*)Alloc) = Tag;
+    return (void*)((uint8_t*)Alloc + AllocOffset);
+#else
+    UNREFERENCED_PARAMETER(Tag);
+    return HeapAlloc(CxPlatform.Heap, HEAP_ZERO_MEMORY, ByteCount);
+#endif
+}
+
+void*
+CxPlatAllocUninitialized(
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
+    )
+{
+#ifdef DEBUG
+    CXPLAT_DBG_ASSERT(CxPlatform.Heap);
+    CXPLAT_DBG_ASSERT(ByteCount != 0);
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+
     void* Alloc = HeapAlloc(CxPlatform.Heap, 0, ByteCount + AllocOffset);
     if (Alloc == NULL) {
         return NULL;

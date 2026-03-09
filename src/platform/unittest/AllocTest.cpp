@@ -15,6 +15,8 @@ Abstract:
 #include "AllocTest.cpp.clog.h"
 #endif
 
+#ifndef _KERNEL_MODE
+
 //
 // Size large enough to avoid small-allocation optimizations that might
 // coincidentally return zeroed memory.
@@ -135,3 +137,5 @@ TEST(AllocTest, PoolAllocIsZeroInitializedFresh)
     CxPlatPoolFree(Mem);
     CxPlatPoolUninitialize(&Pool);
 }
+
+#endif // _KERNEL_MODE

@@ -278,6 +278,12 @@ CxPlatAlloc(
     _In_ uint32_t Tag
     );
 
+void*
+CxPlatAllocUninitialized(
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
+    );
+
 void
 CxPlatFree(
     __drv_freesMem(Mem) _Frees_ptr_ void* Mem,
@@ -286,6 +292,8 @@ CxPlatFree(
 
 #define CXPLAT_ALLOC_PAGED(Size, Tag) CxPlatAlloc(Size, Tag)
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) CxPlatAlloc(Size, Tag)
+#define CXPLAT_ALLOC_PAGED_UNINITIALIZED(Size, Tag) CxPlatAllocUninitialized(Size, Tag)
+#define CXPLAT_ALLOC_NONPAGED_UNINITIALIZED(Size, Tag) CxPlatAllocUninitialized(Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) CxPlatFree((void*)Mem, Tag)
 
 typedef struct CXPLAT_POOL CXPLAT_POOL;
@@ -448,7 +456,9 @@ CxPlatPoolAlloc(
     Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
 #endif
     Header->Owner = Pool;
-    return (void*)(Header + 1);
+    void* Result = (void*)(Header + 1);
+    RtlZeroMemory(Result, Pool->Size - sizeof(CXPLAT_POOL_HEADER));
+    return Result;
 }
 
 QUIC_INLINE
