@@ -95,13 +95,7 @@ fn cmake_build() {
             // These are excluded from the monolithic archive (via the inc/base_link
             // EXCLUDE_LIST in CMake) and must be linked explicitly by the consumer.
             for lib in [
-                "ws2_32",
-                "ntdll",
-                "bcrypt",
-                "ncrypt",
-                "crypt32",
-                "iphlpapi",
-                "advapi32",
+                "ws2_32", "ntdll", "bcrypt", "ncrypt", "crypt32", "iphlpapi", "advapi32",
                 "schannel",
             ] {
                 println!("cargo:rustc-link-lib={lib}");
