@@ -100,10 +100,7 @@ fn cmake_build() {
             ] {
                 println!("cargo:rustc-link-lib={lib}");
             }
-            if cfg!(feature = "openssl") || cfg!(feature = "quictls") {
-                // OpenSSL references user32 symbols (MessageBoxW, etc.)
-                println!("cargo:rustc-link-lib=user32");
-            }
+
         }
     }
 }
