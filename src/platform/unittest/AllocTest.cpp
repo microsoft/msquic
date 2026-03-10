@@ -10,12 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-
-#ifdef QUIC_CLOG
-#include "AllocTest.cpp.clog.h"
-#endif
-
-#ifndef _KERNEL_MODE
+#include <algorithm>
 
 //
 // Size large enough to avoid small-allocation optimizations that might
@@ -25,16 +20,11 @@ Abstract:
 
 static bool
 IsZeroMemory(
-    _In_reads_(Size) const uint8_t* Buffer,
+    _In_ const uint8_t* Buffer,
     _In_ size_t Size
     )
 {
-    for (size_t i = 0; i < Size; i++) {
-        if (Buffer[i] != 0) {
-            return false;
-        }
-    }
-    return true;
+    return std::all_of(Buffer, Buffer + Size, [](uint8_t b) { return b == 0; });
 }
 
 //
@@ -137,5 +127,3 @@ TEST(AllocTest, PoolAllocIsZeroInitializedFresh)
     CxPlatPoolFree(Mem);
     CxPlatPoolUninitialize(&Pool);
 }
-
-#endif // _KERNEL_MODE
