@@ -462,6 +462,33 @@ CxPlatPoolAlloc(
 }
 
 QUIC_INLINE
+void*
+CxPlatPoolAllocUninitialized(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CXPLAT_POOL_HEADER* Header =
+#if DEBUG
+        CxPlatGetAllocFailDenominator() ? NULL : // No pool when using simulated alloc failures
+#endif
+        (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead);
+    if (Header == NULL) {
+        Header = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
+        if (Header == NULL) {
+            return NULL;
+        }
+    }
+#if DEBUG
+    else {
+        CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+    }
+    Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
+#endif
+    Header->Owner = Pool;
+    return (void*)(Header + 1);
+}
+
+QUIC_INLINE
 void
 CxPlatPoolFree(
     _In_ void* Memory
