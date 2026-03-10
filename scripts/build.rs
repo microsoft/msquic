@@ -100,7 +100,6 @@ fn cmake_build() {
             ] {
                 println!("cargo:rustc-link-lib={lib}");
             }
-
         }
     }
 }
