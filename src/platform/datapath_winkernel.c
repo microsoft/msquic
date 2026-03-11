@@ -2606,7 +2606,7 @@ CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_POOL* BufferPool
     )
 {
-    CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer = CxPlatPoolAlloc(BufferPool);
+    CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer = CxPlatPoolAllocUninitialized(BufferPool);
     if (SendBuffer == NULL) {
         return NULL;
     }
