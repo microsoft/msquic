@@ -347,7 +347,7 @@ QuicStreamSetInitializeTransportParameters(
     _Inout_ QUIC_STREAM_SET* StreamSet,
     _In_ uint64_t BidiStreamCount,
     _In_ uint64_t UnidiStreamCount,
-    _In_ BOOLEAN FromResumptionTicket
+    _In_ BOOLEAN FlushIfUnblocked
     )
 {
     QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
@@ -424,21 +424,10 @@ QuicStreamSetInitializeTransportParameters(
     }
 
     if (UpdateAvailableStreams) {
-        if (!FromResumptionTicket) {
-            QuicStreamSetIndicateStreamsAvailable(StreamSet);
-        } else {
-            //
-            // Defer the streams-available notification to avoid reentrant
-            // callbacks when called from the resumption ticket path.
-            //
-            QUIC_OPERATION* Oper;
-            if ((Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_STREAMS_AVAILABLE)) != NULL) {
-                QuicConnQueueOper(Connection, Oper);
-            }
-        }
+        QuicStreamSetIndicateStreamsAvailable(StreamSet);
     }
 
-    if (MightBeUnblocked && !FromResumptionTicket) {
+    if (MightBeUnblocked && FlushIfUnblocked) {
         //
         // We opened the window, so start send. Rather than checking
         // the streams to see if one is actually unblocked, we risk starting

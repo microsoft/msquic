@@ -692,11 +692,14 @@ QuicConnIndicateEvent(
         // MsQuic shouldn't indicate reentrancy to the app when at all possible.
         // The general exception to this rule is when the connection is being
         // closed because the API MUST block until all work is completed, so we
-        // have to execute the event callbacks inline.
+        // have to execute the event callbacks inline. Custom executions also
+        // allow reentrancy because set/get param must be executed inline to not
+        // block the thread, and the app is expected to handle reentrancy.
         //
         CXPLAT_DBG_ASSERT(
             !Connection->State.InlineApiExecution ||
-            Connection->State.HandleClosed);
+            Connection->State.HandleClosed ||
+            MsQuicLib.CustomExecutions);
         Status =
             Connection->ClientCallbackHandler(
                 (HQUIC)Connection,
@@ -3087,20 +3090,9 @@ QuicConnProcessPeerTransportParameters(
         &Connection->Streams,
         Connection->PeerTransportParams.InitialMaxBidiStreams,
         Connection->PeerTransportParams.InitialMaxUniStreams,
-        FromResumptionTicket);
+        !FromResumptionTicket);
 
-    if (FromResumptionTicket) {
-        //
-        // Defer the datagram state change notification to avoid reentrant
-        // callbacks when called from the resumption ticket path.
-        //
-        QUIC_OPERATION* Oper;
-        if ((Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_DATAGRAM_STATE_CHANGED)) != NULL) {
-            QuicConnQueueOper(Connection, Oper);
-        }
-    } else {
-        QuicDatagramOnSendStateChanged(&Connection->Datagram);
-    }
+    QuicDatagramOnSendStateChanged(&Connection->Datagram);
 
     if (Connection->State.Started) {
         if (Connection->State.Disable1RttEncrytion &&
@@ -7968,20 +7960,6 @@ QuicConnDrainOperations(
             }
             QuicConnProcessRouteCompletion(
                 Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
-            break;
-
-        case QUIC_OPER_TYPE_STREAMS_AVAILABLE:
-            if (Connection->State.ShutdownComplete) {
-                break; // Ignore if already shutdown
-            }
-            QuicStreamSetIndicateStreamsAvailable(&Connection->Streams);
-            break;
-
-        case QUIC_OPER_TYPE_DATAGRAM_STATE_CHANGED:
-            if (Connection->State.ShutdownComplete) {
-                break; // Ignore if already shutdown
-            }
-            QuicDatagramOnSendStateChanged(&Connection->Datagram);
             break;
 
         default:
