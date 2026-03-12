@@ -692,9 +692,9 @@ QuicConnIndicateEvent(
         // MsQuic shouldn't indicate reentrancy to the app when at all possible.
         // The general exception to this rule is when the connection is being
         // closed because the API MUST block until all work is completed, so we
-        // have to execute the event callbacks inline. Custom executions also
-        // allow reentrancy because set/get param must be executed inline to not
-        // block the thread, and the app is expected to handle reentrancy.
+        // have to execute the event callbacks inline. Custom executions always
+        // have InlineApiExecution set, which makes this reentrancy check
+        // unreliable, so it is skipped for custom executions.
         //
         CXPLAT_DBG_ASSERT(
             !Connection->State.InlineApiExecution ||
