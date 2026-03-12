@@ -928,36 +928,6 @@ CxPlatTryAddSocket(
             goto Error;
         }
 
-        if (Socket->CibirIdLength) {
-            //
-            // Setting SO_REUSEADDR does NOT robustly allow
-            // multiple processes to share the same port on
-            // Windows (WinSock).
-            // This code was added primarily for Linux XDP,
-            // where Linux sockets DO actually allow robust
-            // port sharing...
-            //
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    Socket->AuxSocket,
-                    SOL_SOCKET,
-                    SO_REUSEADDR,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set SO_REUSEADDR");
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-        }
-
         CxPlatConvertToMappedV6(&Socket->LocalAddress, &MappedAddress);
 #if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
         if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {

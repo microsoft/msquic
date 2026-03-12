@@ -1743,7 +1743,7 @@ SocketCreateUdp(
                                 Socket,
                                 !XdpAvailable ?
                                 "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
-                                "but XPD not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER.");
+                                "but XDP not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER.");
                             Status = QUIC_STATUS_INVALID_STATE;
                             goto Error;
                         }
