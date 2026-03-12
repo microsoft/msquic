@@ -867,7 +867,7 @@ TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
     //
     Server1.CibirIdLength = 8;
     Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
-    while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+    while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE || Server1.GetInitStatus() == QUIC_STATUS_INVALID_STATE) {
         unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     }
