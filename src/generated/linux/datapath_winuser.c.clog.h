@@ -163,16 +163,16 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed , arg2
 // Decoder Ring for DatapathCibirWarning
 // [data][%p] CIBIR detected,  %s
 // QuicTraceLogWarning(
-                            DatapathCibirWarning,
-                            "[data][%p] CIBIR detected,  %s",
-                            Socket,
-                            "ignoring port collision by assuming some \
-                             other MsQuic CIBIR process has reserved the OS port. \
-                             Let's continue with initialization and skip port reservation.");
+                                DatapathCibirWarning,
+                                "[data][%p] CIBIR detected,  %s",
+                                Socket,
+                                !XdpAvailable ?
+                                "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
+                                "but XDP not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER.");
 // arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = "ignoring port collision by assuming some \
-                             other MsQuic CIBIR process has reserved the OS port. \
-                             Let's continue with initialization and skip port reservation." = arg3
+// arg3 = arg3 = !XdpAvailable ?
+                                "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
+                                "but XDP not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER." = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_DatapathCibirWarning
 #define _clog_4_ARGS_TRACE_DatapathCibirWarning(uniqueId, encoded_arg_string, arg2, arg3)\

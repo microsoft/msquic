@@ -210,6 +210,7 @@ typedef struct CXPLAT_SOCKET {
     // Flag indicates the socket has a default remote destination.
     //
     uint8_t HasFixedRemoteAddress : 1;
+
     uint8_t RawSocketAvailable : 1;
 
     uint8_t SkipCreatingOsSockets : 1;
