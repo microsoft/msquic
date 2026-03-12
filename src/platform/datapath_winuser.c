@@ -1734,15 +1734,6 @@ SocketCreateUdp(
                         // expected if multiple server processes were configured to share
                         // the same UDP and/or TCP port.
                         //
-                        QuicTraceLogWarning(
-                            DatapathCibirWarning,
-                            "[data][%p] CIBIR detected,  %s",
-                            Socket,
-                            "ignoring port collision by assuming some \
-                             other MsQuic CIBIR process has reserved the OS port. \
-                             Let's continue with initialization and skip port reservation.");
-                        CxPlatRefInitializeEx(&Socket->RefCount, 1);
-                        Socket->SkipCreatingOsSockets = TRUE;
                         BOOLEAN XdpAvailable = Datapath->RawDataPath != NULL;
                         BOOLEAN XdpEnabled = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
                         if (!XdpAvailable || !XdpEnabled) {
@@ -1753,7 +1744,19 @@ SocketCreateUdp(
                                 !XdpAvailable ?
                                 "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
                                 "but XPD not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER.");
+                            Status = QUIC_STATUS_INVALID_STATE;
+                            goto Error;
                         }
+
+                        QuicTraceLogWarning(
+                            DatapathCibirWarning,
+                            "[data][%p] CIBIR detected,  %s",
+                            Socket,
+                            "ignoring port collision by assuming some \
+                            other MsQuic CIBIR process has reserved the OS port. \
+                            Let's continue with initialization and skip port reservation.");
+                        CxPlatRefInitializeEx(&Socket->RefCount, 1);
+                        Socket->SkipCreatingOsSockets = TRUE;
                         goto Skip;
                     }
 
