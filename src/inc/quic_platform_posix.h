@@ -367,6 +367,13 @@ CxPlatAlloc(
     _In_ uint32_t Tag
     );
 
+_Ret_maybenull_
+void*
+CxPlatAllocUninitialized(
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
+    );
+
 void
 CxPlatFree(
     __drv_freesMem(Mem) _Frees_ptr_ void* Mem,
@@ -375,6 +382,8 @@ CxPlatFree(
 
 #define CXPLAT_ALLOC_PAGED(Size, Tag) CxPlatAlloc(Size, Tag)
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) CxPlatAlloc(Size, Tag)
+#define CXPLAT_ALLOC_PAGED_UNINITIALIZED(Size, Tag) CxPlatAllocUninitialized(Size, Tag)
+#define CXPLAT_ALLOC_NONPAGED_UNINITIALIZED(Size, Tag) CxPlatAllocUninitialized(Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) CxPlatFree((void*)Mem, Tag)
 
 #define CxPlatZeroMemory(Destination, Length) memset((Destination), 0, (Length))
@@ -582,6 +591,39 @@ CxPlatPoolUninitialize(
 QUIC_INLINE
 void*
 CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CxPlatLockAcquire(&Pool->Lock);
+    CXPLAT_POOL_HEADER* Header =
+    #if DEBUG
+        CxPlatGetAllocFailDenominator() ? NULL : // No pool when using simulated alloc failures
+    #endif
+        (CXPLAT_POOL_HEADER*)CxPlatListPopEntry(&Pool->ListHead);
+    if (Header != NULL) {
+        CXPLAT_DBG_ASSERT(Pool->ListDepth > 0);
+        CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+        Pool->ListDepth--;
+    }
+    CxPlatLockRelease(&Pool->Lock);
+    if (Header == NULL) {
+        Header = (CXPLAT_POOL_HEADER*)CxPlatAlloc(Pool->Size, Pool->Tag);
+        if (Header == NULL) {
+            return NULL;
+        }
+    }
+#if DEBUG
+    Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
+#endif
+    Header->Owner = Pool;
+    void* Result = (void*)((uint8_t*)Header + sizeof(CXPLAT_POOL_HEADER));
+    CxPlatZeroMemory(Result, Pool->Size - sizeof(CXPLAT_POOL_HEADER));
+    return Result;
+}
+
+QUIC_INLINE
+void*
+CxPlatPoolAllocUninitialized(
     _Inout_ CXPLAT_POOL* Pool
     )
 {

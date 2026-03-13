@@ -3,6 +3,7 @@
 
 set(SOURCES
     main.cpp
+    AllocTest.cpp
     CryptTest.cpp
     DataPathTest.cpp
     PlatformTest.cpp
