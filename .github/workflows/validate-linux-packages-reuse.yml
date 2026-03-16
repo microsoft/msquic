@@ -432,7 +432,7 @@ jobs:
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
 
       - name: Download Test Artifacts
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           # TLS mapping: for 2.4.x, quictls -> openssl3
           name: ${{ inputs.config }}-linux-ubuntu-22.04-${{ matrix.arch }}-${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}-Test
@@ -440,7 +440,7 @@ jobs:
 
       - name: Download .NET Artifacts
         if: ${{ !inputs.skip_dotnet_tests }}
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: dotnet-test-artifacts
           path: dotnet-artifacts
