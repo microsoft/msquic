@@ -1737,13 +1737,20 @@ SocketCreateUdp(
                         BOOLEAN XdpAvailable = Datapath->RawDataPath != NULL;
                         BOOLEAN XdpEnabled = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
                         if (!XdpAvailable || !XdpEnabled) {
+                            //
+                            // In the case of a port collision while cibir is enabled,
+                            // MsQuic assumes another MsQuic cibir process has done the
+                            // job of reserving the OS ports via socket creation/bind.
+                            // At least that process can fall back to using the OS stack if
+                            // XDP is not available/enabled, but not this one.
+                            //
                             QuicTraceLogWarning(
                                 DatapathCibirWarning,
                                 "[data][%p] CIBIR detected,  %s",
                                 Socket,
                                 !XdpAvailable ?
-                                "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
-                                "but XDP not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER.");
+                                "but XDP not available. No OS sockets to fall back to." :
+                                "but XDP not enabled. No OS sockets to fall back to.");
                             Status = QUIC_STATUS_INVALID_STATE;
                             goto Error;
                         }
@@ -1753,8 +1760,7 @@ SocketCreateUdp(
                             "[data][%p] CIBIR detected,  %s",
                             Socket,
                             "ignoring port collision by assuming some \
-                            other MsQuic CIBIR process has reserved the OS port. \
-                            Let's continue with initialization and skip port reservation.");
+                            other MsQuic CIBIR process has reserved the OS port.");
                         CxPlatRefInitializeEx(&Socket->RefCount, 1);
                         Socket->SkipCreatingOsSockets = TRUE;
                         goto Skip;
@@ -1893,16 +1899,14 @@ Skip:
     }
 
     if (Config->CibirIdLength > 0) {
-        uint64_t CibirIdValue = 0;
-        for (uint8_t i = 0; i < Config->CibirIdLength; ++i) {
-            CibirIdValue = (CibirIdValue << 8) | Config->CibirId[i];
-        }
         QuicTraceLogWarning(
             DatapathCibirIdUsed,
             "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
             Socket,
             Config->CibirIdLength,
-            (unsigned long long)CibirIdValue);
+            (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength));
     }
 
     if (Config->RemoteAddress != NULL) {

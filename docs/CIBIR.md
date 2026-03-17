@@ -10,7 +10,7 @@ we now filter and de-mux packets based on QUIC connection ID.
 CIBIR (CID-Based Identification and Routing) is just a prefix substring that XDP
 will use to match and filter all packets with a QUIC CID that contains the prefix substring equal to CIBIR.
 
-What using CIBIR also enables is allowing 2 separate server processes to share a single
+What using CIBIR also enables is allowing 2 or more separate server processes to share a single
 port. As long as the CIBIR configuration used by each process is different, XDP can
 properly de-mux and dispatch received packets to the right process.
 

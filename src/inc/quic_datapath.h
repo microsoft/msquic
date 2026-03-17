@@ -626,6 +626,23 @@ typedef struct CXPLAT_UDP_CONFIG {
 } CXPLAT_UDP_CONFIG;
 
 //
+// Converts a CIBIR ID byte array to a uint64 for trace logging.
+//
+inline
+uint64_t
+QuicCibirIdToUint64(
+    _In_reads_(Length) const uint8_t* Id,
+    _In_ uint8_t Length
+    )
+{
+    uint64_t Value = 0;
+    for (uint8_t i = 0; i < Length; ++i) {
+        Value = (Value << 8) | Id[i];
+    }
+    return Value;
+}
+
+//
 // Creates a UDP socket for the given (optional) local address and/or (optional)
 // remote address. This function immediately registers for receive upcalls from
 // the layer below.
