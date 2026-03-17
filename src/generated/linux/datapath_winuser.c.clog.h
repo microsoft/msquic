@@ -167,12 +167,12 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed , arg2
                                 "[data][%p] CIBIR detected,  %s",
                                 Socket,
                                 !XdpAvailable ?
-                                "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
-                                "but XDP not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER.");
+                                "but XDP not available. No OS sockets to fall back to." :
+                                "but XDP not enabled. No OS sockets to fall back to.");
 // arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = !XdpAvailable ?
-                                "but XDP not available. NO TRAFFIC WILL FLOW ON THIS LISTENER." :
-                                "but XDP not enabled. NO TRAFFIC WILL FLOW ON THIS LISTENER." = arg3
+                                "but XDP not available. No OS sockets to fall back to." :
+                                "but XDP not enabled. No OS sockets to fall back to." = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_DatapathCibirWarning
 #define _clog_4_ARGS_TRACE_DatapathCibirWarning(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -191,10 +191,14 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCibirWarning , arg2, arg3);\
             "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
             Socket,
             Config->CibirIdLength,
-            (unsigned long long)CibirIdValue);
+            (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength));
 // arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = Config->CibirIdLength = arg3
-// arg4 = arg4 = (unsigned long long)CibirIdValue = arg4
+// arg4 = arg4 = (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength) = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_DatapathCibirIdUsed
 #define _clog_5_ARGS_TRACE_DatapathCibirIdUsed(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
