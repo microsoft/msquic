@@ -1780,6 +1780,116 @@ QuicTestDataPathRecvDataReturnNull(
 }
 
 //
+// TcpTestScope manages TCP datapath lifecycle with correct cleanup ordering.
+// CxPlatDataPathUninitialize is non-blocking — it returns immediately without
+// draining pending IO. We must sleep after socket deletion to let async IO
+// completions (especially on accepted sockets) finish before destroying
+// events that callbacks may reference.
+//
+// Cleanup order: sockets → sleep(200ms) → datapath uninit → events.
+//
+struct TcpTestScope {
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* Listener = nullptr;
+    CXPLAT_SOCKET* ClientSocket = nullptr;
+    CXPLAT_EVENT AcceptEvent = {};
+    CXPLAT_EVENT ConnectEvent = {};
+    bool HasEvents = false;
+
+    //
+    // Initialize TCP datapath with default callbacks. Returns false if TCP
+    // is not supported or init fails (caller should return from test).
+    //
+    bool
+    Init(
+        _In_ bool WithEvents = true
+        )
+    {
+        HasEvents = WithEvents;
+        if (HasEvents) {
+            CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
+            CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
+        }
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+        QUIC_STATUS Status =
+            CxPlatDataPathInitialize(
+                0, &DefaultUdpCallbacks, &DefaultTcpCallbacks, WorkerPool, &InitConfig, &Datapath);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("CxPlatDataPathInitialize failed, 0x%x", Status);
+            return false;
+        }
+        return HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP);
+    }
+
+    //
+    // Create a TCP listener on the given loopback address. The listener's
+    // context is set to &AcceptEvent if events are enabled, nullptr otherwise.
+    //
+    void
+    CreateListenerOnLoopback(
+        _In_ const char* Addr
+        )
+    {
+        uint16_t Port = 0;
+        CreateTcpListenerOnLoopback(
+            Datapath, Addr, HasEvents ? &AcceptEvent : nullptr, &Listener, &Port);
+    }
+
+    //
+    // Get the listener's bound port.
+    //
+    uint16_t
+    GetListenerPort(
+        )
+    {
+        QUIC_ADDR BoundAddr = {};
+        CxPlatSocketGetLocalAddress(Listener, &BoundAddr);
+        return QuicAddrGetPort(&BoundAddr);
+    }
+
+    //
+    // Connect a TCP client to the listener address. Returns QUIC_STATUS.
+    //
+    QUIC_STATUS
+    ConnectClient(
+        _In_ const char* Addr,
+        _In_opt_ const QUIC_ADDR* LocalAddr = nullptr
+        )
+    {
+        QUIC_ADDR RemoteAddr = {};
+        QuicAddrFromString(Addr, GetListenerPort(), &RemoteAddr);
+        return CxPlatSocketCreateTcp(
+            Datapath, LocalAddr, &RemoteAddr,
+            HasEvents ? &ConnectEvent : nullptr, &ClientSocket);
+    }
+
+    //
+    // Wait for connect and accept events to fire.
+    //
+    void
+    WaitForConnect(
+        _In_ uint32_t TimeoutMs = 2000
+        )
+    {
+        if (HasEvents) {
+            CxPlatEventWaitWithTimeout(ConnectEvent, TimeoutMs);
+            CxPlatEventWaitWithTimeout(AcceptEvent, TimeoutMs);
+        }
+    }
+
+    ~TcpTestScope() {
+        if (ClientSocket) { CxPlatSocketDelete(ClientSocket); ClientSocket = nullptr; }
+        if (Listener) { CxPlatSocketDelete(Listener); Listener = nullptr; }
+        CxPlatSleep(200);
+        if (Datapath) { CxPlatDataPathUninitialize(Datapath); Datapath = nullptr; }
+        if (HasEvents) {
+            CxPlatEventUninitialize(ConnectEvent);
+            CxPlatEventUninitialize(AcceptEvent);
+        }
+    }
+};
+
+//
 // =========================================================================
 // Category 8: TCP Socket Operations
 // Coupling: Public API. Skips if CXPLAT_DATAPATH_FEATURE_TCP unavailable.
@@ -1795,16 +1905,12 @@ void
 QuicTestDataPathTcpListener(
     )
 {
-    DatapathScope Datapath(DefaultTcpCallbacks);
-    if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) return;
+    TcpTestScope Tcp;
+    if (!Tcp.Init(false)) return;
 
-    CXPLAT_SOCKET* Listener = nullptr;
-    uint16_t Port = 0;
-    CreateTcpListenerOnLoopback(Datapath, "127.0.0.1", nullptr, &Listener, &Port);
-    TEST_NOT_EQUAL(nullptr, Listener);
-    TEST_NOT_EQUAL(0, Port);
-
-    CxPlatSocketDelete(Listener);
+    Tcp.CreateListenerOnLoopback("127.0.0.1");
+    TEST_NOT_EQUAL(nullptr, Tcp.Listener);
+    TEST_NOT_EQUAL(0, Tcp.GetListenerPort());
 }
 
 //
@@ -1816,25 +1922,15 @@ void
 QuicTestDataPathTcpClient(
     )
 {
-    DatapathScope Datapath(DefaultTcpCallbacks);
-    if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) return;
+    TcpTestScope Tcp;
+    if (!Tcp.Init(false)) return;
 
-    CXPLAT_SOCKET* Listener = nullptr;
-    uint16_t ListenerPort = 0;
-    CreateTcpListenerOnLoopback(Datapath, "127.0.0.1", nullptr, &Listener, &ListenerPort);
+    Tcp.CreateListenerOnLoopback("127.0.0.1");
 
-    QUIC_ADDR RemoteAddr = {};
-    QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
-
-    TcpSocketScope ClientSocket;
-    QUIC_STATUS Status =
-        CxPlatSocketCreateTcp(
-            Datapath, nullptr, &RemoteAddr, nullptr, &ClientSocket.Socket);
+    QUIC_STATUS Status = Tcp.ConnectClient("127.0.0.1");
     if (QUIC_SUCCEEDED(Status)) {
-        TEST_NOT_EQUAL(nullptr, ClientSocket.Socket);
+        TEST_NOT_EQUAL(nullptr, Tcp.ClientSocket);
     }
-
-    CxPlatSocketDelete(Listener);
 }
 
 //
@@ -1846,30 +1942,14 @@ void
 QuicTestDataPathTcpConnect(
     )
 {
-    EventScope AcceptEvent;
-    EventScope ConnectEvent;
-    DatapathScope Datapath(DefaultTcpCallbacks);
-    if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) return;
+    TcpTestScope Tcp;
+    if (!Tcp.Init()) return;
 
-    CXPLAT_SOCKET* Listener = nullptr;
-    uint16_t ListenerPort = 0;
-    CreateTcpListenerOnLoopback(
-        Datapath, "127.0.0.1", &AcceptEvent.Event, &Listener, &ListenerPort);
+    Tcp.CreateListenerOnLoopback("127.0.0.1");
 
-    QUIC_ADDR RemoteAddr = {};
-    QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
-
-    TcpSocketScope ClientSocket;
-    QUIC_STATUS Status =
-        CxPlatSocketCreateTcp(
-            Datapath, nullptr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
-
-    if (QUIC_SUCCEEDED(Status)) {
-        CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000);
-        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
+    if (QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"))) {
+        Tcp.WaitForConnect();
     }
-
-    CxPlatSocketDelete(Listener);
 }
 
 //
@@ -1881,30 +1961,14 @@ void
 QuicTestDataPathTcpConnectV6(
     )
 {
-    EventScope AcceptEvent;
-    EventScope ConnectEvent;
-    DatapathScope Datapath(DefaultTcpCallbacks);
-    if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) return;
+    TcpTestScope Tcp;
+    if (!Tcp.Init()) return;
 
-    CXPLAT_SOCKET* Listener = nullptr;
-    uint16_t ListenerPort = 0;
-    CreateTcpListenerOnLoopback(
-        Datapath, "::1", &AcceptEvent.Event, &Listener, &ListenerPort);
+    Tcp.CreateListenerOnLoopback("::1");
 
-    QUIC_ADDR RemoteAddr = {};
-    QuicAddrFromString("::1", ListenerPort, &RemoteAddr);
-
-    TcpSocketScope ClientSocket;
-    QUIC_STATUS Status =
-        CxPlatSocketCreateTcp(
-            Datapath, nullptr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
-
-    if (QUIC_SUCCEEDED(Status)) {
-        CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000);
-        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
+    if (QUIC_SUCCEEDED(Tcp.ConnectClient("::1"))) {
+        Tcp.WaitForConnect();
     }
-
-    CxPlatSocketDelete(Listener);
 }
 
 //
@@ -1916,37 +1980,22 @@ void
 QuicTestDataPathTcpStatistics(
     )
 {
-    EventScope AcceptEvent;
-    EventScope ConnectEvent;
-    DatapathScope Datapath(DefaultTcpCallbacks);
-    if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) return;
+    TcpTestScope Tcp;
+    if (!Tcp.Init()) return;
 
-    CXPLAT_SOCKET* Listener = nullptr;
-    uint16_t ListenerPort = 0;
-    CreateTcpListenerOnLoopback(
-        Datapath, "127.0.0.1", &AcceptEvent.Event, &Listener, &ListenerPort);
+    Tcp.CreateListenerOnLoopback("127.0.0.1");
 
-    QUIC_ADDR RemoteAddr = {};
-    QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
-
-    TcpSocketScope ClientSocket;
-    QUIC_STATUS Status =
-        CxPlatSocketCreateTcp(
-            Datapath, nullptr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
-
-    if (QUIC_SUCCEEDED(Status)) {
-        TEST_TRUE(CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000));
-        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
+    if (QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"))) {
+        TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000));
+        CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000);
 
         CXPLAT_TCP_STATISTICS Stats = {};
         QUIC_STATUS StatsStatus =
-            CxPlatSocketGetTcpStatistics(ClientSocket, &Stats);
+            CxPlatSocketGetTcpStatistics(Tcp.ClientSocket, &Stats);
         if (QUIC_SUCCEEDED(StatsStatus)) {
             TEST_TRUE(Stats.Mss > 0);
         }
     }
-
-    CxPlatSocketDelete(Listener);
 }
 
 //
@@ -2043,10 +2092,11 @@ QuicTestDataPathTcpSendRecv(
     }
 
     CxPlatSocketDelete(Listener);
-    CxPlatEventUninitialize(TcpRecvCtx.RecvEvent);
-    CxPlatEventUninitialize(AcceptCtx.AcceptEvent);
-    CxPlatEventUninitialize(ConnectEvent);
+    CxPlatSleep(200);
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatEventUninitialize(ConnectEvent);
+    CxPlatEventUninitialize(AcceptCtx.AcceptEvent);
+    CxPlatEventUninitialize(TcpRecvCtx.RecvEvent);
 }
 
 //
@@ -2058,31 +2108,15 @@ void
 QuicTestDataPathTcpConnectDisconnect(
     )
 {
-    EventScope AcceptEvent;
-    EventScope ConnectEvent;
-    DatapathScope Datapath(DefaultTcpCallbacks);
-    if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) return;
+    TcpTestScope Tcp;
+    if (!Tcp.Init()) return;
 
-    CXPLAT_SOCKET* Listener = nullptr;
-    uint16_t ListenerPort = 0;
-    CreateTcpListenerOnLoopback(
-        Datapath, "127.0.0.1", &AcceptEvent.Event, &Listener, &ListenerPort);
+    Tcp.CreateListenerOnLoopback("127.0.0.1");
 
-    QUIC_ADDR RemoteAddr = {};
-    QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
-
-    TcpSocketScope ClientSocket;
-    QUIC_STATUS Status =
-        CxPlatSocketCreateTcp(
-            Datapath, nullptr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
-
-    if (QUIC_SUCCEEDED(Status)) {
-        CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000);
-        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
+    if (QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"))) {
+        Tcp.WaitForConnect();
     }
-
-    CxPlatSleep(100);
-    CxPlatSocketDelete(Listener);
+    // Destructor handles immediate cleanup — tests that delete doesn't crash.
 }
 
 //
@@ -2094,37 +2128,22 @@ void
 QuicTestDataPathTcpCreateWithLocalAddr(
     )
 {
-    EventScope AcceptEvent;
-    EventScope ConnectEvent;
-    DatapathScope Datapath(DefaultTcpCallbacks);
-    if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) return;
+    TcpTestScope Tcp;
+    if (!Tcp.Init()) return;
 
-    CXPLAT_SOCKET* Listener = nullptr;
-    uint16_t ListenerPort = 0;
-    CreateTcpListenerOnLoopback(
-        Datapath, "127.0.0.1", &AcceptEvent.Event, &Listener, &ListenerPort);
+    Tcp.CreateListenerOnLoopback("127.0.0.1");
 
     QUIC_ADDR LocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &LocalAddr);
 
-    QUIC_ADDR RemoteAddr = {};
-    QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
-
-    TcpSocketScope ClientSocket;
-    QUIC_STATUS Status =
-        CxPlatSocketCreateTcp(
-            Datapath, &LocalAddr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
-
-    if (QUIC_SUCCEEDED(Status)) {
-        CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000);
-        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
+    if (QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1", &LocalAddr))) {
+        CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000);
+        CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000);
 
         QUIC_ADDR ClientLocalAddr = {};
-        CxPlatSocketGetLocalAddress(ClientSocket, &ClientLocalAddr);
+        CxPlatSocketGetLocalAddress(Tcp.ClientSocket, &ClientLocalAddr);
         TEST_NOT_EQUAL(0, QuicAddrGetPort(&ClientLocalAddr));
     }
-
-    CxPlatSocketDelete(Listener);
 }
 
 //
@@ -2136,20 +2155,16 @@ void
 QuicTestDataPathTcpListenerV6(
     )
 {
-    DatapathScope Datapath(DefaultTcpCallbacks);
-    if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) return;
+    TcpTestScope Tcp;
+    if (!Tcp.Init(false)) return;
 
-    CXPLAT_SOCKET* Listener = nullptr;
-    uint16_t Port = 0;
-    CreateTcpListenerOnLoopback(Datapath, "::1", nullptr, &Listener, &Port);
-    TEST_NOT_EQUAL(nullptr, Listener);
-    TEST_NOT_EQUAL(0, Port);
+    Tcp.CreateListenerOnLoopback("::1");
+    TEST_NOT_EQUAL(nullptr, Tcp.Listener);
+    TEST_NOT_EQUAL(0, Tcp.GetListenerPort());
 
     QUIC_ADDR BoundAddr = {};
-    CxPlatSocketGetLocalAddress(Listener, &BoundAddr);
+    CxPlatSocketGetLocalAddress(Tcp.Listener, &BoundAddr);
     TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET6, QuicAddrGetFamily(&BoundAddr));
-
-    CxPlatSocketDelete(Listener);
 }
 
 //
