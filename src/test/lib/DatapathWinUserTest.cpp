@@ -564,29 +564,70 @@ CreateTcpListenerOnLoopback(
 // Scenario: UDP-only datapath initialization with default config.
 // Code path: DataPathInitialize — WSAStartup, UdpCallbacks copy, partition pool init, success path.
 // Assertions: CxPlatDataPathInitialize returns QUIC_STATUS_SUCCESS (via DatapathScope).
+//             Supported features contain only known flags.
+//             TCP feature is reported (always available on Windows user-mode).
 //
 void
 QuicTestDataPathInitUdp(
     )
 {
     DatapathScope Datapath;
+
+    //
+    // Verify the datapath is usable by querying supported features.
+    //
+    uint32_t Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    uint32_t AllKnownFeatures =
+        CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING |
+        CXPLAT_DATAPATH_FEATURE_RECV_COALESCING |
+        CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION |
+        CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING |
+        CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS |
+        CXPLAT_DATAPATH_FEATURE_TCP |
+        CXPLAT_DATAPATH_FEATURE_RAW |
+        CXPLAT_DATAPATH_FEATURE_TTL |
+        CXPLAT_DATAPATH_FEATURE_SEND_DSCP |
+        CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+    TEST_EQUAL(0u, (Features & ~AllKnownFeatures));
+
+    //
+    // On Windows user-mode, TCP is always available.
+    //
+    TEST_TRUE((Features & CXPLAT_DATAPATH_FEATURE_TCP) != 0);
 }
 
 //
 // Scenario: Datapath initialization with both UDP and TCP callbacks.
-// Code path: DataPathInitialize — TcpCallbacks copy branch at line 665-666.
+// Code path: DataPathInitialize — TcpCallbacks copy branch.
 // Assertions: CxPlatDataPathInitialize returns QUIC_STATUS_SUCCESS.
+//             Supported features contain only known flags.
 //
 void
 QuicTestDataPathInitUdpTcp(
     )
 {
     DatapathScope Datapath(DefaultTcpCallbacks);
+
+    uint32_t Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    uint32_t AllKnownFeatures =
+        CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING |
+        CXPLAT_DATAPATH_FEATURE_RECV_COALESCING |
+        CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION |
+        CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING |
+        CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS |
+        CXPLAT_DATAPATH_FEATURE_TCP |
+        CXPLAT_DATAPATH_FEATURE_RAW |
+        CXPLAT_DATAPATH_FEATURE_TTL |
+        CXPLAT_DATAPATH_FEATURE_SEND_DSCP |
+        CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+    TEST_EQUAL(0u, (Features & ~AllKnownFeatures));
 }
 
 //
 // Scenario: Initialization with NULL output pointer must fail.
-// Code path: DataPathInitialize — NULL check at line 617-618.
+// Code path: DataPathInitialize — NULL check.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
 void
@@ -607,7 +648,7 @@ QuicTestDataPathInitNullOutput(
 
 //
 // Scenario: Initialization with NULL WorkerPool must fail.
-// Code path: DataPathInitialize — NULL check at line 633-634.
+// Code path: DataPathInitialize — NULL check.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
 void
@@ -629,7 +670,7 @@ QuicTestDataPathInitNullWorkerPool(
 
 //
 // Scenario: UDP callbacks with NULL Receive handler must fail.
-// Code path: DataPathInitialize — UdpCallbacks->Receive NULL check at line 621.
+// Code path: DataPathInitialize — UdpCallbacks->Receive NULL check.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
 void
@@ -649,7 +690,7 @@ QuicTestDataPathInitUdpMissingRecv(
 
 //
 // Scenario: UDP callbacks with NULL Unreachable handler must fail.
-// Code path: DataPathInitialize — UdpCallbacks->Unreachable NULL check at line 621.
+// Code path: DataPathInitialize — UdpCallbacks->Unreachable NULL check.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
 void
@@ -669,7 +710,7 @@ QuicTestDataPathInitUdpMissingUnreach(
 
 //
 // Scenario: TCP callbacks with NULL Accept handler must fail.
-// Code path: DataPathInitialize — TcpCallbacks->Accept NULL check at line 626.
+// Code path: DataPathInitialize — TcpCallbacks->Accept NULL check.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
 void
@@ -695,7 +736,7 @@ QuicTestDataPathInitTcpMissingAccept(
 
 //
 // Scenario: TCP callbacks with NULL Connect handler must fail.
-// Code path: DataPathInitialize — TcpCallbacks->Connect NULL check at line 627.
+// Code path: DataPathInitialize — TcpCallbacks->Connect NULL check.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
 void
@@ -721,7 +762,7 @@ QuicTestDataPathInitTcpMissingConnect(
 
 //
 // Scenario: TCP callbacks with NULL Receive handler must fail.
-// Code path: DataPathInitialize — TcpCallbacks->Receive NULL check at line 628.
+// Code path: DataPathInitialize — TcpCallbacks->Receive NULL check.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
 void
@@ -747,7 +788,7 @@ QuicTestDataPathInitTcpMissingRecv(
 
 //
 // Scenario: TCP callbacks with NULL SendComplete handler must fail.
-// Code path: DataPathInitialize — TcpCallbacks->SendComplete NULL check at line 629.
+// Code path: DataPathInitialize — TcpCallbacks->SendComplete NULL check.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
 void
@@ -815,7 +856,7 @@ QuicTestDataPathInitWithClientRecvContextLength(
 
 //
 // Scenario: Query supported features and validate bitmask.
-// Code path: DataPathGetSupportedFeatures — returns Datapath->Features at line 849.
+// Code path: DataPathGetSupportedFeatures — returns Datapath->Features.
 // Assertions: Returned features contain only known defined bits.
 //
 void
@@ -843,7 +884,7 @@ QuicTestDataPathFeatureQuery(
 
 //
 // Scenario: Query padding preference based on segmentation support.
-// Code path: DataPathIsPaddingPreferred — checks SEND_SEGMENTATION flag at line 858.
+// Code path: DataPathIsPaddingPreferred — checks SEND_SEGMENTATION flag.
 // Assertions: Returns TRUE when segmentation is supported, FALSE otherwise.
 //
 void
@@ -922,7 +963,7 @@ QuicTestDataPathFeatureQueryWithFlags(
 
 //
 // Scenario: Resolve "localhost" with INET hint.
-// Code path: CxPlatDataPathResolveAddress -> getaddrinfo with AF_INET hint at line 1153.
+// Code path: CxPlatDataPathResolveAddress -> getaddrinfo with AF_INET hint.
 // Assertions: Returns success; family equals QUIC_ADDRESS_FAMILY_INET.
 //
 void
@@ -1013,7 +1054,7 @@ QuicTestDataPathResolveInvalidHost(
 
 //
 // Scenario: Resolve "localhost" with UNSPEC family accepts either v4 or v6.
-// Code path: CxPlatDataPathPopulateTargetAddress UNSPEC branch at line 1085.
+// Code path: CxPlatDataPathPopulateTargetAddress UNSPEC branch.
 // Assertions: Returns success; family is INET or INET6.
 //
 void
@@ -1041,7 +1082,7 @@ QuicTestDataPathResolveUnspecFamily(
 
 //
 // Scenario: Enumerate local unicast addresses.
-// Code path: CxPlatDataPathGetLocalAddresses -> GetAdaptersAddresses at line 888.
+// Code path: CxPlatDataPathGetLocalAddresses -> GetAdaptersAddresses.
 // Assertions: Returns success; at least one address returned; output pointer is non-null.
 //
 void
@@ -1096,6 +1137,7 @@ QuicTestDataPathGetGatewayAddresses(
 // Scenario: Create a server socket with no local/remote address.
 // Code path: SocketCreateUdp — wildcard bind path.
 // Assertions: Socket creation succeeds (via UdpSocketScope).
+//             Assigned port is non-zero; address is valid.
 //
 void
 QuicTestDataPathUdpServerSocket(
@@ -1106,6 +1148,11 @@ QuicTestDataPathUdpServerSocket(
     CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     UdpSocketScope Socket(Datapath, &UdpConfig);
+
+    QUIC_ADDR LocalAddr = {};
+    CxPlatSocketGetLocalAddress(Socket, &LocalAddr);
+    TEST_NOT_EQUAL(0, QuicAddrGetPort(&LocalAddr));
+    TEST_TRUE(QuicAddrIsValid(&LocalAddr));
 }
 
 //
@@ -1386,8 +1433,9 @@ QuicTestDataPathUdpSocketWithLocalAndRemote(
 
 //
 // Scenario: Allocate and free send data context without sending.
-// Code path: SendDataAlloc + SendDataFree pool operations.
-// Assertions: Allocation succeeds (via SendDataScope).
+// Code path: SendDataAlloc + SendDataAllocBuffer + IsFull + SendDataFree pool operations.
+// Assertions: Allocation succeeds (via SendDataScope); send data is not yet full;
+//             buffer allocation produces non-null buffer with sufficient length.
 //
 void
 QuicTestDataPathSendDataAllocFree(
@@ -1411,11 +1459,22 @@ QuicTestDataPathSendDataAllocFree(
         &Route, 1200, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
     SendDataScope SendData(Socket, &SendConfig);
+    TEST_EQUAL(FALSE, (BOOLEAN)CxPlatSendDataIsFull(SendData));
+
+    //
+    // Allocate a buffer and verify it is usable.
+    //
+    const uint16_t BufferSize = 100;
+    QUIC_BUFFER* Buffer =
+        CxPlatSendDataAllocBuffer(SendData, BufferSize);
+    TEST_NOT_EQUAL(nullptr, Buffer);
+    TEST_NOT_EQUAL(nullptr, Buffer->Buffer);
+    TEST_TRUE(Buffer->Length >= BufferSize);
 }
 
 //
 // Scenario: Allocate a packet buffer from send data.
-// Code path: SendDataAllocBuffer -> CxPlatSendDataAllocPacketBuffer at line 3705.
+// Code path: SendDataAllocBuffer -> CxPlatSendDataAllocPacketBuffer.
 // Assertions: Buffer pointer is non-null; buffer data pointer is non-null; buffer length >= requested.
 //
 void
@@ -1449,7 +1508,7 @@ QuicTestDataPathSendDataAllocBuffer(
 
 //
 // Scenario: Allocate then free a send buffer.
-// Code path: SendDataAllocBuffer + SendDataFreeBuffer at line 3713.
+// Code path: SendDataAllocBuffer + SendDataFreeBuffer.
 // Assertions: Alloc succeeds; free does not crash.
 //
 void
@@ -1483,7 +1542,7 @@ QuicTestDataPathSendDataFreeBuffer(
 
 //
 // Scenario: Check IsFull before and after allocating a max-sized buffer.
-// Code path: SendDataIsFull at line 3744 — checks WsaBufferCount vs MaxSendBatchSize.
+// Code path: SendDataIsFull — checks WsaBufferCount vs MaxSendBatchSize.
 // Assertions: Not full initially (FALSE); full after one max buffer on non-segmented (TRUE), not full on segmented (FALSE).
 //
 void
@@ -1563,7 +1622,7 @@ QuicTestDataPathSendDataAllocMultiple(
 
 //
 // Scenario: Allocate segmented send buffers (requires SEND_SEGMENTATION).
-// Code path: SendDataAllocBuffer -> CxPlatSendDataAllocSegmentBuffer at line 3707.
+// Code path: SendDataAllocBuffer -> CxPlatSendDataAllocSegmentBuffer.
 // Assertions: At least one segment allocation succeeds.
 //
 void
@@ -1645,7 +1704,7 @@ QuicTestDataPathSendDataFreeBufferSegmented(
 
 //
 // Scenario: Fill a segmented send data until IsFull returns TRUE.
-// Code path: SendDataIsFull + CxPlatSendDataCanAllocSendSegment capacity check at line 3544.
+// Code path: SendDataIsFull + CxPlatSendDataCanAllocSendSegment capacity check.
 // Assertions: Initially not full; after filling, at least one allocation succeeded.
 //
 void
@@ -1769,7 +1828,7 @@ QuicTestDataPathUdpSendRecvLoopback(
 
 //
 // Scenario: Calling CxPlatRecvDataReturn with NULL is a safe no-op.
-// Code path: RecvDataReturn NULL guard at line 3374.
+// Code path: RecvDataReturn NULL guard.
 // Assertions: No crash.
 //
 void
@@ -1936,7 +1995,7 @@ QuicTestDataPathTcpClient(
 //
 // Scenario: Full TCP connect handshake with event-based completion.
 // Code path: SocketCreateTcp -> ConnectEx -> CxPlatDataPathSocketProcessConnectCompletion.
-// Assertions: Connect and accept events fire (connection completes).
+// Assertions: Connect succeeds; connect and accept events fire within 2s.
 //
 void
 QuicTestDataPathTcpConnect(
@@ -1947,15 +2006,16 @@ QuicTestDataPathTcpConnect(
 
     Tcp.CreateListenerOnLoopback("127.0.0.1");
 
-    if (QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"))) {
-        Tcp.WaitForConnect();
-    }
+    TEST_QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000));
+    TEST_NOT_EQUAL(nullptr, Tcp.ClientSocket);
 }
 
 //
 // Scenario: TCP connect over IPv6 loopback.
 // Code path: CxPlatSocketCreateTcpInternal — AF_INET6 socket creation + ConnectEx.
-// Assertions: Connect and accept events fire.
+// Assertions: Connect succeeds; connect and accept events fire within 2s.
 //
 void
 QuicTestDataPathTcpConnectV6(
@@ -1966,14 +2026,15 @@ QuicTestDataPathTcpConnectV6(
 
     Tcp.CreateListenerOnLoopback("::1");
 
-    if (QUIC_SUCCEEDED(Tcp.ConnectClient("::1"))) {
-        Tcp.WaitForConnect();
-    }
+    TEST_QUIC_SUCCEEDED(Tcp.ConnectClient("::1"));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000));
+    TEST_NOT_EQUAL(nullptr, Tcp.ClientSocket);
 }
 
 //
 // Scenario: Query TCP statistics on a connected socket.
-// Code path: CxPlatSocketGetTcpStatistics -> WSAIoctl SIO_TCP_INFO at line 4034.
+// Code path: CxPlatSocketGetTcpStatistics -> WSAIoctl SIO_TCP_INFO.
 // Assertions: If statistics query succeeds, MSS > 0.
 //
 void
@@ -1985,23 +2046,22 @@ QuicTestDataPathTcpStatistics(
 
     Tcp.CreateListenerOnLoopback("127.0.0.1");
 
-    if (QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"))) {
-        TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000));
-        CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000);
+    TEST_QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000));
 
-        CXPLAT_TCP_STATISTICS Stats = {};
-        QUIC_STATUS StatsStatus =
-            CxPlatSocketGetTcpStatistics(Tcp.ClientSocket, &Stats);
-        if (QUIC_SUCCEEDED(StatsStatus)) {
-            TEST_TRUE(Stats.Mss > 0);
-        }
+    CXPLAT_TCP_STATISTICS Stats = {};
+    QUIC_STATUS StatsStatus =
+        CxPlatSocketGetTcpStatistics(Tcp.ClientSocket, &Stats);
+    if (QUIC_SUCCEEDED(StatsStatus)) {
+        TEST_TRUE(Stats.Mss > 0);
     }
 }
 
 //
 // Scenario: Send data over a connected TCP socket and verify server receives it.
-// Code path: CxPlatSocketSend (TCP branch — WSASend at line 3927) + TCP recv completion.
-// Assertions: Connect/accept events fire; send data allocation succeeds.
+// Code path: CxPlatSocketSend (TCP branch — WSASend) + TCP recv completion.
+// Assertions: Connect/accept events fire; send data allocation succeeds; server receives payload.
 //
 void
 QuicTestDataPathTcpSendRecv(
@@ -2086,7 +2146,7 @@ QuicTestDataPathTcpSendRecv(
 
         CxPlatSocketSend(ClientSocket, &Route, SendData);
 
-        CxPlatEventWaitWithTimeout(TcpRecvCtx.RecvEvent, 2000);
+        TEST_TRUE(CxPlatEventWaitWithTimeout(TcpRecvCtx.RecvEvent, 2000));
 
         CxPlatSocketDelete(ClientSocket);
     }
@@ -2102,7 +2162,7 @@ QuicTestDataPathTcpSendRecv(
 //
 // Scenario: Connect then immediately disconnect to exercise cleanup paths.
 // Code path: CxPlatSocketCreateTcp -> immediate CxPlatSocketDelete -> CxPlatSocketContextUninitialize.
-// Assertions: Connect/accept events fire; immediate delete does not crash.
+// Assertions: Connect succeeds; connect/accept events fire within 2s; immediate delete does not crash.
 //
 void
 QuicTestDataPathTcpConnectDisconnect(
@@ -2113,16 +2173,16 @@ QuicTestDataPathTcpConnectDisconnect(
 
     Tcp.CreateListenerOnLoopback("127.0.0.1");
 
-    if (QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"))) {
-        Tcp.WaitForConnect();
-    }
+    TEST_QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000));
     // Destructor handles immediate cleanup — tests that delete doesn't crash.
 }
 
 //
 // Scenario: Create TCP client with explicit local address binding.
-// Code path: CxPlatSocketCreateTcpInternal — local address bind branch at line 2073.
-// Assertions: If connect succeeds, local port is non-zero.
+// Code path: CxPlatSocketCreateTcpInternal — local address bind branch.
+// Assertions: Connect succeeds; events fire; local port is non-zero.
 //
 void
 QuicTestDataPathTcpCreateWithLocalAddr(
@@ -2136,14 +2196,13 @@ QuicTestDataPathTcpCreateWithLocalAddr(
     QUIC_ADDR LocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &LocalAddr);
 
-    if (QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1", &LocalAddr))) {
-        CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000);
-        CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000);
+    TEST_QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1", &LocalAddr));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000));
 
-        QUIC_ADDR ClientLocalAddr = {};
-        CxPlatSocketGetLocalAddress(Tcp.ClientSocket, &ClientLocalAddr);
-        TEST_NOT_EQUAL(0, QuicAddrGetPort(&ClientLocalAddr));
-    }
+    QUIC_ADDR ClientLocalAddr = {};
+    CxPlatSocketGetLocalAddress(Tcp.ClientSocket, &ClientLocalAddr);
+    TEST_NOT_EQUAL(0, QuicAddrGetPort(&ClientLocalAddr));
 }
 
 //
@@ -2176,7 +2235,7 @@ QuicTestDataPathTcpListenerV6(
 
 //
 // Scenario: Update polling idle timeout with various values.
-// Code path: DataPathUpdatePollingIdleTimeout — no-op on Windows at line 839.
+// Code path: DataPathUpdatePollingIdleTimeout — no-op on Windows.
 // Assertions: No crash with values 0, 1000, UINT32_MAX.
 //
 void
@@ -2200,7 +2259,7 @@ QuicTestDataPathUpdateIdleTimeout(
 
 //
 // Scenario: Send with ECN_ECT_0 marking on IPv4.
-// Code path: CxPlatSocketSendInline — IP_ECN cmsg construction at line 3849.
+// Code path: CxPlatSocketSendInline — IP_ECN cmsg construction.
 // Assertions: Payload received matches sent exactly.
 //
 void
@@ -2218,7 +2277,7 @@ QuicTestDataPathSendWithEcn(
 
 //
 // Scenario: Send with DSCP_EF marking on IPv4.
-// Code path: CxPlatSocketSendInline — IP_TOS cmsg with DSCP<<2 at line 3841.
+// Code path: CxPlatSocketSendInline — IP_TOS cmsg with DSCP<<2.
 // Assertions: Payload received matches sent exactly.
 //
 void
@@ -2243,7 +2302,7 @@ QuicTestDataPathSendWithDscp(
 
 //
 // Scenario: Basic send/receive over IPv6 loopback.
-// Code path: CxPlatSocketSendInline — IPv6 branch at line 3855.
+// Code path: CxPlatSocketSendInline — IPv6 branch.
 // Assertions: Payload matches.
 //
 void
@@ -2281,7 +2340,7 @@ QuicTestDataPathSendWithMaxThroughput(
 
 //
 // Scenario: Send with DSCP on IPv6.
-// Code path: CxPlatSocketSendInline — IPV6_TCLASS cmsg at line 3876.
+// Code path: CxPlatSocketSendInline — IPV6_TCLASS cmsg.
 // Assertions: Payload matches.
 //
 void
@@ -2306,7 +2365,7 @@ QuicTestDataPathSendRecvDscpV6(
 
 //
 // Scenario: Send with ECN on IPv6.
-// Code path: CxPlatSocketSendInline — IPV6_ECN cmsg at line 3885.
+// Code path: CxPlatSocketSendInline — IPV6_ECN cmsg.
 // Assertions: Payload matches.
 //
 void
@@ -2503,7 +2562,7 @@ QuicTestDataPathInitDscpRecvDscpSocket(
 
 //
 // Scenario: Server socket (no fixed remote) sends to a specific receiver on IPv4.
-// Code path: CxPlatSocketSendInline — !HasFixedRemoteAddress branch -> IN_PKTINFO cmsg at line 3823.
+// Code path: CxPlatSocketSendInline — !HasFixedRemoteAddress branch -> IN_PKTINFO cmsg.
 // Assertions: Payload matches.
 //
 void
@@ -2521,7 +2580,7 @@ QuicTestDataPathServerSendToRemote(
 
 //
 // Scenario: Server socket sends to receiver on IPv6.
-// Code path: CxPlatSocketSendInline — IPV6_PKTINFO cmsg at line 3861.
+// Code path: CxPlatSocketSendInline — IPV6_PKTINFO cmsg.
 // Assertions: Payload matches.
 //
 void
@@ -2539,7 +2598,7 @@ QuicTestDataPathServerSendToRemoteV6(
 
 //
 // Scenario: Send with both ECN and DSCP set on IPv4.
-// Code path: CxPlatSocketSendInline — combined IP_TOS = ECN|(DSCP<<2) at line 3841.
+// Code path: CxPlatSocketSendInline — combined IP_TOS = ECN|(DSCP<<2).
 // Assertions: Payload matches.
 //
 void
@@ -2564,7 +2623,7 @@ QuicTestDataPathSendEcnAndDscp(
 
 //
 // Scenario: Send with both ECN and DSCP on IPv6.
-// Code path: CxPlatSocketSendInline — combined IPV6_TCLASS at line 3876.
+// Code path: CxPlatSocketSendInline — combined IPV6_TCLASS.
 // Assertions: Payload matches.
 //
 void
@@ -2589,7 +2648,7 @@ QuicTestDataPathSendEcnAndDscpV6(
 
 //
 // Scenario: Segmented send over the wire with UDP_SEND_MSG_SIZE.
-// Code path: CxPlatSocketSendInline — SegmentSize>0 branch -> UDP_SEND_MSG_SIZE cmsg at line 3896.
+// Code path: CxPlatSocketSendInline — SegmentSize>0 branch -> UDP_SEND_MSG_SIZE cmsg.
 // Assertions: At least one segment received.
 //
 void
