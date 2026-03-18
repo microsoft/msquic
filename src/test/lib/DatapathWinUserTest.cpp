@@ -194,59 +194,167 @@ DatapathTestTcpAcceptCallbackWithRecv(
 }
 
 //
-// ===== Category 1: DataPath Initialization Tests =====
+// ---- Static Callback Constants ----
+//
+
+static const CXPLAT_UDP_DATAPATH_CALLBACKS DefaultUdpCallbacks = {
+    DatapathTestUdpRecvCallbackSimple,
+    DatapathTestUdpUnreachCallback,
+};
+
+static const CXPLAT_TCP_DATAPATH_CALLBACKS DefaultTcpCallbacks = {
+    DatapathTestTcpAcceptCallback,
+    DatapathTestTcpConnectCallback,
+    DatapathTestTcpRecvCallback,
+    DatapathTestTcpSendCompleteCallback,
+};
+
+//
+// ---- RAII Scope Helpers ----
+//
+
+struct EventScope {
+    CXPLAT_EVENT Event;
+    EventScope() { CxPlatEventInitialize(&Event, FALSE, FALSE); }
+    ~EventScope() { CxPlatEventUninitialize(Event); }
+};
+
+struct DatapathScope {
+    CXPLAT_DATAPATH* Datapath = nullptr;
+
+    //
+    // UDP-only with default config.
+    //
+    DatapathScope() {
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+        TEST_QUIC_SUCCEEDED(
+            CxPlatDataPathInitialize(
+                0, &DefaultUdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    }
+
+    //
+    // UDP + TCP with default config.
+    //
+    explicit DatapathScope(const CXPLAT_TCP_DATAPATH_CALLBACKS& TcpCallbacks) {
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+        TEST_QUIC_SUCCEEDED(
+            CxPlatDataPathInitialize(
+                0, &DefaultUdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+    }
+
+    //
+    // Custom init config (e.g., EnableDscpOnRecv, ClientRecvContextLength).
+    //
+    DatapathScope(
+        uint32_t ClientRecvDataLength,
+        const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+        const CXPLAT_DATAPATH_INIT_CONFIG& Config
+        )
+    {
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = Config;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatDataPathInitialize(
+                ClientRecvDataLength, &DefaultUdpCallbacks, TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+    }
+
+    ~DatapathScope() {
+        if (Datapath) {
+            CxPlatDataPathUninitialize(Datapath);
+        }
+    }
+
+    CXPLAT_DATAPATH* get() const { return Datapath; }
+    operator CXPLAT_DATAPATH*() const { return Datapath; }
+};
+
+struct UdpSocketScope {
+    CXPLAT_SOCKET* Socket = nullptr;
+
+    UdpSocketScope(
+        _In_ CXPLAT_DATAPATH* Datapath,
+        _In_ const CXPLAT_UDP_CONFIG* Config
+        )
+    {
+        TEST_QUIC_SUCCEEDED(CxPlatSocketCreateUdp(Datapath, Config, &Socket));
+    }
+
+    ~UdpSocketScope() {
+        if (Socket) {
+            CxPlatSocketDelete(Socket);
+        }
+    }
+
+    CXPLAT_SOCKET* get() const { return Socket; }
+    operator CXPLAT_SOCKET*() const { return Socket; }
+};
+
+struct TcpSocketScope {
+    CXPLAT_SOCKET* Socket = nullptr;
+    bool Owned = true;
+
+    TcpSocketScope() = default;
+
+    ~TcpSocketScope() {
+        if (Socket && Owned) {
+            CxPlatSocketDelete(Socket);
+        }
+    }
+
+    CXPLAT_SOCKET* get() const { return Socket; }
+    operator CXPLAT_SOCKET*() const { return Socket; }
+    CXPLAT_SOCKET* release() { Owned = false; return Socket; }
+};
+
+struct SendDataScope {
+    CXPLAT_SEND_DATA* SendData = nullptr;
+
+    SendDataScope(
+        _In_ CXPLAT_SOCKET* Socket,
+        _In_ CXPLAT_SEND_CONFIG* Config
+        )
+    {
+        SendData = CxPlatSendDataAlloc(Socket, Config);
+        TEST_NOT_EQUAL(nullptr, SendData);
+    }
+
+    ~SendDataScope() {
+        if (SendData) {
+            CxPlatSendDataFree(SendData);
+        }
+    }
+
+    CXPLAT_SEND_DATA* get() const { return SendData; }
+    operator CXPLAT_SEND_DATA*() const { return SendData; }
+
+    //
+    // Release ownership (e.g., when consumed by CxPlatSocketSend).
+    //
+    CXPLAT_SEND_DATA* release() {
+        CXPLAT_SEND_DATA* Tmp = SendData;
+        SendData = nullptr;
+        return Tmp;
+    }
+};
+
+//
+// =========================================================================
+// Category 1: Spec-Conformance — Initialization Validation
+// Coupling: Public API only. Tests precondition checks per API contract.
+// =========================================================================
 //
 
 void
 QuicTestDataPathInitUdp(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0,
-            &UdpCallbacks,
-            nullptr,
-            WorkerPool,
-            &InitConfig,
-            &Datapath));
-    TEST_NOT_EQUAL(nullptr, Datapath);
-    CxPlatDataPathUninitialize(Datapath);
+    DatapathScope Datapath;
 }
 
 void
 QuicTestDataPathInitUdpTcp(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        DatapathTestTcpAcceptCallback,
-        DatapathTestTcpConnectCallback,
-        DatapathTestTcpRecvCallback,
-        DatapathTestTcpSendCompleteCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0,
-            &UdpCallbacks,
-            &TcpCallbacks,
-            WorkerPool,
-            &InitConfig,
-            &Datapath));
-    TEST_NOT_EQUAL(nullptr, Datapath);
-    CxPlatDataPathUninitialize(Datapath);
+    DatapathScope Datapath(DefaultTcpCallbacks);
 }
 
 void
@@ -257,7 +365,7 @@ QuicTestDataPathInitNullOutput(
         DatapathTestUdpRecvCallbackSimple,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -279,7 +387,7 @@ QuicTestDataPathInitNullWorkerPool(
         DatapathTestUdpRecvCallbackSimple,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -297,10 +405,10 @@ QuicTestDataPathInitUdpMissingRecv(
     )
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {0};
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {};
     UdpCallbacks.Unreachable = DatapathTestUdpUnreachCallback;
     // Receive is NULL
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -318,10 +426,10 @@ QuicTestDataPathInitUdpMissingUnreach(
     )
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {0};
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {};
     UdpCallbacks.Receive = DatapathTestUdpRecvCallbackSimple;
     // Unreachable is NULL
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -343,12 +451,12 @@ QuicTestDataPathInitTcpMissingAccept(
         DatapathTestUdpRecvCallbackSimple,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {0};
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {};
     TcpCallbacks.Connect = DatapathTestTcpConnectCallback;
     TcpCallbacks.Receive = DatapathTestTcpRecvCallback;
     TcpCallbacks.SendComplete = DatapathTestTcpSendCompleteCallback;
     // Accept is NULL
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -370,12 +478,12 @@ QuicTestDataPathInitTcpMissingConnect(
         DatapathTestUdpRecvCallbackSimple,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {0};
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {};
     TcpCallbacks.Accept = DatapathTestTcpAcceptCallback;
     TcpCallbacks.Receive = DatapathTestTcpRecvCallback;
     TcpCallbacks.SendComplete = DatapathTestTcpSendCompleteCallback;
     // Connect is NULL
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -397,12 +505,12 @@ QuicTestDataPathInitTcpMissingRecv(
         DatapathTestUdpRecvCallbackSimple,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {0};
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {};
     TcpCallbacks.Accept = DatapathTestTcpAcceptCallback;
     TcpCallbacks.Connect = DatapathTestTcpConnectCallback;
     TcpCallbacks.SendComplete = DatapathTestTcpSendCompleteCallback;
     // Receive is NULL
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -424,12 +532,12 @@ QuicTestDataPathInitTcpMissingSendComplete(
         DatapathTestUdpRecvCallbackSimple,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {0};
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {};
     TcpCallbacks.Accept = DatapathTestTcpAcceptCallback;
     TcpCallbacks.Connect = DatapathTestTcpConnectCallback;
     TcpCallbacks.Receive = DatapathTestTcpRecvCallback;
     // SendComplete is NULL
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -446,50 +554,23 @@ void
 QuicTestDataPathInitDscpOnRecv(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
     InitConfig.EnableDscpOnRecv = TRUE;
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0,
-            &UdpCallbacks,
-            nullptr,
-            WorkerPool,
-            &InitConfig,
-            &Datapath));
-    TEST_NOT_EQUAL(nullptr, Datapath);
-    CxPlatDataPathUninitialize(Datapath);
+    DatapathScope Datapath(0, nullptr, InitConfig);
 }
 
 //
-// ===== Category 2: Feature Query Tests =====
+// =========================================================================
+// Category 2: Loosely Coupled — Feature Query
+// Coupling: Public API only. Exercises feature enumeration interfaces.
+// =========================================================================
 //
 
 void
 QuicTestDataPathFeatureQuery(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0,
-            &UdpCallbacks,
-            nullptr,
-            WorkerPool,
-            &InitConfig,
-            &Datapath));
-    TEST_NOT_EQUAL(nullptr, Datapath);
+    DatapathScope Datapath;
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
@@ -510,55 +591,31 @@ QuicTestDataPathFeatureQuery(
         CXPLAT_DATAPATH_FEATURE_SEND_DSCP |
         CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
     TEST_EQUAL(0u, ((uint32_t)Features & ~AllKnownFeatures));
-
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathIsPaddingPreferred(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0,
-            &UdpCallbacks,
-            nullptr,
-            WorkerPool,
-            &InitConfig,
-            &Datapath));
-    TEST_NOT_EQUAL(nullptr, Datapath);
+    DatapathScope Datapath;
 
     //
     // We need a socket + send data to query IsPaddingPreferred.
     // Create a simple client socket for this purpose.
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrSetFamily(&RemoteAddr, QUIC_ADDRESS_FAMILY_INET);
     QuicAddrSetPort(&RemoteAddr, 12345);
     QuicAddrFromString("127.0.0.1", 12345, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = nullptr;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(
-            Datapath,
-            &UdpConfig,
-            &Socket));
-    TEST_NOT_EQUAL(nullptr, Socket);
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
     Route.Queue = nullptr;
@@ -566,161 +623,109 @@ QuicTestDataPathIsPaddingPreferred(
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, 1200, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
+    SendDataScope SendData(Socket, &SendConfig);
 
     BOOLEAN IsPadded = CxPlatDataPathIsPaddingPreferred(Datapath, SendData);
-    // Just verify it returns a valid boolean
-    TEST_TRUE(IsPadded == TRUE || IsPadded == FALSE);
-
-    CxPlatSendDataFree(SendData);
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    if (Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+        //
+        // With segmentation, padding is preferred (SegmentSize > 0).
+        //
+        TEST_TRUE(IsPadded);
+    } else {
+        //
+        // Without segmentation, no padding needed (SegmentSize == 0).
+        //
+        TEST_FALSE(IsPadded);
+    }
 }
 
 //
-// ===== Category 3: Address Resolution Tests =====
+// =========================================================================
+// Category 3: Loosely Coupled — Address Resolution
+// Coupling: Public API only. Exercises hostname/address resolution paths.
+// =========================================================================
 //
 
 void
 QuicTestDataPathResolveLocalhostV4(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR Address = {0};
+    QUIC_ADDR Address = {};
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_INET);
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathResolveAddress(Datapath, "localhost", &Address));
     TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET, QuicAddrGetFamily(&Address));
-
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathResolveLocalhostV6(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR Address = {0};
+    QUIC_ADDR Address = {};
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_INET6);
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathResolveAddress(Datapath, "localhost", &Address));
     TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET6, QuicAddrGetFamily(&Address));
-
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathResolveNumericV4(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR Address = {0};
+    QUIC_ADDR Address = {};
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathResolveAddress(Datapath, "127.0.0.1", &Address));
     TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET, QuicAddrGetFamily(&Address));
-
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathResolveNumericV6(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR Address = {0};
+    QUIC_ADDR Address = {};
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_INET6);
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathResolveAddress(Datapath, "::1", &Address));
     TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET6, QuicAddrGetFamily(&Address));
-
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathResolveInvalidHost(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR Address = {0};
+    QUIC_ADDR Address = {};
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QUIC_STATUS Status =
         CxPlatDataPathResolveAddress(
             Datapath, "this.host.does.not.exist.invalid", &Address);
     TEST_TRUE(QUIC_FAILED(Status));
-
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 //
-// ===== Category 4: Address Enumeration Tests =====
+// =========================================================================
+// Category 4: Loosely Coupled — Address Enumeration
+// Coupling: Public API only. Exercises local/gateway address enumeration.
+// =========================================================================
 //
 
 void
 QuicTestDataPathGetLocalAddresses(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     CXPLAT_ADAPTER_ADDRESS* Addresses = nullptr;
     uint32_t AddressCount = 0;
@@ -731,23 +736,13 @@ QuicTestDataPathGetLocalAddresses(
     TEST_NOT_EQUAL(nullptr, Addresses);
 
     CXPLAT_FREE(Addresses, QUIC_POOL_DATAPATH_ADDRESSES);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathGetGatewayAddresses(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     QUIC_ADDR* GatewayAddresses = nullptr;
     uint32_t GatewayAddressCount = 0;
@@ -764,461 +759,279 @@ QuicTestDataPathGetGatewayAddresses(
     if (QUIC_SUCCEEDED(Status) && GatewayAddresses != nullptr) {
         CXPLAT_FREE(GatewayAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
     }
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 //
-// ===== Category 5: UDP Socket Tests =====
+// =========================================================================
+// Category 5: Loosely Coupled — UDP Socket Lifecycle
+// Coupling: Public API only. Tests socket creation, binding, and queries.
+// =========================================================================
 //
 
 void
 QuicTestDataPathUdpServerSocket(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     //
     // Create a "server" socket (no remote address).
     //
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.LocalAddress = nullptr;
     UdpConfig.RemoteAddress = nullptr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = nullptr;
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-    TEST_NOT_EQUAL(nullptr, Socket);
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 }
 
 void
 QuicTestDataPathUdpClientSocket(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     //
     // Create a "client" socket (with remote address).
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 9999, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = nullptr;
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-    TEST_NOT_EQUAL(nullptr, Socket);
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 }
 
 void
 QuicTestDataPathUdpGetLocalAddress(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    QUIC_ADDR LocalAddr = {0};
+    QUIC_ADDR LocalAddr = {};
     CxPlatSocketGetLocalAddress(Socket, &LocalAddr);
     //
     // Should have a valid port assigned.
     //
     TEST_NOT_EQUAL(0, QuicAddrGetPort(&LocalAddr));
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathUdpGetRemoteAddress(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 8888, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    QUIC_ADDR RetrievedRemote = {0};
+    QUIC_ADDR RetrievedRemote = {};
     CxPlatSocketGetRemoteAddress(Socket, &RetrievedRemote);
     TEST_EQUAL(8888, QuicAddrGetPort(&RetrievedRemote));
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathUdpGetMtu(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 7777, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
     uint16_t Mtu = CxPlatSocketGetLocalMtu(Socket, &Route);
     TEST_TRUE(Mtu >= 1280); // Minimum IPv6 MTU
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathUdpBindV4(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR LocalAddr = {0};
+    QUIC_ADDR LocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &LocalAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.LocalAddress = &LocalAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    QUIC_ADDR BoundAddr = {0};
+    QUIC_ADDR BoundAddr = {};
     CxPlatSocketGetLocalAddress(Socket, &BoundAddr);
     TEST_NOT_EQUAL(0, QuicAddrGetPort(&BoundAddr));
     TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET, QuicAddrGetFamily(&BoundAddr));
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathUdpBindV6(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR LocalAddr = {0};
+    QUIC_ADDR LocalAddr = {};
     QuicAddrFromString("::1", 0, &LocalAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.LocalAddress = &LocalAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    QUIC_ADDR BoundAddr = {0};
+    QUIC_ADDR BoundAddr = {};
     CxPlatSocketGetLocalAddress(Socket, &BoundAddr);
     TEST_NOT_EQUAL(0, QuicAddrGetPort(&BoundAddr));
     TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET6, QuicAddrGetFamily(&BoundAddr));
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathUdpPcpSocket(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 5351, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_PCP;
     UdpConfig.CallbackContext = nullptr;
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-    TEST_NOT_EQUAL(nullptr, Socket);
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 }
 
 //
-// ===== Category 6: Send Data Tests =====
+// =========================================================================
+// Category 6: Loosely Coupled — Send Data Management
+// Coupling: Public API only. Tests send buffer alloc/free/query lifecycle.
+// =========================================================================
 //
 
 void
 QuicTestDataPathSendDataAllocFree(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, 1200, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
-
-    CxPlatSendDataFree(SendData);
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    SendDataScope SendData(Socket, &SendConfig);
 }
 
 void
 QuicTestDataPathSendDataAllocBuffer(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, 1200, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
+    SendDataScope SendData(Socket, &SendConfig);
 
     QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, 100);
     TEST_NOT_EQUAL(nullptr, Buffer);
     TEST_NOT_EQUAL(nullptr, Buffer->Buffer);
     TEST_TRUE(Buffer->Length >= 100);
-
-    CxPlatSendDataFree(SendData);
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathSendDataFreeBuffer(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, 1200, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
+    SendDataScope SendData(Socket, &SendConfig);
 
     QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, 100);
     TEST_NOT_EQUAL(nullptr, Buffer);
 
     CxPlatSendDataFreeBuffer(SendData, Buffer);
-
-    CxPlatSendDataFree(SendData);
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathSendDataIsFull(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, 1200, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
+    SendDataScope SendData(Socket, &SendConfig);
 
     //
     // Initially the send data should not be full.
@@ -1229,99 +1042,75 @@ QuicTestDataPathSendDataIsFull(
     TEST_NOT_EQUAL(nullptr, Buffer);
 
     //
-    // After allocating a max-sized buffer without segmentation,
-    // it may or may not be full depending on segmentation support.
+    // After allocating a max-sized buffer, fullness depends on segmentation.
+    // Without segmentation: MaxSendBatchSize is 1, so one buffer fills it.
+    // With segmentation: large backing buffer has space for more segments.
     //
-    BOOLEAN IsFull = CxPlatSendDataIsFull(SendData);
-    TEST_TRUE(IsFull == TRUE || IsFull == FALSE);
-
-    CxPlatSendDataFree(SendData);
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    if (Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+        TEST_FALSE(CxPlatSendDataIsFull(SendData));
+    } else {
+        TEST_TRUE(CxPlatSendDataIsFull(SendData));
+    }
 }
 
 void
 QuicTestDataPathSendDataAllocMultiple(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, 100, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
+    SendDataScope SendData(Socket, &SendConfig);
 
     //
-    // Allocate several small buffers.
+    // Allocate several small buffers. Assert at least one succeeds.
     //
+    int AllocCount = 0;
     for (int i = 0; i < 5; i++) {
         QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, 100);
         if (Buffer == nullptr) {
             break; // send data may be full
         }
         memset(Buffer->Buffer, (uint8_t)i, 100);
+        AllocCount++;
     }
-
-    CxPlatSendDataFree(SendData);
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    TEST_TRUE(AllocCount >= 1);
 }
 
 void
 QuicTestDataPathUdpSendLoopback(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     //
     // Create a server socket to receive.
     //
-    CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope ServerSocket(Datapath, &ServerConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
-
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
     TEST_NOT_EQUAL(0, ServerPort);
@@ -1329,21 +1118,18 @@ QuicTestDataPathUdpSendLoopback(
     //
     // Create a client socket pointing to the server.
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
 
-    CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &ClientConfig, &ClientSocket));
+    UdpSocketScope ClientSocket(Datapath, &ClientConfig);
 
     //
     // Send data from the client socket.
     //
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -1351,27 +1137,25 @@ QuicTestDataPathUdpSendLoopback(
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, PayloadSize, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(ClientSocket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
+    SendDataScope SendData(ClientSocket, &SendConfig);
 
     QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, PayloadSize);
     TEST_NOT_EQUAL(nullptr, Buffer);
     memset(Buffer->Buffer, 0xAB, PayloadSize);
 
-    CxPlatSocketSend(ClientSocket, &Route, SendData);
+    CxPlatSocketSend(ClientSocket, &Route, SendData.release());
 
     //
     // Brief wait for packet transit.
     //
     CxPlatSleep(100);
-
-    CxPlatSocketDelete(ClientSocket);
-    CxPlatSocketDelete(ServerSocket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 //
-// ===== Category 7: Receive Data Tests =====
+// =========================================================================
+// Category 7: Loosely Coupled — Send/Receive Validation
+// Coupling: Public API only. Tests end-to-end loopback payload delivery.
+// =========================================================================
 //
 
 void
@@ -1382,14 +1166,14 @@ QuicTestDataPathUdpSendRecvLoopback(
     int Family = Params.Family;
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
@@ -1399,14 +1183,14 @@ QuicTestDataPathUdpSendRecvLoopback(
     // Create a server socket.
     //
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     if (Family == 4) {
         QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
     } else {
         QuicAddrFromString("::1", 0, &ServerLocalAddr);
     }
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -1414,7 +1198,7 @@ QuicTestDataPathUdpSendRecvLoopback(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
     TEST_NOT_EQUAL(0, ServerPort);
@@ -1422,7 +1206,7 @@ QuicTestDataPathUdpSendRecvLoopback(
     //
     // Create a client socket.
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     if (Family == 4) {
         QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
     } else {
@@ -1430,7 +1214,7 @@ QuicTestDataPathUdpSendRecvLoopback(
     }
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -1443,7 +1227,7 @@ QuicTestDataPathUdpSendRecvLoopback(
     const uint8_t TestPayload[] = "DatapathWinUserTest";
     const uint16_t PayloadSize = sizeof(TestPayload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -1488,38 +1272,25 @@ QuicTestDataPathRecvDataReturn(
 }
 
 //
-// ===== Category 8: TCP Socket Tests =====
+// =========================================================================
+// Category 8: Feature-Dependent — TCP Socket Operations
+// Coupling: Public API. Skips if CXPLAT_DATAPATH_FEATURE_TCP unavailable.
+// =========================================================================
 //
 
 void
 QuicTestDataPathTcpListener(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        DatapathTestTcpAcceptCallback,
-        DatapathTestTcpConnectCallback,
-        DatapathTestTcpRecvCallback,
-        DatapathTestTcpSendCompleteCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath(DefaultTcpCallbacks);
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
     if (!(Features & CXPLAT_DATAPATH_FEATURE_TCP)) {
-        CxPlatDataPathUninitialize(Datapath);
         return; // TCP not supported on this platform
     }
 
-    QUIC_ADDR ListenerAddr = {0};
+    QUIC_ADDR ListenerAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ListenerAddr);
 
     CXPLAT_SOCKET* Listener = nullptr;
@@ -1532,41 +1303,24 @@ QuicTestDataPathTcpListener(
     TEST_NOT_EQUAL(nullptr, Listener);
 
     CxPlatSocketDelete(Listener);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathTcpClient(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        DatapathTestTcpAcceptCallback,
-        DatapathTestTcpConnectCallback,
-        DatapathTestTcpRecvCallback,
-        DatapathTestTcpSendCompleteCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath(DefaultTcpCallbacks);
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
     if (!(Features & CXPLAT_DATAPATH_FEATURE_TCP)) {
-        CxPlatDataPathUninitialize(Datapath);
         return; // TCP not supported on this platform
     }
 
     //
     // Create a listener first so we have somewhere to connect to.
     //
-    QUIC_ADDR ListenerAddr = {0};
+    QUIC_ADDR ListenerAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ListenerAddr);
 
     CXPLAT_SOCKET* Listener = nullptr;
@@ -1577,75 +1331,52 @@ QuicTestDataPathTcpClient(
             nullptr,
             &Listener));
 
-    QUIC_ADDR BoundListenerAddr = {0};
+    QUIC_ADDR BoundListenerAddr = {};
     CxPlatSocketGetLocalAddress(Listener, &BoundListenerAddr);
     uint16_t ListenerPort = QuicAddrGetPort(&BoundListenerAddr);
 
     //
     // Create a TCP client socket connecting to the listener.
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
 
-    CXPLAT_SOCKET* ClientSocket = nullptr;
+    TcpSocketScope ClientSocket;
     QUIC_STATUS Status =
         CxPlatSocketCreateTcp(
             Datapath,
             nullptr,
             &RemoteAddr,
             nullptr,
-            &ClientSocket);
+            &ClientSocket.Socket);
     //
     // The connection may succeed or be pending. Either is valid.
     //
     if (QUIC_SUCCEEDED(Status)) {
-        TEST_NOT_EQUAL(nullptr, ClientSocket);
-        CxPlatSocketDelete(ClientSocket);
+        TEST_NOT_EQUAL(nullptr, ClientSocket.Socket);
     }
 
     CxPlatSocketDelete(Listener);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathTcpConnect(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_EVENT AcceptEvent;
-    CXPLAT_EVENT ConnectEvent;
-    CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
-    CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
-
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        DatapathTestTcpAcceptCallback,
-        DatapathTestTcpConnectCallback,
-        DatapathTestTcpRecvCallback,
-        DatapathTestTcpSendCompleteCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+    EventScope AcceptEvent;
+    EventScope ConnectEvent;
+    DatapathScope Datapath(DefaultTcpCallbacks);
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
     if (!(Features & CXPLAT_DATAPATH_FEATURE_TCP)) {
-        CxPlatDataPathUninitialize(Datapath);
-        CxPlatEventUninitialize(AcceptEvent);
-        CxPlatEventUninitialize(ConnectEvent);
         return;
     }
 
     //
     // Create listener.
     //
-    QUIC_ADDR ListenerAddr = {0};
+    QUIC_ADDR ListenerAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ListenerAddr);
 
     CXPLAT_SOCKET* Listener = nullptr;
@@ -1653,46 +1384,44 @@ QuicTestDataPathTcpConnect(
         CxPlatSocketCreateTcpListener(
             Datapath,
             &ListenerAddr,
-            &AcceptEvent,
+            &AcceptEvent.Event,
             &Listener));
 
-    QUIC_ADDR BoundListenerAddr = {0};
+    QUIC_ADDR BoundListenerAddr = {};
     CxPlatSocketGetLocalAddress(Listener, &BoundListenerAddr);
     uint16_t ListenerPort = QuicAddrGetPort(&BoundListenerAddr);
 
     //
     // Create client.
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
 
-    CXPLAT_SOCKET* ClientSocket = nullptr;
+    TcpSocketScope ClientSocket;
     QUIC_STATUS Status =
         CxPlatSocketCreateTcp(
             Datapath,
             nullptr,
             &RemoteAddr,
-            &ConnectEvent,
-            &ClientSocket);
+            &ConnectEvent.Event,
+            &ClientSocket.Socket);
 
     if (QUIC_SUCCEEDED(Status)) {
         //
         // Wait for connect and accept callbacks.
         //
-        CxPlatEventWaitWithTimeout(ConnectEvent, 2000);
-        CxPlatEventWaitWithTimeout(AcceptEvent, 2000);
-
-        CxPlatSocketDelete(ClientSocket);
+        CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000);
+        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
     }
 
     CxPlatSocketDelete(Listener);
-    CxPlatEventUninitialize(AcceptEvent);
-    CxPlatEventUninitialize(ConnectEvent);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 //
-// ===== Category 9: DataPath Lifecycle Tests =====
+// =========================================================================
+// Category 9: Loosely Coupled — DataPath Lifecycle
+// Coupling: Public API only. Tests full init-use-cleanup sequences.
+// =========================================================================
 //
 
 void
@@ -1704,14 +1433,14 @@ QuicTestDataPathFullLifecycle(
     //
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
@@ -1721,10 +1450,10 @@ QuicTestDataPathFullLifecycle(
     // Create a server socket.
     //
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerAddr = {0};
+    QUIC_ADDR ServerAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ServerAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -1732,18 +1461,18 @@ QuicTestDataPathFullLifecycle(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
     //
     // Create a client socket.
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -1756,7 +1485,7 @@ QuicTestDataPathFullLifecycle(
     const uint8_t Payload[] = "LifecycleTest";
     const uint16_t PayloadLen = sizeof(Payload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -1793,16 +1522,7 @@ void
 QuicTestDataPathUpdateIdleTimeout(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     //
     // This is a no-op on Windows but should not crash.
@@ -1810,12 +1530,14 @@ QuicTestDataPathUpdateIdleTimeout(
     CxPlatDataPathUpdatePollingIdleTimeout(Datapath, 0);
     CxPlatDataPathUpdatePollingIdleTimeout(Datapath, 1000);
     CxPlatDataPathUpdatePollingIdleTimeout(Datapath, UINT32_MAX);
-
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 //
-// ===== Additional Coverage Tests =====
+// =========================================================================
+// Category 10: Feature-Dependent — Extended Integration Tests
+// Coupling: Public API. Exercises ECN, DSCP, IPv6, segmentation, and
+//           multi-send paths. Some tests skip if features are unavailable.
+// =========================================================================
 //
 
 void
@@ -1824,24 +1546,24 @@ QuicTestDataPathSendWithEcn(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
             0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
 
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -1849,15 +1571,15 @@ QuicTestDataPathSendWithEcn(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -1867,7 +1589,7 @@ QuicTestDataPathSendWithEcn(
     const uint8_t Payload[] = "EcnTest";
     const uint16_t PayloadLen = sizeof(Payload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -1900,14 +1622,14 @@ QuicTestDataPathSendWithDscp(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
@@ -1922,10 +1644,10 @@ QuicTestDataPathSendWithDscp(
     }
 
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -1933,15 +1655,15 @@ QuicTestDataPathSendWithDscp(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -1951,7 +1673,7 @@ QuicTestDataPathSendWithDscp(
     const uint8_t Payload[] = "DscpTest";
     const uint16_t PayloadLen = sizeof(Payload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -1984,24 +1706,24 @@ QuicTestDataPathSendRecvV6(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
             0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
 
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("::1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -2009,15 +1731,15 @@ QuicTestDataPathSendRecvV6(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("::1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -2027,7 +1749,7 @@ QuicTestDataPathSendRecvV6(
     const uint8_t Payload[] = "IPv6Test";
     const uint16_t PayloadLen = sizeof(Payload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -2058,70 +1780,38 @@ void
 QuicTestDataPathServerSocketV6(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     //
     // Create a "server" socket bound to [::] (wildcard IPv6).
     //
-    QUIC_ADDR LocalAddr = {0};
+    QUIC_ADDR LocalAddr = {};
     QuicAddrFromString("::", 0, &LocalAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.LocalAddress = &LocalAddr;
     UdpConfig.RemoteAddress = nullptr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-    TEST_NOT_EQUAL(nullptr, Socket);
-
-    QUIC_ADDR BoundAddr = {0};
+    QUIC_ADDR BoundAddr = {};
     CxPlatSocketGetLocalAddress(Socket, &BoundAddr);
     TEST_NOT_EQUAL(0, QuicAddrGetPort(&BoundAddr));
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathUdpShareFlag(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    DatapathScope Datapath;
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-
-    QUIC_ADDR LocalAddr = {0};
+    QUIC_ADDR LocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &LocalAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.LocalAddress = &LocalAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_SHARE;
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-    TEST_NOT_EQUAL(nullptr, Socket);
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 }
 
 void
@@ -2130,24 +1820,24 @@ QuicTestDataPathSendWithMaxThroughput(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
             0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
 
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -2155,15 +1845,15 @@ QuicTestDataPathSendWithMaxThroughput(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -2173,7 +1863,7 @@ QuicTestDataPathSendWithMaxThroughput(
     const uint8_t Payload[] = "MaxThroughputTest";
     const uint16_t PayloadLen = sizeof(Payload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -2206,14 +1896,14 @@ QuicTestDataPathSendRecvDscpV6(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
@@ -2228,10 +1918,10 @@ QuicTestDataPathSendRecvDscpV6(
     }
 
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("::1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -2239,15 +1929,15 @@ QuicTestDataPathSendRecvDscpV6(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("::1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -2257,7 +1947,7 @@ QuicTestDataPathSendRecvDscpV6(
     const uint8_t Payload[] = "DscpV6Test";
     const uint16_t PayloadLen = sizeof(Payload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -2290,24 +1980,24 @@ QuicTestDataPathSendWithEcnV6(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
             0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
 
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("::1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -2315,15 +2005,15 @@ QuicTestDataPathSendWithEcnV6(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("::1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -2333,7 +2023,7 @@ QuicTestDataPathSendWithEcnV6(
     const uint8_t Payload[] = "EcnV6Test";
     const uint16_t PayloadLen = sizeof(Payload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -2364,145 +2054,94 @@ void
 QuicTestDataPathTcpConnectV6(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_EVENT AcceptEvent;
-    CXPLAT_EVENT ConnectEvent;
-    CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
-    CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
-
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        DatapathTestTcpAcceptCallback,
-        DatapathTestTcpConnectCallback,
-        DatapathTestTcpRecvCallback,
-        DatapathTestTcpSendCompleteCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+    EventScope AcceptEvent;
+    EventScope ConnectEvent;
+    DatapathScope Datapath(DefaultTcpCallbacks);
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
     if (!(Features & CXPLAT_DATAPATH_FEATURE_TCP)) {
-        CxPlatDataPathUninitialize(Datapath);
-        CxPlatEventUninitialize(AcceptEvent);
-        CxPlatEventUninitialize(ConnectEvent);
         return;
     }
 
-    QUIC_ADDR ListenerAddr = {0};
+    QUIC_ADDR ListenerAddr = {};
     QuicAddrFromString("::1", 0, &ListenerAddr);
 
     CXPLAT_SOCKET* Listener = nullptr;
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateTcpListener(
-            Datapath, &ListenerAddr, &AcceptEvent, &Listener));
+            Datapath, &ListenerAddr, &AcceptEvent.Event, &Listener));
 
-    QUIC_ADDR BoundListenerAddr = {0};
+    QUIC_ADDR BoundListenerAddr = {};
     CxPlatSocketGetLocalAddress(Listener, &BoundListenerAddr);
     uint16_t ListenerPort = QuicAddrGetPort(&BoundListenerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("::1", ListenerPort, &RemoteAddr);
 
-    CXPLAT_SOCKET* ClientSocket = nullptr;
+    TcpSocketScope ClientSocket;
     QUIC_STATUS Status =
         CxPlatSocketCreateTcp(
-            Datapath, nullptr, &RemoteAddr, &ConnectEvent, &ClientSocket);
+            Datapath, nullptr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
 
     if (QUIC_SUCCEEDED(Status)) {
-        CxPlatEventWaitWithTimeout(ConnectEvent, 2000);
-        CxPlatEventWaitWithTimeout(AcceptEvent, 2000);
-        CxPlatSocketDelete(ClientSocket);
+        CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000);
+        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
     }
 
     CxPlatSocketDelete(Listener);
-    CxPlatEventUninitialize(AcceptEvent);
-    CxPlatEventUninitialize(ConnectEvent);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathTcpStatistics(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_EVENT AcceptEvent;
-    CXPLAT_EVENT ConnectEvent;
-    CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
-    CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
-
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        DatapathTestTcpAcceptCallback,
-        DatapathTestTcpConnectCallback,
-        DatapathTestTcpRecvCallback,
-        DatapathTestTcpSendCompleteCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+    EventScope AcceptEvent;
+    EventScope ConnectEvent;
+    DatapathScope Datapath(DefaultTcpCallbacks);
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
     if (!(Features & CXPLAT_DATAPATH_FEATURE_TCP)) {
-        CxPlatDataPathUninitialize(Datapath);
-        CxPlatEventUninitialize(AcceptEvent);
-        CxPlatEventUninitialize(ConnectEvent);
         return;
     }
 
-    QUIC_ADDR ListenerAddr = {0};
+    QUIC_ADDR ListenerAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ListenerAddr);
 
     CXPLAT_SOCKET* Listener = nullptr;
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateTcpListener(
-            Datapath, &ListenerAddr, &AcceptEvent, &Listener));
+            Datapath, &ListenerAddr, &AcceptEvent.Event, &Listener));
 
-    QUIC_ADDR BoundListenerAddr = {0};
+    QUIC_ADDR BoundListenerAddr = {};
     CxPlatSocketGetLocalAddress(Listener, &BoundListenerAddr);
     uint16_t ListenerPort = QuicAddrGetPort(&BoundListenerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
 
-    CXPLAT_SOCKET* ClientSocket = nullptr;
+    TcpSocketScope ClientSocket;
     QUIC_STATUS Status =
         CxPlatSocketCreateTcp(
-            Datapath, nullptr, &RemoteAddr, &ConnectEvent, &ClientSocket);
+            Datapath, nullptr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
 
     if (QUIC_SUCCEEDED(Status)) {
-        TEST_TRUE(CxPlatEventWaitWithTimeout(ConnectEvent, 2000));
-        CxPlatEventWaitWithTimeout(AcceptEvent, 2000);
+        TEST_TRUE(CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000));
+        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
 
         //
         // Query TCP statistics on the connected client socket.
         //
-        CXPLAT_TCP_STATISTICS Stats = {0};
+        CXPLAT_TCP_STATISTICS Stats = {};
         QUIC_STATUS StatsStatus =
             CxPlatSocketGetTcpStatistics(ClientSocket, &Stats);
         if (QUIC_SUCCEEDED(StatsStatus)) {
             TEST_TRUE(Stats.Mss > 0);
         }
-
-        CxPlatSocketDelete(ClientSocket);
     }
 
     CxPlatSocketDelete(Listener);
-    CxPlatEventUninitialize(AcceptEvent);
-    CxPlatEventUninitialize(ConnectEvent);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
@@ -2511,10 +2150,10 @@ QuicTestDataPathTcpSendRecv(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestTcpRecvContext TcpRecvCtx = {0};
+    DatapathTestTcpRecvContext TcpRecvCtx = {};
     CxPlatEventInitialize(&TcpRecvCtx.RecvEvent, FALSE, FALSE);
 
-    DatapathTestTcpAcceptRecvContext AcceptCtx = {0};
+    DatapathTestTcpAcceptRecvContext AcceptCtx = {};
     CxPlatEventInitialize(&AcceptCtx.AcceptEvent, FALSE, FALSE);
     AcceptCtx.RecvCtx = &TcpRecvCtx;
 
@@ -2531,7 +2170,7 @@ QuicTestDataPathTcpSendRecv(
         DatapathTestTcpRecvCallbackWithContext,
         DatapathTestTcpSendCompleteCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
@@ -2547,7 +2186,7 @@ QuicTestDataPathTcpSendRecv(
         return;
     }
 
-    QUIC_ADDR ListenerAddr = {0};
+    QUIC_ADDR ListenerAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ListenerAddr);
 
     CXPLAT_SOCKET* Listener = nullptr;
@@ -2555,11 +2194,11 @@ QuicTestDataPathTcpSendRecv(
         CxPlatSocketCreateTcpListener(
             Datapath, &ListenerAddr, &AcceptCtx, &Listener));
 
-    QUIC_ADDR BoundListenerAddr = {0};
+    QUIC_ADDR BoundListenerAddr = {};
     CxPlatSocketGetLocalAddress(Listener, &BoundListenerAddr);
     uint16_t ListenerPort = QuicAddrGetPort(&BoundListenerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
@@ -2577,7 +2216,7 @@ QuicTestDataPathTcpSendRecv(
         const uint8_t Payload[] = "TcpSendRecvTest";
         const uint16_t PayloadLen = sizeof(Payload);
 
-        CXPLAT_ROUTE Route = {0};
+        CXPLAT_ROUTE Route = {};
         CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
         Route.RemoteAddress = RemoteAddr;
 
@@ -2612,34 +2251,25 @@ void
 QuicTestDataPathUdpBindSpecificPort(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     //
     // Pick a high port and bind to it explicitly.
     //
     const uint16_t SpecificPort = 49152 + (uint16_t)(CxPlatCurThreadID() % 1000);
 
-    QUIC_ADDR LocalAddr = {0};
+    QUIC_ADDR LocalAddr = {};
     QuicAddrFromString("127.0.0.1", SpecificPort, &LocalAddr);
 
     CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.LocalAddress = &LocalAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
     if (QUIC_SUCCEEDED(Status)) {
-        QUIC_ADDR BoundAddr = {0};
+        QUIC_ADDR BoundAddr = {};
         CxPlatSocketGetLocalAddress(Socket, &BoundAddr);
         TEST_EQUAL(SpecificPort, QuicAddrGetPort(&BoundAddr));
         CxPlatSocketDelete(Socket);
@@ -2647,8 +2277,6 @@ QuicTestDataPathUdpBindSpecificPort(
     //
     // Port may be in use - that's okay, just verify no crash.
     //
-
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
@@ -2657,24 +2285,24 @@ QuicTestDataPathMultipleSendRecv(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
             0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
 
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -2682,22 +2310,22 @@ QuicTestDataPathMultipleSendRecv(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ClientConfig, &ClientSocket));
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -2738,107 +2366,82 @@ void
 QuicTestDataPathFeatureQueryWithFlags(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     //
     // Query features with different socket flag combinations.
     //
     CXPLAT_DATAPATH_FEATURES FeaturesNone =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
-    (void)FeaturesNone; // Just verify no crash
 
     CXPLAT_DATAPATH_FEATURES FeaturesPcp =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_PCP);
-    (void)FeaturesPcp;
 
     CXPLAT_DATAPATH_FEATURES FeaturesShare =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_SHARE);
-    (void)FeaturesShare;
 
-    CxPlatDataPathUninitialize(Datapath);
+    //
+    // All queries should return the same features (Windows implementation
+    // ignores socket flags for feature queries).
+    //
+    const uint32_t AllKnownFeatures =
+        CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING |
+        CXPLAT_DATAPATH_FEATURE_RECV_COALESCING |
+        CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION |
+        CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING |
+        CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS |
+        CXPLAT_DATAPATH_FEATURE_TCP |
+        CXPLAT_DATAPATH_FEATURE_RAW |
+        CXPLAT_DATAPATH_FEATURE_TTL |
+        CXPLAT_DATAPATH_FEATURE_SEND_DSCP |
+        CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+    TEST_EQUAL(0u, ((uint32_t)FeaturesNone & ~AllKnownFeatures));
+    TEST_EQUAL(0u, ((uint32_t)FeaturesPcp & ~AllKnownFeatures));
+    TEST_EQUAL(0u, ((uint32_t)FeaturesShare & ~AllKnownFeatures));
+    TEST_EQUAL((uint32_t)FeaturesNone, (uint32_t)FeaturesPcp);
+    TEST_EQUAL((uint32_t)FeaturesNone, (uint32_t)FeaturesShare);
 }
 
 void
 QuicTestDataPathInitWithClientRecvContextLength(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    //
-    // Initialize with a non-zero ClientRecvContextLength.
-    //
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            64, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-    TEST_NOT_EQUAL(nullptr, Datapath);
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+    DatapathScope Datapath(64, nullptr, InitConfig);
 
     //
     // Verify basic socket creation still works with the custom context length.
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-    TEST_NOT_EQUAL(nullptr, Socket);
-
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 }
 
 void
 QuicTestDataPathSendDataSegmented(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
     if (!(Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)) {
-        CxPlatDataPathUninitialize(Datapath);
         return; // Segmentation not supported
     }
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -2848,23 +2451,21 @@ QuicTestDataPathSendDataSegmented(
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, 100, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
+    SendDataScope SendData(Socket, &SendConfig);
 
     //
-    // Allocate 5 segment buffers of 100 bytes each.
+    // Allocate 5 segment buffers of 100 bytes each. Assert at least one succeeds.
     //
+    int AllocCount = 0;
     for (int i = 0; i < 5; i++) {
         QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, 100);
         if (Buffer == nullptr) {
             break; // send data may be full
         }
         memset(Buffer->Buffer, (uint8_t)i, 100);
+        AllocCount++;
     }
-
-    CxPlatSendDataFree(SendData);
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
+    TEST_TRUE(AllocCount >= 1);
 }
 
 void
@@ -2883,14 +2484,14 @@ QuicTestDataPathUdpDualStack(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
@@ -2900,7 +2501,7 @@ QuicTestDataPathUdpDualStack(
     // Create a server socket with no local address (defaults to dual-stack IPv6).
     //
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = nullptr;
     ServerConfig.RemoteAddress = nullptr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
@@ -2909,7 +2510,7 @@ QuicTestDataPathUdpDualStack(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
     TEST_NOT_EQUAL(0, ServerPort);
@@ -2917,11 +2518,11 @@ QuicTestDataPathUdpDualStack(
     //
     // Create an IPv4 client to send to the dual-stack server.
     //
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -2931,7 +2532,7 @@ QuicTestDataPathUdpDualStack(
     const uint8_t Payload[] = "DualStackTest";
     const uint16_t PayloadLen = sizeof(Payload);
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -2963,125 +2564,82 @@ void
 QuicTestDataPathSendDataFreeBufferSegmented(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+    DatapathScope Datapath;
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
     if (!(Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)) {
-        CxPlatDataPathUninitialize(Datapath);
         return; // Segmentation not supported
     }
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.RemoteAddress = &RemoteAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
     CXPLAT_SEND_CONFIG SendConfig = {
         &Route, 100, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
     };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
-    TEST_NOT_EQUAL(nullptr, SendData);
+    SendDataScope SendData(Socket, &SendConfig);
 
     QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, 100);
     TEST_NOT_EQUAL(nullptr, Buffer);
 
     CxPlatSendDataFreeBuffer(SendData, Buffer);
-
-    CxPlatSendDataFree(SendData);
-    CxPlatSocketDelete(Socket);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
 QuicTestDataPathTcpConnectDisconnect(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_EVENT AcceptEvent;
-    CXPLAT_EVENT ConnectEvent;
-    CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
-    CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
-
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        DatapathTestTcpAcceptCallback,
-        DatapathTestTcpConnectCallback,
-        DatapathTestTcpRecvCallback,
-        DatapathTestTcpSendCompleteCallback,
-    };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+    EventScope AcceptEvent;
+    EventScope ConnectEvent;
+    DatapathScope Datapath(DefaultTcpCallbacks);
 
     CXPLAT_DATAPATH_FEATURES Features =
         CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
     if (!(Features & CXPLAT_DATAPATH_FEATURE_TCP)) {
-        CxPlatDataPathUninitialize(Datapath);
-        CxPlatEventUninitialize(AcceptEvent);
-        CxPlatEventUninitialize(ConnectEvent);
         return;
     }
 
-    QUIC_ADDR ListenerAddr = {0};
+    QUIC_ADDR ListenerAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ListenerAddr);
 
     CXPLAT_SOCKET* Listener = nullptr;
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateTcpListener(
-            Datapath, &ListenerAddr, &AcceptEvent, &Listener));
+            Datapath, &ListenerAddr, &AcceptEvent.Event, &Listener));
 
-    QUIC_ADDR BoundListenerAddr = {0};
+    QUIC_ADDR BoundListenerAddr = {};
     CxPlatSocketGetLocalAddress(Listener, &BoundListenerAddr);
     uint16_t ListenerPort = QuicAddrGetPort(&BoundListenerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
 
-    CXPLAT_SOCKET* ClientSocket = nullptr;
+    TcpSocketScope ClientSocket;
     QUIC_STATUS Status =
         CxPlatSocketCreateTcp(
-            Datapath, nullptr, &RemoteAddr, &ConnectEvent, &ClientSocket);
+            Datapath, nullptr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
 
     if (QUIC_SUCCEEDED(Status)) {
-        CxPlatEventWaitWithTimeout(ConnectEvent, 2000);
-        CxPlatEventWaitWithTimeout(AcceptEvent, 2000);
+        CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000);
+        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
 
         //
         // Delete client immediately to exercise disconnect/cleanup paths.
         //
-        CxPlatSocketDelete(ClientSocket);
     }
 
     CxPlatSleep(100);
     CxPlatSocketDelete(Listener);
-    CxPlatEventUninitialize(AcceptEvent);
-    CxPlatEventUninitialize(ConnectEvent);
-    CxPlatDataPathUninitialize(Datapath);
 }
 
 void
@@ -3090,24 +2648,24 @@ QuicTestDataPathSendLargePayload(
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
 
-    DatapathTestRecvContext RecvCtx = {0};
+    DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
     };
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
             0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
 
     CXPLAT_SOCKET* ServerSocket = nullptr;
-    QUIC_ADDR ServerLocalAddr = {0};
+    QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
 
-    CXPLAT_UDP_CONFIG ServerConfig = {0};
+    CXPLAT_UDP_CONFIG ServerConfig = {};
     ServerConfig.LocalAddress = &ServerLocalAddr;
     ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     ServerConfig.CallbackContext = &RecvCtx;
@@ -3115,15 +2673,15 @@ QuicTestDataPathSendLargePayload(
     TEST_QUIC_SUCCEEDED(
         CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
 
-    QUIC_ADDR BoundServerAddr = {0};
+    QUIC_ADDR BoundServerAddr = {};
     CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
     uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
 
-    QUIC_ADDR RemoteAddr = {0};
+    QUIC_ADDR RemoteAddr = {};
     QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
 
     CXPLAT_SOCKET* ClientSocket = nullptr;
-    CXPLAT_UDP_CONFIG ClientConfig = {0};
+    CXPLAT_UDP_CONFIG ClientConfig = {};
     ClientConfig.RemoteAddress = &RemoteAddr;
     ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
 
@@ -3135,7 +2693,7 @@ QuicTestDataPathSendLargePayload(
     //
     const uint16_t PayloadLen = 512; // Fits in RecvBuf[512]
 
-    CXPLAT_ROUTE Route = {0};
+    CXPLAT_ROUTE Route = {};
     CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
     Route.RemoteAddress = RemoteAddr;
 
@@ -3165,58 +2723,781 @@ void
 QuicTestDataPathInitDscpRecvDscpSocket(
     )
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        DatapathTestUdpRecvCallbackSimple,
-        DatapathTestUdpUnreachCallback,
-    };
-
-    //
-    // Initialize with EnableDscpOnRecv = TRUE.
-    //
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
     InitConfig.EnableDscpOnRecv = TRUE;
-
-    TEST_QUIC_SUCCEEDED(
-        CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
-    TEST_NOT_EQUAL(nullptr, Datapath);
+    DatapathScope Datapath(0, nullptr, InitConfig);
 
     //
     // Create a UDP socket - this exercises the RECV_DSCP socket option path.
     //
-    QUIC_ADDR LocalAddr = {0};
+    QUIC_ADDR LocalAddr = {};
     QuicAddrFromString("127.0.0.1", 0, &LocalAddr);
 
-    CXPLAT_SOCKET* Socket = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    CXPLAT_UDP_CONFIG UdpConfig = {};
     UdpConfig.LocalAddress = &LocalAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
 
-    TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket));
-    TEST_NOT_EQUAL(nullptr, Socket);
-
-    QUIC_ADDR BoundAddr = {0};
+    QUIC_ADDR BoundAddr = {};
     CxPlatSocketGetLocalAddress(Socket, &BoundAddr);
     TEST_NOT_EQUAL(0, QuicAddrGetPort(&BoundAddr));
 
     //
     // Also create an IPv6 socket with DSCP recv enabled.
     //
-    QUIC_ADDR LocalAddrV6 = {0};
+    QUIC_ADDR LocalAddrV6 = {};
     QuicAddrFromString("::1", 0, &LocalAddrV6);
 
-    CXPLAT_SOCKET* SocketV6 = nullptr;
-    CXPLAT_UDP_CONFIG UdpConfigV6 = {0};
+    CXPLAT_UDP_CONFIG UdpConfigV6 = {};
     UdpConfigV6.LocalAddress = &LocalAddrV6;
     UdpConfigV6.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope SocketV6(Datapath, &UdpConfigV6);
+}
+
+//
+// =========================================================================
+// Category 11: Feature-Dependent — Server-Send and Advanced Scenarios
+// Coupling: Public API. Tests non-fixed-remote sends, combined ECN+DSCP,
+//           TCP with local addr, segmented over-wire, and DSCP recv paths.
+// =========================================================================
+//
+
+void
+QuicTestDataPathServerSendToRemote(
+    )
+{
+    //
+    // Scenario: Send from a "server" socket (no fixed remote) to a specific
+    // remote address. This exercises the !HasFixedRemoteAddress branch in
+    // CxPlatSocketSendInline where WSAMhdr.name is set to the mapped remote
+    // address and IP_PKTINFO/IPV6_PKTINFO control messages are constructed.
+    //
+    CXPLAT_DATAPATH* Datapath = nullptr;
+
+    DatapathTestRecvContext RecvCtx = {};
+    CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
+
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
+        DatapathTestUdpRecvCallback,
+        DatapathTestUdpUnreachCallback,
+    };
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
 
     TEST_QUIC_SUCCEEDED(
-        CxPlatSocketCreateUdp(Datapath, &UdpConfigV6, &SocketV6));
-    TEST_NOT_EQUAL(nullptr, SocketV6);
+        CxPlatDataPathInitialize(
+            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
 
-    CxPlatSocketDelete(SocketV6);
-    CxPlatSocketDelete(Socket);
+    //
+    // Create a "receiver" client socket with a known remote.
+    //
+    CXPLAT_SOCKET* RecvSocket = nullptr;
+    QUIC_ADDR RecvLocalAddr = {};
+    QuicAddrFromString("127.0.0.1", 0, &RecvLocalAddr);
+
+    CXPLAT_UDP_CONFIG RecvConfig = {};
+    RecvConfig.LocalAddress = &RecvLocalAddr;
+    RecvConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    RecvConfig.CallbackContext = &RecvCtx;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &RecvConfig, &RecvSocket));
+
+    QUIC_ADDR BoundRecvAddr = {};
+    CxPlatSocketGetLocalAddress(RecvSocket, &BoundRecvAddr);
+    uint16_t RecvPort = QuicAddrGetPort(&BoundRecvAddr);
+    TEST_NOT_EQUAL(0, RecvPort);
+
+    //
+    // Create a "server" socket (no remote address) to send from.
+    //
+    CXPLAT_SOCKET* ServerSocket = nullptr;
+    QUIC_ADDR ServerLocalAddr = {};
+    QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
+
+    CXPLAT_UDP_CONFIG ServerConfig = {};
+    ServerConfig.LocalAddress = &ServerLocalAddr;
+    ServerConfig.RemoteAddress = nullptr;
+    ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
+
+    //
+    // Send from server socket to the receiver's address.
+    //
+    QUIC_ADDR TargetAddr = {};
+    QuicAddrFromString("127.0.0.1", RecvPort, &TargetAddr);
+
+    CXPLAT_ROUTE Route = {};
+    CxPlatSocketGetLocalAddress(ServerSocket, &Route.LocalAddress);
+    Route.RemoteAddress = TargetAddr;
+    Route.Queue = nullptr; // let it default
+
+    const uint8_t Payload[] = "ServerSendTest";
+    const uint16_t PayloadLen = sizeof(Payload);
+
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Route, PayloadLen, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
+    };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(ServerSocket, &SendConfig);
+    TEST_NOT_EQUAL(nullptr, SendData);
+
+    QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, PayloadLen);
+    TEST_NOT_EQUAL(nullptr, Buffer);
+    memcpy(Buffer->Buffer, Payload, PayloadLen);
+
+    CxPlatSocketSend(ServerSocket, &Route, SendData);
+
+    TEST_TRUE(CxPlatEventWaitWithTimeout(RecvCtx.RecvEvent, 2000));
+    TEST_TRUE(RecvCtx.Received);
+    TEST_EQUAL(PayloadLen, RecvCtx.RecvBufLen);
+    TEST_TRUE(memcmp(RecvCtx.RecvBuf, Payload, PayloadLen) == 0);
+
+    CxPlatSocketDelete(ServerSocket);
+    CxPlatSocketDelete(RecvSocket);
+    CxPlatEventUninitialize(RecvCtx.RecvEvent);
+    CxPlatDataPathUninitialize(Datapath);
+}
+
+void
+QuicTestDataPathServerSendToRemoteV6(
+    )
+{
+    //
+    // Scenario: Send from a "server" (no fixed remote) to a remote over IPv6.
+    // This exercises the IPv6 branch in CxPlatSocketSendInline where
+    // IPV6_PKTINFO control message is constructed for non-fixed-remote sockets.
+    //
+    CXPLAT_DATAPATH* Datapath = nullptr;
+
+    DatapathTestRecvContext RecvCtx = {};
+    CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
+
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
+        DatapathTestUdpRecvCallback,
+        DatapathTestUdpUnreachCallback,
+    };
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatDataPathInitialize(
+            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+
+    CXPLAT_SOCKET* RecvSocket = nullptr;
+    QUIC_ADDR RecvLocalAddr = {};
+    QuicAddrFromString("::1", 0, &RecvLocalAddr);
+
+    CXPLAT_UDP_CONFIG RecvConfig = {};
+    RecvConfig.LocalAddress = &RecvLocalAddr;
+    RecvConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    RecvConfig.CallbackContext = &RecvCtx;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &RecvConfig, &RecvSocket));
+
+    QUIC_ADDR BoundRecvAddr = {};
+    CxPlatSocketGetLocalAddress(RecvSocket, &BoundRecvAddr);
+    uint16_t RecvPort = QuicAddrGetPort(&BoundRecvAddr);
+
+    CXPLAT_SOCKET* ServerSocket = nullptr;
+    QUIC_ADDR ServerLocalAddr = {};
+    QuicAddrFromString("::1", 0, &ServerLocalAddr);
+
+    CXPLAT_UDP_CONFIG ServerConfig = {};
+    ServerConfig.LocalAddress = &ServerLocalAddr;
+    ServerConfig.RemoteAddress = nullptr;
+    ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
+
+    QUIC_ADDR TargetAddr = {};
+    QuicAddrFromString("::1", RecvPort, &TargetAddr);
+
+    CXPLAT_ROUTE Route = {};
+    CxPlatSocketGetLocalAddress(ServerSocket, &Route.LocalAddress);
+    Route.RemoteAddress = TargetAddr;
+    Route.Queue = nullptr;
+
+    const uint8_t Payload[] = "ServerSendV6";
+    const uint16_t PayloadLen = sizeof(Payload);
+
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Route, PayloadLen, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
+    };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(ServerSocket, &SendConfig);
+    TEST_NOT_EQUAL(nullptr, SendData);
+
+    QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, PayloadLen);
+    TEST_NOT_EQUAL(nullptr, Buffer);
+    memcpy(Buffer->Buffer, Payload, PayloadLen);
+
+    CxPlatSocketSend(ServerSocket, &Route, SendData);
+
+    TEST_TRUE(CxPlatEventWaitWithTimeout(RecvCtx.RecvEvent, 2000));
+    TEST_TRUE(RecvCtx.Received);
+    TEST_EQUAL(PayloadLen, RecvCtx.RecvBufLen);
+
+    CxPlatSocketDelete(ServerSocket);
+    CxPlatSocketDelete(RecvSocket);
+    CxPlatEventUninitialize(RecvCtx.RecvEvent);
+    CxPlatDataPathUninitialize(Datapath);
+}
+
+void
+QuicTestDataPathSendEcnAndDscp(
+    )
+{
+    //
+    // Scenario: Send a packet with both ECN and DSCP set simultaneously.
+    // This exercises the combined IP_TOS control message path (line 3841):
+    // *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+    //
+    CXPLAT_DATAPATH* Datapath = nullptr;
+
+    DatapathTestRecvContext RecvCtx = {};
+    CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
+
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
+        DatapathTestUdpRecvCallback,
+        DatapathTestUdpUnreachCallback,
+    };
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatDataPathInitialize(
+            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    if (!(Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP)) {
+        CxPlatEventUninitialize(RecvCtx.RecvEvent);
+        CxPlatDataPathUninitialize(Datapath);
+        return;
+    }
+
+    CXPLAT_SOCKET* ServerSocket = nullptr;
+    QUIC_ADDR ServerLocalAddr = {};
+    QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
+
+    CXPLAT_UDP_CONFIG ServerConfig = {};
+    ServerConfig.LocalAddress = &ServerLocalAddr;
+    ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    ServerConfig.CallbackContext = &RecvCtx;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
+
+    QUIC_ADDR BoundServerAddr = {};
+    CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
+    uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
+
+    QUIC_ADDR RemoteAddr = {};
+    QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
+
+    CXPLAT_SOCKET* ClientSocket = nullptr;
+    CXPLAT_UDP_CONFIG ClientConfig = {};
+    ClientConfig.RemoteAddress = &RemoteAddr;
+    ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ClientConfig, &ClientSocket));
+
+    const uint8_t Payload[] = "EcnDscpCombo";
+    const uint16_t PayloadLen = sizeof(Payload);
+
+    CXPLAT_ROUTE Route = {};
+    CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
+    Route.RemoteAddress = RemoteAddr;
+
+    //
+    // ECN_ECT_0 (2) + DSCP_AF11 (10) to exercise combined TOS byte.
+    //
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Route, PayloadLen, CXPLAT_ECN_ECT_0, CXPLAT_SEND_FLAGS_NONE, 10 // DSCP AF11
+    };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(ClientSocket, &SendConfig);
+    TEST_NOT_EQUAL(nullptr, SendData);
+
+    QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, PayloadLen);
+    TEST_NOT_EQUAL(nullptr, Buffer);
+    memcpy(Buffer->Buffer, Payload, PayloadLen);
+
+    CxPlatSocketSend(ClientSocket, &Route, SendData);
+
+    TEST_TRUE(CxPlatEventWaitWithTimeout(RecvCtx.RecvEvent, 2000));
+    TEST_TRUE(RecvCtx.Received);
+    TEST_EQUAL(PayloadLen, RecvCtx.RecvBufLen);
+
+    CxPlatSocketDelete(ClientSocket);
+    CxPlatSocketDelete(ServerSocket);
+    CxPlatEventUninitialize(RecvCtx.RecvEvent);
+    CxPlatDataPathUninitialize(Datapath);
+}
+
+void
+QuicTestDataPathSendEcnAndDscpV6(
+    )
+{
+    //
+    // Scenario: Send with both ECN + DSCP over IPv6. Exercises the IPv6
+    // IPV6_TCLASS control message path with combined TOS byte (line 3876).
+    //
+    CXPLAT_DATAPATH* Datapath = nullptr;
+
+    DatapathTestRecvContext RecvCtx = {};
+    CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
+
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
+        DatapathTestUdpRecvCallback,
+        DatapathTestUdpUnreachCallback,
+    };
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatDataPathInitialize(
+            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    if (!(Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP)) {
+        CxPlatEventUninitialize(RecvCtx.RecvEvent);
+        CxPlatDataPathUninitialize(Datapath);
+        return;
+    }
+
+    CXPLAT_SOCKET* ServerSocket = nullptr;
+    QUIC_ADDR ServerLocalAddr = {};
+    QuicAddrFromString("::1", 0, &ServerLocalAddr);
+
+    CXPLAT_UDP_CONFIG ServerConfig = {};
+    ServerConfig.LocalAddress = &ServerLocalAddr;
+    ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    ServerConfig.CallbackContext = &RecvCtx;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
+
+    QUIC_ADDR BoundServerAddr = {};
+    CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
+    uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
+
+    QUIC_ADDR RemoteAddr = {};
+    QuicAddrFromString("::1", ServerPort, &RemoteAddr);
+
+    CXPLAT_SOCKET* ClientSocket = nullptr;
+    CXPLAT_UDP_CONFIG ClientConfig = {};
+    ClientConfig.RemoteAddress = &RemoteAddr;
+    ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ClientConfig, &ClientSocket));
+
+    const uint8_t Payload[] = "EcnDscpV6";
+    const uint16_t PayloadLen = sizeof(Payload);
+
+    CXPLAT_ROUTE Route = {};
+    CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
+    Route.RemoteAddress = RemoteAddr;
+
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Route, PayloadLen, CXPLAT_ECN_ECT_1, CXPLAT_SEND_FLAGS_NONE, 10
+    };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(ClientSocket, &SendConfig);
+    TEST_NOT_EQUAL(nullptr, SendData);
+
+    QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, PayloadLen);
+    TEST_NOT_EQUAL(nullptr, Buffer);
+    memcpy(Buffer->Buffer, Payload, PayloadLen);
+
+    CxPlatSocketSend(ClientSocket, &Route, SendData);
+
+    TEST_TRUE(CxPlatEventWaitWithTimeout(RecvCtx.RecvEvent, 2000));
+    TEST_TRUE(RecvCtx.Received);
+
+    CxPlatSocketDelete(ClientSocket);
+    CxPlatSocketDelete(ServerSocket);
+    CxPlatEventUninitialize(RecvCtx.RecvEvent);
+    CxPlatDataPathUninitialize(Datapath);
+}
+
+void
+QuicTestDataPathTcpCreateWithLocalAddr(
+    )
+{
+    //
+    // Scenario: Create a TCP client socket with an explicit local address.
+    // This exercises the local address binding path in CxPlatSocketCreateTcpInternal.
+    //
+    EventScope AcceptEvent;
+    EventScope ConnectEvent;
+    DatapathScope Datapath(DefaultTcpCallbacks);
+
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    if (!(Features & CXPLAT_DATAPATH_FEATURE_TCP)) {
+        return;
+    }
+
+    QUIC_ADDR ListenerAddr = {};
+    QuicAddrFromString("127.0.0.1", 0, &ListenerAddr);
+
+    CXPLAT_SOCKET* Listener = nullptr;
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateTcpListener(
+            Datapath, &ListenerAddr, &AcceptEvent.Event, &Listener));
+
+    QUIC_ADDR BoundListenerAddr = {};
+    CxPlatSocketGetLocalAddress(Listener, &BoundListenerAddr);
+    uint16_t ListenerPort = QuicAddrGetPort(&BoundListenerAddr);
+
+    //
+    // Connect with an explicit local address.
+    //
+    QUIC_ADDR LocalAddr = {};
+    QuicAddrFromString("127.0.0.1", 0, &LocalAddr);
+
+    QUIC_ADDR RemoteAddr = {};
+    QuicAddrFromString("127.0.0.1", ListenerPort, &RemoteAddr);
+
+    TcpSocketScope ClientSocket;
+    QUIC_STATUS Status =
+        CxPlatSocketCreateTcp(
+            Datapath, &LocalAddr, &RemoteAddr, &ConnectEvent.Event, &ClientSocket.Socket);
+
+    if (QUIC_SUCCEEDED(Status)) {
+        CxPlatEventWaitWithTimeout(ConnectEvent.Event, 2000);
+        CxPlatEventWaitWithTimeout(AcceptEvent.Event, 2000);
+
+        //
+        // Verify local address is bound correctly.
+        //
+        QUIC_ADDR ClientLocalAddr = {};
+        CxPlatSocketGetLocalAddress(ClientSocket, &ClientLocalAddr);
+        TEST_NOT_EQUAL(0, QuicAddrGetPort(&ClientLocalAddr));
+    }
+
+    CxPlatSocketDelete(Listener);
+}
+
+void
+QuicTestDataPathSegmentedSendOverWire(
+    )
+{
+    //
+    // Scenario: Actually send segmented data over the wire to exercise the
+    // UDP_SEND_MSG_SIZE control message construction (lines 3891-3899) and
+    // the WSASendMsg path with segmented buffers.
+    //
+    CXPLAT_DATAPATH* Datapath = nullptr;
+
+    DatapathTestRecvContext RecvCtx = {};
+    CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
+
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
+        DatapathTestUdpRecvCallback,
+        DatapathTestUdpUnreachCallback,
+    };
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatDataPathInitialize(
+            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    if (!(Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)) {
+        CxPlatEventUninitialize(RecvCtx.RecvEvent);
+        CxPlatDataPathUninitialize(Datapath);
+        return;
+    }
+
+    CXPLAT_SOCKET* ServerSocket = nullptr;
+    QUIC_ADDR ServerLocalAddr = {};
+    QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
+
+    CXPLAT_UDP_CONFIG ServerConfig = {};
+    ServerConfig.LocalAddress = &ServerLocalAddr;
+    ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    ServerConfig.CallbackContext = &RecvCtx;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
+
+    QUIC_ADDR BoundServerAddr = {};
+    CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
+    uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
+
+    QUIC_ADDR RemoteAddr = {};
+    QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
+
+    CXPLAT_SOCKET* ClientSocket = nullptr;
+    CXPLAT_UDP_CONFIG ClientConfig = {};
+    ClientConfig.RemoteAddress = &RemoteAddr;
+    ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ClientConfig, &ClientSocket));
+
+    CXPLAT_ROUTE Route = {};
+    CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
+    Route.RemoteAddress = RemoteAddr;
+
+    //
+    // Create segmented send data and allocate multiple segments.
+    //
+    const uint16_t SegmentSize = 100;
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Route, SegmentSize, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
+    };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(ClientSocket, &SendConfig);
+    TEST_NOT_EQUAL(nullptr, SendData);
+
+    QUIC_BUFFER* Buffer1 = CxPlatSendDataAllocBuffer(SendData, SegmentSize);
+    TEST_NOT_EQUAL(nullptr, Buffer1);
+    memset(Buffer1->Buffer, 0xAA, SegmentSize);
+
+    QUIC_BUFFER* Buffer2 = CxPlatSendDataAllocBuffer(SendData, SegmentSize);
+    if (Buffer2 != nullptr) {
+        memset(Buffer2->Buffer, 0xBB, SegmentSize);
+    }
+
+    CxPlatSocketSend(ClientSocket, &Route, SendData);
+
+    //
+    // Wait for at least one segment to arrive.
+    //
+    TEST_TRUE(CxPlatEventWaitWithTimeout(RecvCtx.RecvEvent, 2000));
+    TEST_TRUE(RecvCtx.Received);
+
+    CxPlatSocketDelete(ClientSocket);
+    CxPlatSocketDelete(ServerSocket);
+    CxPlatEventUninitialize(RecvCtx.RecvEvent);
+    CxPlatDataPathUninitialize(Datapath);
+}
+
+void
+QuicTestDataPathResolveUnspecFamily(
+    )
+{
+    //
+    // Scenario: Resolve "localhost" with UNSPEC family to exercise the
+    // UNSPEC code path in CxPlatDataPathPopulateTargetAddress.
+    //
+    DatapathScope Datapath;
+
+    QUIC_ADDR Address = {};
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
+    TEST_QUIC_SUCCEEDED(
+        CxPlatDataPathResolveAddress(Datapath, "localhost", &Address));
+    //
+    // With UNSPEC, the system may return either v4 or v6.
+    //
+    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Address);
+    TEST_TRUE(
+        Family == QUIC_ADDRESS_FAMILY_INET ||
+        Family == QUIC_ADDRESS_FAMILY_INET6);
+}
+
+void
+QuicTestDataPathSendDataIsFullSegmented(
+    )
+{
+    //
+    // Scenario: Allocate segmented send data and fill it until IsFull returns
+    // TRUE. This exercises the CxPlatSendDataCanAllocSend and
+    // CxPlatSendDataCanAllocSendSegment capacity check paths.
+    //
+    DatapathScope Datapath;
+
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    if (!(Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)) {
+        return;
+    }
+
+    QUIC_ADDR RemoteAddr = {};
+    QuicAddrFromString("127.0.0.1", 6666, &RemoteAddr);
+
+    CXPLAT_UDP_CONFIG UdpConfig = {};
+    UdpConfig.RemoteAddress = &RemoteAddr;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
+
+    CXPLAT_ROUTE Route = {};
+    CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
+    Route.RemoteAddress = RemoteAddr;
+
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Route, 200, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
+    };
+    SendDataScope SendData(Socket, &SendConfig);
+
+    //
+    // Initially should not be full.
+    //
+    TEST_FALSE(CxPlatSendDataIsFull(SendData));
+
+    //
+    // Allocate segments until either full or we run out of space.
+    //
+    int AllocCount = 0;
+    while (!CxPlatSendDataIsFull(SendData) && AllocCount < 500) {
+        QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, 200);
+        if (Buffer == nullptr) {
+            break;
+        }
+        memset(Buffer->Buffer, (uint8_t)AllocCount, 200);
+        AllocCount++;
+    }
+
+    TEST_TRUE(AllocCount > 0);
+}
+
+void
+QuicTestDataPathTcpListenerV6(
+    )
+{
+    //
+    // Scenario: Create a TCP listener on IPv6 to exercise the IPv6 TCP
+    // listener creation path in CxPlatSocketCreateTcpInternal.
+    //
+    DatapathScope Datapath(DefaultTcpCallbacks);
+
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    if (!(Features & CXPLAT_DATAPATH_FEATURE_TCP)) {
+        return;
+    }
+
+    QUIC_ADDR ListenerAddr = {};
+    QuicAddrFromString("::1", 0, &ListenerAddr);
+
+    CXPLAT_SOCKET* Listener = nullptr;
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateTcpListener(
+            Datapath, &ListenerAddr, nullptr, &Listener));
+    TEST_NOT_EQUAL(nullptr, Listener);
+
+    QUIC_ADDR BoundAddr = {};
+    CxPlatSocketGetLocalAddress(Listener, &BoundAddr);
+    TEST_NOT_EQUAL(0, QuicAddrGetPort(&BoundAddr));
+    TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET6, QuicAddrGetFamily(&BoundAddr));
+
+    CxPlatSocketDelete(Listener);
+}
+
+void
+QuicTestDataPathUdpSocketWithLocalAndRemote(
+    )
+{
+    //
+    // Scenario: Create a UDP client socket with both a local address and a
+    // remote address specified. This exercises both the local address bind
+    // path and the connect path together in SocketCreateUdp.
+    //
+    DatapathScope Datapath;
+
+    QUIC_ADDR LocalAddr = {};
+    QuicAddrFromString("127.0.0.1", 0, &LocalAddr);
+
+    QUIC_ADDR RemoteAddr = {};
+    QuicAddrFromString("127.0.0.1", 9999, &RemoteAddr);
+
+    CXPLAT_UDP_CONFIG UdpConfig = {};
+    UdpConfig.LocalAddress = &LocalAddr;
+    UdpConfig.RemoteAddress = &RemoteAddr;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    UdpSocketScope Socket(Datapath, &UdpConfig);
+
+    QUIC_ADDR BoundLocal = {};
+    CxPlatSocketGetLocalAddress(Socket, &BoundLocal);
+    TEST_NOT_EQUAL(0, QuicAddrGetPort(&BoundLocal));
+    TEST_EQUAL(QUIC_ADDRESS_FAMILY_INET, QuicAddrGetFamily(&BoundLocal));
+
+    QUIC_ADDR BoundRemote = {};
+    CxPlatSocketGetRemoteAddress(Socket, &BoundRemote);
+    TEST_EQUAL(9999, QuicAddrGetPort(&BoundRemote));
+}
+
+void
+QuicTestDataPathDscpRecvSendRecv(
+    )
+{
+    //
+    // Scenario: Initialize with EnableDscpOnRecv, create sockets, and
+    // send/receive to exercise the DSCP recv socket option path
+    // (IPV6_RECVTCLASS/IP_RECVTOS) and the DSCP extraction from
+    // received control messages.
+    //
+    CXPLAT_DATAPATH* Datapath = nullptr;
+
+    DatapathTestRecvContext RecvCtx = {};
+    CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
+
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
+        DatapathTestUdpRecvCallback,
+        DatapathTestUdpUnreachCallback,
+    };
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
+    InitConfig.EnableDscpOnRecv = TRUE;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatDataPathInitialize(
+            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+
+    CXPLAT_SOCKET* ServerSocket = nullptr;
+    QUIC_ADDR ServerLocalAddr = {};
+    QuicAddrFromString("127.0.0.1", 0, &ServerLocalAddr);
+
+    CXPLAT_UDP_CONFIG ServerConfig = {};
+    ServerConfig.LocalAddress = &ServerLocalAddr;
+    ServerConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+    ServerConfig.CallbackContext = &RecvCtx;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ServerConfig, &ServerSocket));
+
+    QUIC_ADDR BoundServerAddr = {};
+    CxPlatSocketGetLocalAddress(ServerSocket, &BoundServerAddr);
+    uint16_t ServerPort = QuicAddrGetPort(&BoundServerAddr);
+
+    QUIC_ADDR RemoteAddr = {};
+    QuicAddrFromString("127.0.0.1", ServerPort, &RemoteAddr);
+
+    CXPLAT_SOCKET* ClientSocket = nullptr;
+    CXPLAT_UDP_CONFIG ClientConfig = {};
+    ClientConfig.RemoteAddress = &RemoteAddr;
+    ClientConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatSocketCreateUdp(Datapath, &ClientConfig, &ClientSocket));
+
+    const uint8_t Payload[] = "DscpRecvTest";
+    const uint16_t PayloadLen = sizeof(Payload);
+
+    CXPLAT_ROUTE Route = {};
+    CxPlatSocketGetLocalAddress(ClientSocket, &Route.LocalAddress);
+    Route.RemoteAddress = RemoteAddr;
+
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Route, PayloadLen, CXPLAT_ECN_NON_ECT, CXPLAT_SEND_FLAGS_NONE, CXPLAT_DSCP_CS0
+    };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(ClientSocket, &SendConfig);
+    TEST_NOT_EQUAL(nullptr, SendData);
+
+    QUIC_BUFFER* Buffer = CxPlatSendDataAllocBuffer(SendData, PayloadLen);
+    TEST_NOT_EQUAL(nullptr, Buffer);
+    memcpy(Buffer->Buffer, Payload, PayloadLen);
+
+    CxPlatSocketSend(ClientSocket, &Route, SendData);
+
+    TEST_TRUE(CxPlatEventWaitWithTimeout(RecvCtx.RecvEvent, 2000));
+    TEST_TRUE(RecvCtx.Received);
+    TEST_EQUAL(PayloadLen, RecvCtx.RecvBufLen);
+
+    CxPlatSocketDelete(ClientSocket);
+    CxPlatSocketDelete(ServerSocket);
+    CxPlatEventUninitialize(RecvCtx.RecvEvent);
     CxPlatDataPathUninitialize(Datapath);
 }
