@@ -13,7 +13,7 @@ Abstract:
 
 #include "precomp.h"
 #ifdef QUIC_CLOG
-#include "DatapathWinUserTest.cpp.clog.h"
+#include "DatapathTest.cpp.clog.h"
 #endif
 
 extern "C" {
