@@ -2824,6 +2824,8 @@ TEST(Basic, ConnectionPriority) {
     }
 }
 
+#ifdef _WIN32 // DataPathWinUser tests — Windows user-mode only
+
 // DataPathWinUser tests (user-mode only — not available in kernel mode)
 
 TEST(DataPathWinUser, InitUdp) {
@@ -3401,6 +3403,8 @@ TEST(DataPathWinUser, DscpRecvSendRecv) {
     }
     QuicTestDataPathDscpRecvSendRecv();
 }
+
+#endif // _WIN32
 
 // Drill tests
 
