@@ -12,9 +12,6 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#ifdef QUIC_CLOG
-#include "DatapathTest.cpp.clog.h"
-#endif
 
 extern "C" {
 #include "quic_datapath.h"
