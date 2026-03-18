@@ -2824,6 +2824,553 @@ TEST(Basic, ConnectionPriority) {
     }
 }
 
+// DataPath WinUser tests
+
+TEST(DataPath, InitUdp) {
+    TestLogger Logger("QuicTestDataPathInitUdp");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitUdp)));
+    } else {
+        QuicTestDataPathInitUdp();
+    }
+}
+
+TEST(DataPath, InitUdpTcp) {
+    TestLogger Logger("QuicTestDataPathInitUdpTcp");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitUdpTcp)));
+    } else {
+        QuicTestDataPathInitUdpTcp();
+    }
+}
+
+TEST(DataPath, InitNullOutput) {
+    TestLogger Logger("QuicTestDataPathInitNullOutput");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitNullOutput)));
+    } else {
+        QuicTestDataPathInitNullOutput();
+    }
+}
+
+TEST(DataPath, InitNullWorkerPool) {
+    TestLogger Logger("QuicTestDataPathInitNullWorkerPool");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitNullWorkerPool)));
+    } else {
+        QuicTestDataPathInitNullWorkerPool();
+    }
+}
+
+TEST(DataPath, InitUdpMissingRecv) {
+    TestLogger Logger("QuicTestDataPathInitUdpMissingRecv");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitUdpMissingRecv)));
+    } else {
+        QuicTestDataPathInitUdpMissingRecv();
+    }
+}
+
+TEST(DataPath, InitUdpMissingUnreach) {
+    TestLogger Logger("QuicTestDataPathInitUdpMissingUnreach");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitUdpMissingUnreach)));
+    } else {
+        QuicTestDataPathInitUdpMissingUnreach();
+    }
+}
+
+TEST(DataPath, InitTcpMissingAccept) {
+    TestLogger Logger("QuicTestDataPathInitTcpMissingAccept");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitTcpMissingAccept)));
+    } else {
+        QuicTestDataPathInitTcpMissingAccept();
+    }
+}
+
+TEST(DataPath, InitTcpMissingConnect) {
+    TestLogger Logger("QuicTestDataPathInitTcpMissingConnect");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitTcpMissingConnect)));
+    } else {
+        QuicTestDataPathInitTcpMissingConnect();
+    }
+}
+
+TEST(DataPath, InitTcpMissingRecv) {
+    TestLogger Logger("QuicTestDataPathInitTcpMissingRecv");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitTcpMissingRecv)));
+    } else {
+        QuicTestDataPathInitTcpMissingRecv();
+    }
+}
+
+TEST(DataPath, InitTcpMissingSendComplete) {
+    TestLogger Logger("QuicTestDataPathInitTcpMissingSendComplete");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitTcpMissingSendComplete)));
+    } else {
+        QuicTestDataPathInitTcpMissingSendComplete();
+    }
+}
+
+TEST(DataPath, InitDscpOnRecv) {
+    TestLogger Logger("QuicTestDataPathInitDscpOnRecv");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathInitDscpOnRecv)));
+    } else {
+        QuicTestDataPathInitDscpOnRecv();
+    }
+}
+
+TEST(DataPath, FeatureQuery) {
+    TestLogger Logger("QuicTestDataPathFeatureQuery");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathFeatureQuery)));
+    } else {
+        QuicTestDataPathFeatureQuery();
+    }
+}
+
+TEST(DataPath, IsPaddingPreferred) {
+    TestLogger Logger("QuicTestDataPathIsPaddingPreferred");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathIsPaddingPreferred)));
+    } else {
+        QuicTestDataPathIsPaddingPreferred();
+    }
+}
+
+TEST(DataPath, ResolveLocalhostV4) {
+    TestLogger Logger("QuicTestDataPathResolveLocalhostV4");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathResolveLocalhostV4)));
+    } else {
+        QuicTestDataPathResolveLocalhostV4();
+    }
+}
+
+TEST(DataPath, ResolveLocalhostV6) {
+    TestLogger Logger("QuicTestDataPathResolveLocalhostV6");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathResolveLocalhostV6)));
+    } else {
+        QuicTestDataPathResolveLocalhostV6();
+    }
+}
+
+TEST(DataPath, ResolveNumericV4) {
+    TestLogger Logger("QuicTestDataPathResolveNumericV4");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathResolveNumericV4)));
+    } else {
+        QuicTestDataPathResolveNumericV4();
+    }
+}
+
+TEST(DataPath, ResolveNumericV6) {
+    TestLogger Logger("QuicTestDataPathResolveNumericV6");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathResolveNumericV6)));
+    } else {
+        QuicTestDataPathResolveNumericV6();
+    }
+}
+
+TEST(DataPath, ResolveInvalidHost) {
+    TestLogger Logger("QuicTestDataPathResolveInvalidHost");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathResolveInvalidHost)));
+    } else {
+        QuicTestDataPathResolveInvalidHost();
+    }
+}
+
+TEST(DataPath, GetLocalAddresses) {
+    TestLogger Logger("QuicTestDataPathGetLocalAddresses");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathGetLocalAddresses)));
+    } else {
+        QuicTestDataPathGetLocalAddresses();
+    }
+}
+
+TEST(DataPath, GetGatewayAddresses) {
+    TestLogger Logger("QuicTestDataPathGetGatewayAddresses");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathGetGatewayAddresses)));
+    } else {
+        QuicTestDataPathGetGatewayAddresses();
+    }
+}
+
+TEST(DataPath, UdpServerSocket) {
+    TestLogger Logger("QuicTestDataPathUdpServerSocket");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpServerSocket)));
+    } else {
+        QuicTestDataPathUdpServerSocket();
+    }
+}
+
+TEST(DataPath, UdpClientSocket) {
+    TestLogger Logger("QuicTestDataPathUdpClientSocket");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpClientSocket)));
+    } else {
+        QuicTestDataPathUdpClientSocket();
+    }
+}
+
+TEST(DataPath, UdpGetLocalAddress) {
+    TestLogger Logger("QuicTestDataPathUdpGetLocalAddress");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpGetLocalAddress)));
+    } else {
+        QuicTestDataPathUdpGetLocalAddress();
+    }
+}
+
+TEST(DataPath, UdpGetRemoteAddress) {
+    TestLogger Logger("QuicTestDataPathUdpGetRemoteAddress");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpGetRemoteAddress)));
+    } else {
+        QuicTestDataPathUdpGetRemoteAddress();
+    }
+}
+
+TEST(DataPath, UdpGetMtu) {
+    TestLogger Logger("QuicTestDataPathUdpGetMtu");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpGetMtu)));
+    } else {
+        QuicTestDataPathUdpGetMtu();
+    }
+}
+
+TEST(DataPath, UdpBindV4) {
+    TestLogger Logger("QuicTestDataPathUdpBindV4");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpBindV4)));
+    } else {
+        QuicTestDataPathUdpBindV4();
+    }
+}
+
+TEST(DataPath, UdpBindV6) {
+    TestLogger Logger("QuicTestDataPathUdpBindV6");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpBindV6)));
+    } else {
+        QuicTestDataPathUdpBindV6();
+    }
+}
+
+TEST(DataPath, UdpPcpSocket) {
+    TestLogger Logger("QuicTestDataPathUdpPcpSocket");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpPcpSocket)));
+    } else {
+        QuicTestDataPathUdpPcpSocket();
+    }
+}
+
+TEST(DataPath, SendDataAllocFree) {
+    TestLogger Logger("QuicTestDataPathSendDataAllocFree");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathSendDataAllocFree)));
+    } else {
+        QuicTestDataPathSendDataAllocFree();
+    }
+}
+
+TEST(DataPath, SendDataAllocBuffer) {
+    TestLogger Logger("QuicTestDataPathSendDataAllocBuffer");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathSendDataAllocBuffer)));
+    } else {
+        QuicTestDataPathSendDataAllocBuffer();
+    }
+}
+
+TEST(DataPath, SendDataFreeBuffer) {
+    TestLogger Logger("QuicTestDataPathSendDataFreeBuffer");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathSendDataFreeBuffer)));
+    } else {
+        QuicTestDataPathSendDataFreeBuffer();
+    }
+}
+
+TEST(DataPath, SendDataIsFull) {
+    TestLogger Logger("QuicTestDataPathSendDataIsFull");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathSendDataIsFull)));
+    } else {
+        QuicTestDataPathSendDataIsFull();
+    }
+}
+
+TEST(DataPath, SendDataAllocMultiple) {
+    TestLogger Logger("QuicTestDataPathSendDataAllocMultiple");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathSendDataAllocMultiple)));
+    } else {
+        QuicTestDataPathSendDataAllocMultiple();
+    }
+}
+
+TEST(DataPath, UdpSendLoopback) {
+    TestLogger Logger("QuicTestDataPathUdpSendLoopback");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpSendLoopback)));
+    } else {
+        QuicTestDataPathUdpSendLoopback();
+    }
+}
+
+TEST_P(WithFamilyArgs, DataPathUdpSendRecvLoopback) {
+    TestLoggerT<ParamType> Logger("QuicTestDataPathUdpSendRecvLoopback", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUdpSendRecvLoopback), GetParam()));
+    } else {
+        QuicTestDataPathUdpSendRecvLoopback(GetParam());
+    }
+}
+
+TEST(DataPath, RecvDataReturn) {
+    TestLogger Logger("QuicTestDataPathRecvDataReturn");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathRecvDataReturn)));
+    } else {
+        QuicTestDataPathRecvDataReturn();
+    }
+}
+
+TEST(DataPath, TcpListener) {
+    TestLogger Logger("QuicTestDataPathTcpListener");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathTcpListener)));
+    } else {
+        QuicTestDataPathTcpListener();
+    }
+}
+
+TEST(DataPath, TcpClient) {
+    TestLogger Logger("QuicTestDataPathTcpClient");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathTcpClient)));
+    } else {
+        QuicTestDataPathTcpClient();
+    }
+}
+
+TEST(DataPath, TcpConnect) {
+    TestLogger Logger("QuicTestDataPathTcpConnect");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathTcpConnect)));
+    } else {
+        QuicTestDataPathTcpConnect();
+    }
+}
+
+TEST(DataPath, FullLifecycle) {
+    TestLogger Logger("QuicTestDataPathFullLifecycle");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathFullLifecycle)));
+    } else {
+        QuicTestDataPathFullLifecycle();
+    }
+}
+
+TEST(DataPath, UpdateIdleTimeout) {
+    TestLogger Logger("QuicTestDataPathUpdateIdleTimeout");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathUpdateIdleTimeout)));
+    } else {
+        QuicTestDataPathUpdateIdleTimeout();
+    }
+}
+
+TEST(DataPath, SendWithEcn) {
+    TestLogger Logger("QuicTestDataPathSendWithEcn");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendWithEcn();
+}
+
+TEST(DataPath, SendWithDscp) {
+    TestLogger Logger("QuicTestDataPathSendWithDscp");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendWithDscp();
+}
+
+TEST(DataPath, SendRecvV6) {
+    TestLogger Logger("QuicTestDataPathSendRecvV6");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendRecvV6();
+}
+
+TEST(DataPath, ServerSocketV6) {
+    TestLogger Logger("QuicTestDataPathServerSocketV6");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathServerSocketV6();
+}
+
+TEST(DataPath, UdpShareFlag) {
+    TestLogger Logger("QuicTestDataPathUdpShareFlag");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathUdpShareFlag();
+}
+
+TEST(DataPath, SendWithMaxThroughput) {
+    TestLogger Logger("QuicTestDataPathSendWithMaxThroughput");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendWithMaxThroughput();
+}
+
+TEST(DataPath, SendRecvDscpV6) {
+    TestLogger Logger("QuicTestDataPathSendRecvDscpV6");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendRecvDscpV6();
+}
+
+TEST(DataPath, SendWithEcnV6) {
+    TestLogger Logger("QuicTestDataPathSendWithEcnV6");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendWithEcnV6();
+}
+
+TEST(DataPath, TcpConnectV6) {
+    TestLogger Logger("QuicTestDataPathTcpConnectV6");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathTcpConnectV6();
+}
+
+TEST(DataPath, TcpStatistics) {
+    TestLogger Logger("QuicTestDataPathTcpStatistics");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathTcpStatistics();
+}
+
+TEST(DataPath, TcpSendRecv) {
+    TestLogger Logger("QuicTestDataPathTcpSendRecv");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathTcpSendRecv();
+}
+
+TEST(DataPath, UdpBindSpecificPort) {
+    TestLogger Logger("QuicTestDataPathUdpBindSpecificPort");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathUdpBindSpecificPort();
+}
+
+TEST(DataPath, MultipleSendRecv) {
+    TestLogger Logger("QuicTestDataPathMultipleSendRecv");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathMultipleSendRecv();
+}
+
+TEST(DataPath, FeatureQueryWithFlags) {
+    TestLogger Logger("QuicTestDataPathFeatureQueryWithFlags");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathFeatureQueryWithFlags();
+}
+
+TEST(DataPath, InitWithClientRecvContextLength) {
+    TestLogger Logger("QuicTestDataPathInitWithClientRecvContextLength");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathInitWithClientRecvContextLength();
+}
+
+TEST(DataPath, SendDataSegmented) {
+    TestLogger Logger("QuicTestDataPathSendDataSegmented");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendDataSegmented();
+}
+
+TEST(DataPath, RecvDataReturnNull) {
+    TestLogger Logger("QuicTestDataPathRecvDataReturnNull");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathRecvDataReturnNull();
+}
+
+TEST(DataPath, UdpDualStack) {
+    TestLogger Logger("QuicTestDataPathUdpDualStack");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathUdpDualStack();
+}
+
+TEST(DataPath, SendDataFreeBufferSegmented) {
+    TestLogger Logger("QuicTestDataPathSendDataFreeBufferSegmented");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendDataFreeBufferSegmented();
+}
+
+TEST(DataPath, TcpConnectDisconnect) {
+    TestLogger Logger("QuicTestDataPathTcpConnectDisconnect");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathTcpConnectDisconnect();
+}
+
+TEST(DataPath, SendLargePayload) {
+    TestLogger Logger("QuicTestDataPathSendLargePayload");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendLargePayload();
+}
+
+TEST(DataPath, InitDscpRecvDscpSocket) {
+    TestLogger Logger("QuicTestDataPathInitDscpRecvDscpSocket");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathInitDscpRecvDscpSocket();
+}
+
 // Drill tests
 
 TEST(Drill, VarIntEncoder) {
