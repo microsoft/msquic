@@ -628,7 +628,7 @@ typedef struct CXPLAT_UDP_CONFIG {
 //
 // Converts a CIBIR ID byte array to a uint64 for trace logging.
 //
-inline
+QUIC_INLINE
 uint64_t
 QuicCibirIdToUint64(
     _In_reads_(Length) const uint8_t* Id,
