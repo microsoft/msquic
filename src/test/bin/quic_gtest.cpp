@@ -3141,15 +3141,6 @@ TEST_P(WithFamilyArgs, DataPathUdpSendRecvLoopback) {
     }
 }
 
-TEST(DataPath, RecvDataReturn) {
-    TestLogger Logger("QuicTestDataPathRecvDataReturn");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathRecvDataReturn)));
-    } else {
-        QuicTestDataPathRecvDataReturn();
-    }
-}
-
 TEST(DataPath, TcpListener) {
     TestLogger Logger("QuicTestDataPathTcpListener");
     if (TestingKernelMode) {
@@ -3174,15 +3165,6 @@ TEST(DataPath, TcpConnect) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathTcpConnect)));
     } else {
         QuicTestDataPathTcpConnect();
-    }
-}
-
-TEST(DataPath, FullLifecycle) {
-    TestLogger Logger("QuicTestDataPathFullLifecycle");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDataPathFullLifecycle)));
-    } else {
-        QuicTestDataPathFullLifecycle();
     }
 }
 
@@ -3369,6 +3351,94 @@ TEST(DataPath, InitDscpRecvDscpSocket) {
         return;
     }
     QuicTestDataPathInitDscpRecvDscpSocket();
+}
+
+TEST(DataPath, ServerSendToRemote) {
+    TestLogger Logger("QuicTestDataPathServerSendToRemote");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathServerSendToRemote();
+}
+
+TEST(DataPath, ServerSendToRemoteV6) {
+    TestLogger Logger("QuicTestDataPathServerSendToRemoteV6");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathServerSendToRemoteV6();
+}
+
+TEST(DataPath, SendEcnAndDscp) {
+    TestLogger Logger("QuicTestDataPathSendEcnAndDscp");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendEcnAndDscp();
+}
+
+TEST(DataPath, SendEcnAndDscpV6) {
+    TestLogger Logger("QuicTestDataPathSendEcnAndDscpV6");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendEcnAndDscpV6();
+}
+
+TEST(DataPath, TcpCreateWithLocalAddr) {
+    TestLogger Logger("QuicTestDataPathTcpCreateWithLocalAddr");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathTcpCreateWithLocalAddr();
+}
+
+TEST(DataPath, SegmentedSendOverWire) {
+    TestLogger Logger("QuicTestDataPathSegmentedSendOverWire");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSegmentedSendOverWire();
+}
+
+TEST(DataPath, ResolveUnspecFamily) {
+    TestLogger Logger("QuicTestDataPathResolveUnspecFamily");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathResolveUnspecFamily();
+}
+
+TEST(DataPath, SendDataIsFullSegmented) {
+    TestLogger Logger("QuicTestDataPathSendDataIsFullSegmented");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathSendDataIsFullSegmented();
+}
+
+TEST(DataPath, TcpListenerV6) {
+    TestLogger Logger("QuicTestDataPathTcpListenerV6");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathTcpListenerV6();
+}
+
+TEST(DataPath, UdpSocketWithLocalAndRemote) {
+    TestLogger Logger("QuicTestDataPathUdpSocketWithLocalAndRemote");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathUdpSocketWithLocalAndRemote();
+}
+
+TEST(DataPath, DscpRecvSendRecv) {
+    TestLogger Logger("QuicTestDataPathDscpRecvSendRecv");
+    if (TestingKernelMode) {
+        return;
+    }
+    QuicTestDataPathDscpRecvSendRecv();
 }
 
 // Drill tests

@@ -1058,10 +1058,6 @@ QuicTestDataPathUdpSendRecvLoopback(
     );
 
 void
-QuicTestDataPathRecvDataReturn(
-    );
-
-void
 QuicTestDataPathTcpListener(
     );
 
@@ -1071,10 +1067,6 @@ QuicTestDataPathTcpClient(
 
 void
 QuicTestDataPathTcpConnect(
-    );
-
-void
-QuicTestDataPathFullLifecycle(
     );
 
 void
@@ -1167,6 +1159,50 @@ QuicTestDataPathSendLargePayload(
 
 void
 QuicTestDataPathInitDscpRecvDscpSocket(
+    );
+
+void
+QuicTestDataPathServerSendToRemote(
+    );
+
+void
+QuicTestDataPathServerSendToRemoteV6(
+    );
+
+void
+QuicTestDataPathSendEcnAndDscp(
+    );
+
+void
+QuicTestDataPathSendEcnAndDscpV6(
+    );
+
+void
+QuicTestDataPathTcpCreateWithLocalAddr(
+    );
+
+void
+QuicTestDataPathSegmentedSendOverWire(
+    );
+
+void
+QuicTestDataPathResolveUnspecFamily(
+    );
+
+void
+QuicTestDataPathSendDataIsFullSegmented(
+    );
+
+void
+QuicTestDataPathTcpListenerV6(
+    );
+
+void
+QuicTestDataPathUdpSocketWithLocalAndRemote(
+    );
+
+void
+QuicTestDataPathDscpRecvSendRecv(
     );
 
 //
