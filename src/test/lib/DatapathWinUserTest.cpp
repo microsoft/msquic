@@ -1895,12 +1895,13 @@ struct TcpTestScope {
     }
 
     //
-    // Get the listener's bound port.
+    // Get the listener's bound port. Returns 0 if no listener.
     //
     uint16_t
     GetListenerPort(
         )
     {
+        if (!Listener) return 0;
         QUIC_ADDR BoundAddr = {};
         CxPlatSocketGetLocalAddress(Listener, &BoundAddr);
         return QuicAddrGetPort(&BoundAddr);
@@ -1939,7 +1940,7 @@ struct TcpTestScope {
     ~TcpTestScope() {
         if (ClientSocket) { CxPlatSocketDelete(ClientSocket); ClientSocket = nullptr; }
         if (Listener) { CxPlatSocketDelete(Listener); Listener = nullptr; }
-        CxPlatSleep(200);
+        CxPlatSleep(500);
         if (Datapath) { CxPlatDataPathUninitialize(Datapath); Datapath = nullptr; }
         if (HasEvents) {
             CxPlatEventUninitialize(ConnectEvent);
@@ -2006,7 +2007,8 @@ QuicTestDataPathTcpConnect(
 
     Tcp.CreateListenerOnLoopback("127.0.0.1");
 
-    TEST_QUIC_SUCCEEDED(Tcp.ConnectClient("127.0.0.1"));
+    QUIC_STATUS Status = Tcp.ConnectClient("127.0.0.1");
+    TEST_QUIC_SUCCEEDED(Status);
     TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.ConnectEvent, 2000));
     TEST_TRUE(CxPlatEventWaitWithTimeout(Tcp.AcceptEvent, 2000));
     TEST_NOT_EQUAL(nullptr, Tcp.ClientSocket);
@@ -2152,7 +2154,7 @@ QuicTestDataPathTcpSendRecv(
     }
 
     CxPlatSocketDelete(Listener);
-    CxPlatSleep(200);
+    CxPlatSleep(500);
     CxPlatDataPathUninitialize(Datapath);
     CxPlatEventUninitialize(ConnectEvent);
     CxPlatEventUninitialize(AcceptCtx.AcceptEvent);
