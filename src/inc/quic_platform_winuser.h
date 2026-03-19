@@ -278,6 +278,12 @@ CxPlatAlloc(
     _In_ uint32_t Tag
     );
 
+void*
+CxPlatAllocUninitialized(
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
+    );
+
 void
 CxPlatFree(
     __drv_freesMem(Mem) _Frees_ptr_ void* Mem,
@@ -286,6 +292,8 @@ CxPlatFree(
 
 #define CXPLAT_ALLOC_PAGED(Size, Tag) CxPlatAlloc(Size, Tag)
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) CxPlatAlloc(Size, Tag)
+#define CXPLAT_ALLOC_PAGED_UNINITIALIZED(Size, Tag) CxPlatAllocUninitialized(Size, Tag)
+#define CXPLAT_ALLOC_NONPAGED_UNINITIALIZED(Size, Tag) CxPlatAllocUninitialized(Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) CxPlatFree((void*)Mem, Tag)
 
 typedef struct CXPLAT_POOL CXPLAT_POOL;
@@ -427,6 +435,35 @@ CxPlatPoolUninitialize(
 QUIC_INLINE
 void*
 CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CXPLAT_POOL_HEADER* Header =
+#if DEBUG
+        CxPlatGetAllocFailDenominator() ? NULL : // No pool when using simulated alloc failures
+#endif
+        (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead);
+    if (Header == NULL) {
+        Header = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
+        if (Header == NULL) {
+            return NULL;
+        }
+    }
+#if DEBUG
+    else {
+        CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+    }
+    Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
+#endif
+    Header->Owner = Pool;
+    void* Result = (void*)(Header + 1);
+    RtlZeroMemory(Result, Pool->Size - sizeof(CXPLAT_POOL_HEADER));
+    return Result;
+}
+
+QUIC_INLINE
+void*
+CxPlatPoolAllocUninitialized(
     _Inout_ CXPLAT_POOL* Pool
     )
 {

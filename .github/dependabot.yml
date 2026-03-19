@@ -6,7 +6,12 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
+      day: "saturday"
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gitsubmodule"
     directory: "/"
@@ -43,7 +48,6 @@ updates:
       day: "saturday"
     ignore:
       - dependency-name: "ubuntu"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: "docker"
     directories:
@@ -53,4 +57,3 @@ updates:
       day: "saturday"
     ignore:
       - dependency-name: "ubuntu"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]

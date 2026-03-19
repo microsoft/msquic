@@ -65,8 +65,9 @@ char * casted_clog_bytearray(const uint8_t * const data,
 }
 
 
-void clog_stdout(struct clog_param * head, const char * const format, ...)
+void clog_stdout(struct clog_param ** head_ptr, const char * const format, ...)
 {
+    struct clog_param * head = *head_ptr;
     char * reformat;
 
     if (strstr(format, "%!") == 0) {

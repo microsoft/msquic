@@ -90,8 +90,8 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.TlsClientMaxSendBuffer) {
         Settings->TlsClientMaxSendBuffer = QUIC_MAX_TLS_CLIENT_SEND_BUFFER;
     }
-    if (!Settings->IsSet.TlsClientMaxSendBuffer) {
-        Settings->TlsClientMaxSendBuffer = QUIC_MAX_TLS_SERVER_SEND_BUFFER;
+    if (!Settings->IsSet.TlsServerMaxSendBuffer) {
+        Settings->TlsServerMaxSendBuffer = QUIC_MAX_TLS_SERVER_SEND_BUFFER;
     }
     if (!Settings->IsSet.StreamRecvWindowDefault) {
         Settings->StreamRecvWindowDefault = QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE;
@@ -246,8 +246,8 @@ QuicSettingsCopy(
     if (!Destination->IsSet.TlsClientMaxSendBuffer) {
         Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
     }
-    if (!Destination->IsSet.TlsClientMaxSendBuffer) {
-        Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
+    if (!Destination->IsSet.TlsServerMaxSendBuffer) {
+        Destination->TlsServerMaxSendBuffer = Source->TlsServerMaxSendBuffer;
     }
     if (!Destination->IsSet.StreamRecvWindowDefault) {
         Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
@@ -531,9 +531,9 @@ QuicSettingApply(
         Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
         Destination->IsSet.TlsClientMaxSendBuffer = TRUE;
     }
-    if (Source->IsSet.TlsClientMaxSendBuffer && (!Destination->IsSet.TlsClientMaxSendBuffer || OverWrite)) {
-        Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
-        Destination->IsSet.TlsClientMaxSendBuffer = TRUE;
+    if (Source->IsSet.TlsServerMaxSendBuffer && (!Destination->IsSet.TlsServerMaxSendBuffer || OverWrite)) {
+        Destination->TlsServerMaxSendBuffer = Source->TlsServerMaxSendBuffer;
+        Destination->IsSet.TlsServerMaxSendBuffer = TRUE;
     }
     if (Source->IsSet.StreamRecvWindowDefault && (!Destination->IsSet.StreamRecvWindowDefault || OverWrite)) {
         if (Source->StreamRecvWindowDefault == 0 || (Source->StreamRecvWindowDefault & (Source->StreamRecvWindowDefault - 1)) != 0) {

@@ -1013,7 +1013,7 @@ QuicListenerParamGet(
         }
 
         *BufferLength = Listener->CibirId[0] + 1;
-        memcpy(Buffer, Listener->CibirId + 1, Listener->CibirId[0]);
+        memcpy(Buffer, Listener->CibirId + 1, *BufferLength);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

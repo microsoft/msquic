@@ -9086,6 +9086,38 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "RawDatapathSend": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Raw send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+      "UniqueId": "RawDatapathSend",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "RawSockCreateFail": {
       "ModuleProperites": {},
       "TraceString": "[sock] Failed to create raw socket, status:%d",
@@ -16019,6 +16051,11 @@
         "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
         "TraceID": "QueueRecvFlush",
         "EncodingString": "[strm][%p] Queuing recv flush"
+      },
+      {
+        "UniquenessHash": "5ddc6267-3f4c-743c-9a00-f3cc7d7444f5",
+        "TraceID": "RawDatapathSend",
+        "EncodingString": "[data][%p] Raw send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!"
       },
       {
         "UniquenessHash": "4f370688-5822-225a-8c7e-ec4200d38f0a",

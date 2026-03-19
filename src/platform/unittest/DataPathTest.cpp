@@ -101,13 +101,13 @@ struct UdpRecvContext {
 };
 
 struct TcpClientContext {
-    bool Connected : 1;
-    bool Disconnected : 1;
-    bool Received : 1;
+    bool Connected{};
+    bool Disconnected{};
+    bool Received{};
     CXPLAT_EVENT ConnectEvent;
     CXPLAT_EVENT DisconnectEvent;
     CXPLAT_EVENT ReceiveEvent;
-    TcpClientContext() : Connected(false), Disconnected(false), Received(false) {
+    TcpClientContext() {
         CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
         CxPlatEventInitialize(&DisconnectEvent, FALSE, FALSE);
         CxPlatEventInitialize(&ReceiveEvent, FALSE, FALSE);
@@ -120,13 +120,13 @@ struct TcpClientContext {
 };
 
 struct TcpListenerContext {
-    CXPLAT_SOCKET* Server;
-    TcpClientContext ServerContext;
-    bool Accepted : 1;
-    bool Reject : 1;
-    bool Rejected : 1;
-    CXPLAT_EVENT AcceptEvent;
-    TcpListenerContext() : Server(nullptr), Accepted(false), Reject{false}, Rejected{false} {
+    CXPLAT_SOCKET* Server{};
+    TcpClientContext ServerContext{};
+    bool Accepted{};
+    bool Reject{};
+    bool Rejected{};
+    CXPLAT_EVENT AcceptEvent{};
+    TcpListenerContext() {
         CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
     }
     ~TcpListenerContext() {

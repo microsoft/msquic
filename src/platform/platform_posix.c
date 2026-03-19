@@ -282,6 +282,24 @@ CxPlatAlloc(
         return NULL;
     }
 #endif
+    return calloc(1, ByteCount);
+}
+
+void*
+CxPlatAllocUninitialized(
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
+    )
+{
+    UNREFERENCED_PARAMETER(Tag);
+#ifdef DEBUG
+    CXPLAT_DBG_ASSERT(ByteCount != 0);
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+#endif
     return malloc(ByteCount);
 }
 

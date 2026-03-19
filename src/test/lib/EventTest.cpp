@@ -554,8 +554,9 @@ QuicTestValidateConnectionEvents3(
     TEST_TRUE(Server.Complete.WaitTimeout(1000));
 }
 
-void QuicTestValidateConnectionEvents(uint32_t Test)
+void QuicTestValidateConnectionEvents(const ValidateConnectionEventArgs& Params)
 {
+    uint32_t Test = Params.Test;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -741,8 +742,9 @@ QuicTestValidateNetStatsConnEvent2(
     Server.CheckEventsExpectedAtleastOnce();
     Client.CheckEventsExpectedAtleastOnce();
 }
-void QuicTestValidateNetStatsConnEvent(uint32_t Test)
+void QuicTestValidateNetStatsConnEvent(const ValidateNetStatsConnEventArgs& Params)
 {
+    uint32_t Test = Params.Test;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -1804,8 +1806,9 @@ QuicTestValidateStreamEvents9(
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 }
 
-void QuicTestValidateStreamEvents(uint32_t Test)
+void QuicTestValidateStreamEvents(const ValidateStreamEventArgs& Params)
 {
+    uint32_t Test = Params.Test;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 

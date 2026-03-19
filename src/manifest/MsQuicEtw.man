@@ -3822,6 +3822,15 @@
               template="tid_DATA_SEND_TCP_CONTROL"
               value="9225"
               />
+          <event
+              keywords="ut:UDP ut:DataFlow"
+              level="win:Verbose"
+              message="$(string.Etw.RawDatapathSend)"
+              opcode="Datapath"
+              symbol="QuicRawDatapathSend"
+              template="tid_DATA_SEND"
+              value="9226"
+              />
           <!-- 10240 - 11263 | Logs (not events) -->
           <event
               keywords="ut:Log"
@@ -4461,6 +4470,10 @@
         <string
             id="Etw.DatapathSend"
             value="[data][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8"
+            />
+        <string
+            id="Etw.RawDatapathSend"
+            value="[data][%1] Raw send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8"
             />
         <string
             id="Etw.DatapathRecv"

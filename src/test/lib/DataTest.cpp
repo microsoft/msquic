@@ -387,6 +387,121 @@ NewPingConnection(
 }
 
 void
+QuicTestConnectAndPing_Send0Rtt(
+    const Send0RttArgs1& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        Params.ConnectionCount,
+        Params.StreamCount,
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        true,   // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        Params.UnidirectionalStreams,
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_Reject0Rtt(
+    const Send0RttArgs2& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        true,   // ClientZeroRtt
+        true,   // ServerRejectZeroRtt
+        false,  // UseSendBuffer
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_Send(
+    const SendArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        Params.ConnectionCount,
+        Params.StreamCount,
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        false,  // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        Params.UnidirectionalStreams,
+        Params.ServerInitiatedStreams,
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_SendLarge(
+    const SendLargeArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        100000000llu,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        1,      // StreamBurstCount
+        0,      // StreamBurstDelayMs
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        Params.UseZeroRtt,
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        true,   // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
+QuicTestConnectAndPing_SendIntermittently(
+    const SendIntermittentlyArgs& Params
+    )
+{
+    QuicTestConnectAndPing(
+        Params.Family,
+        Params.Length,
+        1,      // ConnectionCount
+        1,      // StreamCount
+        Params.BurstCount,
+        Params.BurstDelay,
+        false,  // ServerStatelessRetry
+        false,  // ClientRebind
+        false,  // ClientZeroRtt
+        false,  // ServerRejectZeroRtt
+        Params.UseSendBuffer,
+        false,  // UnidirectionalStreams
+        false,  // ServerInitiatedStreams
+        false,  // FifoScheduling
+        false); // SendUdpToQtipListener
+}
+
+void
 QuicTestConnectAndPing(
     _In_ int Family,
     _In_ uint64_t Length,
@@ -1172,10 +1287,11 @@ QuicAbortiveListenerHandler(
 
 void
 QuicAbortiveTransfers(
-    _In_ int Family,
-    _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
+    const AbortiveArgs& Params
     )
 {
+    int Family = Params.Family;
+    QUIC_ABORTIVE_TRANSFER_FLAGS Flags = Params.Flags;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
@@ -1538,9 +1654,10 @@ QuicCancelOnLossConnectionHandler(
 
 void
 QuicCancelOnLossSend(
-    _In_ bool DropPackets
+    const CancelOnLossArgs& Params
     )
 {
+    bool DropPackets = Params.DropPackets;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -1867,14 +1984,15 @@ QuicRecvResumeListenerHandler(
 
 void
 QuicTestReceiveResume(
-    _In_ int Family,
-    _In_ int SendBytes,
-    _In_ int ConsumeBytes,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType,
-    _In_ QUIC_RECEIVE_RESUME_TYPE PauseType,
-    _In_ bool PauseFirst
+    const ReceiveResumeArgs& Params
     )
 {
+    int Family = Params.Family;
+    int SendBytes = Params.SendBytes;
+    int ConsumeBytes = Params.ConsumeBytes;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType = Params.ShutdownType;
+    QUIC_RECEIVE_RESUME_TYPE PauseType = Params.PauseType;
+    bool PauseFirst = Params.PauseFirst;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
@@ -1989,6 +2107,11 @@ QuicTestReceiveResume(
                 TEST_FAILURE("PauseFirst MsQuic->StreamReceiveSetEnabled(FALSE) failed, 0x%x", Status);
                 return;
             }
+
+            //
+            // Ensure the receive pause task is processed.
+            //
+            DrainConnectionWorkQueue(ServerContext.Conn.Handle);
         }
 
         Status =
@@ -2099,10 +2222,11 @@ QuicTestReceiveResume(
 
 void
 QuicTestReceiveResumeNoData(
-    _In_ int Family,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
+    const ReceiveResumeNoDataArgs& Params
     )
 {
+    int Family = Params.Family;
+    QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType = Params.ShutdownType;
     uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
@@ -2206,6 +2330,9 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
+        //
+        // Disable receive notifications on the server.
+        //
         Status =
             MsQuic->StreamReceiveSetEnabled(
                 ServerContext.Stream.Handle,
@@ -2214,6 +2341,12 @@ QuicTestReceiveResumeNoData(
             TEST_FAILURE("PauseFirst MsQuic->StreamReceiveSetEnabled(FALSE) failed, 0x%x", Status);
             return;
         }
+
+        //
+        // Ensure the StreamReceiveSetEnabled task is processed so it doesn't race with receiving
+        // the shutdown.
+        //
+        DrainConnectionWorkQueue(ServerContext.Conn.Handle);
 
         Status =
             MsQuic->StreamShutdown(
@@ -2227,10 +2360,18 @@ QuicTestReceiveResumeNoData(
         }
 
         if (ShutdownType == GracefulShutdown) {
+            //
+            // On a graceful shutdown, the shutdown notification is emitted only after all data
+            // was delivered (in this case, zero bytes and a FIN).
+            //
             if (CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server got shutdown event when it shouldn't have!");
                 return;
             }
+
+            //
+            // Re-enable receive notifications.
+            //
             Status =
                 MsQuic->StreamReceiveSetEnabled(
                     ServerContext.Stream.Handle,
@@ -2242,7 +2383,7 @@ QuicTestReceiveResumeNoData(
         }
 
         //
-        // Validate the test was shutdown as expected.
+        // Validate the stream was shutdown as expected.
         //
         if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get shutdown before timeout!");
@@ -2470,6 +2611,12 @@ QuicTestAckSendDelay(
     MsQuic->ConnectionShutdown(ClientConnection.Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 }
 
+enum QUIC_ABORT_RECEIVE_TYPE {
+    QUIC_ABORT_RECEIVE_PAUSED,
+    QUIC_ABORT_RECEIVE_PENDING,
+    QUIC_ABORT_RECEIVE_INCOMPLETE
+};
+
 struct AbortRecvTestContext {
     QUIC_ABORT_RECEIVE_TYPE Type;
     CxPlatEvent ServerStreamRecv;
@@ -2557,6 +2704,27 @@ QuicTestAbortReceive(
     TEST_TRUE(RecvContext.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
     TEST_QUIC_SUCCEEDED(RecvContext.ServerStream->Shutdown(1));
     TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
+}
+
+void
+QuicTestAbortReceive_Paused(
+    )
+{
+    QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PAUSED);
+}
+
+void
+QuicTestAbortReceive_Pending(
+    )
+{
+    QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PENDING);
+}
+
+void
+QuicTestAbortReceive_Incomplete(
+    )
+{
+    QuicTestAbortReceive(QUIC_ABORT_RECEIVE_INCOMPLETE);
 }
 
 struct EcnTestContext {
@@ -4032,6 +4200,20 @@ QuicTestStreamBlockUnblockConnFlowControl(
 }
 
 void
+QuicTestStreamBlockUnblockConnFlowControl_Unidi(
+    )
+{
+    QuicTestStreamBlockUnblockConnFlowControl(FALSE);
+}
+
+void
+QuicTestStreamBlockUnblockConnFlowControl_Bidi(
+    )
+{
+    QuicTestStreamBlockUnblockConnFlowControl(TRUE);
+}
+
+void
 QuicTestConnectAndIdleForDestCidChange(
     void
     )
@@ -4567,21 +4749,44 @@ QuicTestStreamMultiReceive(
 //
 
 // Helper context to get a stream to send data from on the server side
-struct AppBuffersSenderContext {
+class AppBuffersSenderContext {
+    mutable CxPlatLock Lock{};
     MsQuicStream* SenderStream{};
+    uint64_t PeerRecvAbortedError{};
+
+public:
     CxPlatEvent SenderStreamCreated{};
     CxPlatEvent SenderStreamClosed{};
-    uint64_t PeerRecvAbortedError{};
+
+    MsQuicStream* GetSenderStream() const {
+        LockGuard LockScope{Lock};
+        return SenderStream;
+    }
+
+    void SetSenderStream(MsQuicStream* Stream) {
+        LockGuard LockScope{Lock};
+        SenderStream = Stream;
+        SenderStreamCreated.Set();
+    }
+
+    uint64_t GetPeerRecvAbortedError() const {
+        LockGuard LockScope{Lock};
+        return PeerRecvAbortedError;
+    }
+
+    void SetPeerRecvAbortedError(uint64_t Error) {
+        LockGuard LockScope{Lock};
+        PeerRecvAbortedError = Error;
+    }
 
     static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         auto* SenderContext = (AppBuffersSenderContext *)Context;
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-            SenderContext->SenderStream = new(std::nothrow) MsQuicStream(
+            SenderContext->SetSenderStream(new(std::nothrow) MsQuicStream(
                 Event->PEER_STREAM_STARTED.Stream,
                 CleanUpAutoDelete,
                 AppBuffersSenderContext::StreamCallback,
-                Context);
-            SenderContext->SenderStreamCreated.Set();
+                Context));
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -4589,7 +4794,7 @@ struct AppBuffersSenderContext {
     static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto* SenderContext = (AppBuffersSenderContext *)Context;
         if (Event->Type == QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED) {
-            SenderContext->PeerRecvAbortedError = Event->PEER_RECEIVE_ABORTED.ErrorCode;
+            SenderContext->SetPeerRecvAbortedError(Event->PEER_RECEIVE_ABORTED.ErrorCode);
             Stream->Shutdown(QUIC_STATUS_SUCCESS);
         } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             SenderContext->SenderStreamClosed.Set();
@@ -4599,12 +4804,13 @@ struct AppBuffersSenderContext {
 
     MsQuicStream* WaitForSenderStream() {
         SenderStreamCreated.WaitTimeout(TestWaitTimeout);
-        return SenderStream;
+        return GetSenderStream();
     }
 };
 
 // Helper context to receive data on a stream
-struct AppBuffersReceiverContext {
+class AppBuffersReceiverContext {
+    mutable CxPlatLock Lock{};
     MsQuicStream* Stream{};
 
     // App buffers to provide when a peer stream is received
@@ -4622,19 +4828,67 @@ struct AppBuffersReceiverContext {
     BOOLEAN ShutdownOnInsufficientRecvBuffer{};
 
     uint64_t ReceivedBytes{};
+    uint64_t ReceivedBytesThreshold{};
 
+public:
     // Event to signal when the sender stream get closed
     CxPlatEvent SenderStreamClosed{};
 
     // Event to signal when at least ReceivedBytesThreshold bytes have been received
     CxPlatEvent ReceivedBytesThresholdReached{};
-    uint64_t ReceivedBytesThreshold{};
+
+    // Getters
+    MsQuicStream* GetStream() const {
+        LockGuard LockScope{Lock};
+        return Stream;
+    }
+
+    uint64_t GetReceivedBytes() const {
+        LockGuard LockScope{Lock};
+        return ReceivedBytes;
+    }
+
+    // Setters
+    void SetStream(MsQuicStream* Value) {
+        LockGuard LockScope{Lock};
+        Stream = Value;
+    }
+
+    void SetBuffersForStreamStarted(QUIC_BUFFER* Buffers, uint32_t NumBuffers) {
+        LockGuard LockScope{Lock};
+        BuffersForStreamStarted = Buffers;
+        NumBuffersForStreamStarted = NumBuffers;
+    }
+
+    void SetBuffersForThreshold(QUIC_BUFFER* Buffers, uint32_t NumBuffers, uint64_t Threshold) {
+        LockGuard LockScope{Lock};
+        BuffersForThreshold = Buffers;
+        NumBuffersForThreshold = NumBuffers;
+        MoreBufferThreshold = Threshold;
+    }
+
+    void SetBuffersForInsufficientRecvBuffer(QUIC_BUFFER* Buffers, uint32_t NumBuffers) {
+        LockGuard LockScope{Lock};
+        BuffersForInsufficientRecvBuffer = Buffers;
+        NumBuffersForInsufficientRecvBuffer = NumBuffers;
+    }
+
+    void SetShutdownOnInsufficientRecvBuffer(BOOLEAN Value) {
+        LockGuard LockScope{Lock};
+        ShutdownOnInsufficientRecvBuffer = Value;
+    }
+
+    void SetReceivedBytesThreshold(uint64_t Value) {
+        LockGuard LockScope{Lock};
+        ReceivedBytesThreshold = Value;
+    }
 
     // Accept a stream on the listener side
     static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         auto ReceiverContext = (AppBuffersReceiverContext*)Context;
 
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            LockGuard LockScope{ReceiverContext->Lock};
             ReceiverContext->Stream = new(std::nothrow) MsQuicStream(
                 Event->PEER_STREAM_STARTED.Stream,
                 CleanUpAutoDelete,
@@ -4650,6 +4904,7 @@ struct AppBuffersReceiverContext {
     static QUIC_STATUS StreamCallback(_In_ MsQuicStream* /* Stream */, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto ReceiverContext = (AppBuffersReceiverContext*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            LockGuard LockScope{ReceiverContext->Lock};
             ReceiverContext->ReceivedBytes += Event->RECEIVE.TotalBufferLength;
 
             if (ReceiverContext->MoreBufferThreshold > 0 &&
@@ -4667,6 +4922,7 @@ struct AppBuffersReceiverContext {
                 ReceiverContext->ReceivedBytesThreshold = 0;
             }
         } else if (Event->Type == QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED) {
+            LockGuard LockScope{ReceiverContext->Lock};
             if (ReceiverContext->ShutdownOnInsufficientRecvBuffer) {
                 ReceiverContext->Stream->Shutdown(
                     1, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE | QUIC_STREAM_SHUTDOWN_FLAG_INLINE);
@@ -4789,13 +5045,11 @@ QuicTestStreamAppProvidedBuffers_ClientSend(
     // - more receive buffer space will be provided after half the initial
     //       receive buffers are filled.
     // - an event will be signaled at that point to synchronize with the sender.
-    ReceiveContext.BuffersForStreamStarted = Buffers.StreamStartBuffers.get();
-    ReceiveContext.NumBuffersForStreamStarted = Buffers.NumStreamStartBuffers;
-    ReceiveContext.BuffersForThreshold = Buffers.AdditionalBuffers.get();
-    ReceiveContext.NumBuffersForThreshold = Buffers.NumAdditionalBuffers;
-    ReceiveContext.MoreBufferThreshold =
+    const uint64_t MoreBufferThreshold =
         BufferConfig.StreamStartBuffersSize * BufferConfig.StreamStartBuffersNum / 2;
-    ReceiveContext.ReceivedBytesThreshold = ReceiveContext.MoreBufferThreshold;
+    ReceiveContext.SetBuffersForStreamStarted(Buffers.StreamStartBuffers.get(), Buffers.NumStreamStartBuffers);
+    ReceiveContext.SetBuffersForThreshold(Buffers.AdditionalBuffers.get(), Buffers.NumAdditionalBuffers, MoreBufferThreshold);
+    ReceiveContext.SetReceivedBytesThreshold(MoreBufferThreshold);
 
     // Setup a listener
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
@@ -4830,7 +5084,7 @@ QuicTestStreamAppProvidedBuffers_ClientSend(
     TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer2, 1, QUIC_SEND_FLAG_FIN));
 
     TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-    TEST_EQUAL(ReceiveContext.ReceivedBytes, Buffers.SendDataSize);
+    TEST_EQUAL(ReceiveContext.GetReceivedBytes(), Buffers.SendDataSize);
     TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
 }
 
@@ -4885,11 +5139,10 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
     // - more receive buffer space will be provided after half the initial
     //   receive buffers are filled.
     // - an event will be signaled at that point to synchronize with the sender.
-    ReceiveContext.BuffersForThreshold = Buffers.AdditionalBuffers.get();
-    ReceiveContext.NumBuffersForThreshold = Buffers.NumAdditionalBuffers;
-    ReceiveContext.MoreBufferThreshold =
+    const uint64_t MoreBufferThreshold =
         BufferConfig.StreamStartBuffersSize * BufferConfig.StreamStartBuffersNum / 2;
-    ReceiveContext.ReceivedBytesThreshold = ReceiveContext.MoreBufferThreshold;
+    ReceiveContext.SetBuffersForThreshold(Buffers.AdditionalBuffers.get(), Buffers.NumAdditionalBuffers, MoreBufferThreshold);
+    ReceiveContext.SetReceivedBytesThreshold(MoreBufferThreshold);
 
     MsQuicStream ClientStream(
         Connection,
@@ -4899,7 +5152,7 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
         &ReceiveContext);
     TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
 
-    ReceiveContext.Stream = &ClientStream;
+    ReceiveContext.SetStream(&ClientStream);
     // Provide some receive buffers before starting the stream
     ClientStream.ProvideReceiveBuffers(Buffers.NumStreamStartBuffers, Buffers.StreamStartBuffers.get());
 
@@ -4920,7 +5173,7 @@ QuicTestStreamAppProvidedBuffers_ServerSend(
     TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer2, 1, QUIC_SEND_FLAG_FIN));
 
     TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-    TEST_EQUAL(ReceiveContext.ReceivedBytes, Buffers.SendDataSize);
+    TEST_EQUAL(ReceiveContext.GetReceivedBytes(), Buffers.SendDataSize);
     TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
 }
 
@@ -4957,9 +5210,8 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
     // - some initial receive buffer space will be provided when the stream is accepted
     // - the stream will be aborted when the receiver runs out of buffer space
     //
-    ReceiveContext.BuffersForStreamStarted = Buffers.StreamStartBuffers.get();
-    ReceiveContext.NumBuffersForStreamStarted = Buffers.NumStreamStartBuffers;
-    ReceiveContext.ShutdownOnInsufficientRecvBuffer = TRUE;
+    ReceiveContext.SetBuffersForStreamStarted(Buffers.StreamStartBuffers.get(), Buffers.NumStreamStartBuffers);
+    ReceiveContext.SetShutdownOnInsufficientRecvBuffer(TRUE);
 
     // Setup a listener
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
@@ -4992,7 +5244,7 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(
     TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1));
 
     TEST_TRUE(SenderContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-    TEST_EQUAL(SenderContext.PeerRecvAbortedError, 1);
+    TEST_EQUAL(SenderContext.GetPeerRecvAbortedError(), 1);
 }
 
 void
@@ -5027,10 +5279,8 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
     // - some initial receive buffer space will be provided when the stream is accepted
     // - more receive buffer space will be provided when the stream runs out of buffer space
     //
-    ReceiveContext.BuffersForStreamStarted = Buffers.StreamStartBuffers.get();
-    ReceiveContext.NumBuffersForStreamStarted = Buffers.NumStreamStartBuffers;
-    ReceiveContext.BuffersForInsufficientRecvBuffer = Buffers.AdditionalBuffers.get();
-    ReceiveContext.NumBuffersForInsufficientRecvBuffer = Buffers.NumAdditionalBuffers;
+    ReceiveContext.SetBuffersForStreamStarted(Buffers.StreamStartBuffers.get(), Buffers.NumStreamStartBuffers);
+    ReceiveContext.SetBuffersForInsufficientRecvBuffer(Buffers.AdditionalBuffers.get(), Buffers.NumAdditionalBuffers);
 
     // Setup a listener
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
@@ -5061,7 +5311,7 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(
     TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
     TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-    TEST_EQUAL(ReceiveContext.ReceivedBytes, Buffers.SendDataSize);
+    TEST_EQUAL(ReceiveContext.GetReceivedBytes(), Buffers.SendDataSize);
     TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
 }
 
@@ -5121,9 +5371,9 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
         &ReceiveContext);
     TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
 
-    ReceiveContext.Stream = &ClientStream;
+    ReceiveContext.SetStream(&ClientStream);
     // The stream will be shutdown inline when it runs out of receive buffer space.
-    ReceiveContext.ShutdownOnInsufficientRecvBuffer = TRUE;
+    ReceiveContext.SetShutdownOnInsufficientRecvBuffer(TRUE);
 
     // Provide some receive buffers before starting the stream
     TEST_QUIC_SUCCEEDED(ClientStream.ProvideReceiveBuffers(
@@ -5142,7 +5392,7 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(
     TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer, 1));
 
     TEST_TRUE(SenderContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-    TEST_EQUAL(SenderContext.PeerRecvAbortedError, 1);
+    TEST_EQUAL(SenderContext.GetPeerRecvAbortedError(), 1);
 }
 
 void
@@ -5206,9 +5456,8 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
     // - some initial receive buffer space will be provided when the stream is accepted
     // - more receive buffer space will be provided when the stream runs out of buffer space
     //
-    ReceiveContext.BuffersForInsufficientRecvBuffer = Buffers.AdditionalBuffers.get();
-    ReceiveContext.NumBuffersForInsufficientRecvBuffer = Buffers.NumAdditionalBuffers;
-    ReceiveContext.Stream = &ClientStream;
+    ReceiveContext.SetBuffersForInsufficientRecvBuffer(Buffers.AdditionalBuffers.get(), Buffers.NumAdditionalBuffers);
+    ReceiveContext.SetStream(&ClientStream);
 
     // Provide some receive buffers before starting the stream
     TEST_QUIC_SUCCEEDED(ClientStream.ProvideReceiveBuffers(
@@ -5226,7 +5475,7 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
     TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
     TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
-    TEST_EQUAL(ReceiveContext.ReceivedBytes, Buffers.SendDataSize);
+    TEST_EQUAL(ReceiveContext.GetReceivedBytes(), Buffers.SendDataSize);
     TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
 }
 

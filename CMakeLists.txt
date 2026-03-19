@@ -111,6 +111,9 @@ option(QUIC_CI "CI Specific build" OFF)
 option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if quictls TLS" OFF)
+option(QUIC_USE_EXTERNAL_OPENSSL "Use external OpenSSL instead of building from submodules" OFF)
+set(QUIC_OPENSSL_INCLUDE_DIR "" CACHE PATH "Path to OpenSSL include directory")
+set(QUIC_OPENSSL_LIB_DIR "" CACHE PATH "Path to OpenSSL library directory")
 option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
@@ -234,7 +237,7 @@ include(GNUInstallDirs)
 
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
-    set(QUIC_COMMON_FLAGS "")
+    set(QUIC_COMMON_FLAGS /utf-8)
 
     include(CheckCCompilerFlag)
 
@@ -423,29 +426,24 @@ if(QUIC_ENABLE_LOGGING)
         endif()
 
     elseif (QUIC_LOGGING_TYPE STREQUAL "lttng")
-        if (QUIC_SANITIZER_ACTIVE)
-            message(WARNING "LTTng logging is incompatible with sanitizers. Skipping logging")
+        # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
+        if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
+            message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
             set(QUIC_ENABLE_LOGGING OFF)
         else()
-            # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
-            if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
-                message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
+            check_include_file(lttng/ust-config.h HAS_LTTNG)
+            if (NOT HAS_LTTNG)
+                message(WARNING "LTTng logging not found. Disabling logging")
                 set(QUIC_ENABLE_LOGGING OFF)
             else()
-                check_include_file(lttng/ust-config.h HAS_LTTNG)
-                if (NOT HAS_LTTNG)
-                    message(WARNING "LTTng logging not found. Disabling logging")
+                check_symbol_exists(LTTNG_UST_HAVE_SDT_INTEGRATION lttng/ust-config.h HAS_LTTNG_SDT)
+                if(HAS_LTTNG_SDT)
+                    message(WARNING "LTTng with SDT integration does not work. Disabling logging")
                     set(QUIC_ENABLE_LOGGING OFF)
                 else()
-                    check_symbol_exists(LTTNG_UST_HAVE_SDT_INTEGRATION lttng/ust-config.h HAS_LTTNG_SDT)
-                    if(HAS_LTTNG_SDT)
-                        message(WARNING "LTTng with SDT integration does not work. Disabling logging")
-                        set(QUIC_ENABLE_LOGGING OFF)
-                    else()
-                        message(STATUS "Configuring for LTTng logging")
-                        list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
-                        include(FindLTTngUST)
-                    endif()
+                    message(STATUS "Configuring for LTTng logging")
+                    list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
+                    include(FindLTTngUST)
                 endif()
             endif()
         endif()
@@ -764,18 +762,46 @@ endif()
 if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     add_library(OpenSSL INTERFACE)
 
-    include(FetchContent)
+    # OpenSSL versions before 3.5.0 do not expose these APIs.
+    if(QUIC_TLS_LIB STREQUAL "quictls" AND (QUIC_USE_EXTERNAL_OPENSSL OR QUIC_OPENSSL_INCLUDE_DIR OR QUIC_OPENSSL_LIB_DIR))
+        message(FATAL_ERROR "Manual OpenSSL selection is not supported with the 'quictls'. 'quictls' must be built from submodules to ensure static linkage with required QUIC APIs. Use 'openssl' provider for external 3.5.0+ OpenSSL.")
+    endif()
 
-    FetchContent_Declare(
-        OpenSSLQuic
-        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules
-        CMAKE_ARGS "-DQUIC_USE_SYSTEM_LIBCRYPTO=${QUIC_USE_SYSTEM_LIBCRYPTO}"
-    )
-    FetchContent_MakeAvailable(OpenSSLQuic)
+    # Only 'openssl' provider supports external selection for now
+    if(QUIC_TLS_LIB STREQUAL "openssl" AND (QUIC_USE_EXTERNAL_OPENSSL OR QUIC_OPENSSL_INCLUDE_DIR OR QUIC_OPENSSL_LIB_DIR))
+        add_library(OpenSSLQuic INTERFACE)
+        if(QUIC_OPENSSL_INCLUDE_DIR AND QUIC_OPENSSL_LIB_DIR)
+            target_include_directories(OpenSSLQuic INTERFACE ${QUIC_OPENSSL_INCLUDE_DIR})
+            find_library(LIB_CRYPTO NAMES crypto libcrypto PATHS ${QUIC_OPENSSL_LIB_DIR} NO_DEFAULT_PATH)
+            if(NOT LIB_CRYPTO)
+                message(FATAL_ERROR "libcrypto not found in ${QUIC_OPENSSL_LIB_DIR}")
+            endif()
+            find_library(LIB_SSL NAMES ssl libssl PATHS ${QUIC_OPENSSL_LIB_DIR} NO_DEFAULT_PATH)
+            if(NOT LIB_SSL)
+                message(FATAL_ERROR "libssl not found in ${QUIC_OPENSSL_LIB_DIR}")
+            endif()
+            target_link_libraries(OpenSSLQuic INTERFACE ${LIB_SSL} ${LIB_CRYPTO})
+        elseif(QUIC_OPENSSL_INCLUDE_DIR OR QUIC_OPENSSL_LIB_DIR)
+            message(FATAL_ERROR "Both QUIC_OPENSSL_INCLUDE_DIR and QUIC_OPENSSL_LIB_DIR must be set to select custom OpenSSL version.")
+        else()
+            find_package(OpenSSL 3.5.0 REQUIRED)
+            target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::SSL OpenSSL::Crypto)
+        endif()
+        add_library(MsQuic::OpenSSL ALIAS OpenSSLQuic)
+    else()
+        include(FetchContent)
+
+        FetchContent_Declare(
+            OpenSSLQuic
+            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules
+            CMAKE_ARGS "-DQUIC_USE_SYSTEM_LIBCRYPTO=${QUIC_USE_SYSTEM_LIBCRYPTO}"
+        )
+        FetchContent_MakeAvailable(OpenSSLQuic)
+    endif()
 
     target_link_libraries(OpenSSL
         INTERFACE
-        OpenSSLQuic::OpenSSLQuic
+        MsQuic::OpenSSL
     )
 endif()
 

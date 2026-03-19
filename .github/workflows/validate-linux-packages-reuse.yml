@@ -81,15 +81,15 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout msquic Repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           repository: microsoft/msquic
           ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@2016bd2012dba4e32de620c46fe006a3ac9f0602
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7
         with:
-          dotnet-version: '9.0'
+          dotnet-version: 10.0.x
 
       - name: Build QuicHello
         run: |
@@ -100,7 +100,7 @@ jobs:
           dotnet publish QuicHello.net9.0.csproj -c Release -o ../../../dotnet-artifacts/arm -r linux-arm --self-contained true
 
       - name: Upload .NET Artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: dotnet-test-artifacts
           path: dotnet-artifacts/
@@ -425,14 +425,14 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Set up QEMU
         if: matrix.arch != 'x64'
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
 
       - name: Download Test Artifacts
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           # TLS mapping: for 2.4.x, quictls -> openssl3
           name: ${{ inputs.config }}-linux-ubuntu-22.04-${{ matrix.arch }}-${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}-Test
@@ -440,7 +440,7 @@ jobs:
 
       - name: Download .NET Artifacts
         if: ${{ !inputs.skip_dotnet_tests }}
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: dotnet-test-artifacts
           path: dotnet-artifacts
@@ -629,7 +629,7 @@ jobs:
 
       - name: Upload Logs on Failure
         if: failure()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: logs-${{ matrix.friendlyName }}
           path: |

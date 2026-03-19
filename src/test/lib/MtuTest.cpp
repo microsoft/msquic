@@ -306,13 +306,13 @@ QuicTestMtuSettings()
 }
 
 void
-QuicTestMtuDiscovery(
-    _In_ int Family,
-    _In_ BOOLEAN DropClientProbePackets,
-    _In_ BOOLEAN DropServerProbePackets,
-    _In_ BOOLEAN RaiseMinimumMtu
-    )
+QuicTestMtuDiscovery(const MtuArgs& Params)
 {
+    int Family = Params.Family;
+    bool DropClientProbePackets = Params.DropMode & 1;
+    bool DropServerProbePackets = Params.DropMode & 2;
+    bool RaiseMinimumMtu = Params.RaiseMinimum;
+
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
