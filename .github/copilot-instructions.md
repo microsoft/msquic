@@ -125,11 +125,7 @@ The `check-dotnet.yml` CI workflow validates the generated .NET interop files ar
 
 ## Pull Requests
 
-When creating pull requests, always follow the PR template at `.github/pull_request_template.md`. The body must include three sections:
-
-- **Description**: Describe the purpose of and changes within the PR.
-- **Testing**: State whether existing tests cover the change and if new tests are needed.
-- **Documentation**: Note any documentation impact.
+When creating pull requests, always follow the PR template at `.github/pull_request_template.md`.
 
 ## Update These Instructions
 
