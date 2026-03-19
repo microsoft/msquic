@@ -123,6 +123,14 @@ The `check-dotnet.yml` CI workflow validates the generated .NET interop files ar
 - Public API is in `src/inc/msquic.h`. C++ wrapper in `src/inc/msquic.hpp`.
 - Test infrastructure uses GoogleTest. Test cases in `src/test/lib/`, runner in `src/test/bin/`.
 
+## Pull Requests
+
+When creating pull requests, always follow the PR template at `.github/pull_request_template.md`. The body must include three sections:
+
+- **Description**: Describe the purpose of and changes within the PR.
+- **Testing**: State whether existing tests cover the change and if new tests are needed.
+- **Documentation**: Note any documentation impact.
+
 ## Update These Instructions
 
 As you learn the codebase, update this file with any important information you think would help future contributors. This is the primary source of truth for how to work with the codebase, so keep it accurate and comprehensive.
