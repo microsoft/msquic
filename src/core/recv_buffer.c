@@ -597,6 +597,10 @@ QuicRecvBufferCopyIntoChunks(
         WriteBuffer += Diff;
     }
 
+    if (WriteLength == 0) {
+        return;
+    }
+
     const uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
 
     //
@@ -611,10 +615,17 @@ QuicRecvBufferCopyIntoChunks(
         WriteLength -= (uint16_t)CopyLength;
     }
     CXPLAT_DBG_ASSERT(WriteLength == 0); // Should always have enough room to copy everything
+}
 
-    //
-    // Update the amount of data readable in the first chunk.
-    //
+//
+// Updates ReadLength based on the current state of WrittenRanges.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRecvBufferUpdateReadLength(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
+    )
+{
     QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
     if (FirstRange->Low == 0) {
         RecvBuffer->ReadLength = (uint32_t)CXPLAT_MIN(
@@ -712,6 +723,51 @@ QuicRecvBufferWrite(
     }
 
     //
+    // Copy only NEW bytes (not already in WrittenRanges) to avoid overwriting
+    // previously received data. Walk the existing written ranges to find gaps
+    // within [WriteOffset, WriteOffset+WriteLength), and copy only those gaps.
+    // This must happen before QuicRangeAddRange modifies the ranges.
+    //
+    {
+        uint64_t GapStart = WriteOffset;
+        const uint64_t WriteEnd = (uint64_t)WriteOffset + WriteLength;
+
+        for (uint32_t idx = 0;
+             idx < QuicRangeSize(&RecvBuffer->WrittenRanges) && GapStart < WriteEnd;
+             idx++) {
+            QUIC_SUBRANGE* Sub = QuicRangeGet(&RecvBuffer->WrittenRanges, idx);
+            uint64_t SubEnd = Sub->Low + Sub->Count;
+
+            if (SubEnd <= GapStart) continue; // Before current position
+            if (Sub->Low >= WriteEnd) break;  // Past write region
+
+            //
+            // Copy the gap before this existing subrange.
+            //
+            if (GapStart < Sub->Low) {
+                uint64_t GapEnd = CXPLAT_MIN(Sub->Low, WriteEnd);
+                QuicRecvBufferCopyIntoChunks(
+                    RecvBuffer,
+                    GapStart,
+                    (uint16_t)(GapEnd - GapStart),
+                    WriteBuffer + (GapStart - WriteOffset));
+            }
+            GapStart = SubEnd;
+        }
+
+        //
+        // Copy any remaining gap after all overlapping subranges.
+        //
+        if (GapStart < WriteEnd) {
+            QuicRecvBufferCopyIntoChunks(
+                RecvBuffer,
+                GapStart,
+                (uint16_t)(WriteEnd - GapStart),
+                WriteBuffer + (GapStart - WriteOffset));
+        }
+    }
+
+    //
     // Set the write offset/length as a valid written range.
     //
     BOOLEAN WrittenRangesUpdated;
@@ -742,9 +798,9 @@ QuicRecvBufferWrite(
     *NewDataReady = UpdatedRange->Low == 0;
 
     //
-    // Write the data into the chunks now that everything has been validated.
+    // Update ReadLength now that WrittenRanges has been updated.
     //
-    QuicRecvBufferCopyIntoChunks(RecvBuffer, WriteOffset, WriteLength, WriteBuffer);
+    QuicRecvBufferUpdateReadLength(RecvBuffer);
 
     QuicRecvBufferValidate(RecvBuffer);
     return QUIC_STATUS_SUCCESS;
