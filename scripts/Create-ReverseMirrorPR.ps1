@@ -295,8 +295,13 @@ if ($Dependabot) {
     $succeeded = 0
     $failed = 0
     foreach ($pr in $dependabotPrs) {
-        $result = Mirror-PullRequest -PrId $pr.pullRequestId
-        if ($result) { $succeeded++ } else { $failed++ }
+        try {
+            $result = Mirror-PullRequest -PrId $pr.pullRequestId
+            if ($result) { $succeeded++ } else { $failed++ }
+        } catch {
+            Write-Host "  Error mirroring PR #$($pr.pullRequestId): $_" -ForegroundColor Red
+            $failed++
+        }
     }
 
     Write-Host "`n--- Summary ---" -ForegroundColor Cyan
