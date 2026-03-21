@@ -850,12 +850,10 @@ TEST_P(DataPathTest, UdpData)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
 
+#ifdef _WIN32
 TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
-    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_CIBIR)) {
-        GTEST_SKIP_("CIBIR port sharing is only supported on Windows usermode datapath.");
-    }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     auto unspecAddress = GetNewUnspecAddr();
     CxPlatSocket Server1;
@@ -889,6 +887,7 @@ TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
     Server3.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     ASSERT_EQ(QUIC_STATUS_ADDRESS_IN_USE, Server3.GetInitStatus());
 }
+#endif
 
 TEST_P(DataPathTest, UdpDataPolling)
 {

@@ -688,8 +688,6 @@ DataPathInitialize(
     }
 #endif
 
-    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_CIBIR;
-
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
         //
         // UDP send batching is actually supported on even earlier Windows
@@ -1720,12 +1718,6 @@ SocketCreateUdp(
                         NULL);
                 if (Result == SOCKET_ERROR) {
                     int WsaError = WSAGetLastError();
-                    QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[data][%p] ERROR, %u, %s.",
-                        Socket,
-                        WsaError,
-                        "SIO_ACQUIRE_PORT_RESERVATION");
 
                     if (Config->CibirIdLength > 0 && IsServerSocket &&
                         (WsaError == WSAEADDRINUSE || WsaError == WSAEACCES)) {
@@ -1754,7 +1746,6 @@ SocketCreateUdp(
                             Status = QUIC_STATUS_INVALID_STATE;
                             goto Error;
                         }
-
                         QuicTraceLogWarning(
                             DatapathCibirWarning,
                             "[data][%p] CIBIR detected,  %s",
@@ -1764,6 +1755,13 @@ SocketCreateUdp(
                         CxPlatRefInitializeEx(&Socket->RefCount, 1);
                         Socket->SkipCreatingOsSockets = TRUE;
                         goto Skip;
+                    } else {
+                        QuicTraceEvent(
+                            DatapathErrorStatus,
+                            "[data][%p] ERROR, %u, %s.",
+                            Socket,
+                            WsaError,
+                            "SIO_ACQUIRE_PORT_RESERVATION");
                     }
 
                     Status = HRESULT_FROM_WIN32(WsaError);
