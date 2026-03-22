@@ -357,7 +357,6 @@ TEST_F(BbrTest, OnDataLost_NonPersistent)
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
-    uint32_t MinCW = 4 * DatagramPayloadLength;
 
     CC->QuicCongestionControlOnDataSent(CC, 10000);
     Connection.Send.NextPacketNumber = 10;
