@@ -389,3 +389,5 @@ APKBUILD
 
 # Temporary package download folder by validation script
 msquic-packages/
+# Temporary folder for DeepTest results
+.deeptest/
