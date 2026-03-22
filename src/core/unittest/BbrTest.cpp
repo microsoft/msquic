@@ -388,7 +388,6 @@ TEST_F(BbrTest, OnDataLost_AlreadyInRecovery)
     QUIC_LOSS_EVENT Loss1 = MakeBbrLossEvent(1200, 5, 10);
     CC->QuicCongestionControlOnDataLost(CC, &Loss1);
     ASSERT_EQ(Bbr->RecoveryState, (uint32_t)RECOVERY_STATE_CONSERVATIVE);
-    uint32_t RecoveryWindowAfterFirst = Bbr->RecoveryWindow;
 
     // Second loss while in recovery
     QUIC_LOSS_EVENT Loss2 = MakeBbrLossEvent(600, 8, 10);
@@ -587,7 +586,6 @@ TEST_F(BbrTest, OnDataAcknowledged_RecoveryStayUpdateWindow)
     // Enter recovery
     QUIC_LOSS_EVENT Loss = MakeBbrLossEvent(1200, 5, 10);
     CC->QuicCongestionControlOnDataLost(CC, &Loss);
-    uint32_t RecWinBefore = Bbr->RecoveryWindow;
 
     // ACK while still in recovery (HasLoss=TRUE, LargestAck < EndOfRecovery)
     QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1100000, 3, 12, 1200);
@@ -672,7 +670,7 @@ TEST_F(BbrTest, OnDataAcknowledged_ExitingQuiescenceSuppressesProbeRtt)
 TEST_F(BbrTest, OnDataAcknowledged_BtlbwFoundDetection)
 {
     InitializeWithDefaults();
-    uint64_t TimeNow = DriveToBtlbwFound();
+    DriveToBtlbwFound();
     // After driving with stagnant bandwidth, BtlbwFound should be TRUE
     ASSERT_TRUE(Bbr->BtlbwFound);
 }
@@ -706,7 +704,7 @@ TEST_F(BbrTest, OnDataAcknowledged_DrainToProbeBw)
 {
     InitializeWithDefaults();
 
-    uint64_t TimeNow = DriveToBtlbwFound();
+    DriveToBtlbwFound();
 
     // BytesInFlight=0 after DriveToBtlbwFound so DRAIN->PROBE_BW happens immediately
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
@@ -1157,8 +1155,6 @@ TEST_F(BbrTest, RecoveryWindow_GrowthAddsBytes)
     QUIC_LOSS_EVENT Loss = MakeBbrLossEvent(1200, 5, 10);
     CC->QuicCongestionControlOnDataLost(CC, &Loss);
 
-    uint32_t RecoveryWinAfterLoss = Bbr->RecoveryWindow;
-
     // ACK in recovery with new round trip → CONSERVATIVE → GROWTH
     Connection.Send.NextPacketNumber = 20;
     CC->QuicCongestionControlOnDataSent(CC, 5000);
@@ -1185,7 +1181,7 @@ TEST_F(BbrTest, FullLifecycle_StartupDrainProbeBw)
     InitializeWithDefaults();
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_STARTUP);
 
-    uint64_t TimeNow = DriveToBtlbwFound();
+    DriveToBtlbwFound();
     ASSERT_TRUE(Bbr->BtlbwFound);
 
     // STARTUP -> DRAIN -> PROBE_BW (immediate since BytesInFlight=0)
@@ -1692,8 +1688,6 @@ TEST_F(BbrTest, SetExemption_GetExemptions)
 TEST_F(BbrTest, GetBytesInFlightMax)
 {
     InitializeWithDefaults();
-    uint32_t InitialMax = CC->QuicCongestionControlGetBytesInFlightMax(CC);
-
     CC->QuicCongestionControlOnDataSent(CC, 20000);
     ASSERT_EQ(CC->QuicCongestionControlGetBytesInFlightMax(CC), 20000u);
 }
