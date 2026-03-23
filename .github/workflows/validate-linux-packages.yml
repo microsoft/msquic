@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       package_version:
-        description: 'Package version to validate (e.g., 2.4.8). Leave empty for latest.'
+        description: 'Package version to validate (e.g., 2.4.8).'
         required: false
-        default: ''
+        default: '2.5.6'
         type: string
       skip_dotnet_tests:
         description: 'Skip .NET QUIC tests'

@@ -6,9 +6,9 @@ on:
   workflow_call:
     inputs:
       package_version:
-        description: 'Package version to validate (empty for latest)'
+        description: 'Package version to validate'
         required: false
-        default: ''
+        default: '2.5.6'
         type: string
       config:
         description: 'Build configuration'
