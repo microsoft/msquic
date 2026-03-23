@@ -430,7 +430,7 @@ CubicCongestionControlGetNetworkStatistics(
     NetworkStatistics->IdealBytes = Connection->SendBuffer.IdealBytes;
     NetworkStatistics->SmoothedRTT = Path->SmoothedRtt;
     NetworkStatistics->CongestionWindow = Cubic->CongestionWindow;
-    NetworkStatistics->Bandwidth = Cubic->CongestionWindow / Path->SmoothedRtt;
+    NetworkStatistics->Bandwidth = Path->SmoothedRtt == 0 ? 0 : Cubic->CongestionWindow / Path->SmoothedRtt;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -698,7 +698,7 @@ Exit:
         Event.NETWORK_STATISTICS.IdealBytes = Connection->SendBuffer.IdealBytes;
         Event.NETWORK_STATISTICS.SmoothedRTT = Path->SmoothedRtt;
         Event.NETWORK_STATISTICS.CongestionWindow = Cubic->CongestionWindow;
-        Event.NETWORK_STATISTICS.Bandwidth = Cubic->CongestionWindow / Path->SmoothedRtt;
+        Event.NETWORK_STATISTICS.Bandwidth = Path->SmoothedRtt == 0 ? 0 : Cubic->CongestionWindow / Path->SmoothedRtt;
 
         QuicTraceLogConnVerbose(
            IndicateDataAcked,
