@@ -3913,6 +3913,23 @@ QuicTestCibirExtension(
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
+    QuicTestPortReservation PortReservation(QuicAddrFamily);
+    if (UseDuoNic) {
+        //
+        // CIBIR + XDP requires an explicit local port. Reserve an ephemeral port
+        // up front so the listener always binds to a known port.
+        //
+        if (PortReservation.Port != 0) {
+            ServerLocalAddr.SetPort(PortReservation.Port);
+        }
+    } else {
+        //
+        // If no XDP, CIBIR just falls back to normal OS sockets.
+        // We can just rely upon the Listener created sockets. Passing in
+        // a local port of 0 is fine here.
+        //
+        PortReservation.Release();
+    }
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
     if (Mode & 1) {
         TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));

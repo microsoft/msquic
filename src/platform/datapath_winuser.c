@@ -1271,6 +1271,11 @@ SocketCreateUdp(
     //
     CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) ? 1 : SocketCount);
 
+    Socket->RecvBufLen =
+        (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
+            MAX_URO_PAYLOAD_LENGTH :
+            Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+
     if (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) {
         //
         // QTIP clients will skip normal UDP socket reservation to use AuxSocket (TCP socket reservation) in raw socket.
@@ -1278,10 +1283,38 @@ SocketCreateUdp(
         goto Skip;
     }
 
-    Socket->RecvBufLen =
-        (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
-            MAX_URO_PAYLOAD_LENGTH :
-            Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+    if (Config->CibirIdLength > 0 && IsServerSocket) {
+        BOOLEAN XdpEnabled = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
+        BOOLEAN XdpAvailable = Datapath->RawDataPath != NULL;
+        if (XdpEnabled && XdpAvailable) {
+            //
+            // CIBIR with XDP: skip OS port reservation so multiple processes
+            // can share the same UDP port. XDP handles demuxing via CIBIR ID.
+            //
+            if (Config->LocalAddress == NULL || Config->LocalAddress->Ipv4.sin_port == 0) {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    (uint32_t)QUIC_STATUS_INVALID_PARAMETER,
+                    "CIBIR server socket with XDP requires an explicit local port");
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                goto Error;
+            }
+            QuicTraceLogWarning(
+                DatapathCibirWarning,
+                "[data][%p] CIBIR detected,  %s",
+                Socket,
+                "Skipping OS port reservation for this server socket.");
+            Socket->SkipCreatingOsSockets = TRUE;
+            CxPlatRefInitializeEx(&Socket->RefCount, 1);
+            goto Skip;
+        }
+        //
+        // CIBIR without XDP: fall through to normal socket creation.
+        // Transport parameter negotiation still works, just no port sharing.
+        //
+    }
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         CxPlatRefInitialize(&Socket->PerProcSockets[i].RefCount);
@@ -1718,52 +1751,12 @@ SocketCreateUdp(
                         NULL);
                 if (Result == SOCKET_ERROR) {
                     int WsaError = WSAGetLastError();
-
-                    if (Config->CibirIdLength > 0 && IsServerSocket &&
-                        (WsaError == WSAEADDRINUSE || WsaError == WSAEACCES)) {
-                        //
-                        // CIBIR is configured. A port collision here is actually
-                        // expected if multiple server processes were configured to share
-                        // the same UDP and/or TCP port.
-                        //
-                        BOOLEAN XdpAvailable = Datapath->RawDataPath != NULL;
-                        BOOLEAN XdpEnabled = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
-                        if (!XdpAvailable || !XdpEnabled) {
-                            //
-                            // In the case of a port collision while cibir is enabled,
-                            // MsQuic assumes another MsQuic cibir process has done the
-                            // job of reserving the OS ports via socket creation/bind.
-                            // At least that process can fall back to using the OS stack if
-                            // XDP is not available/enabled, but not this one.
-                            //
-                            QuicTraceLogWarning(
-                                DatapathCibirWarning,
-                                "[data][%p] CIBIR detected,  %s",
-                                Socket,
-                                !XdpAvailable ?
-                                "but XDP not available. No OS sockets to fall back to." :
-                                "but XDP not enabled. No OS sockets to fall back to.");
-                            Status = QUIC_STATUS_INVALID_STATE;
-                            goto Error;
-                        }
-                        QuicTraceLogWarning(
-                            DatapathCibirWarning,
-                            "[data][%p] CIBIR detected,  %s",
-                            Socket,
-                            "ignoring port collision by assuming some \
-                            other MsQuic CIBIR process has reserved the OS port.");
-                        CxPlatRefInitializeEx(&Socket->RefCount, 1);
-                        Socket->SkipCreatingOsSockets = TRUE;
-                        goto Skip;
-                    } else {
-                        QuicTraceEvent(
-                            DatapathErrorStatus,
-                            "[data][%p] ERROR, %u, %s.",
-                            Socket,
-                            WsaError,
-                            "SIO_ACQUIRE_PORT_RESERVATION");
-                    }
-
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        Socket,
+                        WsaError,
+                        "SIO_ACQUIRE_PORT_RESERVATION");
                     Status = HRESULT_FROM_WIN32(WsaError);
                     goto Error;
                 }
@@ -1870,31 +1863,6 @@ SocketCreateUdp(
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
 Skip:
-
-    if (Socket->SkipCreatingOsSockets) {
-        //
-        // Clean up all partially-initialized per-proc sockets since
-        // we're skipping OS socket creation (XDP-only via CIBIR).
-        //
-        for (uint16_t i = 0; i < SocketCount; i++) {
-            CXPLAT_SOCKET_PROC* Proc = &Socket->PerProcSockets[i];
-            if (Proc->Socket != INVALID_SOCKET) {
-                closesocket(Proc->Socket);
-                Proc->Socket = INVALID_SOCKET;
-            }
-            if (Proc->DatapathProc) {
-                CxPlatProcessorContextRelease(Proc->DatapathProc);
-                Proc->DatapathProc = NULL;
-            }
-            CxPlatRundownUninitialize(&Proc->RundownRef);
-        }
-    } else if (Config->CibirIdLength > 0 && IsServerSocket) {
-        QuicTraceLogWarning(
-            DatapathCibirWarning,
-            "[data][%p] CIBIR detected,  %s",
-            Socket,
-            "We just reserved the OS port. Other CIBIR processes can share this port.");
-    }
 
     if (Config->CibirIdLength > 0) {
         QuicTraceLogWarning(

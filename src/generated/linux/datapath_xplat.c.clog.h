@@ -14,6 +14,10 @@
 #include "datapath_xplat.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogWarning
+#define _clog_MACRO_QuicTraceLogWarning  1
+#define QuicTraceLogWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogVerbose
 #define _clog_MACRO_QuicTraceLogVerbose  1
 #define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -21,6 +25,56 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for WarnFallbackToOs
+// [sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.
+// QuicTraceLogWarning(
+                        WarnFallbackToOs,
+                        "[sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_WarnFallbackToOs
+#define _clog_2_ARGS_TRACE_WarnFallbackToOs(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOs );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ErrNoXdpForRaw
+// [sock] Error: app requested QTIP but XDP not enabled/available/initialized.
+// QuicTraceLogWarning(
+                ErrNoXdpForRaw,
+                "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_ErrNoXdpForRaw
+#define _clog_2_ARGS_TRACE_ErrNoXdpForRaw(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForRaw );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WarnNoXdpForCibir
+// [sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
+                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.
+// QuicTraceLogWarning(
+                WarnNoXdpForCibir,
+                "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
+                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_WarnNoXdpForCibir
+#define _clog_2_ARGS_TRACE_WarnNoXdpForCibir(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibir );\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for DatapathInitFail
 // [  dp] Failed to initialize datapath, status:%d

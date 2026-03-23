@@ -857,15 +857,8 @@ TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     auto unspecAddress = GetNewUnspecAddr();
     CxPlatSocket Server1;
-    //
-    // Set CibirIdLength to some non-zero value to trigger the cibir path in the datapath code,
-    // which should allow multiple cxplat sockets to be created on the same udp port so long as
-    // cibir is configured. Now, since this test is executed without XDP being enabled, we should
-    // expect a QUIC_STATUS_INVALID_STATE instead of QUIC_STATUS_ADDRESS_IN_USE.
-    //
-    Server1.CibirIdLength = 8;
     Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
-    while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE || Server1.GetInitStatus() == QUIC_STATUS_INVALID_STATE) {
+    while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     }
@@ -877,8 +870,17 @@ TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
     //
     CxPlatSocket Server2;
     Server2.CibirIdLength = 8;
-    Server2.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
-    ASSERT_EQ(QUIC_STATUS_INVALID_STATE, Server2.GetInitStatus());
+    Server2.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext, CXPLAT_SOCKET_FLAG_XDP);
+
+    if (UseDuoNic) {
+        VERIFY_QUIC_SUCCESS(Server2.GetInitStatus());
+        ASSERT_NE(nullptr, Server2.Socket);
+    } else {
+        //
+        // If XDP is not supported, the CIBIR-aware socket should fail to bind to the same port as the non-CIBIR-aware socket.
+        //
+        ASSERT_EQ(QUIC_STATUS_ADDRESS_IN_USE, Server2.GetInitStatus());
+    }
 
     //
     // Try creating a non-CIBIR-aware socket on the same port.

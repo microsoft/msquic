@@ -4222,6 +4222,13 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "ErrNoXdpForRaw": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.",
+      "UniqueId": "ErrNoXdpForRaw",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
     "EventSilentDiscard": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Event silently discarded",
@@ -12192,6 +12199,20 @@
       ],
       "macroName": "QuicTraceLogConnError"
     },
+    "WarnFallbackToOs": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.",
+      "UniqueId": "WarnFallbackToOs",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "WarnNoXdpForCibir": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \\\r\n                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.",
+      "UniqueId": "WarnNoXdpForCibir",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
     "WindowsKernelInitialized": {
       "ModuleProperites": {},
       "TraceString": "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
@@ -14708,6 +14729,11 @@
         "EncodingString": "[data][%p] Socket Freed"
       },
       {
+        "UniquenessHash": "c8f7a72c-21b5-b5b0-8978-883ca5df98ee",
+        "TraceID": "ErrNoXdpForRaw",
+        "EncodingString": "[sock] Error: app requested QTIP but XDP not enabled/available/initialized."
+      },
+      {
         "UniquenessHash": "21a2e517-42a5-1d18-885f-8b57b79a2fba",
         "TraceID": "EventSilentDiscard",
         "EncodingString": "[strm][%p] Event silently discarded"
@@ -17196,6 +17222,16 @@
         "UniquenessHash": "585e07b4-a7b7-09ab-37fa-54d702126880",
         "TraceID": "VersionInfoOtherVersionZero",
         "EncodingString": "[conn][%p] Version Info.AvailableVersions contains a zero version! Index = %u"
+      },
+      {
+        "UniquenessHash": "21bb28b2-f3fd-0c64-f16e-2106b0c44582",
+        "TraceID": "WarnFallbackToOs",
+        "EncodingString": "[sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets."
+      },
+      {
+        "UniquenessHash": "08da0afe-f111-0129-808f-26a9fbd55c0f",
+        "TraceID": "WarnNoXdpForCibir",
+        "EncodingString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \\\r\n                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation."
       },
       {
         "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",

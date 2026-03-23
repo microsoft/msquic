@@ -163,16 +163,12 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed , arg2
 // Decoder Ring for DatapathCibirWarning
 // [data][%p] CIBIR detected,  %s
 // QuicTraceLogWarning(
-                                DatapathCibirWarning,
-                                "[data][%p] CIBIR detected,  %s",
-                                Socket,
-                                !XdpAvailable ?
-                                "but XDP not available. No OS sockets to fall back to." :
-                                "but XDP not enabled. No OS sockets to fall back to.");
+                DatapathCibirWarning,
+                "[data][%p] CIBIR detected,  %s",
+                Socket,
+                "Skipping OS port reservation for this server socket.");
 // arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = !XdpAvailable ?
-                                "but XDP not available. No OS sockets to fall back to." :
-                                "but XDP not enabled. No OS sockets to fall back to." = arg3
+// arg3 = arg3 = "Skipping OS port reservation for this server socket." = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_DatapathCibirWarning
 #define _clog_4_ARGS_TRACE_DatapathCibirWarning(uniqueId, encoded_arg_string, arg2, arg3)\

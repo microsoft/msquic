@@ -96,6 +96,93 @@ QuitTestIsFeatureSupported(uint32_t Feature) {
 #include "msquic.hpp"
 #include "quic_toeplitz.h"
 
+//
+// Reserves an ephemeral UDP port by binding a socket to port 0. The socket
+// stays open to hold the reservation until Release() is called (or the object
+// is destroyed). This minimizes the TOCTOU window between discovering a free
+// port and having the listener bind to it.
+//
+// In kernel mode, raw socket APIs are unavailable, so this is a no-op
+// (Port stays 0 and the listener falls back to OS-assigned ephemeral ports).
+//
+struct QuicTestPortReservation {
+    uint16_t Port{0};
+
+    QuicTestPortReservation() = default;
+
+    QuicTestPortReservation(
+        _In_ QUIC_ADDRESS_FAMILY Family
+        )
+    {
+#ifndef _KERNEL_MODE
+        int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
+
+#ifdef _WIN32
+        Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
+        if (Sock == INVALID_SOCKET) { return; }
+#else
+        Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
+        if (Sock < 0) { return; }
+#endif
+
+        QUIC_ADDR Addr;
+        CxPlatZeroMemory(&Addr, sizeof(Addr));
+        QuicAddrSetFamily(&Addr, Family);
+
+        int AddrSize =
+            (af == AF_INET) ?
+                (int)sizeof(struct sockaddr_in) :
+                (int)sizeof(struct sockaddr_in6);
+
+        if (bind(Sock, (struct sockaddr*)&Addr, AddrSize) == 0) {
+#ifdef _WIN32
+            int AddrLen = AddrSize;
+#else
+            socklen_t AddrLen = (socklen_t)AddrSize;
+#endif
+            if (getsockname(Sock, (struct sockaddr*)&Addr, &AddrLen) == 0) {
+                Port = QuicAddrGetPort(&Addr);
+            }
+        }
+
+        if (Port == 0) {
+            Release();
+        }
+#else
+        UNREFERENCED_PARAMETER(Family);
+#endif
+    }
+
+    ~QuicTestPortReservation() { Release(); }
+
+    QuicTestPortReservation(const QuicTestPortReservation&) = delete;
+    QuicTestPortReservation& operator=(const QuicTestPortReservation&) = delete;
+
+    //
+    // Releases the port reservation by closing the held socket. Call this
+    // immediately before the listener binds to the same port.
+    //
+    void Release()
+    {
+#ifndef _KERNEL_MODE
+#ifdef _WIN32
+        if (Sock != INVALID_SOCKET) { closesocket(Sock); Sock = INVALID_SOCKET; }
+#else
+        if (Sock >= 0) { close(Sock); Sock = -1; }
+#endif
+#endif
+    }
+
+private:
+#ifndef _KERNEL_MODE
+#ifdef _WIN32
+    SOCKET Sock{INVALID_SOCKET};
+#else
+    int Sock{-1};
+#endif
+#endif
+};
+
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
 #define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H
 
