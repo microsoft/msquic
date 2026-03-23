@@ -1275,6 +1275,88 @@ TEST_F(CubicTest, GetNetworkStatistics_RetrieveStats)
 }
 
 //
+// Test: GetNetworkStatistics - Zero SmoothedRtt returns zero Bandwidth
+// Scenario: Verifies no division-by-zero occurs when SmoothedRtt is 0 at the
+// time GetNetworkStatistics is called (e.g. before the first RTT sample).
+// Bandwidth must be reported as 0 rather than crashing.
+//
+TEST_F(CubicTest, GetNetworkStatistics_ZeroSmoothedRtt_BandwidthIsZero)
+{
+    // Initialize without an RTT sample so SmoothedRtt stays 0.
+    InitializeWithDefaults(
+        /*WindowPackets=*/10,
+        /*HyStart=*/false,
+        /*Mtu=*/1280,
+        /*IdleTimeoutMs=*/1000,
+        /*GotRttSample=*/false
+    );
+
+    ASSERT_EQ(Connection.Paths[0].SmoothedRtt, 0u);
+
+    CC->QuicCongestionControlOnDataSent(CC, 5000);
+
+    QUIC_NETWORK_STATISTICS NetworkStats;
+    CxPlatZeroMemory(&NetworkStats, sizeof(NetworkStats));
+
+    // Must not crash with divide-by-zero when SmoothedRtt == 0.
+    CC->QuicCongestionControlGetNetworkStatistics(&Connection, CC, &NetworkStats);
+
+    ASSERT_EQ(NetworkStats.Bandwidth, 0u);
+    ASSERT_EQ(NetworkStats.SmoothedRTT, 0u);
+    ASSERT_EQ(NetworkStats.CongestionWindow, Cubic->CongestionWindow);
+}
+
+//
+// Test: OnDataAcknowledged NetStats path - Zero SmoothedRtt returns zero Bandwidth
+// Scenario: Verifies no division-by-zero occurs inside the NetStatsEventEnabled
+// path of OnDataAcknowledged when an ACK arrives before the first RTT sample
+// (SmoothedRtt == 0). The NETWORK_STATISTICS event must fire without crashing.
+//
+static QUIC_STATUS
+QUIC_API
+NetStatsDummyCallback(
+    _In_ HQUIC /* Connection */,
+    _In_opt_ void* /* Context */,
+    _Inout_ QUIC_CONNECTION_EVENT* /* Event */)
+{
+    return QUIC_STATUS_SUCCESS;
+}
+
+TEST_F(CubicTest, OnDataAcknowledged_NetStats_ZeroSmoothedRtt_BandwidthIsZero)
+{
+    // Initialize without an RTT sample so SmoothedRtt stays 0.
+    InitializeWithDefaults(
+        /*WindowPackets=*/10,
+        /*HyStart=*/false,
+        /*Mtu=*/1280,
+        /*IdleTimeoutMs=*/1000,
+        /*GotRttSample=*/false
+    );
+
+    // Enable the NetStats event path and supply a no-op callback so
+    // QuicConnIndicateEvent does not dereference a null function pointer.
+    Connection.Settings.NetStatsEventEnabled = TRUE;
+    Connection.ClientCallbackHandler = NetStatsDummyCallback;
+
+    ASSERT_EQ(Connection.Paths[0].SmoothedRtt, 0u);
+
+    Cubic->BytesInFlight = 5000;
+
+    // Construct an ACK event with SmoothedRtt == 0 (no RTT sample yet).
+    QUIC_ACK_EVENT AckEvent = MakeAckEvent(
+        /*TimeNow=*/1000000,
+        /*LargestAck=*/5,
+        /*LargestSentPacketNumber=*/10,
+        /*BytesAcked=*/1000,
+        /*SmoothedRtt=*/0,
+        /*MinRtt=*/0,
+        /*MinRttValid=*/FALSE);
+
+    // Must not crash with STATUS_INTEGER_DIVIDE_BY_ZERO.
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
+}
+
+//
 // Test: Spurious Congestion Event - No-Op When Not In Recovery
 // Scenario: Verifies OnSpuriousCongestionEvent returns FALSE with no state change
 // when not in recovery (IsInRecovery=FALSE). The full rollback path is tested
