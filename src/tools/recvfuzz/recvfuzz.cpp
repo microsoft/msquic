@@ -24,8 +24,6 @@ Abstract:
     packets at the handshake stages.
 
 Future:
-
-    Add fuzzing for 1-RTT packets.
     Add fuzzing for version 2.
 
 --*/
@@ -518,7 +516,6 @@ void WriteAckFrame(
             Offset,
             BufferLength,
             Buffer));
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteHandshakeDoneFrame(
@@ -529,7 +526,6 @@ void WriteHandshakeDoneFrame(
 {
     CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
     Buffer[(*Offset)++] = QUIC_FRAME_HANDSHAKE_DONE;
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WritePingFrame(
@@ -540,7 +536,6 @@ void WritePingFrame(
 {
     CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
     Buffer[(*Offset)++] = QUIC_FRAME_PING;
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteConnectionCloseFrame(
@@ -573,7 +568,6 @@ void WriteConnectionCloseFrame(
         GetRandomBytes(ReasonLen, Buffer + *Offset);
         *Offset += ReasonLen;
     }
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteResetStreamFrame(
@@ -602,7 +596,6 @@ void WriteResetStreamFrame(
     CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(FinalSize) <= BufferLength);
     QuicVarIntEncode(FinalSize, Buffer + *Offset);
     *Offset += QuicVarIntSize(FinalSize);
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteStopSendingFrame(
@@ -625,7 +618,6 @@ void WriteStopSendingFrame(
     CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(ErrorCode) <= BufferLength);
     QuicVarIntEncode(ErrorCode, Buffer + *Offset);
     *Offset += QuicVarIntSize(ErrorCode);
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteMaxDataFrame(
@@ -642,7 +634,6 @@ void WriteMaxDataFrame(
     CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(MaxData) <= BufferLength);
     QuicVarIntEncode(MaxData, Buffer + *Offset);
     *Offset += QuicVarIntSize(MaxData);
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteMaxStreamDataFrame(
@@ -665,7 +656,6 @@ void WriteMaxStreamDataFrame(
     CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(MaxStreamData) <= BufferLength);
     QuicVarIntEncode(MaxStreamData, Buffer + *Offset);
     *Offset += QuicVarIntSize(MaxStreamData);
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteUnknownFrame(
@@ -689,7 +679,6 @@ void WriteUnknownFrame(
         GetRandomBytes(PayloadLen, Buffer + *Offset);
         *Offset += PayloadLen;
     }
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteStreamFrame(
@@ -745,11 +734,15 @@ void WriteStreamFrame(
             ActualDataLength = DataLength + Extra;
         }
     }
-    
-    CXPLAT_FRE_ASSERT(*Offset + ActualDataLength <= BufferLength);
+
+    // Clamp to available buffer space
+    uint16_t RemainingSpace = BufferLength > *Offset ? (uint16_t)(BufferLength - *Offset) : 0;
+    if (ActualDataLength > RemainingSpace) {
+        ActualDataLength = RemainingSpace;
+    }
+
     GetRandomBytes(ActualDataLength, Buffer + *Offset);
     *Offset += ActualDataLength;
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteCryptoFrame(
@@ -789,7 +782,6 @@ void WriteCryptoFrame(
             Offset,
             BufferLength,
             Buffer));
-    CXPLAT_FRE_ASSERT(*Offset <= BufferLength);
 }
 
 void WriteFrames(
@@ -809,7 +801,6 @@ void WriteFrames(
                 PayloadLength,
                 BufferSize,
                 Buffer);
-
         } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_CRYPTO) {
             WriteCryptoFrame(
                 PayloadLength,
@@ -1022,7 +1013,8 @@ void BuildAndSendLongHeaderPackets(
         CXPLAT_FRE_ASSERT(SendBuffer != nullptr);
         CxPlatZeroMemory(SendBuffer->Buffer, DatagramLength);
 
-        uint16_t PacketLength, HeaderLength;
+        uint16_t PacketLength = 0;
+        uint16_t HeaderLength = 0;
         uint64_t PacketNum = PacketParams->PacketNumber++;
         WriteLongHeaderPacket(
             (uint32_t)PacketNum,
@@ -1177,13 +1169,14 @@ void BuildAndSendShortHeaderPackets(
     CXPLAT_FRE_ASSERT(SendData != nullptr);
 
     uint8_t numPacketsSent = 0;
-    while (!CxPlatSendDataIsFull(SendData) && numPacketsSent <= PacketParams->NumPackets) {
+    while (!CxPlatSendDataIsFull(SendData) && numPacketsSent < PacketParams->NumPackets) {
         QUIC_BUFFER* SendBuffer =
             CxPlatSendDataAllocBuffer(SendData, DatagramLength);
         CXPLAT_FRE_ASSERT(SendBuffer != nullptr);
         CxPlatZeroMemory(SendBuffer->Buffer, DatagramLength);
 
-        uint16_t PacketLength, HeaderLength;
+        uint16_t PacketLength = 0;
+        uint16_t HeaderLength = 0;
         uint64_t PacketNum = PacketParams->PacketNumber++;
         WriteShortHeaderPacket(
             (uint32_t)PacketNum,
