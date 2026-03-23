@@ -59,11 +59,14 @@ fn cmake_build() {
         if let Ok(openssl_dir) = std::env::var("OPENSSL_ROOT_DIR") {
             config.define("QUIC_OPENSSL_ROOT_DIR", openssl_dir);
         } else {
-            if let Ok(openssl_include_dir) = std::env::var("OPENSSL_INCLUDE_DIR") {
-                config.define("QUIC_OPENSSL_INCLUDE_DIR", openssl_include_dir);
-            }
-            if let Ok(openssl_lib_dir) = std::env::var("OPENSSL_LIB_DIR") {
-                config.define("QUIC_OPENSSL_LIB_DIR", openssl_lib_dir);
+            match (std::env::var("OPENSSL_INCLUDE_DIR"), std::env::var("OPENSSL_LIB_DIR")) {
+                (Ok(include_dir), Ok(lib_dir)) => {
+                    config
+                        .define("QUIC_OPENSSL_INCLUDE_DIR", include_dir)
+                        .define("QUIC_OPENSSL_LIB_DIR", lib_dir);
+                }
+                (Ok(_), Err(_)) | (Err(_), Ok(_)) => panic!("both OPENSSL_INCLUDE_DIR and OPENSSL_LIB_DIR must be set"),
+                (Err(_), Err(_)) => {},
             }
         }
     } else if cfg!(windows) {
