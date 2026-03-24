@@ -4489,6 +4489,15 @@ QuicTestConnectionPoolCreate(
     }
 
     //
+    // Reserve an ephemeral port up front so the listener binds to a known
+    // port. Required when CIBIR + XDP is enabled.
+    //
+    QuicTestPortReservation PortReservation(QuicAddrFamily);
+    if (PortReservation.Port != 0) {
+        ServerAddr.SetPort(PortReservation.Port);
+    }
+
+    //
     // Make sure to create the connection contexts before the connections,
     // to ensure they are not freed before the connection is closed.
     //
@@ -4515,6 +4524,7 @@ QuicTestConnectionPoolCreate(
         TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
     }
 
+    PortReservation.Release();
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerAddr));
 
