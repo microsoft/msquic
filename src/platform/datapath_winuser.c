@@ -1860,9 +1860,9 @@ SocketCreateUdp(
         }
     }
 
-    CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
-
 Skip:
+
+    CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
     if (Config->CibirIdLength > 0) {
         QuicTraceLogWarning(
