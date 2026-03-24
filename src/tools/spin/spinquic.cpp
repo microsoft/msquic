@@ -237,7 +237,14 @@ struct SpinQuicGlobals {
             free(Alpns);
         }
         if (Registration) {
-            MsQuic->RegistrationClose(Registration);
+            if (rand() % 2 == 0) {
+                MsQuic->RegistrationClose2(
+                    Registration,
+                    [](void*) -> void { }, // No-op callback
+                    nullptr);
+            } else {
+                MsQuic->RegistrationClose(Registration);
+            }
         }
         if (MsQuic) {
 #ifndef FUZZING
@@ -270,6 +277,8 @@ typedef enum {
     SpinQuicAPICallCompleteCertificateValidation,
     SpinQuicAPICallStreamReceiveSetEnabled,
     SpinQuicAPICallStreamReceiveComplete,
+    SpinQuicAPICallConnectionPoolCreate,
+    SpinQuicAPICallStreamProvideReceiveBuffers,
     SpinQuicAPICallCount    // Always the last element
 } SpinQuicAPICall;
 
@@ -975,7 +984,11 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Stream;
             auto ctx = new SpinQuicStream(*SpinQuicConnection::Get(Connection));
-            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(8), SpinQuicHandleStreamEvent, ctx, &Stream);
+            QUIC_STREAM_OPEN_FLAGS OpenFlags = (QUIC_STREAM_OPEN_FLAGS)GetRandom(8);
+            if (GetRandom(5) == 0) {
+                OpenFlags |= QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS;
+            }
+            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, OpenFlags, SpinQuicHandleStreamEvent, ctx, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
                 ctx->Handle = Stream;
                 SpinQuicGetRandomParam(Stream, ThreadID);
@@ -1164,6 +1177,66 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             MsQuic.ConnectionCertificateValidationComplete(Connection, GetRandom(2) == 0, QUIC_TLS_ALERT_CODE_BAD_CERTIFICATE);
+            break;
+        }
+        case SpinQuicAPICallConnectionPoolCreate: {
+            if (!IsServer) {
+                uint16_t PoolSize = (uint16_t)(GetRandom(4) + 1); // 1-4 connections
+                HQUIC* PoolConnections = new(std::nothrow) HQUIC[PoolSize];
+                if (PoolConnections == nullptr) break;
+                void** Contexts = new(std::nothrow) void*[PoolSize];
+                if (Contexts == nullptr) { delete[] PoolConnections; break; }
+                for (uint16_t i = 0; i < PoolSize; i++) {
+                    Contexts[i] = &ThreadID;
+                }
+                QUIC_CONNECTION_POOL_CONFIG PoolConfig = {0};
+                PoolConfig.Registration = Gb.Registration;
+                PoolConfig.Configuration = GetRandomFromVector(Gb.ClientConfigurations);
+                PoolConfig.Handler = SpinQuicHandleConnectionEvent;
+                PoolConfig.Context = Contexts;
+                PoolConfig.ServerName = SpinSettings.ServerName;
+                PoolConfig.ServerAddress = nullptr;
+                PoolConfig.Family = QUIC_ADDRESS_FAMILY_INET;
+                PoolConfig.ServerPort = GetRandomFromVector(SpinSettings.Ports);
+                PoolConfig.NumberOfConnections = PoolSize;
+                PoolConfig.CibirIds = nullptr;
+                PoolConfig.CibirIdLength = 0;
+                PoolConfig.Flags = (QUIC_CONNECTION_POOL_FLAGS)GetRandom(2);
+                QUIC_STATUS Status = MsQuic.ConnectionPoolCreate(&PoolConfig, PoolConnections);
+                if (QUIC_SUCCEEDED(Status)) {
+                    for (uint16_t i = 0; i < PoolSize; i++) {
+                        auto ctx = new(std::nothrow) SpinQuicConnection(PoolConnections[i], ThreadID);
+                        if (ctx != nullptr) {
+                            std::lock_guard<std::mutex> Lock(Connections);
+                            Connections.push_back(PoolConnections[i]);
+                        } else {
+                            MsQuic.ConnectionClose(PoolConnections[i]);
+                        }
+                    }
+                }
+                delete[] Contexts;
+                delete[] PoolConnections;
+            }
+            break;
+        }
+        case SpinQuicAPICallStreamProvideReceiveBuffers: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                auto Stream = ctx->TryGetStream();
+                if (Stream == nullptr) continue;
+                uint32_t BufCount = GetRandom(3) + 1; // 1-3 buffers
+                QUIC_BUFFER* Buffers = new(std::nothrow) QUIC_BUFFER[BufCount];
+                if (Buffers == nullptr) continue;
+                for (uint32_t i = 0; i < BufCount; i++) {
+                    Buffers[i].Length = MaxBufferSizes[GetRandom(BufferCount)];
+                    Buffers[i].Buffer = Gb.SendBuffer; // Reuse send buffer as receive buffer
+                }
+                MsQuic.StreamProvideReceiveBuffers(Stream, BufCount, Buffers);
+                delete[] Buffers;
+            }
             break;
         }
         default:
