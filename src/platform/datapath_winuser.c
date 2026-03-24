@@ -1291,6 +1291,8 @@ SocketCreateUdp(
             // CIBIR with XDP: skip OS port reservation so multiple processes
             // can share the same UDP port. XDP handles demuxing via CIBIR ID.
             //
+            Socket->SkipCreatingOsSockets = TRUE;
+            CxPlatRefInitializeEx(&Socket->RefCount, 1);
             if (Config->LocalAddress == NULL || Config->LocalAddress->Ipv4.sin_port == 0) {
                 QuicTraceEvent(
                     DatapathErrorStatus,
@@ -1306,8 +1308,6 @@ SocketCreateUdp(
                 "[data][%p] CIBIR detected,  %s",
                 Socket,
                 "Skipping OS port reservation for this server socket.");
-            Socket->SkipCreatingOsSockets = TRUE;
-            CxPlatRefInitializeEx(&Socket->RefCount, 1);
             goto Skip;
         }
         //

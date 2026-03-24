@@ -4490,13 +4490,14 @@ QuicTestConnectionPoolCreate(
     QuicTestPortReservation PortReservation(QuicAddrFamily);
     if (XdpSupported) {
         QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
+    }
+
+    if (PortReservation.Port != 0 && UseDuoNic && TestCibirSupport) {
         //
-        // Reserve an ephemeral port up front so the listener binds to a known
-        // port. Required when CIBIR + XDP is enabled.
+        // If Cibir+XDP mode is active, we can't pass in a 0 local port
+        // hoping the stack will assign us an ephemeral port.
         //
-        if (PortReservation.Port != 0) {
-            ServerAddr.SetPort(PortReservation.Port);
-        }
+        ServerAddr.SetPort(PortReservation.Port);
     }
 
     //
@@ -4524,9 +4525,6 @@ QuicTestConnectionPoolCreate(
 
     if (TestCibirSupport) {
         TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
-    }
-    if (!XdpSupported) {
-        PortReservation.Release();
     }
 
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
