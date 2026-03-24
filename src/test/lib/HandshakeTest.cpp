@@ -3933,7 +3933,10 @@ QuicTestCibirExtension(
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
     if (Mode & 1) {
         TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
+    } else {
+        PortReservation.Release();
     }
+
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -4522,9 +4525,9 @@ QuicTestConnectionPoolCreate(
 
     if (TestCibirSupport) {
         TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
+    } else {
+        PortReservation.Release();
     }
-
-    PortReservation.Release();
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerAddr));
 
