@@ -105,6 +105,7 @@ QuitTestIsFeatureSupported(uint32_t Feature) {
 // In kernel mode, raw socket APIs are unavailable, so this is a no-op
 // (Port stays 0 and the listener falls back to OS-assigned ephemeral ports).
 //
+#ifdef _WIN32
 struct QuicTestPortReservation {
     uint16_t Port{0};
 
@@ -117,13 +118,8 @@ struct QuicTestPortReservation {
 #ifndef _KERNEL_MODE
         int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
 
-#ifdef _WIN32
         Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
         if (Sock == INVALID_SOCKET) { return; }
-#else
-        Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
-        if (Sock < 0) { return; }
-#endif
 
         QUIC_ADDR Addr;
         CxPlatZeroMemory(&Addr, sizeof(Addr));
@@ -135,11 +131,7 @@ struct QuicTestPortReservation {
                 (int)sizeof(struct sockaddr_in6);
 
         if (bind(Sock, (struct sockaddr*)&Addr, AddrSize) == 0) {
-#ifdef _WIN32
             int AddrLen = AddrSize;
-#else
-            socklen_t AddrLen = (socklen_t)AddrSize;
-#endif
             if (getsockname(Sock, (struct sockaddr*)&Addr, &AddrLen) == 0) {
                 Port = QuicAddrGetPort(&Addr);
             }
@@ -165,23 +157,16 @@ struct QuicTestPortReservation {
     void Release()
     {
 #ifndef _KERNEL_MODE
-#ifdef _WIN32
         if (Sock != INVALID_SOCKET) { closesocket(Sock); Sock = INVALID_SOCKET; }
-#else
-        if (Sock >= 0) { close(Sock); Sock = -1; }
-#endif
 #endif
     }
 
 private:
 #ifndef _KERNEL_MODE
-#ifdef _WIN32
     SOCKET Sock{INVALID_SOCKET};
-#else
-    int Sock{-1};
-#endif
 #endif
 };
+#endif
 
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
 #define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H

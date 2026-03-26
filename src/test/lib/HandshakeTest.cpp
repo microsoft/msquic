@@ -3913,6 +3913,7 @@ QuicTestCibirExtension(
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
+#ifdef _WIN32
     QuicTestPortReservation PortReservation(QuicAddrFamily);
     if (UseDuoNic) {
         //
@@ -3930,11 +3931,14 @@ QuicTestCibirExtension(
         //
         PortReservation.Release();
     }
+#endif
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
     if (Mode & 1) {
         TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
     } else {
+#ifdef _WIN32
         PortReservation.Release();
+#endif
     }
 
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
@@ -4487,11 +4491,14 @@ QuicTestConnectionPoolCreate(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     QuicAddr ServerAddr(QuicAddrFamily);
+#ifdef _WIN32
     QuicTestPortReservation PortReservation(QuicAddrFamily);
+#endif
     if (XdpSupported) {
         QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
     }
 
+#ifdef _WIN32
     if (PortReservation.Port != 0 && UseDuoNic && TestCibirSupport) {
         //
         // If Cibir+XDP mode is active, we can't pass in a 0 local port
@@ -4499,6 +4506,7 @@ QuicTestConnectionPoolCreate(
         //
         ServerAddr.SetPort(PortReservation.Port);
     }
+#endif
 
     //
     // Make sure to create the connection contexts before the connections,

@@ -147,7 +147,7 @@ CxPlatSocketCreateUdp(
             goto Error;
         }
 
-        BOOLEAN RequiresRaw = (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP);
+        BOOLEAN RequiresQtip = (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP);
 
         (*NewSocket)->RawSocketAvailable = 0;
         if (CreateRaw && Datapath->RawDataPath) {
@@ -166,7 +166,7 @@ CxPlatSocketCreateUdp(
                     CxPlatSocketDelete(*NewSocket);
                     continue;
                 }
-                if (!RequiresRaw) {
+                if (!RequiresQtip) {
                     QuicTraceLogWarning(
                         WarnFallbackToOs,
                         "[sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.");
@@ -176,7 +176,7 @@ CxPlatSocketCreateUdp(
                 }
                 goto Error;
             }
-        } else if (RequiresRaw) {
+        } else if (RequiresQtip) {
             QuicTraceLogWarning(
                 ErrNoXdpForRaw,
                 "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
@@ -188,7 +188,7 @@ CxPlatSocketCreateUdp(
                 WarnNoXdpForCibir,
                 "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
                 Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.");
-        } 
+        }
         break;
     }
 
