@@ -1352,7 +1352,7 @@ TEST_F(CubicTest, OnDataAcknowledged_NetStats_ZeroSmoothedRtt_BandwidthIsZero)
         /*MinRtt=*/0,
         /*MinRttValid=*/FALSE);
 
-    // Must not crash with STATUS_INTEGER_DIVIDE_BY_ZERO.
+    // Must not crash.
     CC->QuicCongestionControlOnDataAcknowledged(CC, &AckEvent);
 }
 
