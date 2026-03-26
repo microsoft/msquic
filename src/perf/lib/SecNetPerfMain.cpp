@@ -391,8 +391,8 @@ const uint64_t SizeMult[] = { 1000 * 1000 * 1000, 1000 * 1000, 1000, 1 };
 const char* CountUnits[] = { "cpu" };
 uint64_t CountMult[] = { 1 };
 
-_Success_(return != false)
 template <typename T>
+_Success_(return != false)
 bool
 TryGetVariableUnitValue(
     _In_ int argc,
@@ -450,8 +450,8 @@ TryGetVariableUnitValue(
     return true;
 }
 
-_Success_(return != false)
 template <typename T>
+_Success_(return != false)
 bool
 TryGetVariableUnitValue(
     _In_ int argc,
@@ -468,8 +468,8 @@ TryGetVariableUnitValue(
 /// <summary>
 /// Explicit template instantiation
 /// </summary>
-_Success_(return != false)
 template
+_Success_(return != false)
 bool
 TryGetVariableUnitValue<uint32_t>(
     _In_ int argc,
@@ -479,8 +479,8 @@ TryGetVariableUnitValue<uint32_t>(
     _Out_opt_ bool* isTimed
     );
 
-_Success_(return != false)
 template
+_Success_(return != false)
 bool
 TryGetVariableUnitValue<uint64_t>(
     _In_ int argc,
