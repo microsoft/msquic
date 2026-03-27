@@ -121,12 +121,11 @@ QuicOperationFree(
             QuicStreamRelease(ApiCtx->STRM_RECV_SET_ENABLED.Stream, QUIC_STREAM_REF_OPERATION);
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS) {
             while (!CxPlatListIsEmpty(&ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Chunks)) {
-                CXPLAT_FREE(
+                QuicRecvChunkFree(
                     CXPLAT_CONTAINING_RECORD(
                         CxPlatListRemoveHead(&ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Chunks),
                         QUIC_RECV_CHUNK,
-                        Link),
-                    QUIC_POOL_RECVBUF);
+                        Link));
             }
             QuicStreamRelease(ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream, QUIC_STREAM_REF_OPERATION);
         }
