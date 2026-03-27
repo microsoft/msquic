@@ -2145,25 +2145,29 @@ CxPlatTlsProcessData(
 
 Exit:
 
-    if (!(TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR)) {
-        if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
-            State->BufferOffsetHandshake == 0) {
-            State->BufferOffsetHandshake = State->BufferTotalLength;
-            QuicTraceLogConnInfo(
-                OpenSslHandshakeDataStart,
-                TlsContext->Connection,
-                "Writing Handshake data starts at %u",
-                State->BufferOffsetHandshake);
-        }
-        if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
-            State->BufferOffset1Rtt == 0) {
-            State->BufferOffset1Rtt = State->BufferTotalLength;
-            QuicTraceLogConnInfo(
-                OpenSsl1RttDataStart,
-                TlsContext->Connection,
-                "Writing 1-RTT data starts at %u",
-                State->BufferOffset1Rtt);
-        }
+    //
+    // Set buffer offsets unconditionally (not gated on !ERROR) because write
+    // keys may be installed asynchronously via the secrets callback before
+    // this exit code runs. On error, the connection is torn down before
+    // these offsets are consumed.
+    //
+    if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
+        State->BufferOffsetHandshake == 0) {
+        State->BufferOffsetHandshake = State->BufferTotalLength;
+        QuicTraceLogConnInfo(
+            OpenSslHandshakeDataStart,
+            TlsContext->Connection,
+            "Writing Handshake data starts at %u",
+            State->BufferOffsetHandshake);
+    }
+    if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
+        State->BufferOffset1Rtt == 0) {
+        State->BufferOffset1Rtt = State->BufferTotalLength;
+        QuicTraceLogConnInfo(
+            OpenSsl1RttDataStart,
+            TlsContext->Connection,
+            "Writing 1-RTT data starts at %u",
+            State->BufferOffset1Rtt);
     }
 
     return TlsContext->ResultFlags;

@@ -941,16 +941,6 @@ QuicCryptoWriteFrames(
         return TRUE;
     }
 
-    if (QuicConnIsClient(Connection) &&
-        Builder->Key == Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_HANDSHAKE]) {
-        CXPLAT_DBG_ASSERT(Builder->Key);
-        //
-        // Per spec, client MUST discard Initial keys when it starts
-        // encrypting packets with handshake keys.
-        //
-        QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_INITIAL);
-    }
-
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
 
     uint16_t AvailableBufferLength =

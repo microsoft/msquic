@@ -997,6 +997,18 @@ QuicPacketBuilderFinalize(
         Builder->Path,
         Builder->Metadata);
 
+    //
+    // Per RFC 9001 s4.9.1, a client MUST discard Initial keys when it first
+    // sends a Handshake packet. This fires on ANY Handshake packet (including
+    // ACK-only) so that Initial bytes in flight are released from congestion
+    // control. The next iteration of the send loop will then have CC allowance
+    // to write the CRYPTO frame with the TLS Finished.
+    //
+    if (QuicConnIsClient(Connection) &&
+        Builder->Key->Type == QUIC_PACKET_KEY_HANDSHAKE) {
+        QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
+    }
+
     Builder->Metadata->FrameCount = 0;
 
     if (Builder->Metadata->Flags.IsAckEliciting) {
