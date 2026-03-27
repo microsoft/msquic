@@ -14,15 +14,18 @@ What using CIBIR also enables is allowing 2 or more separate server processes to
 port. As long as the CIBIR configuration used by each process is different, XDP can
 properly de-mux and dispatch received packets to the right process.
 
-## Port reservation
-The first process that uses CIBIR will still need to reserve the OS ports to avoid
-non-CIBIR applications from getting their traffic stolen. The second (and so on) processes
-using CIBIR thereafter will skip reserving OS socket ports.
+## Port sharing rules
+- **IMPORTANT:** MsQuic will **NOT** reserve OS ports for server sockets using CIBIR+XDP.
+- Applications should be aware that if other processes on the system aren't collaborative, then traffic stealing is very possible if some other non-cibir server process binds to the shared port.
+- Applications must also provide a well-known local port for listeners using cibir+XDP.
+- MsQuic client connections may **NOT** share ports, thus MsQuic will create OS port reservations
+for cibir+xdp clients.
 
+## Port protection options
 
-CIBIR usage is controlled by setting the `QUIC_PARAM_LISTENER_CIBIR_ID` setparam.
+There are a variety of options applications can leverage to protect these cibir shared ports from stealing traffic.
 
-CIBIR does 2 things when set:
-1. XDP will now steer packets to the correct process/listener by matching the CIBIR prefix within the packet QUIC Connection ID.
-
-2. In the case of a port collision when reserving OS UDP/TCP sockets, MsQuic will continue with initializing the datapath if XDP is available/enabled. If XDP is not available/enabled, then MsQuic will return a QUIC_STATUS_INVALID_STATE socket error.
+- Persistent reservations:
+ https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-createpersistentudpportreservation API, to allow sysadmins to pre-allocate a block of ports and disallow other applications from binding to it. Blocks of ports reserved are safe from reboots.
+- A well known CIBIR registry key can be used to detail shared ports, and sysadmins can coordinate their system such that other apps will not bind to those ports.
+- ALE policies; applications can configure WFP to block certain ports from being binded to by other apps.

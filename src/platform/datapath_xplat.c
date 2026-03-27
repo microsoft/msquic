@@ -148,6 +148,7 @@ CxPlatSocketCreateUdp(
         }
 
         BOOLEAN RequiresQtip = (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP);
+        BOOLEAN CibirRequested = (Config->CibirIdLength > 0);
 
         (*NewSocket)->RawSocketAvailable = 0;
         if (CreateRaw && Datapath->RawDataPath) {
@@ -162,14 +163,24 @@ CxPlatSocketCreateUdp(
                     RawSockCreateFail,
                     "[sock] Failed to create raw socket, status:%d", Status);
                 BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
-                if (IsWildcardAddr && (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
+                if (IsWildcardAddr && RequiresQtip) {
+                    //
+                    // This retry loop is purely for QTIP listener sockets that try to reserve both a UDP/TCP port,
+                    // which may run into a WSA_ADDR_INUSE for TCP if the UDP ephemeral port collides with something
+                    // in the TCP pool. So just try it again.
+                    //
                     CxPlatSocketDelete(*NewSocket);
                     continue;
                 }
-                if (!RequiresQtip) {
+                if ((!RequiresQtip && !CibirRequested) || ((*NewSocket)->HasFixedRemoteAddress && CibirRequested)) {
+                    //
+                    // Allow fallback to normal OS sockets under these 2 cases only:
+                    //  - Pure XDP with no QTIP and no CIBIR. (OS fallback sockets always created.)
+                    //  - XDP with CIBIR but ONLY for client sockets. (There won't be any OS sockets to fallback to for CIBIR server sockets.)
+                    //
                     QuicTraceLogWarning(
                         WarnFallbackToOs,
-                        "[sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.");
+                        "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.");
                     Status = QUIC_STATUS_SUCCESS;
                 } else {
                     CxPlatSocketDelete(*NewSocket);
@@ -183,11 +194,11 @@ CxPlatSocketCreateUdp(
             CxPlatSocketDelete(*NewSocket);
             Status = QUIC_STATUS_INVALID_STATE;
             goto Error;
-        } else if (Config->CibirIdLength > 0) {
+        } else if (CibirRequested) {
              QuicTraceLogWarning(
                 WarnNoXdpForCibir,
                 "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
-                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.");
+                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
         }
         break;
     }

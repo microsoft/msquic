@@ -634,6 +634,7 @@ QuicCibirIdToUint64(
     _In_ uint8_t Length
     )
 {
+    CXPLAT_DBG_ASSERT(Length <= 8);
     uint64_t Value = 0;
     for (uint8_t i = 0; i < Length; ++i) {
         Value = (Value << 8) | Id[i];
