@@ -2205,3 +2205,148 @@ TEST(RecvBufferResetReadTest, ResetClearsPendingAndExternalReference_SingleMode)
     // After this read, pending length should be 16 again (sanity).
     EXPECT_EQ(16ull, RecvBuf.RecvBuf.ReadPendingLength);
 }
+
+// Tests for overlapping write behavior - verifies that overlapping writes
+// do not corrupt previously received data.
+
+TEST_P(WithMode, OverlapWritePreservesExistingData)
+{
+    //
+    // Write bytes 0-19, then write bytes 10-29 (overlapping).
+    // Verify the final buffer contains correct data throughout.
+    //
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
+
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+
+    // Write [0, 20)
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // Write [10, 30) — overlaps with [10, 20) already written
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(10, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_EQ(30ull, RecvBuf.GetTotalLength());
+
+    // Read and verify data integrity — buffer[i] should equal (uint8_t)i
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_EQ(0ull, ReadOffset);
+    ASSERT_GE(BufferCount, 1u);
+
+    // Validate first 20 bytes were not corrupted by the overlapping write
+    RecvBuffer::ValidateBuffer(ReadBuffers[0].Buffer, ReadBuffers[0].Length, ReadOffset);
+    RecvBuf.Drain(30);
+}
+
+TEST_P(WithMode, OverlapWriteAtFront)
+{
+    //
+    // Write bytes 10-29, then write bytes 0-19 (fills gap and overlaps).
+    // Verify the entire buffer [0, 30) is intact.
+    //
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
+
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+
+    // Write [10, 30) first
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(10, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+
+    // Write [0, 20) — fills gap [0,10) and overlaps [10,20)
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_EQ(30ull, RecvBuf.GetTotalLength());
+
+    // Read and verify full buffer integrity
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_EQ(0ull, ReadOffset);
+    RecvBuffer::ValidateBuffer(ReadBuffers[0].Buffer, ReadBuffers[0].Length, ReadOffset);
+    RecvBuf.Drain(30);
+}
+
+TEST_P(WithMode, OverlapWriteExactDuplicate)
+{
+    //
+    // Write the same range twice. Second write should be a no-op
+    // and data should be unchanged.
+    //
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
+
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // Write same range again
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_EQ(0ull, InOutWriteLength); // No new bytes
+    ASSERT_EQ(20ull, RecvBuf.GetTotalLength());
+
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_EQ(0ull, ReadOffset);
+    RecvBuffer::ValidateBuffer(ReadBuffers[0].Buffer, ReadBuffers[0].Length, ReadOffset);
+    RecvBuf.Drain(20);
+}
+
+TEST_P(WithMode, OverlapWriteMultipleGaps)
+{
+    //
+    // Write alternating chunks creating a swiss-cheese pattern,
+    // then write a large range covering everything.
+    // Verify no existing data is corrupted.
+    // Pattern: write [0,5), [10,15), [20,25) then write [0,30)
+    //
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam(), false,
+        DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
+
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 5, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(10, 5, &InOutWriteLength, &NewDataReady));
+
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(20, 5, &InOutWriteLength, &NewDataReady));
+
+    // Now write [0, 30) covering all gaps and existing data
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 30, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_EQ(30ull, RecvBuf.GetTotalLength());
+
+    // Verify data — bytes 0-4, 10-14, 20-24 were written first
+    // and should not have been overwritten
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_EQ(0ull, ReadOffset);
+    RecvBuffer::ValidateBuffer(ReadBuffers[0].Buffer, ReadBuffers[0].Length, ReadOffset);
+    RecvBuf.Drain(30);
+}

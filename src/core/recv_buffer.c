@@ -611,16 +611,6 @@ QuicRecvBufferCopyIntoChunks(
         WriteLength -= (uint16_t)CopyLength;
     }
     CXPLAT_DBG_ASSERT(WriteLength == 0); // Should always have enough room to copy everything
-
-    //
-    // Update the amount of data readable in the first chunk.
-    //
-    QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
-    if (FirstRange->Low == 0) {
-        RecvBuffer->ReadLength = (uint32_t)CXPLAT_MIN(
-            RecvBuffer->Capacity,
-            FirstRange->Count - RecvBuffer->BaseOffset);
-    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -638,7 +628,7 @@ QuicRecvBufferWrite(
     )
 {
     CXPLAT_DBG_ASSERT(WriteLength != 0);
-    *NewDataReady = FALSE; // Most cases below aren't ready to read.
+    *NewDataReady = FALSE;
     *QuotaConsumed = 0;
     *BufferSizeNeeded = 0;
 
@@ -661,8 +651,6 @@ QuicRecvBufferWrite(
     //
     // Check that the write is not going to cause us to consume more than the
     // quota allocated by the connection flow control.
-    // If it is in bound, update the output to indicate how much of the quota is
-    // being consumed.
     //
     const uint64_t CurrentMaxLength = QuicRecvBufferGetTotalLength(RecvBuffer);
     if (AbsoluteLength > CurrentMaxLength) {
@@ -683,22 +671,11 @@ QuicRecvBufferWrite(
     //
     const uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
     if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
-        //
-        // There isn't enough space to write the data.
-        //
         if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
-            //
-            // We can't allocate more space in app-owned mode.
-            // Let the caller notify the app to provide more buffer space.
-            //
             *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
             return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
 
-        //
-        // Add a new chunk (or replace the existing one), doubling the size of the largest chunk
-        // until there is enough space for the write.
-        //
         QUIC_RECV_CHUNK* LastChunk =
             CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
         uint32_t NewBufferLength = LastChunk->AllocLength << 1;
@@ -712,7 +689,60 @@ QuicRecvBufferWrite(
     }
 
     //
-    // Set the write offset/length as a valid written range.
+    // Copy only the new (non-overlapping) bytes into the chunks.
+    // Walk the existing WrittenRanges to find gaps within [WriteOffset, AbsoluteLength)
+    // and copy only those gap regions. This prevents overwriting already-received data.
+    //
+    uint64_t CopyOffset = WriteOffset;
+    for (uint32_t i = 0; i < RecvBuffer->WrittenRanges.UsedLength && CopyOffset < AbsoluteLength; i++) {
+        QUIC_SUBRANGE* Sub = QuicRangeGet(&RecvBuffer->WrittenRanges, i);
+
+        //
+        // If this subrange starts after our window ends, stop.
+        //
+        if (Sub->Low >= AbsoluteLength) {
+            break;
+        }
+
+        //
+        // If this subrange ends before our current copy position, skip it.
+        //
+        if (Sub->Low + Sub->Count <= CopyOffset) {
+            continue;
+        }
+
+        //
+        // If there is a gap before this subrange, copy the gap bytes.
+        //
+        if (Sub->Low > CopyOffset) {
+            uint16_t GapLength = (uint16_t)(Sub->Low - CopyOffset);
+            QuicRecvBufferCopyIntoChunks(
+                RecvBuffer,
+                CopyOffset,
+                GapLength,
+                WriteBuffer + (CopyOffset - WriteOffset));
+        }
+
+        //
+        // Advance past this already-written subrange.
+        //
+        CopyOffset = Sub->Low + Sub->Count;
+    }
+
+    //
+    // Copy any remaining new bytes after the last subrange.
+    //
+    if (CopyOffset < AbsoluteLength) {
+        uint16_t RemainLength = (uint16_t)(AbsoluteLength - CopyOffset);
+        QuicRecvBufferCopyIntoChunks(
+            RecvBuffer,
+            CopyOffset,
+            RemainLength,
+            WriteBuffer + (CopyOffset - WriteOffset));
+    }
+
+    //
+    // Now commit the range update.
     //
     BOOLEAN WrittenRangesUpdated;
     QUIC_SUBRANGE* UpdatedRange =
@@ -730,9 +760,6 @@ QuicRecvBufferWrite(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     if (!WrittenRangesUpdated) {
-        //
-        // No changes are necessary. Exit immediately.
-        //
         return QUIC_STATUS_SUCCESS;
     }
 
@@ -742,9 +769,15 @@ QuicRecvBufferWrite(
     *NewDataReady = UpdatedRange->Low == 0;
 
     //
-    // Write the data into the chunks now that everything has been validated.
+    // Update the amount of data readable in the first chunk.
+    // (Moved here from QuicRecvBufferCopyIntoChunks since the range is now committed.)
     //
-    QuicRecvBufferCopyIntoChunks(RecvBuffer, WriteOffset, WriteLength, WriteBuffer);
+    QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
+    if (FirstRange->Low == 0) {
+        RecvBuffer->ReadLength = (uint32_t)CXPLAT_MIN(
+            RecvBuffer->Capacity,
+            FirstRange->Count - RecvBuffer->BaseOffset);
+    }
 
     QuicRecvBufferValidate(RecvBuffer);
     return QUIC_STATUS_SUCCESS;
