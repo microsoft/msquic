@@ -26,15 +26,15 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for WarnFallbackToOs
-// [sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.
+// Decoder Ring for WarnFallbackToOsSockets
+// [sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.
 // QuicTraceLogWarning(
-                        WarnFallbackToOs,
-                        "[sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.");
+                        WarnFallbackToOsSockets,
+                        "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_WarnFallbackToOs
-#define _clog_2_ARGS_TRACE_WarnFallbackToOs(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOs );\
+#ifndef _clog_2_ARGS_TRACE_WarnFallbackToOsSockets
+#define _clog_2_ARGS_TRACE_WarnFallbackToOsSockets(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOsSockets );\
 
 #endif
 
@@ -58,17 +58,17 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForRaw );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WarnNoXdpForCibir
+// Decoder Ring for WarnNoXdpForCibirSockets
 // [sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
-                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.
+                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.
 // QuicTraceLogWarning(
-                WarnNoXdpForCibir,
+                WarnNoXdpForCibirSockets,
                 "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
-                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.");
+                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_WarnNoXdpForCibir
-#define _clog_2_ARGS_TRACE_WarnNoXdpForCibir(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibir );\
+#ifndef _clog_2_ARGS_TRACE_WarnNoXdpForCibirSockets
+#define _clog_2_ARGS_TRACE_WarnNoXdpForCibirSockets(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibirSockets );\
 
 #endif
 

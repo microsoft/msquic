@@ -12206,10 +12206,24 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogWarning"
     },
+    "WarnFallbackToOsSockets": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.",
+      "UniqueId": "WarnFallbackToOsSockets",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
     "WarnNoXdpForCibir": {
       "ModuleProperites": {},
       "TraceString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \\\r\n                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.",
       "UniqueId": "WarnNoXdpForCibir",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "WarnNoXdpForCibirSockets": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \\\r\n                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.",
+      "UniqueId": "WarnNoXdpForCibirSockets",
       "splitArgs": [],
       "macroName": "QuicTraceLogWarning"
     },
@@ -17229,9 +17243,19 @@
         "EncodingString": "[sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets."
       },
       {
+        "UniquenessHash": "ece976e3-32a0-47c7-0efe-adaf1f7c7907",
+        "TraceID": "WarnFallbackToOsSockets",
+        "EncodingString": "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets."
+      },
+      {
         "UniquenessHash": "08da0afe-f111-0129-808f-26a9fbd55c0f",
         "TraceID": "WarnNoXdpForCibir",
         "EncodingString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \\\r\n                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation."
+      },
+      {
+        "UniquenessHash": "8e64075b-4707-dc49-7538-e04c085cb86b",
+        "TraceID": "WarnNoXdpForCibirSockets",
+        "EncodingString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \\\r\n                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation."
       },
       {
         "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",

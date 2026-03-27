@@ -179,7 +179,7 @@ CxPlatSocketCreateUdp(
                     //  - XDP with CIBIR but ONLY for client sockets. (There won't be any OS sockets to fallback to for CIBIR server sockets.)
                     //
                     QuicTraceLogWarning(
-                        WarnFallbackToOs,
+                        WarnFallbackToOsSockets,
                         "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.");
                     Status = QUIC_STATUS_SUCCESS;
                 } else {
@@ -196,7 +196,7 @@ CxPlatSocketCreateUdp(
             goto Error;
         } else if (CibirRequested) {
              QuicTraceLogWarning(
-                WarnNoXdpForCibir,
+                WarnNoXdpForCibirSockets,
                 "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
                 Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
         }

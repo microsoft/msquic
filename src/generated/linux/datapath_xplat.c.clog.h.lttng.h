@@ -2,13 +2,13 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WarnFallbackToOs
-// [sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.
+// Decoder Ring for WarnFallbackToOsSockets
+// [sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.
 // QuicTraceLogWarning(
-                        WarnFallbackToOs,
-                        "[sock] Warning: failed to plumb XDP rules. Falling back to using normal OS sockets.");
+                        WarnFallbackToOsSockets,
+                        "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOs,
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOsSockets,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -34,15 +34,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForRaw,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WarnNoXdpForCibir
+// Decoder Ring for WarnNoXdpForCibirSockets
 // [sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
-                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.
+                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.
 // QuicTraceLogWarning(
-                WarnNoXdpForCibir,
+                WarnNoXdpForCibirSockets,
                 "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
-                Falling back to normal OS sockets to allow for CIBIR TP parameter negotiation.");
+                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibir,
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibirSockets,
     TP_ARGS(
 ), 
     TP_FIELDS(
