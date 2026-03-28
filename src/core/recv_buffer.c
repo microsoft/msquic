@@ -249,12 +249,17 @@ QuicRecvBufferValidate(
         (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE &&
         RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_CIRCULAR) ||
         FirstChunk->Link.Flink == &RecvBuffer->Chunks);
+
     //
-    // In Single and App-owned modes, the first chunk is never used in a circular way.
+    // ReadStart must be within the bounds of the first chunk.
+    //
+    CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart < FirstChunk->AllocLength);
+
+    //
+    // ReadLength must be within the bounds of the buffer capacity.
     //
     CXPLAT_DBG_ASSERT(
-        (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE &&
-        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) ||
+        RecvBuffer->ReadStart + RecvBuffer->ReadLength <= RecvBuffer->Capacity ||
         RecvBuffer->ReadStart + RecvBuffer->ReadLength <= FirstChunk->AllocLength);
 }
 #else
@@ -271,48 +276,52 @@ QuicRecvBufferInitialize(
     _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     )
 {
-    CXPLAT_DBG_ASSERT(AllocBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
-    CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
-    CXPLAT_DBG_ASSERT(PreallocatedChunk == NULL || RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED);
-    CXPLAT_DBG_ASSERT((AllocBufferLength & (AllocBufferLength - 1)) == 0);     // Power of 2
-    CXPLAT_DBG_ASSERT((VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
-    CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
+    CXPLAT_DBG_ASSERT(AllocBufferLength == 0 || (AllocBufferLength & (AllocBufferLength - 1)) == 0); // Power of 2
+    CXPLAT_DBG_ASSERT(VirtualBufferLength >= AllocBufferLength);
 
     RecvBuffer->BaseOffset = 0;
     RecvBuffer->ReadStart = 0;
-    RecvBuffer->ReadPendingLength = 0;
     RecvBuffer->ReadLength = 0;
+    RecvBuffer->ReadPendingLength = 0;
     RecvBuffer->RecvMode = RecvMode;
-    RecvBuffer->RetiredChunk = NULL;
     RecvBuffer->VirtualBufferLength = VirtualBufferLength;
-    QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
+    RecvBuffer->Capacity = AllocBufferLength;
+    RecvBuffer->RetiredChunk = NULL;
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
+    QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
 
-    if (RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
+    if (RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
         //
-        // Setup an initial chunk.
+        // In App-owned mode, the app provides the buffers, so we don't allocate any.
         //
-        QUIC_RECV_CHUNK* Chunk = NULL;
-        if (PreallocatedChunk != NULL) {
-            Chunk = PreallocatedChunk;
-        } else {
-            Chunk = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK) + AllocBufferLength, QUIC_POOL_RECVBUF);
-            if (Chunk == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "recv_buffer",
-                    sizeof(QUIC_RECV_CHUNK) + AllocBufferLength);
-                return QUIC_STATUS_OUT_OF_MEMORY;
-            }
-            QuicRecvChunkInitialize(Chunk, AllocBufferLength, (uint8_t*)(Chunk + 1), FALSE);
-        }
-        CxPlatListInsertHead(&RecvBuffer->Chunks, &Chunk->Link);
-        RecvBuffer->Capacity = AllocBufferLength;
-    } else {
-        RecvBuffer->Capacity = 0;
+        CXPLAT_DBG_ASSERT(PreallocatedChunk == NULL);
+        return QUIC_STATUS_SUCCESS;
     }
 
+    if (AllocBufferLength == 0) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    QUIC_RECV_CHUNK* Chunk;
+    if (PreallocatedChunk != NULL) {
+        Chunk = PreallocatedChunk;
+    } else {
+        Chunk =
+            CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK) + AllocBufferLength, QUIC_POOL_RECVBUF);
+        if (Chunk == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "recv_buffer",
+                sizeof(QUIC_RECV_CHUNK) + AllocBufferLength);
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        QuicRecvChunkInitialize(Chunk, AllocBufferLength, (uint8_t*)(Chunk + 1), FALSE);
+    }
+
+    CxPlatListInsertTail(&RecvBuffer->Chunks, &Chunk->Link);
+
+    QuicRecvBufferValidate(RecvBuffer);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -323,6 +332,7 @@ QuicRecvBufferUninitialize(
     )
 {
     QuicRangeUninitialize(&RecvBuffer->WrittenRanges);
+
     while (!CxPlatListIsEmpty(&RecvBuffer->Chunks)) {
         QUIC_RECV_CHUNK* Chunk =
             CXPLAT_CONTAINING_RECORD(
@@ -613,94 +623,34 @@ QuicRecvBufferCopyIntoChunks(
     CXPLAT_DBG_ASSERT(WriteLength == 0); // Should always have enough room to copy everything
 }
 
+//
+// Copies only the new (non-overlapping) bytes from WriteBuffer into the receive buffer chunks,
+// skipping any byte ranges already present in WrittenRanges.
+// Must be called before QuicRangeAddRange updates WrittenRanges.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return == QUIC_STATUS_SUCCESS)
-QUIC_STATUS
-QuicRecvBufferWrite(
+void
+QuicRecvBufferWriteNewBytes(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t WriteOffset,
     _In_ uint16_t WriteLength,
-    _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer,
-    _In_ uint64_t WriteQuota,
-    _Out_ uint64_t* QuotaConsumed,
-    _Out_ BOOLEAN* NewDataReady,
-    _Out_ uint64_t* BufferSizeNeeded
+    _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer
     )
 {
-    CXPLAT_DBG_ASSERT(WriteLength != 0);
-    *NewDataReady = FALSE;
-    *QuotaConsumed = 0;
-    *BufferSizeNeeded = 0;
-
-    //
-    // Check if the write buffer has already been completely written before.
-    //
-    const uint64_t AbsoluteLength = WriteOffset + WriteLength;
-    if (AbsoluteLength <= RecvBuffer->BaseOffset) {
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    //
-    // Check to see if the write buffer is trying to write beyond the virtual
-    // allocation limit (i.e. max stream data size).
-    //
-    if (AbsoluteLength > RecvBuffer->BaseOffset + RecvBuffer->VirtualBufferLength) {
-        return QUIC_STATUS_BUFFER_TOO_SMALL;
-    }
-
-    //
-    // Check that the write is not going to cause us to consume more than the
-    // quota allocated by the connection flow control.
-    //
-    const uint64_t CurrentMaxLength = QuicRecvBufferGetTotalLength(RecvBuffer);
-    if (AbsoluteLength > CurrentMaxLength) {
-        if (AbsoluteLength - CurrentMaxLength > WriteQuota) {
-            return QUIC_STATUS_BUFFER_TOO_SMALL;
-        }
-        *QuotaConsumed = AbsoluteLength - CurrentMaxLength;
-    }
-
-    //
-    // Check to see if we need to make room for the data we are trying to write.
-    //
-    // N.B. We do this before updating the written ranges below so we don't have
-    // to support rolling back those changes on the possible allocation failure
-    // here.
-    // This is skipped in app-owned mode since the entire virtual length is
-    // always allocated.
-    //
-    const uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
-    if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
-        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
-            *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
-            return QUIC_STATUS_BUFFER_TOO_SMALL;
-        }
-
-        QUIC_RECV_CHUNK* LastChunk =
-            CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
-        uint32_t NewBufferLength = LastChunk->AllocLength << 1;
-        while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
-            NewBufferLength <<= 1;
-        }
-        if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
-            *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
-    }
-
-    //
-    // Copy only the new (non-overlapping) bytes into the chunks.
-    // Walk the existing WrittenRanges to find gaps within [WriteOffset, AbsoluteLength)
-    // and copy only those gap regions. This prevents overwriting already-received data.
-    //
+    const uint64_t WriteEnd = WriteOffset + WriteLength;
     uint64_t CopyOffset = WriteOffset;
-    for (uint32_t i = 0; i < RecvBuffer->WrittenRanges.UsedLength && CopyOffset < AbsoluteLength; i++) {
+
+    //
+    // Walk existing WrittenRanges to find gaps within [WriteOffset, WriteEnd).
+    // For each gap, copy only those new bytes into the chunks.
+    //
+    for (uint32_t i = 0; i < RecvBuffer->WrittenRanges.UsedLength && CopyOffset < WriteEnd; i++) {
         QUIC_SUBRANGE* Sub = QuicRangeGet(&RecvBuffer->WrittenRanges, i);
 
         //
-        // If this subrange starts after our window ends, stop.
+        // If this subrange starts at or beyond the end of our write window, stop.
         //
-        if (Sub->Low >= AbsoluteLength) {
+        if (Sub->Low >= WriteEnd) {
             break;
         }
 
@@ -732,17 +682,112 @@ QuicRecvBufferWrite(
     //
     // Copy any remaining new bytes after the last subrange.
     //
-    if (CopyOffset < AbsoluteLength) {
-        uint16_t RemainLength = (uint16_t)(AbsoluteLength - CopyOffset);
+    if (CopyOffset < WriteEnd) {
+        uint16_t RemainLength = (uint16_t)(WriteEnd - CopyOffset);
         QuicRecvBufferCopyIntoChunks(
             RecvBuffer,
             CopyOffset,
             RemainLength,
             WriteBuffer + (CopyOffset - WriteOffset));
     }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return == QUIC_STATUS_SUCCESS)
+QUIC_STATUS
+QuicRecvBufferWrite(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
+    _In_ uint64_t WriteOffset,
+    _In_ uint16_t WriteLength,
+    _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer,
+    _In_ uint64_t WriteQuota,
+    _Out_ uint64_t* QuotaConsumed,
+    _Out_ BOOLEAN* NewDataReady,
+    _Out_ uint64_t* BufferSizeNeeded
+    )
+{
+    CXPLAT_DBG_ASSERT(WriteLength != 0);
+    *NewDataReady = FALSE; // Most cases below aren't ready to read.
+    *QuotaConsumed = 0;
+    *BufferSizeNeeded = 0;
 
     //
-    // Now commit the range update.
+    // Check if the write buffer has already been completely written before.
+    //
+    const uint64_t AbsoluteLength = WriteOffset + WriteLength;
+    if (AbsoluteLength <= RecvBuffer->BaseOffset) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    //
+    // Check to see if the write buffer is trying to write beyond the virtual
+    // allocation limit (i.e. max stream data size).
+    //
+    if (AbsoluteLength > RecvBuffer->BaseOffset + RecvBuffer->VirtualBufferLength) {
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    //
+    // Check that the write is not going to cause us to consume more than the
+    // quota allocated by the connection flow control.
+    // If it is in bound, update the output to indicate how much of the quota is
+    // being consumed.
+    //
+    const uint64_t CurrentMaxLength = QuicRecvBufferGetTotalLength(RecvBuffer);
+    if (AbsoluteLength > CurrentMaxLength) {
+        if (AbsoluteLength - CurrentMaxLength > WriteQuota) {
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        }
+        *QuotaConsumed = AbsoluteLength - CurrentMaxLength;
+    }
+
+    //
+    // Check to see if we need to make room for the data we are trying to write.
+    //
+    // N.B. We do this before updating the written ranges below so we don't have
+    // to support rolling back those changes on the possible allocation failure
+    // here.
+    // This is skipped in app-owned mode since the entire virtual length is
+    // always allocated.
+    //
+    const uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
+    if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
+        //
+        // There isn't enough space to write the data.
+        //
+        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
+            //
+            // We can't allocate more space in app-owned mode.
+            // Let the caller notify the app to provide more buffer space.
+            //
+            *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        }
+
+        //
+        // Add a new chunk (or replace the existing one), doubling the size of the largest chunk
+        // until there is enough space for the write.
+        //
+        QUIC_RECV_CHUNK* LastChunk =
+            CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
+        uint32_t NewBufferLength = LastChunk->AllocLength << 1;
+        while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
+            NewBufferLength <<= 1;
+        }
+        if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
+            *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+    }
+
+    //
+    // Copy only the new bytes into the chunks, skipping already-written ranges.
+    // Must be done before QuicRangeAddRange commits the new range.
+    //
+    QuicRecvBufferWriteNewBytes(RecvBuffer, WriteOffset, WriteLength, WriteBuffer);
+
+    //
+    // Set the write offset/length as a valid written range.
     //
     BOOLEAN WrittenRangesUpdated;
     QUIC_SUBRANGE* UpdatedRange =
@@ -760,6 +805,9 @@ QuicRecvBufferWrite(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     if (!WrittenRangesUpdated) {
+        //
+        // No changes are necessary. Exit immediately.
+        //
         return QUIC_STATUS_SUCCESS;
     }
 
@@ -769,8 +817,7 @@ QuicRecvBufferWrite(
     *NewDataReady = UpdatedRange->Low == 0;
 
     //
-    // Update the amount of data readable in the first chunk.
-    // (Moved here from QuicRecvBufferCopyIntoChunks since the range is now committed.)
+    // Update the amount of data readable in the first chunk, committing the write.
     //
     QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
     if (FirstRange->Low == 0) {
