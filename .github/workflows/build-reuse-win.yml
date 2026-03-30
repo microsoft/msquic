@@ -82,7 +82,7 @@ jobs:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@22423f01bde48fb88785c007e3166fbbbd8e892a
+      uses: shogo82148/actions-setup-perl@22ab01e83d59dc1abe1796fd8f338da7e7f2d033
       with:
         perl-version: '5.34'
     - name: Install NASM
