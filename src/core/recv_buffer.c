@@ -809,7 +809,7 @@ QuicRecvBufferWrite(
     *NewDataReady = UpdatedRange->Low == 0;
 
     //
-    // Update the amount of data readable in the first chunk, committing the write.
+    // Update the amount of data readable in the first chunk.
     //
     QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
     if (FirstRange->Low == 0) {
