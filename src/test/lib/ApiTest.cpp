@@ -339,8 +339,8 @@ void QuicTestValidateConfiguration()
 
 namespace
 {
-    _Function_class_(QUIC_LISTENER_CALLBACK)
     template<typename T>
+    _Function_class_(QUIC_LISTENER_CALLBACK)
     QUIC_STATUS
     QUIC_API
     DummyListenerCallback(
