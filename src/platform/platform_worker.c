@@ -586,7 +586,7 @@ CxPlatWakeExecutionContext(
             // Failed to wake the worker. Reset Running to FALSE using an interlocked
             // operation to maintain thread safety with the worker thread.
             //
-            InterlockedExchange8((char*)&Worker->Running, FALSE);
+            InterlockedFetchAndClearBoolean(&Worker->Running);
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
