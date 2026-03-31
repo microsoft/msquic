@@ -30,8 +30,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
     //
     // Submission queue entry for shutting down the worker thread.
-    //
-    CXPLAT_SQE ShutdownSqe;
+    // On Windows, this uses the extended WCP-enabled SQE for better performance.
+    // On other platforms, this is a standard SQE.
+    CXPLAT_SQE_WCP ShutdownSqe;
 
     //
     // Submission queue entry for waking the thread to poll.
@@ -121,6 +122,7 @@ ShutdownCompletion(
 {
     CXPLAT_WORKER* Worker =
         CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_WORKER, ShutdownSqe);
+
     Worker->StoppedThread = TRUE;
 }
 
@@ -178,13 +180,15 @@ CxPlatWorkerPoolInitWorker(
         Worker->InitializedEventQ = TRUE;
     }
 
-    if (!CxPlatSqeInitialize(&Worker->EventQ, ShutdownCompletion, &Worker->ShutdownSqe)) {
+    // On Windows, use WCP-enabled SQE for shutdown
+    if (!CxPlatSqeInitializeWcp(&Worker->EventQ, ShutdownCompletion, &Worker->ShutdownSqe)) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "CxPlatSqeInitialize(shutdown)");
+            "CxPlatSqeInitializeWcp(shutdown)");
         return FALSE;
     }
+
     Worker->InitializedShutdownSqe = TRUE;
 
     if (!CxPlatSqeInitialize(&Worker->EventQ, WakeCompletion, &Worker->WakeSqe)) {
@@ -225,7 +229,8 @@ CxPlatWorkerPoolDestroyWorker(
 {
     if (Worker->InitializedThread) {
         Worker->StoppingThread = TRUE;
-        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe);
+
+        CxPlatEventQEnqueueWcp(&Worker->EventQ, &Worker->ShutdownSqe);
         CxPlatThreadWait(&Worker->Thread);
         CxPlatThreadDelete(&Worker->Thread);
 #if DEBUG
@@ -243,7 +248,7 @@ CxPlatWorkerPoolDestroyWorker(
         CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
     }
     if (Worker->InitializedShutdownSqe) {
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
+        CxPlatSqeCleanupWcp(&Worker->EventQ, &Worker->ShutdownSqe);
     }
     if (Worker->InitializedEventQ) {
         CxPlatEventQCleanup(&Worker->EventQ);
@@ -498,7 +503,19 @@ CxPlatWorkerPoolAddExecutionContext(
     CxPlatLockRelease(&Worker->ECLock);
 
     if (QueueEvent) {
-        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->UpdatePollSqe);
+        //
+        // Notify the worker to process the newly added execution context.
+        // The EC is already safely queued in PendingECs above, so if this
+        // enqueue fails (e.g., due to OOM), the worker will still eventually
+        // process the EC on its next loop iteration via CxPlatUpdateExecutionContexts.
+        // This results in increased latency but not a critical failure.
+        //
+        if (!CxPlatEventQEnqueue(&Worker->EventQ, &Worker->UpdatePollSqe)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "UpdatePollSqe enqueue failed (likely OOM) - EC will be processed on next worker iteration");
+        }
     }
 }
 
@@ -509,7 +526,23 @@ CxPlatWakeExecutionContext(
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
     if (!InterlockedFetchAndSetBoolean(&Worker->Running)) {
-        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe);
+        //
+        // Worker was idle (Running was FALSE). Set it to TRUE and wake the worker.
+        // If the enqueue fails (e.g., due to OOM), reset Running to FALSE to allow
+        // subsequent wake attempts to retry. This prevents the worker from being
+        // stuck in a long/infinite wait when Running=TRUE but no wake signal was sent.
+        //
+        if (!CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe)) {
+            //
+            // Failed to wake the worker. Reset Running to FALSE using an interlocked
+            // operation to maintain thread safety with the worker thread.
+            //
+            InterlockedExchange8((char*)&Worker->Running, FALSE);
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "WakeSqe enqueue failed (likely OOM) - wake attempt will be retried");
+        }
     }
 }
 

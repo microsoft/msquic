@@ -1559,6 +1559,22 @@ CxPlatCqeGetSqe(
 #endif
 
 //
+// WCP compatibility layer for non-Windows platforms.
+// On POSIX, WCP (Wait Completion Packet) doesn't exist, so we map
+// WCP-specific types and functions to their standard equivalents.
+//
+typedef CXPLAT_SQE CXPLAT_SQE_WCP;
+
+#define CxPlatEventQEnqueueWcp(queue, sqe) \
+    CxPlatEventQEnqueue(queue, (CXPLAT_SQE*)(sqe))
+
+#define CxPlatSqeInitializeWcp(queue, completion, sqe) \
+    CxPlatSqeInitialize(queue, completion, (CXPLAT_SQE*)(sqe))
+
+#define CxPlatSqeCleanupWcp(queue, sqe) \
+    CxPlatSqeCleanup(queue, (CXPLAT_SQE*)(sqe))
+
+//
 // Thread Interfaces.
 //
 
