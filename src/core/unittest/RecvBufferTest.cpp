@@ -280,16 +280,6 @@ struct RecvBuffer {
             ASSERT_EQ((uint8_t)(BufferOffset + i), Buffer[i]);
         }
     }
-    // Validates the buffer matches an explicitly provided expected array.
-    static void ValidateBufferCustom(
-        _In_reads_(BufferLength) const uint8_t* Buffer,
-        _In_ uint32_t BufferLength,
-        _In_reads_(BufferLength) const uint8_t* Expected
-        ) {
-        for (uint32_t i = 0; i < BufferLength; ++i) {
-            ASSERT_EQ(Expected[i], Buffer[i]);
-        }
-    }
     void Dump() {
         printf("RecvBuffer: %p [mode=%u,vlen=%u,base=%llu,pending=%llu]\n",
             &RecvBuf, RecvBuf.RecvMode, RecvBuf.VirtualBufferLength, (unsigned long long)RecvBuf.BaseOffset, (unsigned long long)RecvBuf.ReadPendingLength);
