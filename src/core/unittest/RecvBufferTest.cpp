@@ -2251,9 +2251,8 @@ TEST(RecvBufferResetReadTest, ResetClearsPendingAndExternalReference_SingleMode)
 // do not corrupt previously received data.
 //
 // Each test uses WriteCustom to write sentinel values (0xff) in the overlap
-// region of the second write. If the fix is working, the original bytes
-// survive. If broken, the 0xff values would overwrite them and
-// ValidateBufferCustom would catch the corruption.
+// region of the second write, so that any unintended overwrite of already-
+// received bytes would be detectable when validating the read output.
 
 TEST_P(WithMode, OverlapWritePreservesExistingData)
 {
@@ -2273,10 +2272,10 @@ TEST_P(WithMode, OverlapWritePreservesExistingData)
     ASSERT_TRUE(NewDataReady);
 
     // Write [10, 30) with 0xff in [10,20) and valid pattern in [20,30).
-    // If the fix is broken, bytes [10,20) would be overwritten with 0xff.
+    // The 0xff sentinel values cover the already-written region.
     uint8_t SecondWrite[20];
     for (uint16_t i = 0; i < 10; ++i) {
-        SecondWrite[i] = 0xff; // sentinel — should NOT land in the buffer
+        SecondWrite[i] = 0xff; // sentinel over already-written region [10,20)
     }
     for (uint16_t i = 10; i < 20; ++i) {
         SecondWrite[i] = (uint8_t)(20 + i); // valid new data for [20,30)
@@ -2306,7 +2305,7 @@ TEST_P(WithMode, OverlapWritePreservesExistingData)
     ASSERT_GE(BufferCount, 1u);
     uint32_t TotalRead = 0;
     for (uint32_t b = 0; b < BufferCount; ++b) {
-        RecvBuffer::ValidateBufferCustom(ReadBuffers[b].Buffer, ReadBuffers[b].Length, Expected + TotalRead);
+        ASSERT_EQ(0, memcmp(ReadBuffers[b].Buffer, Expected + TotalRead, ReadBuffers[b].Length));
         TotalRead += ReadBuffers[b].Length;
     }
     ASSERT_EQ(30u, TotalRead);
@@ -2330,13 +2329,13 @@ TEST_P(WithMode, OverlapWriteAtFront)
     ASSERT_FALSE(NewDataReady);
 
     // Write [0, 20) with valid data in [0,10) and 0xff sentinel in [10,20).
-    // If fix is broken, bytes [10,20) would be overwritten with 0xff.
+    // The 0xff sentinel values cover the already-written region.
     uint8_t SecondWrite[20];
     for (uint16_t i = 0; i < 10; ++i) {
         SecondWrite[i] = (uint8_t)i; // new valid data for [0,10)
     }
     for (uint16_t i = 10; i < 20; ++i) {
-        SecondWrite[i] = 0xff; // sentinel — should NOT land in the buffer
+        SecondWrite[i] = 0xff; // sentinel over already-written region [10,20)
     }
     InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
     NewDataReady = FALSE;
@@ -2360,7 +2359,7 @@ TEST_P(WithMode, OverlapWriteAtFront)
     ASSERT_EQ(0ull, ReadOffset);
     uint32_t TotalRead = 0;
     for (uint32_t b = 0; b < BufferCount; ++b) {
-        RecvBuffer::ValidateBufferCustom(ReadBuffers[b].Buffer, ReadBuffers[b].Length, Expected + TotalRead);
+        ASSERT_EQ(0, memcmp(ReadBuffers[b].Buffer, Expected + TotalRead, ReadBuffers[b].Length));
         TotalRead += ReadBuffers[b].Length;
     }
     ASSERT_EQ(30u, TotalRead);
@@ -2426,7 +2425,6 @@ TEST_P(WithMode, OverlapWriteMultipleGaps)
 
     // Write [0,30) with 0xff in already-written regions [0,5), [10,15), [20,25)
     // and valid gap-fill data in [5,10), [15,20), [25,30).
-    // If fix is broken, the 0xff values overwrite the originally written bytes.
     uint8_t BigWrite[30];
     for (uint16_t i = 0; i < 30; ++i) {
         if ((i < 5) || (i >= 10 && i < 15) || (i >= 20 && i < 25)) {
@@ -2459,7 +2457,7 @@ TEST_P(WithMode, OverlapWriteMultipleGaps)
     ASSERT_EQ(0ull, ReadOffset);
     uint32_t TotalRead = 0;
     for (uint32_t b = 0; b < BufferCount; ++b) {
-        RecvBuffer::ValidateBufferCustom(ReadBuffers[b].Buffer, ReadBuffers[b].Length, Expected + TotalRead);
+        ASSERT_EQ(0, memcmp(ReadBuffers[b].Buffer, Expected + TotalRead, ReadBuffers[b].Length));
         TotalRead += ReadBuffers[b].Length;
     }
     ASSERT_EQ(30u, TotalRead);
