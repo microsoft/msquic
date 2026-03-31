@@ -1042,7 +1042,7 @@ CxPlatSocketContextUninitialize(
         CXPLAT_FRE_ASSERT(
             CxPlatEventQEnqueue(
                 SocketContext->DatapathPartition->EventQ,
-                &SocketContext->ShutdownSqe))
+                &SocketContext->ShutdownSqe));
     }
 }
 
