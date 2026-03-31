@@ -777,10 +777,14 @@ typedef struct CXPLAT_SQE {
 #if DEBUG
     BOOLEAN IsQueued; // Debug flag to catch double queueing.
 #endif
-    HANDLE WcpEvent;      // Manual-reset event for wake packets
-    HANDLE WaitCompletionPacket;    // Wait completion packet bound to Event
 } CXPLAT_SQE;
 
+// Extended SQE with Wait Completion Packet support for manual events
+typedef struct CXPLAT_SQE_WCP {
+    CXPLAT_SQE BaseSqe;   // Base SQE must be first for correct casting.
+    HANDLE WcpEvent;      // Manual-reset event for wake packets
+    HANDLE WaitCompletionPacket;    // Wait completion packet bound to Event
+} CXPLAT_SQE_WCP;
 //
 // Wait Completion Packet functions from ntdll.dll.
 //
@@ -807,9 +811,19 @@ typedef NTSTATUS (NTAPI *FuncNtCancelWaitCompletionPacket)(
     );
 
 // Global function pointers (initialized in CxPlatInitialize)
-extern FuncNtCreateWaitCompletionPacket CxPlatNtCreateWaitCompletionPacket;
-extern FuncNtAssociateWaitCompletionPacket CxPlatNtAssociateWaitCompletionPacket;
-extern FuncNtCancelWaitCompletionPacket CxPlatNtCancelWaitCompletionPacket;
+extern FuncNtCreateWaitCompletionPacket NtCreateWaitCompletionPacket;
+extern FuncNtAssociateWaitCompletionPacket NtAssociateWaitCompletionPacket;
+extern FuncNtCancelWaitCompletionPacket NtCancelWaitCompletionPacket;
+
+// Helper to check if WCP APIs are available
+QUIC_INLINE
+BOOLEAN
+CxPlatWcpAvailable(void)
+{
+    return NtCreateWaitCompletionPacket != NULL &&
+           NtAssociateWaitCompletionPacket != NULL &&
+           NtCancelWaitCompletionPacket != NULL;
+}
 
 QUIC_INLINE
 BOOLEAN
@@ -851,15 +865,7 @@ CxPlatEventQEnqueue(
     sqe->IsQueued;
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
-    if (!PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped)){
-        if (sqe->WcpEvent) {
-            CxPlatEventSet(sqe->WcpEvent);
-            return TRUE;
-        } else {
-            return FALSE;
-        }
-    }
-    return TRUE;
+    return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
 
 QUIC_INLINE
@@ -876,6 +882,22 @@ CxPlatEventQEnqueueEx( // Windows specific extension
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
     return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
+}
+
+// Enqueue WCP-based SQE to the event queue.
+// Falls back to standard PQCS if WCP is unavailable.
+QUIC_INLINE
+void
+CxPlatEventQEnqueueWcp(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE_WCP* sqe
+    )
+{
+    if (sqe->WcpEvent) {
+        CxPlatEventSet(sqe->WcpEvent);
+    } else {
+        CxPlatEventQEnqueue(queue, &sqe->BaseSqe);
+    }
 }
 
 QUIC_INLINE
@@ -914,6 +936,7 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
+// Only WakeSqe and UpdatePollSqe will be using this.
 QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize(
@@ -925,6 +948,28 @@ CxPlatSqeInitialize(
     UNREFERENCED_PARAMETER(queue);
     CxPlatZeroMemory(sqe, sizeof(*sqe));
     sqe->Completion = completion;
+    return TRUE;
+}
+
+// Currently only ShutdownSqe will be using this, but it can be used by any SQE that wants to take advantage of WCP for manual events.
+QUIC_INLINE
+BOOLEAN
+CxPlatSqeInitializeWcp(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE_WCP* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    CxPlatZeroMemory(sqe, sizeof(*sqe));
+    sqe->BaseSqe.Completion = completion;
+
+    // Only attempt WCP initialization if APIs are available
+    if (!CxPlatWcpAvailable()) {
+        // WCP not available - this is acceptable on older Windows versions
+        // SQE will fall back to standard PQCS (with OOM risk)
+        return TRUE;
+    }
 
     if (sqe->WcpEvent == NULL) {
         CxPlatEventInitialize(&sqe->WcpEvent, TRUE, FALSE);
@@ -933,7 +978,7 @@ CxPlatSqeInitialize(
         return FALSE;
     }
 
-    NTSTATUS status = CxPlatNtCreateWaitCompletionPacket(&sqe->WaitCompletionPacket,
+    NTSTATUS status = NtCreateWaitCompletionPacket(&sqe->WaitCompletionPacket,
                                                   GENERIC_ALL,
                                                   NULL);
     if (!NT_SUCCESS(status)) {
@@ -941,29 +986,34 @@ CxPlatSqeInitialize(
         return FALSE;
     }
 
-    status = CxPlatNtAssociateWaitCompletionPacket(
+    status = NtAssociateWaitCompletionPacket(
         sqe->WaitCompletionPacket,
         *queue,
         sqe->WcpEvent,
         NULL,
-        sqe,
+        &sqe->BaseSqe,
         0,          // IoStatus STATUS_SUCCESS
         0,
         NULL);
 
     if (!NT_SUCCESS(status)) {
-        NTSTATUS CancelStatus = CxPlatNtCancelWaitCompletionPacket(
+        NTSTATUS CancelStatus = NtCancelWaitCompletionPacket(
                 sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
                 TRUE);              // RemoveSignaledPacket
         CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
-        CloseHandle(sqe->WaitCompletionPacket);
-        CloseHandle(sqe->WcpEvent);
+        // Close the Handle Only if the cancel succeeded.
+        // In failure case leak it to avoid a memory corruption.
+        if (NT_SUCCESS(CancelStatus)) { 
+            CloseHandle(sqe->WaitCompletionPacket);
+            CloseHandle(sqe->WcpEvent);
+        }
         return FALSE;
     }
 
     return TRUE;
 }
 
+// Most of the SQEs that are created through CxPlatStartDatapathIo will be using this.
 QUIC_INLINE
 void
 CxPlatSqeInitializeEx(
@@ -985,14 +1035,38 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     )
 {
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
+    // No-op for base SQE
+}
+
+QUIC_INLINE
+void
+CxPlatSqeCleanupWcp(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE_WCP* sqe
+    )
+{
     if (sqe->WcpEvent)
     {
-        NTSTATUS CancelStatus = CxPlatNtCancelWaitCompletionPacket(
-            sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
-            TRUE);              // RemoveSignaledPacket
-        CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
-        CloseHandle(sqe->WaitCompletionPacket);
-        CloseHandle(sqe->WcpEvent);
+        if (sqe->WaitCompletionPacket) {
+            if (CxPlatWcpAvailable()) {
+                NTSTATUS CancelStatus = NtCancelWaitCompletionPacket(
+                    sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
+                    TRUE);              // RemoveSignaledPacket
+                CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
+                // Close the Handle Only if the cancel succeeded.
+                // In failure case leak it to avoid a memory corruption.
+                if (NT_SUCCESS(CancelStatus)) { 
+                    CloseHandle(sqe->WaitCompletionPacket);
+                    CloseHandle(sqe->WcpEvent);
+                }
+            }
+        } else {
+            CloseHandle(sqe->WcpEvent);
+        }
+        sqe->WcpEvent = NULL;
+        sqe->WaitCompletionPacket = NULL;
     }
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(sqe);

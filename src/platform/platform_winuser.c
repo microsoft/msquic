@@ -37,9 +37,9 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
 
 // Global function pointers (initialized in CxPlatInitialize)
-FuncNtCreateWaitCompletionPacket CxPlatNtCreateWaitCompletionPacket = NULL;
-FuncNtAssociateWaitCompletionPacket CxPlatNtAssociateWaitCompletionPacket = NULL;
-FuncNtCancelWaitCompletionPacket CxPlatNtCancelWaitCompletionPacket = NULL;
+FuncNtCreateWaitCompletionPacket NtCreateWaitCompletionPacket = NULL;
+FuncNtAssociateWaitCompletionPacket NtAssociateWaitCompletionPacket = NULL;
+FuncNtCancelWaitCompletionPacket NtCancelWaitCompletionPacket = NULL;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -273,11 +273,11 @@ CxPlatInitialize(
         }
 
         // Load Wait Completion Packet functions (available on Windows 11+)
-        CxPlatNtCreateWaitCompletionPacket =
+        NtCreateWaitCompletionPacket =
             (FuncNtCreateWaitCompletionPacket)GetProcAddress(NtDllHandle, "NtCreateWaitCompletionPacket");
-        CxPlatNtAssociateWaitCompletionPacket =
+        NtAssociateWaitCompletionPacket =
             (FuncNtAssociateWaitCompletionPacket)GetProcAddress(NtDllHandle, "NtAssociateWaitCompletionPacket");
-        CxPlatNtCancelWaitCompletionPacket =
+        NtCancelWaitCompletionPacket =
             (FuncNtCancelWaitCompletionPacket)GetProcAddress(NtDllHandle, "NtCancelWaitCompletionPacket");
 
         FreeLibrary(NtDllHandle);
