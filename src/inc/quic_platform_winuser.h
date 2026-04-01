@@ -793,7 +793,7 @@ typedef struct CXPLAT_SQE_WCP {
 typedef NTSTATUS (NTAPI *FuncNtCreateWaitCompletionPacket)(
     _Out_ PHANDLE WaitCompletionPacketHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ PVOID ObjectAttributes
     );
 
 typedef NTSTATUS (NTAPI *FuncNtAssociateWaitCompletionPacket)(
