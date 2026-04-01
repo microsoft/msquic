@@ -218,11 +218,13 @@ struct SpinQuicGlobals {
     uint32_t AlpnCount {0};
     const size_t SendBufferSize { MaxBufferSizes[BufferCount - 1] + UINT8_MAX };
     uint8_t* SendBuffer;
+    uint8_t* RecvBuffer;
     SpinQuicGlobals() {
         SendBuffer = new uint8_t[SendBufferSize];
         for (size_t i = 0; i < SendBufferSize; i++) {
             SendBuffer[i] = (uint8_t)i;
         }
+        RecvBuffer = new uint8_t[SendBufferSize];
     }
     ~SpinQuicGlobals() {
         while (ClientConfigurations.size() > 0) {
@@ -238,10 +240,16 @@ struct SpinQuicGlobals {
         }
         if (Registration) {
             if (rand() % 2 == 0) {
+                CXPLAT_EVENT CloseComplete;
+                CxPlatEventInitialize(&CloseComplete, TRUE, FALSE);
                 MsQuic->RegistrationClose2(
                     Registration,
-                    [](void*) -> void { }, // No-op callback
-                    nullptr);
+                    [](void* Context) -> void {
+                        CxPlatEventSet(*(CXPLAT_EVENT*)Context);
+                    },
+                    &CloseComplete);
+                CxPlatEventWaitForever(CloseComplete);
+                CxPlatEventUninitialize(CloseComplete);
             } else {
                 MsQuic->RegistrationClose(Registration);
             }
@@ -253,6 +261,7 @@ struct SpinQuicGlobals {
             MsQuicClose(MsQuic);
         }
         delete [] SendBuffer;
+        delete [] RecvBuffer;
     }
 };
 
@@ -500,8 +509,21 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
         if (GetRandom(2) == 0) {
             Event->PEER_STREAM_STARTED.Flags |= QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES;
         }
+        if (GetRandom(5) == 0) {
+            Event->PEER_STREAM_STARTED.Flags |= QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS;
+        }
         auto StreamCtx = new SpinQuicStream(*ctx, Event->PEER_STREAM_STARTED.Stream);
         MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, StreamCtx);
+        if (Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS) {
+            static uint8_t RecvBuffer[64000];
+            uint32_t BufCount = GetRandom(3) + 1; // 1-3 buffers
+            std::vector<QUIC_BUFFER> Buffers(BufCount);
+            for (uint32_t i = 0; i < BufCount; i++) {
+                Buffers[i].Length = MaxBufferSizes[GetRandom(BufferCount)];
+                Buffers[i].Buffer = RecvBuffer;
+            }
+            MsQuic.StreamProvideReceiveBuffers(Event->PEER_STREAM_STARTED.Stream, BufCount, Buffers.data());
+        }
         ctx->AddStream(Event->PEER_STREAM_STARTED.Stream);
         break;
     }
@@ -984,13 +1006,19 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Stream;
             auto ctx = new SpinQuicStream(*SpinQuicConnection::Get(Connection));
-            QUIC_STREAM_OPEN_FLAGS OpenFlags = (QUIC_STREAM_OPEN_FLAGS)GetRandom(8);
-            if (GetRandom(5) == 0) {
-                OpenFlags |= QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS;
-            }
+            QUIC_STREAM_OPEN_FLAGS OpenFlags = (QUIC_STREAM_OPEN_FLAGS)GetRandom(16);
             QUIC_STATUS Status = MsQuic.StreamOpen(Connection, OpenFlags, SpinQuicHandleStreamEvent, ctx, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
                 ctx->Handle = Stream;
+                if ((OpenFlags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS) && GetRandom(2) == 0) {
+                    uint32_t BufCount = GetRandom(3) + 1; // 1-3 buffers
+                    std::vector<QUIC_BUFFER> Buffers(BufCount);
+                    for (uint32_t i = 0; i < BufCount; i++) {
+                        Buffers[i].Length = MaxBufferSizes[GetRandom(BufferCount)];
+                        Buffers[i].Buffer = Gb.RecvBuffer;
+                    }
+                    MsQuic.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
+                }
                 SpinQuicGetRandomParam(Stream, ThreadID);
                 SpinQuicSetRandomStreamParam(Stream, ThreadID);
                 SpinQuicConnection::Get(Connection)->AddStream(Stream);
@@ -1182,18 +1210,13 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
         case SpinQuicAPICallConnectionPoolCreate: {
             if (!IsServer) {
                 uint16_t PoolSize = (uint16_t)(GetRandom(4) + 1); // 1-4 connections
-                HQUIC* PoolConnections = new(std::nothrow) HQUIC[PoolSize];
-                if (PoolConnections == nullptr) break;
-                void** Contexts = new(std::nothrow) void*[PoolSize];
-                if (Contexts == nullptr) { delete[] PoolConnections; break; }
-                for (uint16_t i = 0; i < PoolSize; i++) {
-                    Contexts[i] = &ThreadID;
-                }
+                std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
+                std::vector<void*> Contexts(PoolSize, &ThreadID);
                 QUIC_CONNECTION_POOL_CONFIG PoolConfig = {0};
                 PoolConfig.Registration = Gb.Registration;
                 PoolConfig.Configuration = GetRandomFromVector(Gb.ClientConfigurations);
                 PoolConfig.Handler = SpinQuicHandleConnectionEvent;
-                PoolConfig.Context = Contexts;
+                PoolConfig.Context = Contexts.data();
                 PoolConfig.ServerName = SpinSettings.ServerName;
                 PoolConfig.ServerAddress = nullptr;
                 PoolConfig.Family = QUIC_ADDRESS_FAMILY_INET;
@@ -1202,7 +1225,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 PoolConfig.CibirIds = nullptr;
                 PoolConfig.CibirIdLength = 0;
                 PoolConfig.Flags = (QUIC_CONNECTION_POOL_FLAGS)GetRandom(2);
-                QUIC_STATUS Status = MsQuic.ConnectionPoolCreate(&PoolConfig, PoolConnections);
+                QUIC_STATUS Status = MsQuic.ConnectionPoolCreate(&PoolConfig, PoolConnections.data());
                 if (QUIC_SUCCEEDED(Status)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
                         auto ctx = new(std::nothrow) SpinQuicConnection(PoolConnections[i], ThreadID);
@@ -1213,9 +1236,13 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                             MsQuic.ConnectionClose(PoolConnections[i]);
                         }
                     }
+                } else if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
+                    for (uint16_t i = 0; i < PoolSize; i++) {
+                        if (PoolConnections[i] != nullptr) {
+                            MsQuic.ConnectionClose(PoolConnections[i]);
+                        }
+                    }
                 }
-                delete[] Contexts;
-                delete[] PoolConnections;
             }
             break;
         }
@@ -1226,16 +1253,16 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             {
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
-                if (Stream == nullptr) continue;
+                if (Stream == nullptr) {
+                    continue;
+                }
                 uint32_t BufCount = GetRandom(3) + 1; // 1-3 buffers
-                QUIC_BUFFER* Buffers = new(std::nothrow) QUIC_BUFFER[BufCount];
-                if (Buffers == nullptr) continue;
+                std::vector<QUIC_BUFFER> Buffers(BufCount);
                 for (uint32_t i = 0; i < BufCount; i++) {
                     Buffers[i].Length = MaxBufferSizes[GetRandom(BufferCount)];
-                    Buffers[i].Buffer = Gb.SendBuffer; // Reuse send buffer as receive buffer
+                    Buffers[i].Buffer = Gb.RecvBuffer;
                 }
-                MsQuic.StreamProvideReceiveBuffers(Stream, BufCount, Buffers);
-                delete[] Buffers;
+                MsQuic.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
             }
             break;
         }
