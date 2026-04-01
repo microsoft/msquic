@@ -460,11 +460,15 @@ jobs:
           VERSION="${{ inputs.package_version }}"
           mkdir -p packages
 
+          # Convert release candidate format: Linux packages use ~ instead of -
+          # e.g., 2.5.6-rc1 -> 2.5.6~rc1 (applies to both DEB and RPM)
+          PKG_VERSION="${VERSION/-rc/~rc}"
+
           # Build filename based on package type
           if [ "${{ matrix.type }}" = "deb" ]; then
-            FILENAME="libmsquic_${VERSION}_${{ matrix.pkg_arch }}.deb"
+            FILENAME="libmsquic_${PKG_VERSION}_${{ matrix.pkg_arch }}.deb"
           else
-            FILENAME="libmsquic-${VERSION}-1.${{ matrix.pkg_arch }}.rpm"
+            FILENAME="libmsquic-${PKG_VERSION}-1.${{ matrix.pkg_arch }}.rpm"
           fi
 
           echo "Looking for package: $FILENAME"
