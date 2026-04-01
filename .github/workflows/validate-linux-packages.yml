@@ -242,7 +242,7 @@ jobs:
             type: rpm
             pkg_arch: x86_64
             prod_url: "https://packages.microsoft.com/centos/9/prod/Packages/l"
-            testing_url: "https://packages.microsoft.com/centos/9/testing/Packages/l"
+            testing_url: "https://packages.microsoft.com/yumrepos/microsoft-el9-testing-prod/Packages/l"
           - friendlyName: "CentOS Stream 9 arm64"
             arch: arm64
             platform: "linux/arm64"
@@ -250,7 +250,7 @@ jobs:
             type: rpm
             pkg_arch: aarch64
             prod_url: "https://packages.microsoft.com/centos/9/prod/Packages/l"
-            testing_url: "https://packages.microsoft.com/centos/9/testing/Packages/l"
+            testing_url: "https://packages.microsoft.com/yumrepos/microsoft-el9-testing-prod/Packages/l"
 
           # CentOS Stream 10 (RPM) - No arm32 support
           - friendlyName: "CentOS Stream 10 x64"
