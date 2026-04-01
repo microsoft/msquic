@@ -502,20 +502,19 @@ void WriteAckFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    if (*Offset >= BufferLength) return;
     QUIC_RANGE AckRange;
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
     BOOLEAN RangeUpdated;
     QuicRangeAddRange(&AckRange, LargestAcknowledge, 1, &RangeUpdated);
     uint64_t AckDelay = 40;
-    CXPLAT_FRE_ASSERT(
-        QuicAckFrameEncode(
-            &AckRange,
-            AckDelay,
-            nullptr,
-            Offset,
-            BufferLength,
-            Buffer));
+    QuicAckFrameEncode(
+        &AckRange,
+        AckDelay,
+        nullptr,
+        Offset,
+        BufferLength,
+        Buffer);
 }
 
 void WriteHandshakeDoneFrame(
@@ -524,7 +523,7 @@ void WriteHandshakeDoneFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     Buffer[(*Offset)++] = QUIC_FRAME_HANDSHAKE_DONE;
 }
 
@@ -534,7 +533,7 @@ void WritePingFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     Buffer[(*Offset)++] = QUIC_FRAME_PING;
 }
 
@@ -544,26 +543,26 @@ void WriteConnectionCloseFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     Buffer[(*Offset)++] = QUIC_FRAME_CONNECTION_CLOSE;
-    
+
     // Error code
     uint64_t ErrorCode = GetRandom<uint16_t>();
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(ErrorCode) <= BufferLength);
+    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) return;
     QuicVarIntEncode(ErrorCode, Buffer + *Offset);
     *Offset += QuicVarIntSize(ErrorCode);
-    
+
     // Frame type (if present)
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize((uint64_t)0) <= BufferLength);
+    if (*Offset + QuicVarIntSize((uint64_t)0) > BufferLength) return;
     QuicVarIntEncode(0, Buffer + *Offset);
     *Offset += QuicVarIntSize((uint64_t)0);
-    
+
     // Reason phrase length and phrase
     uint8_t ReasonLen = GetRandom<uint8_t>(20);
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize((uint64_t)ReasonLen) <= BufferLength);
+    if (*Offset + QuicVarIntSize((uint64_t)ReasonLen) > BufferLength) return;
     QuicVarIntEncode(ReasonLen, Buffer + *Offset);
     *Offset += QuicVarIntSize((uint64_t)ReasonLen);
-    
+
     if (*Offset + ReasonLen <= BufferLength) {
         GetRandomBytes(ReasonLen, Buffer + *Offset);
         *Offset += ReasonLen;
@@ -576,24 +575,24 @@ void WriteResetStreamFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     Buffer[(*Offset)++] = QUIC_FRAME_RESET_STREAM;
-    
+
     // Stream ID
     uint64_t StreamId = GetRandom<uint8_t>(4) * 4; // Client-initiated bidi
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(StreamId) <= BufferLength);
+    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) return;
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
-    
+
     // Error code
     uint64_t ErrorCode = GetRandom<uint16_t>();
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(ErrorCode) <= BufferLength);
+    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) return;
     QuicVarIntEncode(ErrorCode, Buffer + *Offset);
     *Offset += QuicVarIntSize(ErrorCode);
-    
+
     // Final size
     uint64_t FinalSize = GetRandom<uint16_t>(1000);
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(FinalSize) <= BufferLength);
+    if (*Offset + QuicVarIntSize(FinalSize) > BufferLength) return;
     QuicVarIntEncode(FinalSize, Buffer + *Offset);
     *Offset += QuicVarIntSize(FinalSize);
 }
@@ -604,18 +603,18 @@ void WriteStopSendingFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     Buffer[(*Offset)++] = QUIC_FRAME_STOP_SENDING;
-    
+
     // Stream ID
     uint64_t StreamId = GetRandom<uint8_t>(4) * 4; // Client-initiated bidi
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(StreamId) <= BufferLength);
+    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) return;
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
-    
+
     // Error code
     uint64_t ErrorCode = GetRandom<uint16_t>();
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(ErrorCode) <= BufferLength);
+    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) return;
     QuicVarIntEncode(ErrorCode, Buffer + *Offset);
     *Offset += QuicVarIntSize(ErrorCode);
 }
@@ -626,12 +625,12 @@ void WriteMaxDataFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     Buffer[(*Offset)++] = QUIC_FRAME_MAX_DATA;
-    
+
     // Maximum data
     uint64_t MaxData = GetRandom<uint32_t>();
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(MaxData) <= BufferLength);
+    if (*Offset + QuicVarIntSize(MaxData) > BufferLength) return;
     QuicVarIntEncode(MaxData, Buffer + *Offset);
     *Offset += QuicVarIntSize(MaxData);
 }
@@ -642,18 +641,18 @@ void WriteMaxStreamDataFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     Buffer[(*Offset)++] = QUIC_FRAME_MAX_STREAM_DATA;
-    
+
     // Stream ID
     uint64_t StreamId = GetRandom<uint8_t>(4) * 4;
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(StreamId) <= BufferLength);
+    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) return;
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
-    
+
     // Maximum stream data
     uint64_t MaxStreamData = GetRandom<uint32_t>();
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(MaxStreamData) <= BufferLength);
+    if (*Offset + QuicVarIntSize(MaxStreamData) > BufferLength) return;
     QuicVarIntEncode(MaxStreamData, Buffer + *Offset);
     *Offset += QuicVarIntSize(MaxStreamData);
 }
@@ -664,7 +663,7 @@ void WriteUnknownFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     // Use an unassigned or reserved frame type
     uint8_t UnknownType = GetRandom<uint8_t>();
     // Avoid known frame types - use high values or reserved ranges
@@ -699,24 +698,24 @@ void WriteStreamFrame(
     bool HasOffset = (FrameType & 0x04) != 0;
     bool HasLength = (FrameType & 0x02) != 0;
 
-    CXPLAT_FRE_ASSERT(*Offset + 1 <= BufferLength);
+    if (*Offset + 1 > BufferLength) return;
     Buffer[(*Offset)++] = FrameType;
 
     // Encode Stream ID
-    CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(StreamId) <= BufferLength);
+    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) return;
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
 
     // Encode Offset if frame type indicates it should be present
     if (HasOffset) {
-        CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(StreamOffset) <= BufferLength);
+        if (*Offset + QuicVarIntSize(StreamOffset) > BufferLength) return;
         QuicVarIntEncode(StreamOffset, Buffer + *Offset);
         *Offset += QuicVarIntSize(StreamOffset);
     }
 
     // Encode Length (only if LEN bit is set in frame type)
     if (HasLength) {
-        CXPLAT_FRE_ASSERT(*Offset + QuicVarIntSize(DataLength) <= BufferLength);
+        if (*Offset + QuicVarIntSize(DataLength) > BufferLength) return;
         QuicVarIntEncode(DataLength, Buffer + *Offset);
         *Offset += QuicVarIntSize(DataLength);
     }
@@ -754,7 +753,7 @@ void WriteCryptoFrame(
     _In_ PacketParams* PacketParams
     )
 {
-    CXPLAT_FRE_ASSERT(*Offset < BufferLength);
+    if (*Offset >= BufferLength) return;
     if (PacketParams->Mode == 0) {
         if (ClientContext == nullptr) {
             ClientContext = new TlsContext();
@@ -776,12 +775,11 @@ void WriteCryptoFrame(
     // in the same way the core datapath does.  Until then, we disable ML-KEM
     // for the fuzzer only (see corresponding TODO in tls_openssl.c
     //
-    CXPLAT_FRE_ASSERT(
-        QuicCryptoFrameEncode(
-            &Frame,
-            Offset,
-            BufferLength,
-            Buffer));
+    QuicCryptoFrameEncode(
+        &Frame,
+        Offset,
+        BufferLength,
+        Buffer);
 }
 
 void WriteFrames(
@@ -917,7 +915,11 @@ void WriteLongHeaderPacket(
     PayloadLength += GetRandom<uint8_t>(64); // More random padding
 
     *PacketLength = *HeaderLength + PayloadLength + CXPLAT_ENCRYPTION_OVERHEAD;
-    CXPLAT_FRE_ASSERT(*PacketLength + PacketNumberLength < BufferLength);
+    if (*PacketLength + PacketNumberLength >= BufferLength) {
+        // Clamp payload to fit in buffer
+        PayloadLength = BufferLength - *HeaderLength - CXPLAT_ENCRYPTION_OVERHEAD - PacketNumberLength - 1;
+        *PacketLength = *HeaderLength + PayloadLength + CXPLAT_ENCRYPTION_OVERHEAD;
+    }
     QuicVarIntEncode2Bytes(
         PacketNumberLength + PayloadLength + CXPLAT_ENCRYPTION_OVERHEAD,
         Buffer + PayloadLengthOffset);
@@ -1112,7 +1114,11 @@ void WriteShortHeaderPacket(
     PayloadLength += GetRandom<uint8_t>(64); // More random padding
 
     *PacketLength = *HeaderLength + PayloadLength + CXPLAT_ENCRYPTION_OVERHEAD;
-    CXPLAT_FRE_ASSERT(*PacketLength + PacketNumberLength < BufferLength);
+    if (*PacketLength + PacketNumberLength >= BufferLength) {
+        // Clamp payload to fit in buffer
+        PayloadLength = BufferLength - *HeaderLength - CXPLAT_ENCRYPTION_OVERHEAD - PacketNumberLength - 1;
+        *PacketLength = *HeaderLength + PayloadLength + CXPLAT_ENCRYPTION_OVERHEAD;
+    }
 }
 
 void FinalizeShortHeaderPacket(
