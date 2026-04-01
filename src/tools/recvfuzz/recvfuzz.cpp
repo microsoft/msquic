@@ -502,7 +502,9 @@ void WriteAckFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset >= BufferLength) return;
+    if (*Offset >= BufferLength) {
+        return;
+    }
     QUIC_RANGE AckRange;
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
     BOOLEAN RangeUpdated;
@@ -523,7 +525,9 @@ void WriteHandshakeDoneFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     Buffer[(*Offset)++] = QUIC_FRAME_HANDSHAKE_DONE;
 }
 
@@ -533,7 +537,9 @@ void WritePingFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     Buffer[(*Offset)++] = QUIC_FRAME_PING;
 }
 
@@ -543,23 +549,31 @@ void WriteConnectionCloseFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     Buffer[(*Offset)++] = QUIC_FRAME_CONNECTION_CLOSE;
 
     // Error code
     uint64_t ErrorCode = GetRandom<uint16_t>();
-    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(ErrorCode, Buffer + *Offset);
     *Offset += QuicVarIntSize(ErrorCode);
 
     // Frame type (if present)
-    if (*Offset + QuicVarIntSize((uint64_t)0) > BufferLength) return;
+    if (*Offset + QuicVarIntSize((uint64_t)0) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(0, Buffer + *Offset);
     *Offset += QuicVarIntSize((uint64_t)0);
 
     // Reason phrase length and phrase
     uint8_t ReasonLen = GetRandom<uint8_t>(20);
-    if (*Offset + QuicVarIntSize((uint64_t)ReasonLen) > BufferLength) return;
+    if (*Offset + QuicVarIntSize((uint64_t)ReasonLen) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(ReasonLen, Buffer + *Offset);
     *Offset += QuicVarIntSize((uint64_t)ReasonLen);
 
@@ -575,24 +589,32 @@ void WriteResetStreamFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     Buffer[(*Offset)++] = QUIC_FRAME_RESET_STREAM;
 
     // Stream ID
     uint64_t StreamId = GetRandom<uint8_t>(4) * 4; // Client-initiated bidi
-    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
 
     // Error code
     uint64_t ErrorCode = GetRandom<uint16_t>();
-    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(ErrorCode, Buffer + *Offset);
     *Offset += QuicVarIntSize(ErrorCode);
 
     // Final size
     uint64_t FinalSize = GetRandom<uint16_t>(1000);
-    if (*Offset + QuicVarIntSize(FinalSize) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(FinalSize) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(FinalSize, Buffer + *Offset);
     *Offset += QuicVarIntSize(FinalSize);
 }
@@ -603,18 +625,24 @@ void WriteStopSendingFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     Buffer[(*Offset)++] = QUIC_FRAME_STOP_SENDING;
 
     // Stream ID
     uint64_t StreamId = GetRandom<uint8_t>(4) * 4; // Client-initiated bidi
-    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
 
     // Error code
     uint64_t ErrorCode = GetRandom<uint16_t>();
-    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(ErrorCode) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(ErrorCode, Buffer + *Offset);
     *Offset += QuicVarIntSize(ErrorCode);
 }
@@ -625,12 +653,16 @@ void WriteMaxDataFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     Buffer[(*Offset)++] = QUIC_FRAME_MAX_DATA;
 
     // Maximum data
     uint64_t MaxData = GetRandom<uint32_t>();
-    if (*Offset + QuicVarIntSize(MaxData) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(MaxData) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(MaxData, Buffer + *Offset);
     *Offset += QuicVarIntSize(MaxData);
 }
@@ -641,18 +673,24 @@ void WriteMaxStreamDataFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     Buffer[(*Offset)++] = QUIC_FRAME_MAX_STREAM_DATA;
 
     // Stream ID
     uint64_t StreamId = GetRandom<uint8_t>(4) * 4;
-    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
 
     // Maximum stream data
     uint64_t MaxStreamData = GetRandom<uint32_t>();
-    if (*Offset + QuicVarIntSize(MaxStreamData) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(MaxStreamData) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(MaxStreamData, Buffer + *Offset);
     *Offset += QuicVarIntSize(MaxStreamData);
 }
@@ -663,7 +701,9 @@ void WriteUnknownFrame(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     // Use an unassigned or reserved frame type
     uint8_t UnknownType = GetRandom<uint8_t>();
     // Avoid known frame types - use high values or reserved ranges
@@ -698,24 +738,32 @@ void WriteStreamFrame(
     bool HasOffset = (FrameType & 0x04) != 0;
     bool HasLength = (FrameType & 0x02) != 0;
 
-    if (*Offset + 1 > BufferLength) return;
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
     Buffer[(*Offset)++] = FrameType;
 
     // Encode Stream ID
-    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) return;
+    if (*Offset + QuicVarIntSize(StreamId) > BufferLength) {
+        return;
+    }
     QuicVarIntEncode(StreamId, Buffer + *Offset);
     *Offset += QuicVarIntSize(StreamId);
 
     // Encode Offset if frame type indicates it should be present
     if (HasOffset) {
-        if (*Offset + QuicVarIntSize(StreamOffset) > BufferLength) return;
+        if (*Offset + QuicVarIntSize(StreamOffset) > BufferLength) {
+            return;
+        }
         QuicVarIntEncode(StreamOffset, Buffer + *Offset);
         *Offset += QuicVarIntSize(StreamOffset);
     }
 
     // Encode Length (only if LEN bit is set in frame type)
     if (HasLength) {
-        if (*Offset + QuicVarIntSize(DataLength) > BufferLength) return;
+        if (*Offset + QuicVarIntSize(DataLength) > BufferLength) {
+            return;
+        }
         QuicVarIntEncode(DataLength, Buffer + *Offset);
         *Offset += QuicVarIntSize(DataLength);
     }
@@ -753,7 +801,9 @@ void WriteCryptoFrame(
     _In_ PacketParams* PacketParams
     )
 {
-    if (*Offset >= BufferLength) return;
+    if (*Offset >= BufferLength) {
+        return;
+    }
     if (PacketParams->Mode == 0) {
         if (ClientContext == nullptr) {
             ClientContext = new TlsContext();
