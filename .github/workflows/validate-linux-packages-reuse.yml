@@ -609,8 +609,7 @@ jobs:
         run: |
           docker exec ${{ steps.container.outputs.name }} sh -c '
             # Find and run the self-contained QuicHello executable
-            # Use ls+grep instead of find negation, which is unreliable on BusyBox (OpenSUSE/SLES)
-            EXE=$(ls /dotnet/QuicHello* 2>/dev/null | grep -v -e "\.dll$" -e "\.pdb$" -e "\.json$" | head -1)
+            EXE=$(find /dotnet -maxdepth 1 -name "QuicHello*" -type f ! -name "*.dll" ! -name "*.pdb" ! -name "*.json" 2>/dev/null | head -1)
             if [ -z "$EXE" ]; then
               echo "ERROR: QuicHello executable not found"
               ls -la /dotnet/
