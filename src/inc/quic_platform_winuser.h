@@ -80,6 +80,8 @@ extern "C" {
 
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
+#define STATUS_CANCELLED                 ((NTSTATUS)0xC0000120L)
+
 #ifdef QUIC_RESTRICTED_BUILD
 #ifndef NT_SUCCESS
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
@@ -1047,12 +1049,17 @@ CxPlatSqeInitializeWcp(
                 sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
                 TRUE);              // RemoveSignaledPacket
 
-        // Close the Handle Only if the cancel succeeded.
-        // In failure case leak it to avoid a memory corruption.
-        if (NT_SUCCESS(CancelStatus)) { 
+        // Close WCP handle on success or STATUS_CANCELLED (expected states where handle is valid).
+        // On other errors, leak to avoid potential corruption.
+        if (NT_SUCCESS(CancelStatus) || CancelStatus == STATUS_CANCELLED) {
             CloseHandle(sqe->WaitCompletionPacket);
-            CloseHandle(sqe->WcpEvent);
         }
+
+        // Event handle is always safe to close
+        CloseHandle(sqe->WcpEvent);
+        sqe->WcpEvent = NULL;
+        sqe->WaitCompletionPacket = NULL;
+
         return FALSE;
     }
 
@@ -1104,22 +1111,23 @@ CxPlatSqeCleanupWcp(
 {
     if (sqe->WcpEvent)
     {
-        if (sqe->WaitCompletionPacket) {
-            if (CxPlatWcpAvailable()) {
-                NTSTATUS CancelStatus = NtCancelWaitCompletionPacket(
-                    sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
-                    TRUE);              // RemoveSignaledPacket
+        if (sqe->WaitCompletionPacket && CxPlatWcpAvailable()) {
+            NTSTATUS CancelStatus = NtCancelWaitCompletionPacket(
+                sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
+                TRUE);              // RemoveSignaledPacket
 
-                // Close the Handle Only if the cancel succeeded.
-                // In failure case leak it to avoid a memory corruption.
-                if (NT_SUCCESS(CancelStatus)) { 
-                    CloseHandle(sqe->WaitCompletionPacket);
-                    CloseHandle(sqe->WcpEvent);
-                }
+            // After a WCP fires, the association is destroyed but the handle 
+            // remains valid. we must close the handle.
+            // Close on success or STATUS_CANCELLED (expected states where handle is valid).
+            // On other errors, leak to avoid potential corruption.
+            if (NT_SUCCESS(CancelStatus) || CancelStatus == STATUS_CANCELLED) {
+                CloseHandle(sqe->WaitCompletionPacket);
             }
-        } else {
-            CloseHandle(sqe->WcpEvent);
         }
+
+        // Event handle is always safe to close
+        CloseHandle(sqe->WcpEvent);
+
         sqe->WcpEvent = NULL;
         sqe->WaitCompletionPacket = NULL;
     }
