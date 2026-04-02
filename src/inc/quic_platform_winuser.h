@@ -1046,7 +1046,7 @@ CxPlatSqeInitializeWcp(
         NTSTATUS CancelStatus = NtCancelWaitCompletionPacket(
                 sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
                 TRUE);              // RemoveSignaledPacket
-        CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
+
         // Close the Handle Only if the cancel succeeded.
         // In failure case leak it to avoid a memory corruption.
         if (NT_SUCCESS(CancelStatus)) { 
@@ -1109,7 +1109,7 @@ CxPlatSqeCleanupWcp(
                 NTSTATUS CancelStatus = NtCancelWaitCompletionPacket(
                     sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
                     TRUE);              // RemoveSignaledPacket
-                CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
+
                 // Close the Handle Only if the cancel succeeded.
                 // In failure case leak it to avoid a memory corruption.
                 if (NT_SUCCESS(CancelStatus)) { 
