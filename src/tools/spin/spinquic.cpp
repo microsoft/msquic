@@ -217,14 +217,11 @@ struct SpinQuicGlobals {
     QUIC_BUFFER* Alpns {nullptr};
     uint32_t AlpnCount {0};
     const size_t SendBufferSize { MaxBufferSizes[BufferCount - 1] + UINT8_MAX };
-    uint8_t* SendBuffer;
-    uint8_t* RecvBuffer;
-    SpinQuicGlobals() {
-        SendBuffer = new uint8_t[SendBufferSize];
-        for (size_t i = 0; i < SendBufferSize; i++) {
+    std::vector<uint8_t> SendBuffer;
+    SpinQuicGlobals() : SendBuffer(SendBufferSize) {
+        for (size_t i = 0; i < SendBuffer.size(); i++) {
             SendBuffer[i] = (uint8_t)i;
         }
-        RecvBuffer = new uint8_t[SendBufferSize];
     }
     ~SpinQuicGlobals() {
         while (ClientConfigurations.size() > 0) {
@@ -260,8 +257,6 @@ struct SpinQuicGlobals {
 #endif
             MsQuicClose(MsQuic);
         }
-        delete [] SendBuffer;
-        delete [] RecvBuffer;
     }
 };
 
@@ -297,11 +292,17 @@ struct SpinQuicStream {
     uint8_t SendOffset {0};
     bool Deleting {false};
     uint64_t PendingRecvLength {UINT64_MAX}; // UINT64_MAX means no pending receive
+    std::vector<uint8_t> RecvBuffer;
     SpinQuicStream(SpinQuicConnection& Connection, HQUIC Handle = nullptr) :
         Connection(Connection), Handle(Handle) {}
     ~SpinQuicStream() { Deleting = true; MsQuic.StreamClose(Handle); }
     static SpinQuicStream* Get(HQUIC Stream) {
         return (SpinQuicStream*)MsQuic.GetContext(Stream);
+    }
+    void EnsureRecvBuffer(size_t Size) {
+        if (RecvBuffer.size() < Size) {
+            RecvBuffer.resize(Size);
+        }
     }
 };
 
@@ -515,12 +516,18 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
         auto StreamCtx = new SpinQuicStream(*ctx, Event->PEER_STREAM_STARTED.Stream);
         MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, StreamCtx);
         if (Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS) {
-            static uint8_t RecvBuffer[64000];
             uint32_t BufCount = GetRandom(3) + 1; // 1-3 buffers
             std::vector<QUIC_BUFFER> Buffers(BufCount);
+            size_t TotalSize = 0;
             for (uint32_t i = 0; i < BufCount; i++) {
                 Buffers[i].Length = MaxBufferSizes[GetRandom(BufferCount)];
-                Buffers[i].Buffer = RecvBuffer;
+                TotalSize += Buffers[i].Length;
+            }
+            StreamCtx->EnsureRecvBuffer(TotalSize);
+            size_t Offset = 0;
+            for (uint32_t i = 0; i < BufCount; i++) {
+                Buffers[i].Buffer = StreamCtx->RecvBuffer.data() + Offset;
+                Offset += Buffers[i].Length;
             }
             MsQuic.StreamProvideReceiveBuffers(Event->PEER_STREAM_STARTED.Stream, BufCount, Buffers.data());
         }
@@ -1011,11 +1018,18 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             if (QUIC_SUCCEEDED(Status)) {
                 ctx->Handle = Stream;
                 if ((OpenFlags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS) && GetRandom(2) == 0) {
-                    uint32_t BufCount = GetRandom(3) + 1; // 1-3 buffers
+                    uint32_t BufCount = GetRandom(5) + 1; // 1-5 buffers
                     std::vector<QUIC_BUFFER> Buffers(BufCount);
+                    size_t TotalSize = 0;
                     for (uint32_t i = 0; i < BufCount; i++) {
                         Buffers[i].Length = MaxBufferSizes[GetRandom(BufferCount)];
-                        Buffers[i].Buffer = Gb.RecvBuffer;
+                        TotalSize += Buffers[i].Length;
+                    }
+                    ctx->EnsureRecvBuffer(TotalSize);
+                    size_t Offset = 0;
+                    for (uint32_t i = 0; i < BufCount; i++) {
+                        Buffers[i].Buffer = ctx->RecvBuffer.data() + Offset;
+                        Offset += Buffers[i].Length;
                     }
                     MsQuic.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
                 }
@@ -1051,7 +1065,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 auto Buffer = new(std::nothrow) QUIC_BUFFER;
                 if (Buffer) {
                     const uint32_t Length = MaxBufferSizes[GetRandom(BufferCount)];
-                    Buffer->Buffer = Gb.SendBuffer + StreamCtx->SendOffset;
+                    Buffer->Buffer = Gb.SendBuffer.data() + StreamCtx->SendOffset;
                     Buffer->Length = Length;
                     if (QUIC_SUCCEEDED(
                         MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), Buffer))) {
@@ -1187,7 +1201,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             BAIL_ON_NULL_CONNECTION(Connection);
             auto Buffer = new(std::nothrow) QUIC_BUFFER;
             if (Buffer) {
-                Buffer->Buffer = Gb.SendBuffer;
+                Buffer->Buffer = Gb.SendBuffer.data();
                 Buffer->Length = MaxBufferSizes[GetRandom(BufferCount)];
                 if (QUIC_FAILED(MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), Buffer))) {
                     delete Buffer;
@@ -1256,11 +1270,19 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 if (Stream == nullptr) {
                     continue;
                 }
+                auto StreamCtx = SpinQuicStream::Get(Stream);
                 uint32_t BufCount = GetRandom(3) + 1; // 1-3 buffers
                 std::vector<QUIC_BUFFER> Buffers(BufCount);
+                size_t TotalSize = 0;
                 for (uint32_t i = 0; i < BufCount; i++) {
                     Buffers[i].Length = MaxBufferSizes[GetRandom(BufferCount)];
-                    Buffers[i].Buffer = Gb.RecvBuffer;
+                    TotalSize += Buffers[i].Length;
+                }
+                StreamCtx->EnsureRecvBuffer(StreamCtx->RecvBuffer.size() + TotalSize);
+                size_t Offset = StreamCtx->RecvBuffer.size() - TotalSize;
+                for (uint32_t i = 0; i < BufCount; i++) {
+                    Buffers[i].Buffer = StreamCtx->RecvBuffer.data() + Offset;
+                    Offset += Buffers[i].Length;
                 }
                 MsQuic.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
             }
