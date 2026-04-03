@@ -383,13 +383,18 @@ for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
             # Start background resource monitor (writes to file for artifact
             # upload since the Test step's console output may be lost if the
             # runner crashes).
-            $MonitorCmd = "while true; do echo `"[\`$(date +%H:%M:%S)] free: \`$(free -m | awk '/Mem:/{print \`$3\"/\"\`$2\"MB\"}')" +
-                " disk: \`$(df -h / | awk 'NR==2{print \`$3\"/\"\`$2}')" +
-                " load: \`$(cat /proc/loadavg | cut -d' ' -f1-3)`"" +
-                " >> $DiagFile; sleep 30; done"
+            $MonitorScript = Join-Path $DiagDir "monitor.sh"
+            @'
+#!/bin/bash
+while true; do
+    echo "[$(date +%H:%M:%S)] mem=$(free -m | awk 'NR==2{print $3"/"$2"MB"}') disk=$(df -h / | awk 'NR==2{print $3"/"$2}') load=$(cut -d' ' -f1-3 /proc/loadavg)" >> "$1"
+    sleep 30
+done
+'@ | Set-Content -Path $MonitorScript -NoNewline
+            bash -c "chmod +x $MonitorScript"
             $MonitorPid = $null
             try {
-                $MonitorPid = (Start-Process -FilePath "bash" -ArgumentList "-c", $MonitorCmd -PassThru -NoNewWindow).Id
+                $MonitorPid = (Start-Process -FilePath "bash" -ArgumentList $MonitorScript, $DiagFile -PassThru -NoNewWindow).Id
             } catch {
                 Write-Host "Warning: Could not start resource monitor: $_"
             }
