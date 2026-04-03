@@ -1,22 +1,14 @@
 <#
 .SYNOPSIS
-    Mirrors internal ADO pull requests to GitHub.
+    Mirrors an internal ADO pull request to GitHub.
 
 .DESCRIPTION
     Takes an internal Azure DevOps pull request, fetches the branch locally,
     pushes it to GitHub, creates a corresponding GitHub pull request, and
     then abandons the ADO pull request with a comment linking to the GitHub PR.
 
-    When -Dependabot is specified, enumerates all active ADO pull requests
-    with 'dependabot' in the title, displays them for review, and prompts
-    for confirmation before mirroring.
-
 .PARAMETER PullRequest
-    The ADO pull request ID or URL to mirror. Required unless -Dependabot is used.
-
-.PARAMETER Dependabot
-    Enumerate all active Dependabot PRs on ADO, display them, and prompt
-    for confirmation before mirroring each one to GitHub.
+    The ADO pull request ID or URL to mirror.
 
 .PARAMETER AdoOrg
     The Azure DevOps organization name. Defaults to 'microsoft'.
@@ -44,18 +36,11 @@
 
 .EXAMPLE
     .\Create-ReverseMirrorPR.ps1 -PullRequest "https://dev.azure.com/microsoft/OS/_git/msquic/pullrequest/12345"
-
-.EXAMPLE
-    .\Create-ReverseMirrorPR.ps1 -Dependabot
 #>
 
-[CmdletBinding(DefaultParameterSetName = 'Single')]
 param(
-    [Parameter(Mandatory = $true, ParameterSetName = 'Single')]
+    [Parameter(Mandatory = $true)]
     [string]$PullRequest,
-
-    [Parameter(Mandatory = $true, ParameterSetName = 'Dependabot')]
-    [switch]$Dependabot,
 
     [Parameter(Mandatory = $false)]
     [string]$AdoOrg = "microsoft",
@@ -81,6 +66,14 @@ param(
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Parse PR ID from URL if needed
+$PrId = $PullRequest
+if ($PullRequest -match 'pullrequest[/]?(\d+)') {
+    $PrId = $Matches[1]
+}
+
+Write-Host "Processing ADO Pull Request ID: $PrId" -ForegroundColor Cyan
 
 # Check for required tools
 $RequiredTools = @('az', 'gh', 'git')
@@ -116,6 +109,26 @@ if ($LASTEXITCODE -ne 0) {
     }
 }
 
+# Get ADO PR details
+Write-Host "Fetching ADO pull request details..." -ForegroundColor Yellow
+$prJson = az repos pr show --id $PrId --organization "https://dev.azure.com/$AdoOrg" --output json
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to fetch ADO pull request details"
+    exit 1
+}
+
+$adoPr = $prJson | ConvertFrom-Json
+
+$sourceBranch = $adoPr.sourceRefName -replace '^refs/heads/', ''
+$targetBranch = $adoPr.targetRefName -replace '^refs/heads/', ''
+$prTitle = "[Mirror #$PrId] $($adoPr.title)"
+$prAuthor = $adoPr.createdBy.displayName
+
+Write-Host "  Title: $prTitle" -ForegroundColor Gray
+Write-Host "  Source Branch: $sourceBranch" -ForegroundColor Gray
+Write-Host "  Target Branch: $targetBranch" -ForegroundColor Gray
+Write-Host "  Author: $prAuthor" -ForegroundColor Gray
+
 # Ensure git remotes are configured
 Write-Host "Configuring git remotes..." -ForegroundColor Yellow
 $currentRemotes = git remote
@@ -128,193 +141,92 @@ if ($currentRemotes -notcontains $GitHubRemote) {
     git remote add $GitHubRemote "https://github.com/$GitHubOrg/$GitHubRepo.git"
 }
 
-function Mirror-PullRequest {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$PrId
-    )
+# Fetch the source branch from ADO
+Write-Host "Fetching branch from ADO..." -ForegroundColor Yellow
+git fetch $AdoRemote "${sourceBranch}:${sourceBranch}" --force
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to fetch branch '$sourceBranch' from ADO"
+    exit 1
+}
 
-    Write-Host "`nProcessing ADO Pull Request ID: $PrId" -ForegroundColor Cyan
+# Push the branch to GitHub
+Write-Host "Pushing branch to GitHub..." -ForegroundColor Yellow
+git push $GitHubRemote "${sourceBranch}:${sourceBranch}" --force
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to push branch '$sourceBranch' to GitHub"
+    exit 1
+}
 
-    # Get ADO PR details
-    Write-Host "Fetching ADO pull request details..." -ForegroundColor Yellow
-    $prJson = az repos pr show --id $PrId --organization "https://dev.azure.com/$AdoOrg" --output json
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to fetch ADO pull request details"
-        return $false
-    }
-
-    $adoPr = $prJson | ConvertFrom-Json
-
-    $sourceBranch = $adoPr.sourceRefName -replace '^refs/heads/', ''
-    $targetBranch = $adoPr.targetRefName -replace '^refs/heads/', ''
-    $prTitle = "[Mirror #$PrId] $($adoPr.title)"
-    $prAuthor = $adoPr.createdBy.displayName
-
-    Write-Host "  Title: $prTitle" -ForegroundColor Gray
-    Write-Host "  Source Branch: $sourceBranch" -ForegroundColor Gray
-    Write-Host "  Target Branch: $targetBranch" -ForegroundColor Gray
-    Write-Host "  Author: $prAuthor" -ForegroundColor Gray
-
-    # Fetch the source branch from ADO
-    Write-Host "Fetching branch from ADO..." -ForegroundColor Yellow
-    git fetch $AdoRemote "${sourceBranch}:${sourceBranch}" --force
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to fetch branch '$sourceBranch' from ADO"
-        return $false
-    }
-
-    # Push the branch to GitHub
-    Write-Host "Pushing branch to GitHub..." -ForegroundColor Yellow
-    git push $GitHubRemote "${sourceBranch}:${sourceBranch}" --force
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to push branch '$sourceBranch' to GitHub"
-        return $false
-    }
-
-    # Create GitHub pull request
-    Write-Host "Creating GitHub pull request..." -ForegroundColor Yellow
-    $adoPrUrl = "https://dev.azure.com/$AdoOrg/$AdoProject/_git/$AdoRepo/pullrequest/$PrId"
-    $ghPrBody = @"
+# Create GitHub pull request
+Write-Host "Creating GitHub pull request..." -ForegroundColor Yellow
+$adoPrUrl = "https://dev.azure.com/$AdoOrg/$AdoProject/_git/$AdoRepo/pullrequest/$PrId"
+$ghPrBody = @"
 Mirrored from internal ADO PR #$PrId by $prAuthor
 
 Internal PR: $adoPrUrl
 "@
-    $ghPrOutput = gh pr create --repo "$GitHubOrg/$GitHubRepo" --base $targetBranch --head $sourceBranch --title $prTitle --body $ghPrBody 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        # Check if PR already exists
-        if ($ghPrOutput -match 'already exists') {
-            Write-Host "  Pull request already exists, fetching URL..." -ForegroundColor Yellow
-            $existingPrs = gh pr list --repo "$GitHubOrg/$GitHubRepo" --head $sourceBranch --base $targetBranch --json url --jq '.[0].url'
-            if ($existingPrs) {
-                $githubPrUrl = $existingPrs
-                Write-Host "  Using existing PR: $githubPrUrl" -ForegroundColor Green
-            } else {
-                Write-Error "Failed to find existing GitHub pull request"
-                return $false
-            }
+$ghPrOutput = gh pr create --repo "$GitHubOrg/$GitHubRepo" --base $targetBranch --head $sourceBranch --title $prTitle --body $ghPrBody 2>&1
+if ($LASTEXITCODE -ne 0) {
+    # Check if PR already exists
+    if ($ghPrOutput -match 'already exists') {
+        Write-Host "  Pull request already exists, fetching URL..." -ForegroundColor Yellow
+        $existingPrs = gh pr list --repo "$GitHubOrg/$GitHubRepo" --head $sourceBranch --base $targetBranch --json url --jq '.[0].url'
+        if ($existingPrs) {
+            $githubPrUrl = $existingPrs
+            Write-Host "  Using existing PR: $githubPrUrl" -ForegroundColor Green
         } else {
-            Write-Error "Failed to create GitHub pull request: $ghPrOutput"
-            return $false
+            Write-Error "Failed to find existing GitHub pull request"
+            exit 1
         }
     } else {
-        $githubPrUrl = $ghPrOutput
-        Write-Host "  Created: $githubPrUrl" -ForegroundColor Green
-    }
-
-    # Enable auto-merge on the GitHub PR
-    Write-Host "Enabling auto-merge on GitHub pull request..." -ForegroundColor Yellow
-    gh pr merge $githubPrUrl --repo "$GitHubOrg/$GitHubRepo" --auto --squash
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "Failed to enable auto-merge on GitHub pull request. You may need to enable it manually."
-    }
-
-    # Add comment to ADO PR with GitHub PR link
-    Write-Host "Adding comment to ADO pull request..." -ForegroundColor Yellow
-    $comment = "This pull request has been mirrored to GitHub: $githubPrUrl`n`nPlease continue all review and development on the GitHub pull request."
-    $repositoryId = $adoPr.repository.id
-    $threadBody = @{
-        comments = @(
-            @{
-                parentCommentId = 0
-                content = $comment
-                commentType = 1
-            }
-        )
-        status = 1
-    } | ConvertTo-Json -Depth 10
-
-    $tempFile = [System.IO.Path]::GetTempFileName()
-    try {
-        $threadBody | Out-File -FilePath $tempFile -Encoding utf8 -NoNewline
-        $commentResult = az devops invoke --http-method POST --organization "https://dev.azure.com/$AdoOrg" --area git --resource pullRequestThreads --route-parameters project=$AdoProject repositoryId=$repositoryId pullRequestId=$PrId --api-version 6.0 --in-file $tempFile 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to add comment thread to ADO pull request: $commentResult"
-        }
-    } finally {
-        Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
-    }
-
-    # Abandon the ADO pull request
-    Write-Host "Abandoning ADO pull request..." -ForegroundColor Yellow
-    az repos pr update --id $PrId --organization "https://dev.azure.com/$AdoOrg" --status abandoned | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to abandon ADO pull request"
-        return $false
-    }
-
-    Write-Host "  Success! ADO PR #$PrId mirrored and abandoned." -ForegroundColor Green
-    Write-Host "  GitHub PR: $githubPrUrl" -ForegroundColor Cyan
-    return $true
-}
-
-# Main logic
-if ($Dependabot) {
-    # Enumerate all active Dependabot PRs on ADO
-    Write-Host "`nSearching for active Dependabot PRs on ADO..." -ForegroundColor Yellow
-    $allPrsJson = az repos pr list `
-        --organization "https://dev.azure.com/$AdoOrg" `
-        --project $AdoProject `
-        --repository $AdoRepo `
-        --status active `
-        --output json
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to list ADO pull requests"
+        Write-Error "Failed to create GitHub pull request: $ghPrOutput"
         exit 1
     }
-
-    $allPrs = $allPrsJson | ConvertFrom-Json
-
-    Write-Host "Total active PRs found: $($allPrs.Count)" -ForegroundColor Yellow
-
-    $dependabotPrs = @($allPrs | Where-Object { $_.title -imatch 'dependabot' -or $_.sourceRefName -imatch 'dependabot' })
-
-    if ($dependabotPrs.Count -eq 0) {
-        Write-Host "`nNo active Dependabot PRs found." -ForegroundColor Green
-        exit 0
-    }
-
-    Write-Host "`nFound $($dependabotPrs.Count) active Dependabot PR(s):`n" -ForegroundColor Cyan
-    $index = 1
-    foreach ($pr in $dependabotPrs) {
-        $branch = $pr.sourceRefName -replace '^refs/heads/', ''
-        $target = $pr.targetRefName -replace '^refs/heads/', ''
-        Write-Host "  $index. PR #$($pr.pullRequestId): $($pr.title)" -ForegroundColor White
-        Write-Host "     Branch: $branch -> $target" -ForegroundColor Gray
-        Write-Host "     Author: $($pr.createdBy.displayName)  Created: $($pr.creationDate)" -ForegroundColor Gray
-        $index++
-    }
-
-    Write-Host ""
-    $confirmation = Read-Host "Mirror all $($dependabotPrs.Count) PR(s) to GitHub? (y/N)"
-    if ($confirmation -ne 'y' -and $confirmation -ne 'Y') {
-        Write-Host "Aborted." -ForegroundColor Yellow
-        exit 0
-    }
-
-    $succeeded = 0
-    $failed = 0
-    foreach ($pr in $dependabotPrs) {
-        try {
-            $result = Mirror-PullRequest -PrId $pr.pullRequestId
-            if ($result) { $succeeded++ } else { $failed++ }
-        } catch {
-            Write-Host "  Error mirroring PR #$($pr.pullRequestId): $_" -ForegroundColor Red
-            $failed++
-        }
-    }
-
-    Write-Host "`n--- Summary ---" -ForegroundColor Cyan
-    Write-Host "Mirrored: $succeeded  Failed: $failed  Total: $($dependabotPrs.Count)" -ForegroundColor White
 } else {
-    # Single PR mode
-    $PrId = $PullRequest
-    if ($PullRequest -match 'pullrequest[/]?(\d+)') {
-        $PrId = $Matches[1]
-    }
-
-    $result = Mirror-PullRequest -PrId $PrId
-    if (-not $result) {
-        exit 1
-    }
+    $githubPrUrl = $ghPrOutput
+    Write-Host "  Created: $githubPrUrl" -ForegroundColor Green
 }
+
+# Enable auto-merge on the GitHub PR
+Write-Host "Enabling auto-merge on GitHub pull request..." -ForegroundColor Yellow
+gh pr merge $githubPrUrl --repo "$GitHubOrg/$GitHubRepo" --auto --squash
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "Failed to enable auto-merge on GitHub pull request. You may need to enable it manually."
+}
+
+# Add comment to ADO PR with GitHub PR link
+Write-Host "Adding comment to ADO pull request..." -ForegroundColor Yellow
+$comment = "This pull request has been mirrored to GitHub: $githubPrUrl`n`nPlease continue all review and development on the GitHub pull request."
+$repositoryId = $adoPr.repository.id
+$threadBody = @{
+    comments = @(
+        @{
+            parentCommentId = 0
+            content = $comment
+            commentType = 1
+        }
+    )
+    status = 1
+} | ConvertTo-Json -Depth 10
+
+$tempFile = [System.IO.Path]::GetTempFileName()
+try {
+    $threadBody | Out-File -FilePath $tempFile -Encoding utf8 -NoNewline
+    $commentResult = az devops invoke --http-method POST --organization "https://dev.azure.com/$AdoOrg" --area git --resource pullRequestThreads --route-parameters project=$AdoProject repositoryId=$repositoryId pullRequestId=$PrId --api-version 6.0 --in-file $tempFile 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to add comment thread to ADO pull request: $commentResult"
+    }
+} finally {
+    Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
+}
+
+# Abandon the ADO pull request
+Write-Host "Abandoning ADO pull request..." -ForegroundColor Yellow
+az repos pr update --id $PrId --organization "https://dev.azure.com/$AdoOrg" --status abandoned | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to abandon ADO pull request"
+    exit 1
+}
+
+Write-Host "`nSuccess! ADO PR #$PrId has been mirrored to GitHub and abandoned." -ForegroundColor Green
+Write-Host "GitHub PR: $githubPrUrl" -ForegroundColor Cyan
