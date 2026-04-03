@@ -375,7 +375,41 @@ for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
     foreach ($TestPath in $TestPaths) {
         if ($IsLinux -and $UseXdp) {
             $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-            Invoke-Expression ('/usr/bin/sudo bash -c "ulimit -n $NOFILE && pwsh $RunTest -Path $TestPath $TestArguments"')
+            $DiagDir = Join-Path $RootDir "artifacts" "xdp_diagnostics"
+            New-Item -ItemType Directory -Path $DiagDir -Force | Out-Null
+            $DiagFile = Join-Path $DiagDir "resource_monitor.log"
+            $BinaryName = Split-Path $TestPath -Leaf
+
+            # Start background resource monitor (writes to file for artifact
+            # upload since the Test step's console output may be lost if the
+            # runner crashes).
+            $MonitorCmd = "while true; do echo `"[\`$(date +%H:%M:%S)] free: \`$(free -m | awk '/Mem:/{print \`$3\"/\"\`$2\"MB\"}')" +
+                " disk: \`$(df -h / | awk 'NR==2{print \`$3\"/\"\`$2}')" +
+                " load: \`$(cat /proc/loadavg | cut -d' ' -f1-3)`"" +
+                " >> $DiagFile; sleep 30; done"
+            $MonitorPid = $null
+            try {
+                $MonitorPid = (Start-Process -FilePath "bash" -ArgumentList "-c", $MonitorCmd -PassThru -NoNewWindow).Id
+            } catch {
+                Write-Host "Warning: Could not start resource monitor: $_"
+            }
+
+            Write-Host ">>> [XDP Diag] Before ${BinaryName}:"
+            bash -c "free -h; echo '---'; df -h / /tmp; echo '---'; cat /proc/loadavg"
+            # Limit core dumps to 1 GB to prevent cascading crashes from
+            # filling the disk. Use timeout as a safety net.
+            Invoke-Expression ('/usr/bin/sudo bash -c "ulimit -n $NOFILE && ulimit -c 1048576 && timeout --signal=KILL --foreground 6000 pwsh $RunTest -Path $TestPath $TestArguments"')
+            $TestExitCode = $LASTEXITCODE
+            Write-Host ">>> [XDP Diag] After ${BinaryName} (exit=$TestExitCode):"
+            bash -c "free -h; echo '---'; df -h / /tmp; echo '---'; cat /proc/loadavg"
+            # Check for OOM killer or XDP kernel errors
+            Write-Host ">>> [XDP Diag] dmesg check:"
+            bash -c "sudo dmesg -T --since '2 hours ago' 2>/dev/null | grep -iE 'oom|killed process|xdp|bpf|out of memory|segfault' | tail -20 || true"
+
+            # Stop the background monitor
+            if ($MonitorPid) {
+                Stop-Process -Id $MonitorPid -ErrorAction SilentlyContinue
+            }
         } else {
             Invoke-Expression ($RunTest + " -Path $TestPath " + $TestArguments)
         }

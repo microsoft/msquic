@@ -197,6 +197,22 @@ jobs:
         $ManifestPath = ".\src\manifest\MsQuicEtw.man"
         wevtutil.exe um $ManifestPath
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
+    - name: System Diagnostics (pre-test)
+      if: matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp'
+      run: |
+        echo "=== Memory ==="
+        free -h
+        echo "=== Disk ==="
+        df -h / /tmp
+        echo "=== Kernel / XDP ==="
+        uname -r
+        sudo dmesg -T 2>/dev/null | tail -30 || true
+        echo "=== Core pattern ==="
+        cat /proc/sys/kernel/core_pattern || true
+        echo "=== ulimits ==="
+        ulimit -a
+        echo "=== CPU ==="
+        nproc && cat /proc/loadavg
     - name: Test
       if: matrix.vec.os == 'WinServerPrerelease'
       shell: pwsh
