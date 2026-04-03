@@ -38,6 +38,12 @@ If logs or artifacts are expired, state explicitly what evidence is missing
 and what concrete diagnostic steps are needed to obtain it — do not
 substitute speculation for trace analysis.
 
+The Known Issues Catalog is for rarely occurring issues that we can't fix,
+such as issues caused by GitHub runner resource contention. If the issue
+can be fixed, don't add it to the catalog. If the issue can't be fixed,
+ask the user if it should be added to the catalog.
+Never add an issue to the catalog without explicit user confirmation.
+
 ## Investigation Workflow
 
 Follow these phases in order. Do not skip phases.
