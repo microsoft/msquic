@@ -380,9 +380,29 @@ for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
             $DiagFile = Join-Path $DiagDir "resource_monitor.log"
             $BinaryName = Split-Path $TestPath -Leaf
 
-            # Start background resource monitor (writes to file for artifact
-            # upload since the Test step's console output may be lost if the
-            # runner crashes).
+            # Helper: post a diagnostic comment to the PR via GitHub API.
+            function Post-XdpDiag($Title, $Body) {
+                if (-not $env:GITHUB_TOKEN -or -not $env:GITHUB_REPOSITORY) {
+                    Write-Host ">>> [XDP Diag] Missing GITHUB_TOKEN or GITHUB_REPOSITORY"
+                    return
+                }
+                if (-not ($env:GITHUB_REF -match 'refs/pull/(\d+)')) {
+                    Write-Host ">>> [XDP Diag] Not a PR (REF=$($env:GITHUB_REF))"
+                    return
+                }
+                $PrNum = $Matches[1]
+                $Full = "### XDP Diag: $Title`n$Body"
+                $TmpFile = Join-Path $DiagDir "comment.json"
+                @{ body = $Full } | ConvertTo-Json -Depth 2 | Set-Content -Path $TmpFile
+                $result = bash -c "curl -sS -w '%{http_code}' -X POST -H 'Authorization: Bearer $($env:GITHUB_TOKEN)' -H 'Content-Type: application/json' -d @$TmpFile 'https://api.github.com/repos/$($env:GITHUB_REPOSITORY)/issues/$PrNum/comments' -o /dev/null 2>&1"
+                Write-Host ">>> [XDP Diag] Post '$Title' to PR #$PrNum -> HTTP $result"
+            }
+
+            # Post pre-flight diagnostics BEFORE the test binary starts
+            $PreDiag = bash -c "echo 'mem:'; free -h | head -2; echo 'disk:'; df -h / | tail -1; echo 'load:'; cat /proc/loadavg; echo 'cores:'; nproc; echo 'kernel:'; uname -r"
+            Post-XdpDiag "Starting $BinaryName" "``````n$($PreDiag -join "`n")`n``````"
+
+            # Start background resource monitor
             $MonitorScript = Join-Path $DiagDir "monitor.sh"
             @'
 #!/bin/bash
@@ -401,30 +421,18 @@ done
 
             Write-Host ">>> [XDP Diag] Before ${BinaryName}:"
             bash -c "free -h; echo '---'; df -h / /tmp; echo '---'; cat /proc/loadavg"
-            # Disable core dumps entirely (the ulimit -c unlimited in
-            # run-gtest.ps1 overrides any soft limit set here, so we set
-            # the hard limit to 0). Use timeout as a safety net.
+            # Disable core dumps entirely via hard limit. Use timeout as
+            # a safety net.
             Invoke-Expression ('/usr/bin/sudo bash -c "ulimit -n $NOFILE && ulimit -Hc 0 && timeout --signal=KILL --foreground 6000 pwsh $RunTest -Path $TestPath $TestArguments"')
             $TestExitCode = $LASTEXITCODE
-            Write-Host ">>> [XDP Diag] After ${BinaryName} (exit=$TestExitCode):"
-            $DiagMsg = bash -c "echo 'mem:'; free -h | head -2; echo 'disk:'; df -h / | tail -1; echo 'load:'; cat /proc/loadavg; echo 'dmesg:'; sudo dmesg -T --since '2 hours ago' 2>/dev/null | grep -iE 'oom|killed process|xdp|bpf|out of memory|segfault' | tail -10 || true"
-            $DiagMsg | ForEach-Object { Write-Host $_ }
 
-            # Post diagnostics as a PR comment so they survive a runner crash.
-            # GITHUB_TOKEN and GITHUB_REPOSITORY are set by GitHub Actions.
-            if ($env:GITHUB_TOKEN -and $env:GITHUB_REPOSITORY -and $env:GITHUB_REF -match 'refs/pull/(\d+)') {
-                $PrNumber = $Matches[1]
-                $CommentBody = "### XDP Diag checkpoint: ``$BinaryName`` (exit=$TestExitCode)`n``````n$($DiagMsg -join "`n")`n```````n_Resource monitor:_`n``````n$(if (Test-Path $DiagFile) { Get-Content $DiagFile -Raw } else { 'no data' })`n``````"
-                $JsonBody = @{ body = $CommentBody } | ConvertTo-Json -Compress
-                try {
-                    Invoke-RestMethod -Uri "https://api.github.com/repos/$($env:GITHUB_REPOSITORY)/issues/$PrNumber/comments" `
-                        -Method Post -Headers @{ Authorization = "Bearer $($env:GITHUB_TOKEN)"; "Content-Type" = "application/json" } `
-                        -Body $JsonBody -ErrorAction SilentlyContinue | Out-Null
-                    Write-Host ">>> [XDP Diag] Posted checkpoint to PR #$PrNumber"
-                } catch {
-                    Write-Host ">>> [XDP Diag] Failed to post PR comment: $_"
-                }
-            }
+            # Post post-test diagnostics
+            $PostDiag = bash -c "echo 'mem:'; free -h | head -2; echo 'disk:'; df -h / | tail -1; echo 'load:'; cat /proc/loadavg; echo 'dmesg:'; sudo dmesg -T --since '2 hours ago' 2>/dev/null | grep -iE 'oom|killed process|xdp|bpf|out of memory|segfault' | tail -10 || echo 'none'"
+            $MonitorLog = if (Test-Path $DiagFile) { Get-Content $DiagFile -Raw } else { "no data" }
+            Post-XdpDiag "Finished $BinaryName (exit=$TestExitCode)" "``````n$($PostDiag -join "`n")`n``````n`nResource monitor:`n``````n$MonitorLog`n``````"
+
+            Write-Host ">>> [XDP Diag] After ${BinaryName} (exit=$TestExitCode):"
+            $PostDiag | ForEach-Object { Write-Host $_ }
 
             # Stop the background monitor
             if ($MonitorPid) {
