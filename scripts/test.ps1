@@ -402,7 +402,7 @@ for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
             $PreDiag = bash -c "echo 'mem:'; free -h | head -2; echo 'disk:'; df -h / | tail -1; echo 'load:'; cat /proc/loadavg; echo 'cores:'; nproc; echo 'kernel:'; uname -r"
             Post-XdpDiag "Starting $BinaryName" "``````n$($PreDiag -join "`n")`n``````"
 
-            # Start background resource monitor
+            # Start background resource monitor that writes to a log file
             $MonitorScript = Join-Path $DiagDir "monitor.sh"
             @'
 #!/bin/bash
@@ -419,6 +419,80 @@ done
                 Write-Host "Warning: Could not start resource monitor: $_"
             }
 
+            # Start background heartbeat that posts PR comments every 5 minutes.
+            # This captures system state periodically so we can see what happens
+            # just before a runner crash (which destroys all step logs).
+            $HeartbeatScript = Join-Path $DiagDir "heartbeat.sh"
+            @"
+#!/bin/bash
+BINARY_NAME="$BinaryName"
+DIAG_DIR="$DiagDir"
+DIAG_FILE="$DiagFile"
+"@ | Set-Content -Path $HeartbeatScript -NoNewline
+            @'
+
+COUNTER=0
+sleep 300  # first heartbeat after 5 minutes
+while true; do
+    COUNTER=$((COUNTER + 1))
+    # Collect system state
+    MEM=$(free -h | head -2)
+    DISK=$(df -h / | tail -1)
+    LOAD=$(cat /proc/loadavg)
+    # Broad dmesg check: kernel oops, BUG, OOM, XDP, segfault, panic, hung_task, slab
+    DMESG=$(sudo dmesg -T --since '6 minutes ago' 2>/dev/null | grep -iE 'oom|kill|xdp|bpf|segfault|oops|BUG|panic|Call Trace|RIP:|WARNING|hung_task|page allocation|slab|out of memory' | tail -20)
+    if [ -z "$DMESG" ]; then
+        DMESG="(no relevant kernel messages)"
+    fi
+    # Get last 10 lines of resource monitor
+    MONITOR_TAIL=""
+    if [ -f "$DIAG_FILE" ]; then
+        MONITOR_TAIL=$(tail -10 "$DIAG_FILE")
+    fi
+    # Get process tree for test processes
+    PROCS=$(ps aux --sort=-%mem | head -15)
+    # Build the comment body
+    BODY="### XDP Heartbeat #${COUNTER}: ${BINARY_NAME} (${COUNTER}x5 min elapsed)
+\`\`\`
+mem:
+${MEM}
+disk:
+${DISK}
+load:
+${LOAD}
+dmesg (last 6 min):
+${DMESG}
+top processes by memory:
+${PROCS}
+resource monitor (last 10 entries):
+${MONITOR_TAIL}
+\`\`\`"
+    # Post to PR if possible
+    if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPOSITORY" ] && [ -n "$GITHUB_REF" ]; then
+        PR_NUM=$(echo "$GITHUB_REF" | grep -oP 'refs/pull/\K\d+')
+        if [ -n "$PR_NUM" ]; then
+            TMPFILE="${DIAG_DIR}/heartbeat_comment.json"
+            python3 -c "import json,sys; print(json.dumps({'body': sys.stdin.read()}))" <<< "$BODY" > "$TMPFILE"
+            curl -sS -w '%{http_code}' -X POST \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d @"$TMPFILE" \
+                "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUM/comments" \
+                -o /dev/null 2>&1
+        fi
+    fi
+    sleep 300  # every 5 minutes
+done
+'@ | Add-Content -Path $HeartbeatScript -NoNewline
+            bash -c "chmod +x $HeartbeatScript"
+            $HeartbeatPid = $null
+            try {
+                $HeartbeatPid = (Start-Process -FilePath "bash" -ArgumentList $HeartbeatScript -PassThru -NoNewWindow).Id
+                Write-Host ">>> [XDP Diag] Heartbeat monitor started (PID=$HeartbeatPid)"
+            } catch {
+                Write-Host "Warning: Could not start heartbeat monitor: $_"
+            }
+
             Write-Host ">>> [XDP Diag] Before ${BinaryName}:"
             bash -c "free -h; echo '---'; df -h / /tmp; echo '---'; cat /proc/loadavg"
             # Disable core dumps entirely via hard limit. Use timeout as
@@ -427,16 +501,19 @@ done
             $TestExitCode = $LASTEXITCODE
 
             # Post post-test diagnostics
-            $PostDiag = bash -c "echo 'mem:'; free -h | head -2; echo 'disk:'; df -h / | tail -1; echo 'load:'; cat /proc/loadavg; echo 'dmesg:'; sudo dmesg -T --since '2 hours ago' 2>/dev/null | grep -iE 'oom|killed process|xdp|bpf|out of memory|segfault' | tail -10 || echo 'none'"
+            $PostDiag = bash -c "echo 'mem:'; free -h | head -2; echo 'disk:'; df -h / | tail -1; echo 'load:'; cat /proc/loadavg; echo 'dmesg:'; sudo dmesg -T --since '2 hours ago' 2>/dev/null | grep -iE 'oom|kill|xdp|bpf|segfault|oops|BUG|panic|Call Trace|RIP:|WARNING|hung_task|page allocation|slab|out of memory' | tail -20 || echo 'none'"
             $MonitorLog = if (Test-Path $DiagFile) { Get-Content $DiagFile -Raw } else { "no data" }
             Post-XdpDiag "Finished $BinaryName (exit=$TestExitCode)" "``````n$($PostDiag -join "`n")`n``````n`nResource monitor:`n``````n$MonitorLog`n``````"
 
             Write-Host ">>> [XDP Diag] After ${BinaryName} (exit=$TestExitCode):"
             $PostDiag | ForEach-Object { Write-Host $_ }
 
-            # Stop the background monitor
+            # Stop the background monitors
             if ($MonitorPid) {
                 Stop-Process -Id $MonitorPid -ErrorAction SilentlyContinue
+            }
+            if ($HeartbeatPid) {
+                Stop-Process -Id $HeartbeatPid -ErrorAction SilentlyContinue
             }
         } else {
             Invoke-Expression ($RunTest + " -Path $TestPath " + $TestArguments)
