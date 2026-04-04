@@ -419,9 +419,11 @@ done
                 Write-Host "Warning: Could not start resource monitor: $_"
             }
 
-            # Start background heartbeat that posts PR comments every 5 minutes.
-            # This captures system state periodically so we can see what happens
-            # just before a runner crash (which destroys all step logs).
+            # Start background heartbeat only for msquictest (where the crash
+            # happens). Posts PR comments every 60 seconds so we capture the
+            # system state just before the runner crash.
+            $HeartbeatPid = $null
+            if ($BinaryName -eq "msquictest") {
             $HeartbeatScript = Join-Path $DiagDir "heartbeat.sh"
             @"
 #!/bin/bash
@@ -432,7 +434,6 @@ DIAG_FILE="$DiagFile"
             @'
 
 COUNTER=0
-sleep 300  # first heartbeat after 5 minutes
 while true; do
     COUNTER=$((COUNTER + 1))
     # Collect system state
@@ -440,31 +441,35 @@ while true; do
     DISK=$(df -h / | tail -1)
     LOAD=$(cat /proc/loadavg)
     # Broad dmesg check: kernel oops, BUG, OOM, XDP, segfault, panic, hung_task, slab
-    DMESG=$(sudo dmesg -T --since '6 minutes ago' 2>/dev/null | grep -iE 'oom|kill|xdp|bpf|segfault|oops|BUG|panic|Call Trace|RIP:|WARNING|hung_task|page allocation|slab|out of memory' | tail -20)
+    DMESG=$(sudo dmesg -T --since '2 minutes ago' 2>/dev/null | grep -iE 'oom|kill|xdp|bpf|segfault|oops|BUG|panic|Call Trace|RIP:|WARNING|hung_task|page allocation|slab|out of memory' | tail -20)
     if [ -z "$DMESG" ]; then
         DMESG="(no relevant kernel messages)"
     fi
-    # Get last 10 lines of resource monitor
+    # Get last 5 lines of resource monitor
     MONITOR_TAIL=""
     if [ -f "$DIAG_FILE" ]; then
-        MONITOR_TAIL=$(tail -10 "$DIAG_FILE")
+        MONITOR_TAIL=$(tail -5 "$DIAG_FILE")
     fi
-    # Get process tree for test processes
-    PROCS=$(ps aux --sort=-%mem | head -15)
+    # Get process tree for test processes (top 10 by memory)
+    PROCS=$(ps aux --sort=-%mem | head -10)
+    # Check kernel memory (slab + page cache details)
+    KMEM=$(cat /proc/meminfo | grep -E 'Slab|SReclaimable|SUnreclaim|Committed_AS|VmallocUsed|AnonPages|Mapped|PageTables')
     # Build the comment body
-    BODY="### XDP Heartbeat #${COUNTER}: ${BINARY_NAME} (${COUNTER}x5 min elapsed)
+    BODY="### XDP Heartbeat #${COUNTER}: ${BINARY_NAME} (+${COUNTER} min)
 \`\`\`
 mem:
 ${MEM}
+kernel mem:
+${KMEM}
 disk:
 ${DISK}
 load:
 ${LOAD}
-dmesg (last 6 min):
+dmesg (last 2 min):
 ${DMESG}
 top processes by memory:
 ${PROCS}
-resource monitor (last 10 entries):
+resource monitor:
 ${MONITOR_TAIL}
 \`\`\`"
     # Post to PR if possible
@@ -481,17 +486,17 @@ ${MONITOR_TAIL}
                 -o /dev/null 2>&1
         fi
     fi
-    sleep 300  # every 5 minutes
+    sleep 60  # heartbeat every 60 seconds
 done
 '@ | Add-Content -Path $HeartbeatScript -NoNewline
             bash -c "chmod +x $HeartbeatScript"
-            $HeartbeatPid = $null
             try {
                 $HeartbeatPid = (Start-Process -FilePath "bash" -ArgumentList $HeartbeatScript -PassThru -NoNewWindow).Id
-                Write-Host ">>> [XDP Diag] Heartbeat monitor started (PID=$HeartbeatPid)"
+                Write-Host ">>> [XDP Diag] Heartbeat monitor started (PID=$HeartbeatPid) for $BinaryName"
             } catch {
                 Write-Host "Warning: Could not start heartbeat monitor: $_"
             }
+            } # end if msquictest
 
             Write-Host ">>> [XDP Diag] Before ${BinaryName}:"
             bash -c "free -h; echo '---'; df -h / /tmp; echo '---'; cat /proc/loadavg"
