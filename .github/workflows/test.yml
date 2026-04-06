@@ -186,6 +186,15 @@ jobs:
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       run: |
         sudo chmod -R 777 artifacts
+    - name: Configure swap space
+      if: matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp'
+      run: |
+        sudo fallocate -l 4G /swapfile
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+        echo "Swap enabled:"
+        swapon --show
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
