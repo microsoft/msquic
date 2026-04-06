@@ -2453,3 +2453,108 @@ TEST_P(WithMode, OverlapWriteMultipleGaps)
     ASSERT_EQ(30u, TotalRead);
     RecvBuf.Drain(30);
 }
+TEST_P(WithMode, OverlapWriteThreeRangesTwoOverlaps)
+{
+    //
+    // Write [0, 15), then [10, 25) overlapping [10, 15), then [20, 30) overlapping [20, 25).
+    // Sentinel values (0xff) cover both overlap regions to verify existing data is preserved.
+    //
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
+
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+
+    // Write [0, 15) with pattern: byte[i] = (uint8_t)i
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 15, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // Write [10, 25): 0xff sentinel in overlap [10, 15), valid data in [15, 25)
+    uint8_t SecondWrite[15];
+    for (uint16_t i = 0; i < 5;  ++i) SecondWrite[i] = 0xff;
+    for (uint16_t i = 5; i < 15; ++i) SecondWrite[i] = (uint8_t)(10 + i);
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.WriteCustom(10, 15, SecondWrite, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // Write [20, 30): 0xff sentinel in overlap [20, 25), valid data in [25, 30)
+    uint8_t ThirdWrite[10];
+    for (uint16_t i = 0; i < 5;  ++i) ThirdWrite[i] = 0xff;
+    for (uint16_t i = 5; i < 10; ++i) ThirdWrite[i] = (uint8_t)(20 + i);
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.WriteCustom(20, 10, ThirdWrite, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_EQ(30ull, RecvBuf.GetTotalLength());
+
+    // Expected: [0,15) from first write, [15,25) from SecondWrite[5..14], [25,30) from ThirdWrite[5..9]
+    uint8_t Expected[30];
+    for (uint32_t i = 0;  i < 15; ++i) Expected[i] = (uint8_t)i;
+    for (uint32_t i = 15; i < 25; ++i) Expected[i] = (uint8_t)(10 + (i - 10));
+    for (uint32_t i = 25; i < 30; ++i) Expected[i] = (uint8_t)(20 + (i - 20));
+
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    QuicRecvBufferRead(&RecvBuf.RecvBuf, &ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_EQ(0ull, ReadOffset);
+    uint32_t TotalRead = 0;
+    for (uint32_t b = 0; b < BufferCount; ++b) {
+        ASSERT_EQ(0, memcmp(ReadBuffers[b].Buffer, Expected + TotalRead, ReadBuffers[b].Length));
+        TotalRead += ReadBuffers[b].Length;
+    }
+    ASSERT_EQ(30u, TotalRead);
+    RecvBuf.Drain(30);
+}
+
+TEST_P(WithMode, OverlapWriteThreeContiguousNonOverlapping)
+{
+    //
+    // Write three non-overlapping contiguous ranges: [0,10), [10,20), [20,30).
+    // Ranges touch but do not overlap. All data should land correctly without corruption.
+    //
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
+
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+
+    // Write [0, 10) with pattern: byte[i] = (uint8_t)i
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 10, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // Write [10, 20) — contiguous, no overlap
+    uint8_t SecondWrite[10];
+    for (uint16_t i = 0; i < 10; ++i) SecondWrite[i] = (uint8_t)(10 + i);
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.WriteCustom(10, 10, SecondWrite, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // Write [20, 30) — contiguous, no overlap
+    uint8_t ThirdWrite[10];
+    for (uint16_t i = 0; i < 10; ++i) ThirdWrite[i] = (uint8_t)(20 + i);
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.WriteCustom(20, 10, ThirdWrite, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_EQ(30ull, RecvBuf.GetTotalLength());
+
+    // Expected: byte[i] = (uint8_t)i across all 30 bytes
+    uint8_t Expected[30];
+    for (uint32_t i = 0; i < 30; ++i) Expected[i] = (uint8_t)i;
+
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    QuicRecvBufferRead(&RecvBuf.RecvBuf, &ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_EQ(0ull, ReadOffset);
+    uint32_t TotalRead = 0;
+    for (uint32_t b = 0; b < BufferCount; ++b) {
+        ASSERT_EQ(0, memcmp(ReadBuffers[b].Buffer, Expected + TotalRead, ReadBuffers[b].Length));
+        TotalRead += ReadBuffers[b].Length;
+    }
+    ASSERT_EQ(30u, TotalRead);
+    RecvBuf.Drain(30);
+}
