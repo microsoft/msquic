@@ -172,11 +172,14 @@ CxPlatSocketCreateUdp(
                     CxPlatSocketDelete(*NewSocket);
                     continue;
                 }
-                if ((!RequiresQtip && !CibirRequested) || ((*NewSocket)->HasFixedRemoteAddress && CibirRequested)) {
+                if ((!RequiresQtip && !CibirRequested) || ((*NewSocket)->HasFixedRemoteAddress && CibirRequested && !RequiresQtip)) {
                     //
-                    // Allow fallback to normal OS sockets under these 2 cases only:
-                    //  - Pure XDP with no QTIP and no CIBIR. (OS fallback sockets always created.)
-                    //  - XDP with CIBIR but ONLY for client sockets. (There won't be any OS sockets to fallback to for CIBIR server sockets.)
+                    // Allow fallback to OS UDP sockets in these 2 cases only:
+                    //  - XDP with no QTIP and no CIBIR.
+                    //  - Non-QTIP XDP with CIBIR enabled for client sockets only. CIBIR transport parameter
+                    //    negotiation can still work without XDP. Cannot fallback for server sockets because
+                    //    MsQuic skips OS UDP socket creation to allow for CIBIR port sharing across multiple
+                    //    processes.
                     //
                     QuicTraceLogWarning(
                         WarnFallbackToOsSockets,
