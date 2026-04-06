@@ -189,11 +189,14 @@ jobs:
     - name: Configure swap space
       if: matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp'
       run: |
-        sudo fallocate -l 4G /swapfile
-        sudo chmod 600 /swapfile
-        sudo mkswap /swapfile
-        sudo swapon /swapfile
-        echo "Swap enabled:"
+        sudo swapoff -a || true
+        sudo rm -f /swapfile /mnt/swapfile || true
+        sudo fallocate -l 6G /mnt/swapfile
+        sudo chmod 600 /mnt/swapfile
+        sudo mkswap /mnt/swapfile
+        sudo swapon /mnt/swapfile
+        echo "Swap configured:"
+        free -h
         swapon --show
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
