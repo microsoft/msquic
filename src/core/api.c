@@ -1571,14 +1571,8 @@ Error:
     //
     while (!CxPlatListIsEmpty(&ChunkList)) {
         CXPLAT_DBG_ASSERT(Connection != NULL);
-        CxPlatPoolFree(
+        QuicRecvChunkFree(
             CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
-        CXPLAT_FREE(
-            CXPLAT_CONTAINING_RECORD(
-                CxPlatListRemoveHead(&ChunkList),
-                QUIC_RECV_CHUNK,
-                Link),
-            QUIC_POOL_RECVBUF);
     }
 
     QuicTraceEvent(

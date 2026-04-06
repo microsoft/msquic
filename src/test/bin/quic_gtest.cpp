@@ -262,6 +262,24 @@ bool InvokeKernelTest(const std::string& Name, FunType, const ParamType& Params)
 #define FUNC(TestFunction) \
     #TestFunction, TestFunction
 
+TEST(ParameterValidation, ValidateApi) {
+    TestLogger Logger("QuicTestValidateApi");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateApi)));
+    } else {
+        QuicTestValidateApi();
+    }
+}
+
+TEST(ParameterValidation, ValidateRegistration) {
+    TestLogger Logger("QuicTestValidateRegistration");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateRegistration)));
+    } else {
+        QuicTestValidateRegistration();
+    }
+}
+
 TEST(ParameterValidation, ValidateGlobalParam) {
     TestLogger Logger("QuicTestValidateGlobalParam");
     if (TestingKernelMode) {

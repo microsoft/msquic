@@ -142,15 +142,14 @@ if (!(Test-Path $Path)) {
 
 # Validate the code coverage switch
 if ($CodeCoverage) {
-    if (!$IsWindows) {
-        Write-Error "-CodeCoverage switch only supported on Windows";
-    }
     if ($Debugger) {
         Write-Error "-CodeCoverage switch is not supported with debugging";
     }
-    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+    if ($IsWindows -and !(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
         Write-Error "Code coverage tools are not installed";
-    }
+    } elseif ($IsLinux -and !(Get-Command gcovr -ErrorAction SilentlyContinue)) {
+        Write-Error "Code coverage tools for linux (gcovr) are not installed (missing 'gcovr')."
+    } 
 }
 
 # Root directory of the project.

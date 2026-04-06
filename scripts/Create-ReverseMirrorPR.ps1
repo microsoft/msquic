@@ -187,6 +187,13 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "  Created: $githubPrUrl" -ForegroundColor Green
 }
 
+# Enable auto-merge on the GitHub PR
+Write-Host "Enabling auto-merge on GitHub pull request..." -ForegroundColor Yellow
+gh pr merge $githubPrUrl --repo "$GitHubOrg/$GitHubRepo" --auto --squash
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "Failed to enable auto-merge on GitHub pull request. You may need to enable it manually."
+}
+
 # Add comment to ADO PR with GitHub PR link
 Write-Host "Adding comment to ADO pull request..." -ForegroundColor Yellow
 $comment = "This pull request has been mirrored to GitHub: $githubPrUrl`n`nPlease continue all review and development on the GitHub pull request."
