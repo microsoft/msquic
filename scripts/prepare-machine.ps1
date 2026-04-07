@@ -506,11 +506,20 @@ function Install-Clog2Text {
 }
 
 function Build-ClogTool {
-    # Check if dotnet SDK is available before attempting to build.
-    # This can be absent in some containers; cmake will fall back to building clog
-    # at configure time if needed (and fail with a clear message for lttng builds).
+    # Check if dotnet SDK is available and functional before attempting to build.
+    # In cross-compilation containers the dotnet binary may be installed for a different
+    # CPU architecture and fail with "Exec format error" even though it exists on PATH.
+    # cmake will fall back to building clog at configure time if needed (and fail with
+    # a clear message for lttng builds if dotnet is unavailable there too).
     if ($null -eq (Get-Command dotnet -ErrorAction SilentlyContinue)) {
         Write-Warning "dotnet SDK not found. Skipping clog tool pre-build. The cmake configure step will attempt to build it if dotnet is available."
+        return
+    }
+    # Verify dotnet is executable on this architecture (Exec format errors occur in
+    # cross-compilation containers where the dotnet binary targets a different arch).
+    $null = & dotnet --version 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "dotnet is present but failed to run (possibly incompatible CPU architecture). Skipping clog tool pre-build."
         return
     }
     $ClogBuildDir = Join-Path $RootDir "build" "clog"
@@ -651,9 +660,13 @@ if ($IsLinux) {
         # Install dotnet SDK if not already present in the container image.
         # New container images built from the updated Dockerfiles include dotnet-sdk-8.0.
         # This conditional install ensures compatibility with older cached images.
+        # Specify the native architecture explicitly (e.g., amd64) because cross-compilation
+        # containers register arm64/armhf as foreign dpkg architectures; without an explicit
+        # arch suffix the Microsoft apt source can resolve to the wrong architecture package.
         if ($null -eq (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+            $NativeArch = (& dpkg --print-architecture 2>&1).Trim()
             sudo apt-get update -y
-            sudo apt-get install -y dotnet-sdk-8.0
+            sudo apt-get install -y "dotnet-sdk-8.0:${NativeArch}"
         }
         Build-ClogTool
     }

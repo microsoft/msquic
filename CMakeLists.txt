@@ -478,22 +478,34 @@ if (QUIC_ENABLE_LOGGING)
     if (NOT CLOG_EXECUTABLE)
         find_program(DOTNET_EXECUTABLE dotnet)
         if (DOTNET_EXECUTABLE)
-            set(CLOG_BUILD_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/build/clog)
-            message(STATUS "Building clog tool from submodule...")
+            # Verify dotnet is actually runnable on this host architecture.
+            # In cross-compilation containers the dotnet binary may exist for a different
+            # CPU architecture and fail with "Exec format error" (ENOEXEC).
             execute_process(
-                COMMAND ${DOTNET_EXECUTABLE} publish
-                    ${CMAKE_SOURCE_DIR}/submodules/clog/src/clog
-                    -o ${CLOG_BUILD_OUTPUT_DIR}
-                    -f net8.0
-                    -c Release
-                    --nologo
-                RESULT_VARIABLE CLOG_BUILD_RESULT
-                OUTPUT_QUIET
+                COMMAND ${DOTNET_EXECUTABLE} --version
+                RESULT_VARIABLE DOTNET_VERSION_RESULT
+                OUTPUT_QUIET ERROR_QUIET
             )
-            if (CLOG_BUILD_RESULT EQUAL 0)
-                find_program(CLOG_EXECUTABLE clog
-                    PATHS ${CLOG_BUILD_OUTPUT_DIR}
-                    NO_DEFAULT_PATH)
+            if (DOTNET_VERSION_RESULT EQUAL 0)
+                set(CLOG_BUILD_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/build/clog)
+                message(STATUS "Building clog tool from submodule...")
+                execute_process(
+                    COMMAND ${DOTNET_EXECUTABLE} publish
+                        ${CMAKE_SOURCE_DIR}/submodules/clog/src/clog
+                        -o ${CLOG_BUILD_OUTPUT_DIR}
+                        -f net8.0
+                        -c Release
+                        --nologo
+                    RESULT_VARIABLE CLOG_BUILD_RESULT
+                    OUTPUT_QUIET
+                )
+                if (CLOG_BUILD_RESULT EQUAL 0)
+                    find_program(CLOG_EXECUTABLE clog
+                        PATHS ${CLOG_BUILD_OUTPUT_DIR}
+                        NO_DEFAULT_PATH)
+                endif()
+            else()
+                message(STATUS "dotnet found at ${DOTNET_EXECUTABLE} but is not executable on this host (Exec format error or incompatible architecture). Skipping clog build via dotnet.")
             endif()
         endif()
     endif()
