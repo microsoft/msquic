@@ -506,24 +506,22 @@ function Install-Clog2Text {
 }
 
 function Build-ClogTool {
-    # Check if dotnet SDK is available and functional before attempting to build.
-    # In cross-compilation containers the dotnet binary may be installed for a different
-    # CPU architecture and fail with "Exec format error" even though it exists on PATH.
-    # cmake will fall back to building clog at configure time if needed (and fail with
-    # a clear message for lttng builds if dotnet is unavailable there too).
+    # Build the clog tracing code generator from the submodule, placing it in
+    # build/clog/ where cmake's find_program will discover it.
+    # Used by ForBuild (macOS, Windows, Android on Linux) where dotnet is reliably available.
+    # Container builds use the pre-built self-contained clog binary baked into the
+    # Docker image (see .docker/ubuntu-*/Dockerfile); they do not call this function.
     if ($null -eq (Get-Command dotnet -ErrorAction SilentlyContinue)) {
         Write-Warning "dotnet SDK not found. Skipping clog tool pre-build. The cmake configure step will attempt to build it if dotnet is available."
         return
     }
-    # Verify dotnet is executable on this architecture. Native commands with non-zero
-    # exit codes throw terminating errors when $ErrorActionPreference = 'Stop' and
-    # $PSNativeCommandUseErrorActionPreference = $true (PowerShell 7.3+), so wrap in
-    # try/catch. Exec format errors occur in cross-compilation containers where the
-    # dotnet binary targets a different CPU architecture than the host.
+    # Verify dotnet is executable. Wrap in try/catch because PowerShell 7.3+ with
+    # $PSNativeCommandUseErrorActionPreference = $true throws a terminating error for
+    # native commands with non-zero exit codes when $ErrorActionPreference = 'Stop'.
     try {
         $dotnetVersion = & dotnet --version 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "dotnet is present but failed to run (possibly incompatible CPU architecture). Skipping clog tool pre-build."
+            Write-Warning "dotnet is present but failed to run. Skipping clog tool pre-build."
             return
         }
     } catch {
@@ -662,44 +660,6 @@ if ($IsLinux) {
             sudo apt-get -y install libxdp-dev libbpf-dev
             sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
         }
-    }
-
-    if ($ForContainerBuild) {
-        # dotnet is needed to build the clog tracing tool. New container images
-        # (built from the updated Dockerfiles) include dotnet-sdk-8.0 pre-installed.
-        # For older cached images that do not yet have dotnet, install it via
-        # dotnet-install.sh. apt-get cannot be used here because Ubuntu 24.04
-        # cross-build containers remove ubuntu.sources (which contains dotnet-sdk-8.0
-        # on Ubuntu 24.04) and the Microsoft apt feed does not carry dotnet for
-        # Ubuntu 22.04+.
-        if ($null -eq (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-            Write-Host "dotnet not found in container; installing via dotnet-install.sh..."
-            $DotnetInstallDir = Join-Path $HOME ".dotnet"
-            $DotnetInstallScript = "/tmp/dotnet-install.sh"
-            $DotnetInstallOk = $false
-            try {
-                Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.sh" -OutFile $DotnetInstallScript
-                bash $DotnetInstallScript --channel 8.0 --install-dir $DotnetInstallDir
-                if ($LASTEXITCODE -eq 0) {
-                    $env:PATH = "${DotnetInstallDir}:$env:PATH"
-                    $DotnetInstallOk = $true
-                }
-            } catch {
-                Write-Warning "dotnet-install.sh failed: $_"
-            }
-            if (-not $DotnetInstallOk) {
-                Write-Warning "Could not install .NET SDK. Skipping clog tool pre-build; cmake will attempt to build clog at configure time."
-            }
-        }
-        try {
-            Build-ClogTool
-        } catch {
-            Write-Warning "clog tool pre-build failed: $_. cmake will attempt to build clog at configure time."
-        }
-        # clog pre-build is advisory; ensure optional install failures do not
-        # propagate as a script failure (pwsh -Command uses $LASTEXITCODE as the
-        # process exit code, so reset it explicitly here).
-        $LASTEXITCODE = 0
     }
 
     if ($ForTest) {

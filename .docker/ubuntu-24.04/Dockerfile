@@ -50,9 +50,26 @@ RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3
     sudo apt-get install -y \
         # INSTALL POWERSHELL
         powershell \
-        # INSTALL DOTNET SDK (for building clog at cmake configure time)
+        # INSTALL DOTNET SDK (used below to build clog self-contained)
         dotnet-sdk-8.0 \
     && rm -rf /var/lib/apt/lists/*
+
+# Build the clog tracing code generator as a self-contained native binary so it
+# can run inside cross-compilation containers without a dotnet runtime present.
+# The commit SHA must match the clog submodule pin in .gitmodules / submodules/clog.
+# Update this SHA whenever the submodule is updated.
+ARG CLOG_COMMIT=6a08c15cccbd9129d64732cd017828c5715825f7
+RUN git clone https://github.com/microsoft/CLOG.git /tmp/clog \
+    && git -C /tmp/clog checkout ${CLOG_COMMIT} \
+    && dotnet publish /tmp/clog/src/clog \
+        -o /usr/local/lib/clog \
+        -f net8.0 \
+        -c Release \
+        --self-contained true \
+        -r linux-x64 \
+        --nologo \
+    && ln -sf /usr/local/lib/clog/clog /usr/local/bin/clog \
+    && rm -rf /tmp/clog /root/.nuget
 
 RUN git config --global safe.directory '*'
 
