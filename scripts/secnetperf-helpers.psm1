@@ -588,8 +588,7 @@ function Invoke-Secnetperf {
         continue
     }
 
-     # Linux XDP requires sudo for now
-    $useSudo = (!$isWindows -and $io -eq "xdp")
+     $useSudo = $false
 
     if ($tcp -eq 0) {
         $artifactName = "$Scenario-quic"
