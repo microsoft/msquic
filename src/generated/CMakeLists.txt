@@ -59,7 +59,7 @@ if(QUIC_ENABLE_LOGGING)
         add_library(logging INTERFACE)
 
         # Run clog for the windows profile: validates the sidecar and generates
-        # per-file stubs and decoder ring files into the build directory.
+        # per-file stubs and decoder ring files into CMAKE_BINARY_DIR/clog_output/windows.
         if (CLOG_EXECUTABLE)
             clog_generate_at_configure_time("windows" "" CLOG_WINDOWS_OUTPUT_DIR)
         endif()
@@ -69,8 +69,8 @@ if(QUIC_ENABLE_LOGGING)
         add_library(logging STATIC ${LOGGING_FILES})
         target_link_libraries(logging PRIVATE inc)
 
-        # Run clog for the macos profile: validates the sidecar and generates
-        # per-file stubs and decoder ring files into the build directory.
+        # Run clog for the macos profile (stdout logging): validates the sidecar and generates
+        # per-file stubs and decoder ring files into CMAKE_BINARY_DIR/clog_output/macos.
         if (CLOG_EXECUTABLE)
             clog_generate_at_configure_time("macos" "" CLOG_MACOS_OUTPUT_DIR)
         endif()
