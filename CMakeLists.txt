@@ -420,6 +420,7 @@ if(QUIC_ENABLE_LOGGING)
         if (WIN32)
             message(STATUS "Configuring for manifested ETW logging")
             list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
+            set(CLOG_PROFILE "windows")
         else()
             message(WARNING "ETW logging is only available on WIN32. Disabling logging")
             set(QUIC_ENABLE_LOGGING OFF)
@@ -444,44 +445,7 @@ if(QUIC_ENABLE_LOGGING)
                     message(STATUS "Configuring for LTTng logging")
                     list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
                     include(FindLTTngUST)
-
-                    # Find the clog code generator tool needed to generate LTTng tracing headers
-                    # at cmake configure time. First look in build/clog/ (where prepare-machine puts it),
-                    # then fall back to PATH, then try building from the submodule.
-                    find_program(CLOG_EXECUTABLE clog
-                        PATHS ${CMAKE_SOURCE_DIR}/build/clog
-                        NO_DEFAULT_PATH)
-                    if (NOT CLOG_EXECUTABLE)
-                        find_program(CLOG_EXECUTABLE clog)
-                    endif()
-                    if (NOT CLOG_EXECUTABLE)
-                        find_program(DOTNET_EXECUTABLE dotnet)
-                        if (DOTNET_EXECUTABLE)
-                            set(CLOG_BUILD_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/build/clog)
-                            message(STATUS "Building clog tool from submodule...")
-                            execute_process(
-                                COMMAND ${DOTNET_EXECUTABLE} publish
-                                    ${CMAKE_SOURCE_DIR}/submodules/clog/src/clog
-                                    -o ${CLOG_BUILD_OUTPUT_DIR}
-                                    -f net8.0
-                                    -c Release
-                                    --nologo
-                                RESULT_VARIABLE CLOG_BUILD_RESULT
-                                OUTPUT_QUIET
-                            )
-                            if (CLOG_BUILD_RESULT EQUAL 0)
-                                find_program(CLOG_EXECUTABLE clog
-                                    PATHS ${CLOG_BUILD_OUTPUT_DIR}
-                                    NO_DEFAULT_PATH)
-                            endif()
-                        endif()
-                    endif()
-                    if (NOT CLOG_EXECUTABLE)
-                        message(FATAL_ERROR "clog executable not found. "
-                            "Run 'scripts/prepare-machine.ps1 -ForBuild' to install it, "
-                            "or ensure dotnet SDK is installed and the clog submodule is initialized.")
-                    endif()
-                    message(STATUS "Using clog: ${CLOG_EXECUTABLE}")
+                    set(CLOG_PROFILE "linux")
                 endif()
             endif()
         endif()
@@ -489,6 +453,7 @@ if(QUIC_ENABLE_LOGGING)
     elseif (QUIC_LOGGING_TYPE STREQUAL "stdout")
         message(STATUS "Configuring for stdout logging")
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STDOUT QUIC_LOGS_STDOUT)
+        set(CLOG_PROFILE "macos")
     endif()
 
 else()
@@ -497,6 +462,54 @@ endif()
 
 if (NOT QUIC_ENABLE_LOGGING)
     list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
+endif()
+
+# Find the clog code generator tool, used at cmake configure time for all logging types
+# to validate the sidecar and generate platform-specific tracing stubs and decoder rings.
+# First look in build/clog/ (where prepare-machine puts it), then fall back to PATH,
+# then try building from the submodule automatically.
+if (QUIC_ENABLE_LOGGING)
+    find_program(CLOG_EXECUTABLE clog
+        PATHS ${CMAKE_SOURCE_DIR}/build/clog
+        NO_DEFAULT_PATH)
+    if (NOT CLOG_EXECUTABLE)
+        find_program(CLOG_EXECUTABLE clog)
+    endif()
+    if (NOT CLOG_EXECUTABLE)
+        find_program(DOTNET_EXECUTABLE dotnet)
+        if (DOTNET_EXECUTABLE)
+            set(CLOG_BUILD_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/build/clog)
+            message(STATUS "Building clog tool from submodule...")
+            execute_process(
+                COMMAND ${DOTNET_EXECUTABLE} publish
+                    ${CMAKE_SOURCE_DIR}/submodules/clog/src/clog
+                    -o ${CLOG_BUILD_OUTPUT_DIR}
+                    -f net8.0
+                    -c Release
+                    --nologo
+                RESULT_VARIABLE CLOG_BUILD_RESULT
+                OUTPUT_QUIET
+            )
+            if (CLOG_BUILD_RESULT EQUAL 0)
+                find_program(CLOG_EXECUTABLE clog
+                    PATHS ${CLOG_BUILD_OUTPUT_DIR}
+                    NO_DEFAULT_PATH)
+            endif()
+        endif()
+    endif()
+    if (CLOG_EXECUTABLE)
+        message(STATUS "Using clog: ${CLOG_EXECUTABLE}")
+    else()
+        if (QUIC_LOGGING_TYPE STREQUAL "lttng")
+            message(FATAL_ERROR "clog executable not found. "
+                "Run 'scripts/prepare-machine.ps1 -ForBuild' to install it, "
+                "or ensure dotnet SDK is installed and the clog submodule is initialized.")
+        else()
+            message(WARNING "clog executable not found. "
+                "Sidecar validation and decoder ring generation will be skipped. "
+                "Run 'scripts/prepare-machine.ps1 -ForBuild' to install it.")
+        endif()
+    endif()
 endif()
 
 if (NOT MSVC AND NOT APPLE AND NOT ANDROID)

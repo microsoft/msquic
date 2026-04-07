@@ -567,6 +567,12 @@ if ($ForBuild -or $ForContainerBuild) {
     }
 
     git submodule update --jobs=8
+
+    # Build clog tool on non-Linux platforms (Linux builds it in the platform-specific block
+    # after installing dotnet-sdk). Windows and macOS have dotnet pre-installed.
+    if (!$IsLinux) {
+        Build-ClogTool
+    }
 }
 
 if ($IsWindows -and $ForTest) {
