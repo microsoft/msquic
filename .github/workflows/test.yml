@@ -184,6 +184,7 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
+    - name: Install ETW Manifest
       if: matrix.vec.plat == 'windows'
       shell: pwsh
       run: |
