@@ -657,18 +657,37 @@ if ($IsLinux) {
     }
 
     if ($ForContainerBuild) {
-        # Install dotnet SDK if not already present in the container image.
-        # New container images built from the updated Dockerfiles include dotnet-sdk-8.0.
-        # This conditional install ensures compatibility with older cached images.
-        # Specify the native architecture explicitly (e.g., amd64) because cross-compilation
-        # containers register arm64/armhf as foreign dpkg architectures; without an explicit
-        # arch suffix the Microsoft apt source can resolve to the wrong architecture package.
+        # dotnet is needed to build the clog tracing tool. New container images
+        # (built from the updated Dockerfiles) include dotnet-sdk-8.0 pre-installed.
+        # For older cached images that do not yet have dotnet, install it via
+        # dotnet-install.sh. apt-get cannot be used here because Ubuntu 24.04
+        # cross-build containers remove ubuntu.sources (which contains dotnet-sdk-8.0
+        # on Ubuntu 24.04) and the Microsoft apt feed does not carry dotnet for
+        # Ubuntu 22.04+.
         if ($null -eq (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-            $NativeArch = (& dpkg --print-architecture 2>&1).Trim()
-            sudo apt-get update -y
-            sudo apt-get install -y "dotnet-sdk-8.0:${NativeArch}"
+            Write-Host "dotnet not found in container; installing via dotnet-install.sh..."
+            $DotnetInstallDir = Join-Path $HOME ".dotnet"
+            $DotnetInstallScript = "/tmp/dotnet-install.sh"
+            $DotnetInstallOk = $false
+            try {
+                Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.sh" -OutFile $DotnetInstallScript
+                bash $DotnetInstallScript --channel 8.0 --install-dir $DotnetInstallDir
+                if ($LASTEXITCODE -eq 0) {
+                    $env:PATH = "${DotnetInstallDir}:$env:PATH"
+                    $DotnetInstallOk = $true
+                }
+            } catch {
+                Write-Warning "dotnet-install.sh failed: $_"
+            }
+            if (-not $DotnetInstallOk) {
+                Write-Warning "Could not install .NET SDK. Skipping clog tool pre-build; cmake will attempt to build clog at configure time."
+            }
         }
         Build-ClogTool
+        # clog pre-build is advisory; ensure optional install failures do not
+        # propagate as a script failure (pwsh -Command uses $LASTEXITCODE as the
+        # process exit code, so reset it explicitly here).
+        $LASTEXITCODE = 0
     }
 
     if ($ForTest) {
