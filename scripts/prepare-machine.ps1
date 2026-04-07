@@ -515,11 +515,19 @@ function Build-ClogTool {
         Write-Warning "dotnet SDK not found. Skipping clog tool pre-build. The cmake configure step will attempt to build it if dotnet is available."
         return
     }
-    # Verify dotnet is executable on this architecture (Exec format errors occur in
-    # cross-compilation containers where the dotnet binary targets a different arch).
-    $null = & dotnet --version 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "dotnet is present but failed to run (possibly incompatible CPU architecture). Skipping clog tool pre-build."
+    # Verify dotnet is executable on this architecture. Native commands with non-zero
+    # exit codes throw terminating errors when $ErrorActionPreference = 'Stop' and
+    # $PSNativeCommandUseErrorActionPreference = $true (PowerShell 7.3+), so wrap in
+    # try/catch. Exec format errors occur in cross-compilation containers where the
+    # dotnet binary targets a different CPU architecture than the host.
+    try {
+        $dotnetVersion = & dotnet --version 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "dotnet is present but failed to run (possibly incompatible CPU architecture). Skipping clog tool pre-build."
+            return
+        }
+    } catch {
+        Write-Warning "dotnet is present but failed to run: $_. Skipping clog tool pre-build."
         return
     }
     $ClogBuildDir = Join-Path $RootDir "build" "clog"
@@ -683,7 +691,11 @@ if ($IsLinux) {
                 Write-Warning "Could not install .NET SDK. Skipping clog tool pre-build; cmake will attempt to build clog at configure time."
             }
         }
-        Build-ClogTool
+        try {
+            Build-ClogTool
+        } catch {
+            Write-Warning "clog tool pre-build failed: $_. cmake will attempt to build clog at configure time."
+        }
         # clog pre-build is advisory; ensure optional install failures do not
         # propagate as a script failure (pwsh -Command uses $LASTEXITCODE as the
         # process exit code, so reset it explicitly here).
