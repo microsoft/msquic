@@ -506,6 +506,13 @@ function Install-Clog2Text {
 }
 
 function Build-ClogTool {
+    # Check if dotnet SDK is available before attempting to build.
+    # This can be absent in some containers; cmake will fall back to building clog
+    # at configure time if needed (and fail with a clear message for lttng builds).
+    if ($null -eq (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        Write-Warning "dotnet SDK not found. Skipping clog tool pre-build. The cmake configure step will attempt to build it if dotnet is available."
+        return
+    }
     $ClogBuildDir = Join-Path $RootDir "build" "clog"
     New-Item -Path $ClogBuildDir -ItemType Directory -Force | Out-Null
     Write-Host "Building clog tool..."
@@ -641,7 +648,13 @@ if ($IsLinux) {
     }
 
     if ($ForContainerBuild) {
-        # Build clog tool (dotnet SDK is pre-installed in the container)
+        # Install dotnet SDK if not already present in the container image.
+        # New container images built from the updated Dockerfiles include dotnet-sdk-8.0.
+        # This conditional install ensures compatibility with older cached images.
+        if ($null -eq (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+            sudo apt-get update -y
+            sudo apt-get install -y dotnet-sdk-8.0
+        }
         Build-ClogTool
     }
 
