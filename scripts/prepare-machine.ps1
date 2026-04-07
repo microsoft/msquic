@@ -143,7 +143,7 @@ if ($ForTest) {
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
-                                  # for jobs that absoultely need it.
+                                  # for jobs that absolutely need it.
 
     if ($UseXdp) {
         $InstallXdpDriver = $true;
