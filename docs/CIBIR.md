@@ -4,28 +4,23 @@
 
 See [XDP](./XDP.md) first to understand the context.
 
-When CIBIR is used, rather than programming XDP to filter packets on port numbers,
-we now filter and de-mux packets based on QUIC connection ID.
+When CIBIR is used, rather than programming XDP to filter and demux packets based on on address and port number,
+XDP with CIBIR will instead filter and de-mux packets based on address, port number, and QUIC connection ID.
 
-CIBIR (CID-Based Identification and Routing) is just a prefix substring that XDP
-will use to match and filter all packets with a QUIC CID that contains the prefix substring equal to CIBIR.
+What CIBIR allows for is 2 or more separate server processes to share a single
+port on the same machine, as long as their CIBIR ID is different.
 
-What using CIBIR also enables is allowing 2 or more separate server processes to share a single
-port. As long as the CIBIR configuration used by each process is different, XDP can
-properly de-mux and dispatch received packets to the right process.
+## CIBIR port sharing logic
+- Applications must provide a well-known local port for server sockets when using CIBIR and XDP.
+- **IMPORTANT:** MsQuic will **NOT** reserve an OS port for server sockets when both CIBIR and XDP is enabled and available.
+    > Client sockets can never share ports, so MsQuic will reserve an OS port in that scenario.
+- The responsbility of book-keeping shared ports and ensuring robust protection for those shared ports is delegated to the application.
 
-## Port sharing rules
-- **IMPORTANT:** MsQuic will **NOT** reserve OS ports for server sockets using CIBIR+XDP.
-- Applications should be aware that if other processes on the system aren't collaborative, then traffic stealing is very possible if some other non-cibir server process binds to the shared port.
-- Applications must also provide a well-known local port for listeners using cibir+XDP.
-- MsQuic client connections may **NOT** share ports, thus MsQuic will create OS port reservations
-for cibir+xdp clients.
 
-## Port protection options
+## Port protection recommendation for shared ports
 
-There are a variety of options applications can leverage to protect these cibir shared ports from stealing traffic.
-
-- Persistent reservations:
- https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-createpersistentudpportreservation API, to allow sysadmins to pre-allocate a block of ports and disallow other applications from binding to it. Blocks of ports reserved are safe from reboots.
-- A well known CIBIR registry key can be used to detail shared ports, and sysadmins can coordinate their system such that other apps will not bind to those ports.
-- ALE policies; applications can configure WFP to block certain ports from being binded to by other apps.
+MsQuic strongly recommends applications leverage the Windows [persistent port reservations API](https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-createpersistentudpportreservation) to secure shared CIBIR ports prior to serving multi-process CIBIR traffic on a shared port.
+- One time setup by a system admin to create the persistent reservation.
+    > A good option for book-keeping persistent port reservations is via registry keys.
+- Persistent port reservations survive reboots, allowing for robust portection in the event of crashes.
+- Having a persistent reservation makes sure critical ports are taken out of the ephemeral port pool, so an unsuspecting application process won't get accidently assigned an ephemeral port that collides with a CIBIR port.
