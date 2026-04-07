@@ -505,6 +505,19 @@ function Install-Clog2Text {
     Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
 }
 
+function Build-ClogTool {
+    $ClogBuildDir = Join-Path $RootDir "build" "clog"
+    New-Item -Path $ClogBuildDir -ItemType Directory -Force | Out-Null
+    Write-Host "Building clog tool..."
+    $OriginalDOTNET_ROLL_FORWARD = $env:DOTNET_ROLL_FORWARD
+    try {
+        $env:DOTNET_ROLL_FORWARD = "Major"
+        dotnet publish (Join-Path $RootDir "submodules" "clog" "src" "clog") -o $ClogBuildDir -f net8.0 -c Release
+    } finally {
+        $env:DOTNET_ROLL_FORWARD = $OriginalDOTNET_ROLL_FORWARD
+    }
+}
+
 function Install-ProcDump {
     if (!$IsWindows) { throw "ProcDump is Windows-only." }
 
@@ -605,6 +618,10 @@ if ($IsLinux) {
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
 
+        # Install dotnet SDK for building the clog tracing code generator
+        sudo apt-get install -y dotnet-sdk-8.0
+        Build-ClogTool
+
         # XDP dependencies
         if ($UseXdp) {
             sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
@@ -615,6 +632,11 @@ if ($IsLinux) {
             sudo apt-get -y install libxdp-dev libbpf-dev
             sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
         }
+    }
+
+    if ($ForContainerBuild) {
+        # Build clog tool (dotnet SDK is pre-installed in the container)
+        Build-ClogTool
     }
 
     if ($ForTest) {

@@ -444,6 +444,44 @@ if(QUIC_ENABLE_LOGGING)
                     message(STATUS "Configuring for LTTng logging")
                     list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
                     include(FindLTTngUST)
+
+                    # Find the clog code generator tool needed to generate LTTng tracing headers
+                    # at cmake configure time. First look in build/clog/ (where prepare-machine puts it),
+                    # then fall back to PATH, then try building from the submodule.
+                    find_program(CLOG_EXECUTABLE clog
+                        PATHS ${CMAKE_SOURCE_DIR}/build/clog
+                        NO_DEFAULT_PATH)
+                    if (NOT CLOG_EXECUTABLE)
+                        find_program(CLOG_EXECUTABLE clog)
+                    endif()
+                    if (NOT CLOG_EXECUTABLE)
+                        find_program(DOTNET_EXECUTABLE dotnet)
+                        if (DOTNET_EXECUTABLE)
+                            set(CLOG_BUILD_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/build/clog)
+                            message(STATUS "Building clog tool from submodule...")
+                            execute_process(
+                                COMMAND ${DOTNET_EXECUTABLE} publish
+                                    ${CMAKE_SOURCE_DIR}/submodules/clog/src/clog
+                                    -o ${CLOG_BUILD_OUTPUT_DIR}
+                                    -f net8.0
+                                    -c Release
+                                    --nologo
+                                RESULT_VARIABLE CLOG_BUILD_RESULT
+                                OUTPUT_QUIET
+                            )
+                            if (CLOG_BUILD_RESULT EQUAL 0)
+                                find_program(CLOG_EXECUTABLE clog
+                                    PATHS ${CLOG_BUILD_OUTPUT_DIR}
+                                    NO_DEFAULT_PATH)
+                            endif()
+                        endif()
+                    endif()
+                    if (NOT CLOG_EXECUTABLE)
+                        message(FATAL_ERROR "clog executable not found. "
+                            "Run 'scripts/prepare-machine.ps1 -ForBuild' to install it, "
+                            "or ensure dotnet SDK is installed and the clog submodule is initialized.")
+                    endif()
+                    message(STATUS "Using clog: ${CLOG_EXECUTABLE}")
                 endif()
             endif()
         endif()

@@ -48,8 +48,10 @@ RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3
     sudo add-apt-repository universe && \
     sudo apt-get update -y && \
     sudo apt-get install -y \
-        # INSTALL POWERSHELl
+        # INSTALL POWERSHELL
         powershell \
+        # INSTALL DOTNET SDK (for building clog at cmake configure time)
+        dotnet-sdk-8.0 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git config --global safe.directory '*'

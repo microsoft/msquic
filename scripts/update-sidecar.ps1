@@ -23,25 +23,11 @@ Set-Location $PSScriptRoot
 $RootDir = Split-Path $PSScriptRoot -Parent
 $SrcDir = Join-Path $RootDir "src"
 
-$OutputDir = Join-Path $RootDir "src" "generated"
-
-# Remove the linux directories - so that we delete files that have been abandoned
-if (Test-Path $OutputDir) {
-
-    if (Test-Path (Join-Path $OutputDir linux)) {
-        Remove-Item (Join-Path $OutputDir linux) -Recurse -Force
-    }
-}
-
 $Sidecar = Join-Path $SrcDir "manifest" "clog.sidecar"
 $ConfigFile = Join-Path $SrcDir "manifest" "msquic.clog_config"
 
 $TmpOutputDir = Join-Path $RootDir "build" "tmp"
 $ClogDir = Join-Path $RootDir "build" "clog"
-
-# Create directories
-New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
-New-Item -Path (Join-Path $OutputDir linux) -ItemType Directory -Force | Out-Null
 
 # Build CLOG, placing results into the CLOG directory under our build directory
 dotnet publish ../submodules/clog/src/clog -o ${ClogDir} -f net8.0
@@ -68,11 +54,13 @@ $OriginalDOTNET_ROLL_FORWARD = $env:DOTNET_ROLL_FORWARD
 
 try {
     $env:DOTNET_ROLL_FORWARD = "Major"
-    # Generate code for all different permutations we need
+    # Generate code for all different permutations we need.
+    # All output goes to a temporary directory; the generated files are not committed.
+    # LTTng files are generated at cmake configure time by the build system.
     Invoke-Expression "${ClogDir}/clog -p windows --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
     Invoke-Expression "${ClogDir}/clog -p windows_kernel --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
     Invoke-Expression "${ClogDir}/clog -p stubs --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
-    Invoke-Expression "${ClogDir}/clog -p linux --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory (Join-Path $OutputDir linux) --inputFiles $allFiles"
+    Invoke-Expression "${ClogDir}/clog -p linux --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
     Invoke-Expression "${ClogDir}/clog -p macos --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
 } finally {
     $env:DOTNET_ROLL_FORWARD = $OriginalDOTNET_ROLL_FORWARD
