@@ -76,9 +76,6 @@ param (
     [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForceXdpInstall,
-
-    [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
 
     [Parameter(Mandatory = $false)]
@@ -104,21 +101,6 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-
-$IsUbuntu2404 = $false
-if ($IsLinux) {
-    $IsUbuntu2404 = (Get-Content -Path /etc/os-release | Select-String -Pattern "24.04") -ne $null
-    if ($UseXdp -and !$IsUbuntu2404 -and !$ForceXdpInstall) {
-        Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        Write-Host "Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment"
-        Write-Host "You need to understand the impact of this on your environment before proceeding"
-        $userInput = Read-Host "Type 'YES' to proceed"
-        if ($userInput -ne 'YES') {
-            Write-Output "User did not type YES. Exiting script."
-            exit
-        }
-    }
-}
 
 $PrepConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls
 $Tls = $PrepConfig.Tls
@@ -159,14 +141,14 @@ if ($ForTest) {
         $InstallSigningCertificates = $true;
     }
 
+    #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
+                                  # hangs sometimes, so we only want to install
+                                  # for jobs that absoultely need it.
+
     if ($UseXdp) {
         $InstallXdpDriver = $true;
         $InstallDuoNic = $true;
     }
-
-    #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
-                                  # hangs sometimes, so we only want to install
-                                  # for jobs that absoultely need it.
 }
 
 if ($InstallXdpDriver) {
@@ -604,17 +586,6 @@ if ($IsLinux) {
         sudo apt-get install -y ruby ruby-dev rpm
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
-
-        # XDP dependencies
-        if ($UseXdp) {
-            sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
-            if (!$IsUbuntu2404) {
-                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-                sudo apt-get update -y
-            }
-            sudo apt-get -y install libxdp-dev libbpf-dev
-            sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
-        }
     }
 
     if ($ForTest) {
@@ -624,16 +595,6 @@ if ($IsLinux) {
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
         sudo apt-get install -y liburing2
-        if ($UseXdp) {
-            if (!$IsUbuntu2404) {
-                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-                sudo apt-get update -y
-            }
-            sudo apt-get install -y libxdp1 libbpf1
-            sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
-            sudo apt-get install -y iproute2 iptables
-            Install-DuoNic
-        }
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"
