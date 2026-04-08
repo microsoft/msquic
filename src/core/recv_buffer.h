@@ -39,6 +39,12 @@ QuicRecvChunkInitialize(
     _In_ BOOLEAN BufferAllocatedFromPool
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRecvChunkFree(
+    _In_ QUIC_RECV_CHUNK* Chunk
+    );
+
 typedef struct QUIC_RECV_BUFFER {
 
     //
