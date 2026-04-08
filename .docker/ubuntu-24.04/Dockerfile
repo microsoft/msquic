@@ -69,10 +69,10 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y \
 RUN dpkg --add-architecture arm64 && \
     dpkg --add-architecture armhf
 
-RUN mv /etc/apt/sources.list /etc/apt/sources.list.int && \
+RUN sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources && \
+    mv /etc/apt/sources.list /etc/apt/sources.list.int && \
     cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
-    rm /etc/apt/sources.list.int && \
-    rm /etc/apt/sources.list.d/ubuntu.sources
+    rm /etc/apt/sources.list.int
 
 RUN echo $' \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble main restricted universe multiverse \n\
