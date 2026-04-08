@@ -1,5 +1,5 @@
 # Stage 1: Base image
-FROM ubuntu:22.04@sha256:ce4a593b4e323dcc3dd728e397e0a866a1bf516a1b7c31d6aa06991baec4f2e0 AS base
+FROM ubuntu:22.04@sha256:5e5b128eb4ff35ee52687c20d081dcc15b8cb55e113247683f435224fc58b956 AS base
 
 LABEL org.opencontainers.image.source=https://github.com/microsoft/msquic
 
@@ -51,27 +51,7 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsof
 
 RUN git config --global safe.directory '*'
 
-# Stage 2-1: dependencies for xdp-build
-FROM base AS xdp-build
-
-RUN apt-get update -y && apt-get install -y \
-    && echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
-    && apt-get update -y && apt-get install --no-install-recommends -y -t noble \
-    libnl-3-dev \
-    libnl-genl-3-dev \
-    libnl-route-3-dev \
-    zlib1g-dev \
-    zlib1g \
-    pkg-config \
-    m4 \
-    libpcap-dev \
-    libelf-dev \
-    libc6-dev-i386 \
-    libxdp-dev \
-    libbpf-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Stage 2-2: dependencies for cross-build
+# Stage 2: dependencies for cross-build
 FROM base AS cross-build
 
 RUN apt-get update && apt-get install -y \

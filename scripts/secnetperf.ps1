@@ -233,16 +233,12 @@ if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
-    $GRO = "on"
-    if ($io -eq "xdp") {
-        $GRO = "off"
-    }
     if (!($Session -eq "NOT_SUPPORTED")) {
         Invoke-Command -Session $Session -ScriptBlock {
             $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
             chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
             if ($Using:os -eq "ubuntu-22.04") {
-                sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
+                sudo sh -c "ethtool -K eth0 generic-receive-offload on"
             }
         }
     }
@@ -250,7 +246,7 @@ if (!$isWindows) {
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
     if ($os -eq "ubuntu-22.04") {
-        sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
+        sudo sh -c "ethtool -K eth0 generic-receive-offload on"
     }
 }
 

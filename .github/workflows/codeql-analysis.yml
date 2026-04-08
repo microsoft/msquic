@@ -35,11 +35,8 @@ jobs:
       # Install dependencies and build submodules before starting analysis.
       - run: |
          sudo apt-add-repository ppa:lttng/stable-2.13
-         sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
          sudo apt-get update
          sudo apt-get install -y liblttng-ust-dev libnuma-dev
-         sudo apt-get install -y libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
-         sudo apt-get install -y --no-install-recommends libc6-dev-i386
          sudo sh scripts/install-powershell-docker.sh
          mkdir build
          cd build
@@ -47,7 +44,7 @@ jobs:
          cmake --build . --target OpenSSL_Target
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@0d579ffd059c29b07949a3cce3983f0780820c98
+        uses: github/codeql-action/init@38697555549f1db7851b81482ff19f1fa5c4fedc
         with:
           languages: cpp
           config-file: ./.github/codeql/codeql-config.yml
@@ -58,4 +55,4 @@ jobs:
          cmake --build .
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@0d579ffd059c29b07949a3cce3983f0780820c98
+        uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc
