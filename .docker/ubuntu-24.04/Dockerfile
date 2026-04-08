@@ -88,7 +88,7 @@ RUN dpkg --add-architecture arm64 && \
 RUN mv /etc/apt/sources.list /etc/apt/sources.list.int && \
     cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
     rm /etc/apt/sources.list.int && \
-    rm /etc/apt/sources.list.d/ubuntu.sources
+    sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
 
 RUN echo $' \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble main restricted universe multiverse \n\
@@ -97,13 +97,9 @@ deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble-backports main restricted 
 ' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update \
-    && apt-get --no-install-recommends install -y \
-    liblttng-ust-dev:arm64 \
-    liblttng-ust-dev:armhf \
-    libssl-dev:arm64 \
-    libssl-dev:armhf \
-    libnuma-dev:arm64 \
-    libnuma-dev:armhf \
-    liburing-dev:arm64 \
-    liburing-dev:armhf \
+    && apt-get --no-install-recommends --allow-downgrades install -y \
+    libssl-dev libssl-dev:arm64 libssl-dev:armhf \
+    liblttng-ust-dev liblttng-ust-dev:arm64 liblttng-ust-dev:armhf \
+    libnuma-dev libnuma-dev:arm64 libnuma-dev:armhf \
+    liburing-dev liburing-dev:arm64 liburing-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
