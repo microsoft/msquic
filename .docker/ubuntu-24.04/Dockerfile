@@ -55,9 +55,25 @@ RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3
 RUN git config --global safe.directory '*'
 
 # Stage 2: dependencies for cross-build.
+#          ubuntu 24.04 can install both xdp and arm dependencies
 FROM base AS cross-build
 
 RUN apt-get update -y && apt-get install --no-install-recommends -y \
+    libnl-3-dev \
+    libnl-genl-3-dev \
+    libnl-route-3-dev \
+    zlib1g-dev \
+    zlib1g \
+    pkg-config \
+    m4 \
+    libpcap-dev \
+    libelf-dev \
+    libc6-dev-i386 \
+    libxdp-dev \
+    libbpf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y \
     gcc-arm-linux-gnueabihf \
     g++-arm-linux-gnueabihf \
     binutils-arm-linux-gnueabihf \

@@ -82,7 +82,7 @@ QuicConnectionOpenInPartition(
     //
     // Hard partitioning is only supported on a subset of platforms.
     //
-#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING) && !defined(CXPLAT_LINUX_XDP_ENABLED)
     Connection->State.Partitioned = Partitioned;
 #else
     UNREFERENCED_PARAMETER(Partitioned);

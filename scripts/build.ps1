@@ -60,6 +60,9 @@ This script provides helpers for building msquic.
 .PARAMETER PGO
     Builds msquic with profile guided optimization support (Windows-only).
 
+.PARAMETER UseXdp
+    Enables XDP support (Linux-only).
+
 .PARAMETER UseIoUring
     Enables io_uring support (Linux-only).
 
@@ -181,6 +184,9 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseXdp = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$UseIoUring = $false,
 
     [Parameter(Mandatory = $false)]
@@ -285,6 +291,12 @@ if ($Arch -eq "arm64ec") {
     }
     if ($Tls -eq "quictls" -Or $Tls -eq "openssl") {
         Write-Error "Arm64EC does not support quictls/openssl"
+    }
+}
+
+if ($IsLinux -And $Arch -ne "x64") {
+    if ($UseXdp) {
+        Write-Error "Linux XDP is supported only on x64 platforms"
     }
 }
 
@@ -483,6 +495,9 @@ function CMake-Generate {
     }
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
+    }
+    if ($UseXdp) {
+        $Arguments += " -DQUIC_LINUX_XDP_ENABLED=on"
     }
     if ($UseIoUring) {
         $Arguments += " -DQUIC_LINUX_IOURING_ENABLED=on"
