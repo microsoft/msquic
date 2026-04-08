@@ -120,15 +120,6 @@ foreach ($Build in $AllBuilds) {
         $Libraries += Join-Path $ArtifactsDir "msquic.lib"
     }
 
-    # if datapath_raw_xdp_kern.o exists under $ArtifactsDir, $UseXdp to be true
-    $UseXdp = $false
-    if ($Platform -eq "linux") {
-        $XdpBin = Join-Path $ArtifactsDir "datapath_raw_xdp_kern.o"
-        if (Test-Path $XdpBin) {
-            $UseXdp = $true
-        }
-    }
-
     # Copy items into temp folder that can be zipped in 1 command
 
     $IncludeDir = Join-Path $TempDir "include"
@@ -183,11 +174,11 @@ foreach ($Build in $AllBuilds) {
         }
 
         if ($BuildBaseName -like "*arm64_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64Distro
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --time64 $Time64Distro
         } elseif ($BuildBaseName -like "*arm_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --xdp $UseXdp --time64 $Time64Distro
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --time64 $Time64Distro
         } else {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --xdp $UseXdp --time64 $Time64Distro # x64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --time64 $Time64Distro # x64
         }
         Set-Location $OldLoc
     }

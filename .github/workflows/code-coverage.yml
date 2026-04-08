@@ -53,6 +53,7 @@ jobs:
      - self-hosted
      - "1ES.Pool=1es-msquic-pool"
      - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
+     - "JobId=cc-bvt-${{ matrix.vec.config }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       with:
@@ -96,6 +97,7 @@ jobs:
     - self-hosted
     - "1ES.Pool=1es-msquic-pool"
     - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
+    - "JobId=cc-stress-${{ matrix.vec.config }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"
     env:
       main-timeout: 3600000
       main-repeat: 100
@@ -146,6 +148,7 @@ jobs:
     - self-hosted
     - "1ES.Pool=1es-msquic-pool"
     - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
+    - "JobId=cc-recvfuzz-${{ matrix.vec.config }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"
     env:
       main-timeout: 3600000
       pr-timeout: 600000
