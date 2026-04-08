@@ -85,8 +85,7 @@ RUN apt-get update && apt-get install -y \
 RUN dpkg --add-architecture arm64 && \
     dpkg --add-architecture armhf
 
-RUN sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources && \
-    mv /etc/apt/sources.list /etc/apt/sources.list.int && \
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.int && \
     cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
     rm /etc/apt/sources.list.int && \
     sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
