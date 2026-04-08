@@ -77,6 +77,7 @@ deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy-backports main restricted 
 ' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get --no-install-recommends install -y \
     liblttng-ust-dev:arm64 \
     liblttng-ust-dev:armhf \
