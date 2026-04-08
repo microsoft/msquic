@@ -80,8 +80,6 @@ RUN apt-get update \
     && apt-get --no-install-recommends install -y \
     liblttng-ust-dev:arm64 \
     liblttng-ust-dev:armhf \
-    libssl-dev:arm64 \
-    libssl-dev:armhf \
     libnuma-dev:arm64 \
     libnuma-dev:armhf \
     liburing-dev:arm64 \
