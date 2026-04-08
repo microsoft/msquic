@@ -55,9 +55,25 @@ RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3
 RUN git config --global safe.directory '*'
 
 # Stage 2: dependencies for cross-build.
+#          ubuntu 24.04 can install both xdp and arm dependencies
 FROM base AS cross-build
 
 RUN apt-get update -y && apt-get install --no-install-recommends -y \
+    libnl-3-dev \
+    libnl-genl-3-dev \
+    libnl-route-3-dev \
+    zlib1g-dev \
+    zlib1g \
+    pkg-config \
+    m4 \
+    libpcap-dev \
+    libelf-dev \
+    libc6-dev-i386 \
+    libxdp-dev \
+    libbpf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y \
     gcc-arm-linux-gnueabihf \
     g++-arm-linux-gnueabihf \
     binutils-arm-linux-gnueabihf \
@@ -72,7 +88,8 @@ RUN dpkg --add-architecture arm64 && \
 RUN sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources && \
     mv /etc/apt/sources.list /etc/apt/sources.list.int && \
     cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
-    rm /etc/apt/sources.list.int
+    rm /etc/apt/sources.list.int && \
+    sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
 
 RUN echo $' \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble main restricted universe multiverse \n\
@@ -81,11 +98,9 @@ deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble-backports main restricted 
 ' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update \
-    && apt-get --no-install-recommends install -y \
-    liblttng-ust-dev:arm64 \
-    liblttng-ust-dev:armhf \
-    libnuma-dev:arm64 \
-    libnuma-dev:armhf \
-    liburing-dev:arm64 \
-    liburing-dev:armhf \
+    && apt-get --no-install-recommends --allow-downgrades install -y \
+    libssl-dev libssl-dev:arm64 libssl-dev:armhf \
+    liblttng-ust-dev liblttng-ust-dev:arm64 liblttng-ust-dev:armhf \
+    libnuma-dev libnuma-dev:arm64 libnuma-dev:armhf \
+    liburing-dev liburing-dev:arm64 liburing-dev:armhf \
     && rm -rf /var/lib/apt/lists/*

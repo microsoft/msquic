@@ -51,7 +51,27 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsof
 
 RUN git config --global safe.directory '*'
 
-# Stage 2: dependencies for cross-build
+# Stage 2-1: dependencies for xdp-build
+FROM base AS xdp-build
+
+RUN apt-get update -y && apt-get install -y \
+    && echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
+    && apt-get update -y && apt-get install --no-install-recommends -y -t noble \
+    libnl-3-dev \
+    libnl-genl-3-dev \
+    libnl-route-3-dev \
+    zlib1g-dev \
+    zlib1g \
+    pkg-config \
+    m4 \
+    libpcap-dev \
+    libelf-dev \
+    libc6-dev-i386 \
+    libxdp-dev \
+    libbpf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Stage 2-2: dependencies for cross-build
 FROM base AS cross-build
 
 RUN apt-get update && apt-get install -y \
@@ -77,11 +97,9 @@ deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy-backports main restricted 
 ' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update \
-    && apt-get --no-install-recommends install -y \
-    liblttng-ust-dev:arm64 \
-    liblttng-ust-dev:armhf \
-    libnuma-dev:arm64 \
-    libnuma-dev:armhf \
-    liburing-dev:arm64 \
-    liburing-dev:armhf \
+    && apt-get --no-install-recommends --allow-downgrades install -y \
+    libssl-dev libssl-dev:arm64 libssl-dev:armhf \
+    liblttng-ust-dev liblttng-ust-dev:arm64 liblttng-ust-dev:armhf \
+    libnuma-dev libnuma-dev:arm64 libnuma-dev:armhf \
+    liburing-dev liburing-dev:arm64 liburing-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
