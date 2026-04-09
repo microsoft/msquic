@@ -96,7 +96,7 @@ QuitTestIsFeatureSupported(uint32_t Feature) {
 #include "msquic.hpp"
 #include "quic_toeplitz.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_KERNEL_MODE)
 //
 // Reserves an ephemeral UDP port by binding a socket to port 0. The socket
 // stays open to hold the reservation until Release() is called (or the object
@@ -158,7 +158,7 @@ struct QuicTestPortReservation {
 private:
     SOCKET Sock{INVALID_SOCKET};
 };
-#endif // _WIN32
+#endif // _WIN32 && !_KERNEL_MODE
 
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
 #define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H

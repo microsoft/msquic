@@ -3913,9 +3913,9 @@ QuicTestCibirExtension(
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_KERNEL_MODE)
     QuicTestPortReservation PortReservation(QuicAddrFamily);
-    if (UseDuoNic) {
+    if (UseDuoNic && (Mode & 1)) {
         //
         // CIBIR + XDP requires an explicit local port. Reserve an ephemeral port
         // up front so the listener always binds to a known port.
@@ -4483,7 +4483,7 @@ QuicTestConnectionPoolCreate(
         QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
     }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_KERNEL_MODE)
     QuicTestPortReservation PortReservation(QuicAddrFamily);
     if (UseDuoNic && TestCibirSupport) {
         //
