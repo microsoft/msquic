@@ -58,6 +58,21 @@ RUN git config --global safe.directory '*'
 FROM base AS cross-build
 
 RUN apt-get update -y && apt-get install --no-install-recommends -y \
+    libnl-3-dev \
+    libnl-genl-3-dev \
+    libnl-route-3-dev \
+    zlib1g-dev \
+    zlib1g \
+    pkg-config \
+    m4 \
+    libpcap-dev \
+    libelf-dev \
+    libc6-dev-i386 \
+    libxdp-dev \
+    libbpf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && apt-get install --no-install-recommends -y \
     gcc-arm-linux-gnueabihf \
     g++-arm-linux-gnueabihf \
     binutils-arm-linux-gnueabihf \
@@ -69,15 +84,21 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y \
 RUN dpkg --add-architecture arm64 && \
     dpkg --add-architecture armhf
 
-RUN mv /etc/apt/sources.list /etc/apt/sources.list.int && \
+# For cross-compilation, we need amd64 packages from the default Ubuntu repos and
+# ARM packages from ports.ubuntu.com. To prevent apt from trying to resolve ARM
+# packages against the default (amd64-only) repos, we restrict all default sources
+# to amd64. On 24.04, the default repos are defined in ubuntu.sources (DEB822
+# format), which doesn't exist on 22.04, so this line is only needed here.
+RUN sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources && \
+    mv /etc/apt/sources.list /etc/apt/sources.list.int && \
     cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
-    rm /etc/apt/sources.list.int && \
-    rm /etc/apt/sources.list.d/ubuntu.sources
+    rm /etc/apt/sources.list.int
 
 RUN echo $' \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble main restricted universe multiverse \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble-updates main restricted universe multiverse \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble-backports main restricted universe multiverse \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble-security main restricted universe multiverse \n\
 ' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update \
