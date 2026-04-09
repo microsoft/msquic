@@ -166,7 +166,7 @@ CxPlatSocketCreateUdp(
                 if (IsWildcardAddr && RequiresQtip) {
                     //
                     // This retry loop is purely for QTIP listener sockets that try to reserve both a UDP/TCP port,
-                    // which may run into a WSA_ADDR_INUSE for TCP if the UDP ephemeral port collides with something
+                    // which may run into a port collision for TCP if the UDP ephemeral port collides with something
                     // in the TCP pool. So just try it again.
                     //
                     CxPlatSocketDelete(*NewSocket);
@@ -191,8 +191,8 @@ CxPlatSocketCreateUdp(
                 goto Error;
             }
         } else if (RequiresQtip) {
-            QuicTraceLogWarning(
-                ErrNoXdpForRaw,
+            QuicTraceLogError(
+                ErrNoXdpForQtip,
                 "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
             CxPlatSocketDelete(*NewSocket);
             Status = QUIC_STATUS_INVALID_STATE;

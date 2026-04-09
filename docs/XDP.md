@@ -1,7 +1,7 @@
 # MsQuic over XDP
 
-To avoid confusion, "XDP" refers to [XDP-for-windows](https://github.com/microsoft/xdp-for-windows). While Linux XDP has been experimented
-upon in the past and shown some promise for running MsQuic, it is NOT a stable datapath actively being maintained today.
+To avoid confusion, "XDP" refers to [XDP-for-windows](https://github.com/microsoft/xdp-for-windows).
+MsQuic does not support Linux XDP as a datapath.
 
 ## What is XDP
 

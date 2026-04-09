@@ -4222,6 +4222,13 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "ErrNoXdpForQtip": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.",
+      "UniqueId": "ErrNoXdpForQtip",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
+    },
     "ErrNoXdpForRaw": {
       "ModuleProperites": {},
       "TraceString": "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.",
@@ -14741,6 +14748,11 @@
         "UniquenessHash": "f03f3a95-788f-14ab-849b-552a62ea1a6f",
         "TraceID": "EpollSocketRelease",
         "EncodingString": "[data][%p] Socket Freed"
+      },
+      {
+        "UniquenessHash": "b93c5e28-04ab-7e11-fe17-83c24bf864d3",
+        "TraceID": "ErrNoXdpForQtip",
+        "EncodingString": "[sock] Error: app requested QTIP but XDP not enabled/available/initialized."
       },
       {
         "UniquenessHash": "c8f7a72c-21b5-b5b0-8978-883ca5df98ee",

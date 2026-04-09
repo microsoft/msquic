@@ -18,22 +18,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOsSockets,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ErrNoXdpForRaw
-// [sock] Error: app requested QTIP but XDP not enabled/available/initialized.
-// QuicTraceLogWarning(
-                ErrNoXdpForRaw,
-                "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForRaw,
-    TP_ARGS(
-), 
-    TP_FIELDS(
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for WarnNoXdpForCibirSockets
 // [sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
                 Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.
@@ -100,5 +84,21 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, RawSockCreateFail,
         int, arg2), 
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ErrNoXdpForQtip
+// [sock] Error: app requested QTIP but XDP not enabled/available/initialized.
+// QuicTraceLogError(
+                ErrNoXdpForQtip,
+                "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForQtip,
+    TP_ARGS(
+), 
+    TP_FIELDS(
     )
 )

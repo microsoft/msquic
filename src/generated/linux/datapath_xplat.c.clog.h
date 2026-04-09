@@ -22,6 +22,10 @@
 #define _clog_MACRO_QuicTraceLogVerbose  1
 #define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceLogError
+#define _clog_MACRO_QuicTraceLogError  1
+#define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,22 +39,6 @@ extern "C" {
 #ifndef _clog_2_ARGS_TRACE_WarnFallbackToOsSockets
 #define _clog_2_ARGS_TRACE_WarnFallbackToOsSockets(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOsSockets );\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ErrNoXdpForRaw
-// [sock] Error: app requested QTIP but XDP not enabled/available/initialized.
-// QuicTraceLogWarning(
-                ErrNoXdpForRaw,
-                "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
-----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_ErrNoXdpForRaw
-#define _clog_2_ARGS_TRACE_ErrNoXdpForRaw(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForRaw );\
 
 #endif
 
@@ -120,6 +108,22 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, SockCreateFail , arg2);\
 #ifndef _clog_3_ARGS_TRACE_RawSockCreateFail
 #define _clog_3_ARGS_TRACE_RawSockCreateFail(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_XPLAT_C, RawSockCreateFail , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ErrNoXdpForQtip
+// [sock] Error: app requested QTIP but XDP not enabled/available/initialized.
+// QuicTraceLogError(
+                ErrNoXdpForQtip,
+                "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_ErrNoXdpForQtip
+#define _clog_2_ARGS_TRACE_ErrNoXdpForQtip(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForQtip );\
 
 #endif
 

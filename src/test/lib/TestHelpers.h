@@ -102,10 +102,6 @@ QuitTestIsFeatureSupported(uint32_t Feature) {
 // is destroyed). This minimizes the TOCTOU window between discovering a free
 // port and having the listener bind to it.
 //
-// In kernel mode, raw socket APIs are unavailable, so this is a no-op
-// (Port stays 0 and the listener falls back to OS-assigned ephemeral ports).
-//
-#ifdef _WIN32
 struct QuicTestPortReservation {
     uint16_t Port{0};
 
@@ -115,7 +111,6 @@ struct QuicTestPortReservation {
         _In_ QUIC_ADDRESS_FAMILY Family
         )
     {
-#ifndef _KERNEL_MODE
         int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
 
         Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
@@ -140,9 +135,7 @@ struct QuicTestPortReservation {
         if (Port == 0) {
             Release();
         }
-#else
         UNREFERENCED_PARAMETER(Family);
-#endif
     }
 
     ~QuicTestPortReservation() { Release(); }
@@ -156,17 +149,14 @@ struct QuicTestPortReservation {
     //
     void Release()
     {
-#ifndef _KERNEL_MODE
-        if (Sock != INVALID_SOCKET) { closesocket(Sock); Sock = INVALID_SOCKET; }
-#endif
+        if (Sock != INVALID_SOCKET) {
+            closesocket(Sock); Sock = INVALID_SOCKET;
+        }
     }
 
 private:
-#ifndef _KERNEL_MODE
     SOCKET Sock{INVALID_SOCKET};
-#endif
 };
-#endif
 
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
 #define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H

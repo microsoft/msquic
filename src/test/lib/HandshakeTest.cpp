@@ -3920,25 +3920,12 @@ QuicTestCibirExtension(
         // CIBIR + XDP requires an explicit local port. Reserve an ephemeral port
         // up front so the listener always binds to a known port.
         //
-        if (PortReservation.Port != 0) {
-            ServerLocalAddr.SetPort(PortReservation.Port);
-        }
-    } else {
-        //
-        // If no XDP, CIBIR just falls back to normal OS sockets.
-        // We can just rely upon the Listener created sockets. Passing in
-        // a local port of 0 is fine here.
-        //
-        PortReservation.Release();
+        ServerLocalAddr.SetPort(PortReservation.Port);
     }
 #endif
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
     if (Mode & 1) {
         TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
-    } else {
-#ifdef _WIN32
-        PortReservation.Release();
-#endif
     }
 
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
@@ -4491,15 +4478,14 @@ QuicTestConnectionPoolCreate(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     QuicAddr ServerAddr(QuicAddrFamily);
-#ifdef _WIN32
-    QuicTestPortReservation PortReservation(QuicAddrFamily);
-#endif
+
     if (XdpSupported) {
         QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
     }
 
 #ifdef _WIN32
-    if (PortReservation.Port != 0 && UseDuoNic && TestCibirSupport) {
+    QuicTestPortReservation PortReservation(QuicAddrFamily);
+    if (UseDuoNic && TestCibirSupport) {
         //
         // If Cibir+XDP mode is active, we can't pass in a 0 local port
         // hoping the stack will assign us an ephemeral port.
