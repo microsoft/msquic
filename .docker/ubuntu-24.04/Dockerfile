@@ -84,6 +84,11 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y \
 RUN dpkg --add-architecture arm64 && \
     dpkg --add-architecture armhf
 
+# For cross-compilation, we need amd64 packages from the default Ubuntu repos and
+# ARM packages from ports.ubuntu.com. To prevent apt from trying to resolve ARM
+# packages against the default (amd64-only) repos, we restrict all default sources
+# to amd64. On 24.04, the default repos are defined in ubuntu.sources (DEB822
+# format), which doesn't exist on 22.04, so this line is only needed here.
 RUN sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources && \
     mv /etc/apt/sources.list /etc/apt/sources.list.int && \
     cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
