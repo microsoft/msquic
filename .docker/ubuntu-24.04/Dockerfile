@@ -58,6 +58,21 @@ RUN git config --global safe.directory '*'
 FROM base AS cross-build
 
 RUN apt-get update -y && apt-get install --no-install-recommends -y \
+    libnl-3-dev \
+    libnl-genl-3-dev \
+    libnl-route-3-dev \
+    zlib1g-dev \
+    zlib1g \
+    pkg-config \
+    m4 \
+    libpcap-dev \
+    libelf-dev \
+    libc6-dev-i386 \
+    libxdp-dev \
+    libbpf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && apt-get install --no-install-recommends -y \
     gcc-arm-linux-gnueabihf \
     g++-arm-linux-gnueabihf \
     binutils-arm-linux-gnueabihf \
