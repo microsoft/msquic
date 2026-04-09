@@ -44,3 +44,48 @@ is rejected at `listener.c:822-824` with `CONNECTION_REFUSED`.
 - GitHub issue: https://github.com/microsoft/msquic/issues/5835
 - Failing test: `AppData/WithSendArgs.Send/353`
 - CI config: `BVT-Debug-windows-windows-2025-x64-quictls-UseXdp-UseQtip`
+
+---
+
+## 2. Windows CryptoAPI Stall — Watchdog Timeout During Certificate Operations
+
+**Symptom**:
+- Test crashes with exit code `-1073740768` (`0xC0000420` /
+  `STATUS_ASSERTION_FAILURE`)
+- Log contains `"Watchdog timeout fired!"` from `msquic.hpp`
+- Failure occurs during `CONFIGURATION_LOAD_CREDENTIAL` or any operation
+  that triggers Windows certificate chain verification
+- The same test passes on retry or on other CI runs
+
+**Root cause**: Windows CryptoAPI certificate chain verification
+(`CertVerifyCertificateChainPolicy` and related APIs) can stall for
+multiple seconds on CI runners. This typically happens when the OS CRL
+(Certificate Revocation List) cache expires and the system attempts a
+network call to a CRL distribution point. On CI runners with constrained
+or variable network connectivity, this call can take 2–5+ seconds instead
+of the usual <100ms.
+
+Any test that uses a `CxPlatWatchdog` with a tight timeout (e.g., 2000ms)
+and performs TLS certificate loading or handshake operations is susceptible.
+The stall is not specific to any particular test — it affects whichever
+iteration or test happens to trigger the CRL cache miss.
+
+**Key trace evidence** (what to look for in `quic.log`):
+1. A `CONFIGURATION_LOAD_CREDENTIAL` event or TLS handshake step with an
+   unusually long gap before the next event (2+ seconds vs. typical <100ms)
+2. `Exported chain verification result: 2148204809` (`0x800B0109` /
+   `CERT_E_UNTRUSTEDROOT`) — expected for self-signed test certs, but the
+   latency is abnormal
+3. Watchdog assertion firing shortly after the slow verification completes
+
+**Affected tests**: Any test using `CxPlatWatchdog` with a timeout ≤ 2–3
+seconds that also loads TLS credentials or performs handshakes. Examples:
+- `Basic.ConnectionCloseFromCallback` (watchdog: 2000ms)
+- Other tests with tight watchdog timeouts that iterate over multiple
+  TLS configurations
+
+**Guidance for the user**:
+- Ignore the failure if it is a rare occurrence — it depends on transient
+  CI runner CRL cache state
+- If a specific test is frequently affected, consider increasing its
+  `CxPlatWatchdog` timeout to 5000ms or higher

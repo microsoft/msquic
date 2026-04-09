@@ -27,16 +27,17 @@ Before starting a full investigation, read
 `.github/skills/investigate-ci-failure/known_ci_issues.md`. It contains
 previously diagnosed CI failures with their symptom patterns and root causes.
 If the failure you investigate matches a known pattern, carefully confirm it
-and report it to the user with the guidance provided.
+based on logs and dumps and report it to the user with the guidance provided.
 
 **If the failing test is NOT already in the catalog**, you MUST perform a
 full in-depth investigation through all phases below. Do NOT short-circuit
 the analysis by concluding "known flaky" or "inherently intermittent" based
-on superficial similarity to other failures. Every uncataloged test failure
-must be traced to a specific root cause backed by log/trace evidence.
-If logs or artifacts are expired, state explicitly what evidence is missing
-and what concrete diagnostic steps are needed to obtain it — do not
-substitute speculation for trace analysis.
+on superficial similarity to other failures. You **must** inspect logs or
+dumps to root cause the failure based on verifiable evidences.
+Every uncataloged test failure must be traced to a specific root cause backed
+by log/trace evidence. If logs or artifacts are expired, state explicitly
+what evidence is missing and what concrete diagnostic steps are needed to
+obtain it — do not substitute speculation for trace analysis.
 
 The Known Issues Catalog is for rarely occurring issues that we can't fix,
 such as issues caused by GitHub runner resource contention. If the issue
