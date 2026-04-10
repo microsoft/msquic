@@ -200,8 +200,8 @@ CxPlatSocketCreateUdp(
         } else if (CibirRequested) {
              QuicTraceLogWarning(
                 WarnNoXdpForCibirSockets,
-                "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
-                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
+                "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. "
+                "Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
         }
         break;
     }

@@ -136,10 +136,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed,
 
 /*----------------------------------------------------------
 // Decoder Ring for DatapathCibirWarning
-// [data][%p] CIBIR detected,  %s
+// [data][%p] CIBIR detected, %s
 // QuicTraceLogWarning(
                 DatapathCibirWarning,
-                "[data][%p] CIBIR detected,  %s",
+                "[data][%p] CIBIR detected, %s",
                 Socket,
                 "Skipping OS port reservation for this server socket.");
 // arg2 = arg2 = Socket = arg2

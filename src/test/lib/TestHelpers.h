@@ -115,10 +115,11 @@ struct QuicTestPortReservation {
         int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
 
         Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
-        if (Sock == INVALID_SOCKET) { return; }
+        if (Sock == INVALID_SOCKET) {
+            return;
+        }
 
-        QUIC_ADDR Addr;
-        CxPlatZeroMemory(&Addr, sizeof(Addr));
+        QUIC_ADDR Addr{};
         QuicAddrSetFamily(&Addr, Family);
 
         int AddrSize =
@@ -150,7 +151,8 @@ struct QuicTestPortReservation {
     void Release()
     {
         if (Sock != INVALID_SOCKET) {
-            closesocket(Sock); Sock = INVALID_SOCKET;
+            closesocket(Sock);
+            Sock = INVALID_SOCKET;
         }
     }
 

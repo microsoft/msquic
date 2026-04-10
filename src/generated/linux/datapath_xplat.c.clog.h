@@ -47,12 +47,12 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOsSockets );\
 
 /*----------------------------------------------------------
 // Decoder Ring for WarnNoXdpForCibirSockets
-// [sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
-                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.
+// [sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. "
+                "Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.
 // QuicTraceLogWarning(
                 WarnNoXdpForCibirSockets,
-                "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \
-                Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
+                "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. "
+                "Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
 ----------------------------------------------------------*/
 #ifndef _clog_2_ARGS_TRACE_WarnNoXdpForCibirSockets
 #define _clog_2_ARGS_TRACE_WarnNoXdpForCibirSockets(uniqueId, encoded_arg_string)\

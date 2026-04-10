@@ -869,7 +869,7 @@ TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
     // Try creating a CIBIR-aware socket on the same port.
     //
     CxPlatSocket Server2;
-    Server2.CibirIdLength = 8;
+    Server2.CibirIdLength = 6;
     Server2.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext, CXPLAT_SOCKET_FLAG_XDP);
 
     if (UseDuoNic) {

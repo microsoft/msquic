@@ -1228,6 +1228,7 @@ SocketCreateUdp(
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
     CXPLAT_DBG_ASSERT(IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
+    CXPLAT_DBG_ASSERT(Config->CibirIdLength <= sizeof(Config->CibirId));
 
     const uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
     CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
@@ -1305,7 +1306,7 @@ SocketCreateUdp(
             }
             QuicTraceLogWarning(
                 DatapathCibirWarning,
-                "[data][%p] CIBIR detected,  %s",
+                "[data][%p] CIBIR detected, %s",
                 Socket,
                 "Skipping OS port reservation for this server socket.");
             goto Skip;
