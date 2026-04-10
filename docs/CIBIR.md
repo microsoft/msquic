@@ -14,7 +14,7 @@ port on the same machine, as long as their CIBIR ID is different.
 - Applications must provide a well-known local port for server sockets when using CIBIR and XDP.
 - **IMPORTANT:** MsQuic will **NOT** reserve an OS port for server sockets when both CIBIR and XDP is enabled and available.
     - Client sockets can never share ports, so MsQuic will reserve an OS port in that scenario.
-- The responsbility of book-keeping shared ports and ensuring robust protection for those shared ports is delegated to the application.
+- The responsibility of book-keeping shared ports and ensuring robust protection for those shared ports is delegated to the application.
 
 
 ## Port protection recommendations for shared ports
