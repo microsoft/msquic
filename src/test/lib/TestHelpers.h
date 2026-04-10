@@ -136,7 +136,6 @@ struct QuicTestPortReservation {
         if (Port == 0) {
             Release();
         }
-        UNREFERENCED_PARAMETER(Family);
     }
 
     ~QuicTestPortReservation() { Release(); }

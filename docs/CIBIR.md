@@ -13,7 +13,7 @@ port on the same machine, as long as their CIBIR ID is different.
 ## CIBIR port sharing logic
 - Applications must provide a well-known local port for server sockets when using CIBIR and XDP.
 - **IMPORTANT:** MsQuic will **NOT** reserve an OS port for server sockets when both CIBIR and XDP is enabled and available.
-    > Client sockets can never share ports, so MsQuic will reserve an OS port in that scenario.
+    - Client sockets can never share ports, so MsQuic will reserve an OS port in that scenario.
 - The responsbility of book-keeping shared ports and ensuring robust protection for those shared ports is delegated to the application.
 
 
@@ -23,7 +23,7 @@ port on the same machine, as long as their CIBIR ID is different.
 
 MsQuic strongly recommends applications leverage the Windows [persistent port reservations API](https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-createpersistentudpportreservation) to secure shared CIBIR ports prior to serving multi-process CIBIR traffic on a shared port.
 - One time setup by a system admin to create the persistent reservation.
-    > A good option for book-keeping persistent port reservations is via registry keys.
+    - A good option for book-keeping persistent port reservations is via registry keys.
 - Persistent port reservations survive reboots, allowing for robust protection in the event of crashes.
 - Having a persistent reservation makes sure CIBIR ports are taken out of the ephemeral port pool and forbids sockets from binding to it unless it is associated with a persistent reservation token, which can only happen in an elevated process.
     - This way, an unsuspecting application process won't get accidently assigned an ephemeral port that collides with a CIBIR port.
