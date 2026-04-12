@@ -1,5 +1,5 @@
 # Stage 1: Base image
-FROM ubuntu:22.04@sha256:3ba65aa20f86a0fad9df2b2c259c613df006b2e6d0bfcc8a146afb8c525a9751 AS base
+FROM ubuntu:22.04@sha256:eb29ed27b0821dca09c2e28b39135e185fc1302036427d5f4d70a41ce8fd7659 AS base
 
 LABEL org.opencontainers.image.source=https://github.com/microsoft/msquic
 
@@ -94,6 +94,7 @@ RUN echo $' \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy main restricted universe multiverse \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy-updates main restricted universe multiverse \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy-backports main restricted universe multiverse \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy-security main restricted universe multiverse \n\
 ' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update \

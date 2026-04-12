@@ -476,7 +476,11 @@ mod tests {
                 .unwrap_err()
                 .try_as_status_code()
                 .unwrap();
-            if cfg!(windows) && !cfg!(feature = "openssl") && !cfg!(feature = "quictls") {
+            if cfg!(windows)
+                && !cfg!(feature = "openssl")
+                && !cfg!(feature = "openssl_external")
+                && !cfg!(feature = "quictls")
+            {
                 // schannel does not support load from file.
                 assert_eq!(load_err, StatusCode::QUIC_STATUS_NOT_SUPPORTED);
             } else {
