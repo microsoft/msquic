@@ -77,6 +77,12 @@ if("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(msquic_platform PUBLIC winmm)
 endif()
 
+if (QUIC_USE_EXTERNAL_OPENSSL AND NOT BUILD_SHARED_LIBS)
+    find_library(LIB_Z NAMES "z${CMAKE_STATIC_LIBRARY_SUFFIX}" "libz${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    find_library(LIB_ZSTD NAMES "zstd${CMAKE_STATIC_LIBRARY_SUFFIX}" "libzstd${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    target_link_libraries(msquic_platform PUBLIC ${LIB_Z} ${LIB_ZSTD})
+endif()
+
 target_link_libraries(msquic_platform PUBLIC inc)
 target_link_libraries(msquic_platform PRIVATE warnings main_binary_link_args)
 
