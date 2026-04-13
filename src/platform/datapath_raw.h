@@ -62,7 +62,7 @@ typedef struct CXPLAT_DATAPATH_RAW {
     BOOLEAN Uninitialized : 1;
     BOOLEAN Freed : 1;
 #endif
-    BOOLEAN ReserveAuxTcpSock; // Whether or not we create an auxiliary TCP socket.
+    BOOLEAN ReserveAuxTcpSockForQtip; // Whether or not we create an auxiliary TCP socket.
 
 } CXPLAT_DATAPATH_RAW;
 
@@ -345,7 +345,7 @@ CxPlatSocketCompare(
         // socket has enabled QTIP (can accept both UDP/QTIP traffic).
         // Otherwise, we want to NOT match if UseQtip is TRUE but the listener socket does not enable QTIP.
         //
-        return Socket->ReserveAuxTcpSock || !UseQtip;
+        return Socket->ReserveAuxTcpSockForQtip || !UseQtip;
     }
 
     //
@@ -356,7 +356,7 @@ CxPlatSocketCompare(
     return
         QuicAddrCompareIp(&Socket->LocalAddress, LocalAddress) &&
         QuicAddrCompare(&Socket->RemoteAddress, RemoteAddress) &&
-        Socket->ReserveAuxTcpSock == UseQtip;
+        Socket->ReserveAuxTcpSockForQtip == UseQtip;
 }
 
 //

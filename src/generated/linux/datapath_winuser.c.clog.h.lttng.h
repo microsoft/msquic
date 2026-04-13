@@ -135,6 +135,60 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathCibirWarning
+// [data][%p] CIBIR detected, %s
+// QuicTraceLogWarning(
+                DatapathCibirWarning,
+                "[data][%p] CIBIR detected, %s",
+                Socket,
+                "Skipping OS port reservation for this server socket.");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = "Skipping OS port reservation for this server socket." = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCibirWarning,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathCibirIdUsed
+// [data][%p] Using CIBIR ID (len %hhu, id 0x%llx)
+// QuicTraceLogWarning(
+            DatapathCibirIdUsed,
+            "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+            Socket,
+            Config->CibirIdLength,
+            (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Config->CibirIdLength = arg3
+// arg4 = arg4 = (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength) = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCibirIdUsed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathRecvEmpty
 // [data][%p] Dropping datagram with empty payload.
 // QuicTraceLogWarning(
