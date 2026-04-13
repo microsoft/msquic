@@ -52,6 +52,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/CIBIR.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/CIBIR.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/CredScan.md",
       "output": {
         ".html": {
@@ -276,6 +286,16 @@
       "output": {
         ".html": {
           "relative_path": "docs/Versions.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/XDP.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/XDP.html"
         }
       },
       "version": ""

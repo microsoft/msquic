@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>MsQuic over XDP </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="MsQuic over XDP ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/XDP.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="msquic-over-xdp">MsQuic over XDP</h1>
+
+<p>To avoid confusion, &quot;XDP&quot; refers to <a href="https://github.com/microsoft/xdp-for-windows">XDP-for-windows</a>.
+MsQuic does not support Linux XDP as a datapath.</p>
+<h2 id="what-is-xdp">What is XDP</h2>
+<p>XDP enables received packets to completely bypass the OS networking stack.</p>
+<p>Applications can subscribe to XDP ring buffers to post packets to send,
+and process packets that are received through AF_XDP sockets.</p>
+<p>Additionally, applications can program XDP to determine the
+logic for which packets to filter for, and what to do with them.</p>
+<p>For instance: &quot;drop all packets with a UDP header and destination port
+42.&quot;</p>
+<h2 id="port-reservation-logic">Port reservation logic</h2>
+<p>The type of logic MsQuic programs into XDP looks like:
+&quot;redirect all packets with a destination port X to an AF_XDP socket.&quot;</p>
+<p>This runs into the issue of <strong>packet stealing.</strong> If there was an unrelated process
+that binds an OS socket to the same port MsQuic used to program XDP, XDP will steal
+that traffic from underneath it.</p>
+<p>Which is why MsQuic will always create an OS UDP socket on the same port as the AF_XDP
+socket to play nice with the rest of the stack.</p>
+<p>There are <em>exceptions</em> to this port reservation.</p>
+<ul>
+<li>Sometimes, MsQuic may create a TCP OS socket instead, or both TCP and UDP (see <a href="QTIP.html">QTIP</a>).</li>
+<li>Sometimes, MsQuic may NOT create any OS sockets at all (see <a href="CIBIR.html">CIBIR</a>).</li>
+</ul>
+<h2 id="msquic-over-xdp-general-architecture">MsQuic over XDP general architecture:</h2>
+<pre><code class="lang-mermaid">flowchart TB
+
+%% =========================
+%% NIC + RSS
+%% =========================
+NIC[&quot;NIC interface&quot;]
+
+RSS1[&quot;RSS queue&quot;]
+RSS2[&quot;RSS queue&quot;]
+
+NIC --&gt; RSS1
+NIC --&gt; RSS2
+
+%% =========================
+%% XDP FILTER ENGINE
+%% =========================
+subgraph XDP_ENGINE[&quot;XDP FILTER ENGINE&quot;]
+
+    XDP_PROG1[&quot;XDP::XDP program&quot;]
+    XDP_PROG2[&quot;XDP::XDP program&quot;]
+
+    XDP_RULES[&quot;XDP::XDP RULES&quot;]
+
+    AFXDP1[&quot;AF_XDP Socket&quot;]
+    AFXDP2[&quot;AF_XDP Socket&quot;]
+
+    RSS1 --&gt;|packet data| XDP_PROG1
+    RSS2 --&gt;|packet data| XDP_PROG2
+
+    XDP_PROG1 --&gt; XDP_RULES
+    XDP_PROG2 --&gt; XDP_RULES
+
+    XDP_RULES --&gt; AFXDP1
+    XDP_RULES --&gt; AFXDP2
+
+end
+
+%% =========================
+%% PACKET DEMUX
+%% =========================
+DEMUX[&quot;Packet DE-MUX logic&quot;]
+
+AFXDP1 --&gt; DEMUX
+AFXDP2 --&gt; DEMUX
+
+%% =========================
+%% CXPLAT SOCKET POOL
+%% =========================
+subgraph CXPLAT_POOL[&quot;CXPLAT SOCKET POOL HASH TABLE&quot;]
+
+    CX1[&quot;CXPLAT Socket&quot;]
+    CX2[&quot;CXPLAT Socket&quot;]
+    CX3[&quot;CXPLAT Socket&quot;]
+    CX4[&quot;CXPLAT Socket&quot;]
+
+end
+
+DEMUX --&gt; CX1
+DEMUX --&gt; CX2
+DEMUX --&gt; CX3
+DEMUX --&gt; CX4
+
+%% =========================
+%% FIND BINDING LOGIC
+%% =========================
+BIND[&quot;FIND BINDING LOGIC&quot;]
+
+CX1 --&gt; BIND
+CX2 --&gt; BIND
+CX3 --&gt; BIND
+CX4 --&gt; BIND
+
+%% =========================
+%% MSQUIC OBJECTS
+%% =========================
+subgraph MSQUIC_OBJECTS[&quot;MSQUIC OBJECTS&quot;]
+
+    CONN1[&quot;Connection&quot;]
+    CONN2[&quot;Connection&quot;]
+    CONN3[&quot;Connection&quot;]
+    LIST1[&quot;Listener&quot;]
+    LIST2[&quot;Listener&quot;]
+
+end
+
+BIND --&gt; CONN1
+BIND --&gt; CONN2
+BIND --&gt; CONN3
+BIND --&gt; LIST1
+BIND --&gt; LIST2
+</code></pre>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/XDP.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
