@@ -20,6 +20,7 @@
 #define NOMINMAX
 #endif
 #include "msquichelper.h"
+#include "msquic.hpp"
 
 #define ASSERT_ON_FAILURE(x) \
     do { \
@@ -199,7 +200,7 @@ public:
     }
 };
 
-static QUIC_API_TABLE MsQuic;
+static QUIC_API_TABLE MsQuicTable;
 // This locks MsQuicOpen2 in RunThread when statically linked with libmsquic
 CXPLAT_LOCK RunThreadLock;
 
@@ -235,16 +236,14 @@ struct SpinQuicGlobals {
         }
         if (Registration) {
             if (GetRandom(2) == 0) {
-                CXPLAT_EVENT CloseComplete;
-                CxPlatEventInitialize(&CloseComplete, TRUE, FALSE);
+                CxPlatEvent CloseComplete(true);
                 MsQuic->RegistrationClose2(
                     Registration,
                     [](void* Context) -> void {
-                        CxPlatEventSet(*(CXPLAT_EVENT*)Context);
+                        ((CxPlatEvent*)Context)->Set();
                     },
                     &CloseComplete);
-                CxPlatEventWaitForever(CloseComplete);
-                CxPlatEventUninitialize(CloseComplete);
+                CloseComplete.WaitForever();
             } else {
                 MsQuic->RegistrationClose(Registration);
             }
@@ -293,9 +292,9 @@ struct SpinQuicStream {
     std::vector<uint8_t> RecvBuffer;
     SpinQuicStream(SpinQuicConnection& Connection, HQUIC Handle = nullptr) :
         Connection(Connection), Handle(Handle) {}
-    ~SpinQuicStream() { Deleting = true; MsQuic.StreamClose(Handle); }
+    ~SpinQuicStream() { Deleting = true; MsQuicTable.StreamClose(Handle); }
     static SpinQuicStream* Get(HQUIC Stream) {
-        return (SpinQuicStream*)MsQuic.GetContext(Stream);
+        return (SpinQuicStream*)MsQuicTable.GetContext(Stream);
     }
     std::vector<QUIC_BUFFER> AllocateReceiveBuffers(const std::vector<uint32_t>& Sizes) {
         size_t TotalSize = 0;
@@ -323,7 +322,7 @@ public:
     bool IsDeleting = false;
     uint16_t ThreadID;
     static SpinQuicConnection* Get(HQUIC Connection) {
-        return (SpinQuicConnection*)MsQuic.GetContext(Connection);
+        return (SpinQuicConnection*)MsQuicTable.GetContext(Connection);
     }
     SpinQuicConnection(uint16_t threadID) : ThreadID(threadID) { }
     SpinQuicConnection(HQUIC Connection, uint16_t threadID) : ThreadID(threadID) {
@@ -337,11 +336,11 @@ public:
             IsDeleting = true;
         }
         if (CloseStreamsNow) CloseStreams();
-        MsQuic.ConnectionClose(Connection);
+        MsQuicTable.ConnectionClose(Connection);
     }
     void Set(HQUIC _Connection) {
         Connection = _Connection;
-        MsQuic.SetContext(Connection, this);
+        MsQuicTable.SetContext(Connection, this);
     }
     void OnShutdownComplete() {
         bool CloseStreamsNow;
@@ -415,13 +414,13 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
     }
 
     if (!ctx->Deleting && GetRandom(20, ThreadID) == 0) {
-        MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16, ThreadID), 0);
+        MsQuicTable.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16, ThreadID), 0);
         goto Exit;
     }
 
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-        MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16, ThreadID), 0);
+        MsQuicTable.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16, ThreadID), 0);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED: {
         std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
@@ -500,7 +499,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
             }
         }
         QUIC_SEND_RESUMPTION_FLAGS Flags = (GetRandom(2, ThreadID) == 0) ? QUIC_SEND_RESUMPTION_FLAG_NONE : QUIC_SEND_RESUMPTION_FLAG_FINAL;
-        MsQuic.ConnectionSendResumptionTicket(Connection, Flags, DataLength, Data);
+        MsQuicTable.ConnectionSendResumptionTicket(Connection, Flags, DataLength, Data);
         free(Data);
         break;
     }
@@ -512,7 +511,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
             return QUIC_STATUS_NOT_SUPPORTED;
         }
         if (GetRandom(10, ThreadID) == 0) {
-            MsQuic.StreamClose(Event->PEER_STREAM_STARTED.Stream);
+            MsQuicTable.StreamClose(Event->PEER_STREAM_STARTED.Stream);
             return QUIC_STATUS_SUCCESS;
         }
         if (GetRandom(2, ThreadID) == 0) {
@@ -522,7 +521,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
             Event->PEER_STREAM_STARTED.Flags |= QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS;
         }
         auto StreamCtx = new SpinQuicStream(*ctx, Event->PEER_STREAM_STARTED.Stream);
-        MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, StreamCtx);
+        MsQuicTable.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, StreamCtx);
         if (Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS) {
             uint32_t BufCount = GetRandom(3, ThreadID) + 1; // 1-3 buffers
             std::vector<uint32_t> Sizes(BufCount);
@@ -530,7 +529,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
                 Sizes[i] = MaxBufferSizes[GetRandom(BufferCount, ThreadID)];
             }
             auto Buffers = StreamCtx->AllocateReceiveBuffers(Sizes);
-            MsQuic.StreamProvideReceiveBuffers(Event->PEER_STREAM_STARTED.Stream, BufCount, Buffers.data());
+            MsQuicTable.StreamProvideReceiveBuffers(Event->PEER_STREAM_STARTED.Stream, BufCount, Buffers.data());
         }
         ctx->AddStream(Event->PEER_STREAM_STARTED.Stream);
         break;
@@ -564,9 +563,9 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
         if (!GetRandom(20, ThreadID)) {
             return QUIC_STATUS_CONNECTION_REFUSED;
         }
-        MsQuic.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, &((ListenerContext*)Context)->ThreadID);
+        MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, &((ListenerContext*)Context)->ThreadID);
         QUIC_STATUS Status =
-            MsQuic.ConnectionSetConfiguration(
+            MsQuicTable.ConnectionSetConfiguration(
                 Event->NEW_CONNECTION.Connection,
                 ServerConfiguration);
         if (QUIC_FAILED(Status)) {
@@ -623,7 +622,7 @@ struct SetParamHelper {
     }
     void Apply(HQUIC Handle) {
         if (Type != -1) {
-            MsQuic.SetParam(Handle, Type, Size, IsPtr ? Param.ptr : &Param);
+            MsQuicTable.SetParam(Handle, Type, Size, IsPtr ? Param.ptr : &Param);
         }
     }
 };
@@ -926,7 +925,7 @@ void SpinQuicGetRandomParam(HQUIC Handle, uint16_t ThreadID)
         uint8_t OutBuffer[200];
         uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1, ThreadID);
 
-        MsQuic.GetParam(
+        MsQuicTable.GetParam(
             (GetRandom(10, ThreadID) == 0) ? nullptr : Handle,
             Combined,
             &OutBufferLength,
@@ -950,14 +949,14 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             auto Value = GetRandom(100, ThreadID);
             if (Value >= 90) {
                 for (auto &Listener : *Listeners) {
-                    MsQuic.ListenerStop(Listener);
+                    MsQuicTable.ListenerStop(Listener);
                 }
             } else if (Value >= 40) {
                 for (auto &Listener : *Listeners) {
                     QUIC_ADDR sockAddr = { 0 };
                     QuicAddrSetFamily(&sockAddr, GetRandom(2, ThreadID) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
                     QuicAddrSetPort(&sockAddr, GetRandomFromVector(SpinSettings.Ports, ThreadID));
-                    MsQuic.ListenerStart(Listener, &Gb.Alpns[GetRandom(Gb.AlpnCount, ThreadID)], 1, &sockAddr);
+                    MsQuicTable.ListenerStart(Listener, &Gb.Alpns[GetRandom(Gb.AlpnCount, ThreadID)], 1, &sockAddr);
                 }
             } else {
                 for (auto &Listener : *Listeners) {
@@ -981,7 +980,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 if (ctx == nullptr) continue;
 
                 HQUIC Connection;
-                QUIC_STATUS Status = MsQuic.ConnectionOpen(Gb.Registration, SpinQuicHandleConnectionEvent, &ThreadID, &Connection);
+                QUIC_STATUS Status = MsQuicTable.ConnectionOpen(Gb.Registration, SpinQuicHandleConnectionEvent, &ThreadID, &Connection);
                 if (QUIC_SUCCEEDED(Status)) {
                     ctx->Set(Connection);
                     Connections.push_back(Connection);
@@ -994,13 +993,13 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Configuration = GetRandomFromVector(Gb.ClientConfigurations, ThreadID);
-            MsQuic.ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_INET, SpinSettings.ServerName, GetRandomFromVector(SpinSettings.Ports, ThreadID));
+            MsQuicTable.ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_INET, SpinSettings.ServerName, GetRandomFromVector(SpinSettings.Ports, ThreadID));
             break;
         }
         case SpinQuicAPICallConnectionShutdown: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
-            MsQuic.ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)GetRandom(2, ThreadID), 0);
+            MsQuicTable.ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)GetRandom(2, ThreadID), 0);
             break;
         }
         case SpinQuicAPICallConnectionClose: {
@@ -1015,7 +1014,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             HQUIC Stream;
             auto ctx = new SpinQuicStream(*SpinQuicConnection::Get(Connection));
             QUIC_STREAM_OPEN_FLAGS OpenFlags = (QUIC_STREAM_OPEN_FLAGS)GetRandom(16, ThreadID);
-            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, OpenFlags, SpinQuicHandleStreamEvent, ctx, &Stream);
+            QUIC_STATUS Status = MsQuicTable.StreamOpen(Connection, OpenFlags, SpinQuicHandleStreamEvent, ctx, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
                 ctx->Handle = Stream;
                 if ((OpenFlags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS) && GetRandom(2, ThreadID) == 0) {
@@ -1025,7 +1024,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                         Sizes[i] = MaxBufferSizes[GetRandom(BufferCount, ThreadID)];
                     }
                     auto Buffers = ctx->AllocateReceiveBuffers(Sizes);
-                    MsQuic.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
+                    MsQuicTable.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
                 }
                 SpinQuicGetRandomParam(Stream, ThreadID);
                 SpinQuicSetRandomStreamParam(Stream, ThreadID);
@@ -1043,7 +1042,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                MsQuic.StreamStart(Stream, (QUIC_STREAM_START_FLAGS)GetRandom(16, ThreadID));
+                MsQuicTable.StreamStart(Stream, (QUIC_STREAM_START_FLAGS)GetRandom(16, ThreadID));
             }
             break;
         }
@@ -1062,7 +1061,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                     Buffer->Buffer = Gb.SendBuffer.data() + StreamCtx->SendOffset;
                     Buffer->Length = Length;
                     if (QUIC_SUCCEEDED(
-                        MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16, ThreadID), Buffer))) {
+                        MsQuicTable.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16, ThreadID), Buffer))) {
                         StreamCtx->SendOffset = (uint8_t)(StreamCtx->SendOffset + Length);
                     } else {
                         delete Buffer;
@@ -1079,7 +1078,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                MsQuic.StreamReceiveSetEnabled(Stream, GetRandom(2, ThreadID) == 0);
+                MsQuicTable.StreamReceiveSetEnabled(Stream, GetRandom(2, ThreadID) == 0);
             }
             break;
         }
@@ -1097,9 +1096,9 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 StreamCtx->PendingRecvLength = UINT64_MAX;
                 if (BytesRemaining != 0 && GetRandom(10, ThreadID) == 0) {
                     auto BytesConsumed = GetRandom(BytesRemaining, ThreadID);
-                    MsQuic.StreamReceiveComplete(Stream, BytesConsumed);
+                    MsQuicTable.StreamReceiveComplete(Stream, BytesConsumed);
                 } else {
-                    MsQuic.StreamReceiveComplete(Stream, BytesRemaining);
+                    MsQuicTable.StreamReceiveComplete(Stream, BytesRemaining);
                 }
             }
             break;
@@ -1117,7 +1116,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                     auto StreamCtx = SpinQuicStream::Get(Stream);
                     StreamCtx->PendingRecvLength = UINT64_MAX;
                 }
-                MsQuic.StreamShutdown(Stream, Flags, 0);
+                MsQuicTable.StreamShutdown(Stream, Flags, 0);
             }
             break;
         }
@@ -1197,7 +1196,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             if (Buffer) {
                 Buffer->Buffer = Gb.SendBuffer.data();
                 Buffer->Length = MaxBufferSizes[GetRandom(BufferCount, ThreadID)];
-                if (QUIC_FAILED(MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8, ThreadID), Buffer))) {
+                if (QUIC_FAILED(MsQuicTable.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8, ThreadID), Buffer))) {
                     delete Buffer;
                 }
             }
@@ -1206,13 +1205,13 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
         case SpinQuicAPICallCompleteTicketValidation: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
-            MsQuic.ConnectionResumptionTicketValidationComplete(Connection, GetRandom(2, ThreadID) == 0);
+            MsQuicTable.ConnectionResumptionTicketValidationComplete(Connection, GetRandom(2, ThreadID) == 0);
             break;
         }
         case SpinQuicAPICallCompleteCertificateValidation: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
-            MsQuic.ConnectionCertificateValidationComplete(Connection, GetRandom(2, ThreadID) == 0, QUIC_TLS_ALERT_CODE_BAD_CERTIFICATE);
+            MsQuicTable.ConnectionCertificateValidationComplete(Connection, GetRandom(2, ThreadID) == 0, QUIC_TLS_ALERT_CODE_BAD_CERTIFICATE);
             break;
         }
         case SpinQuicAPICallConnectionPoolCreate: {
@@ -1233,7 +1232,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 PoolConfig.CibirIds = nullptr;
                 PoolConfig.CibirIdLength = 0;
                 PoolConfig.Flags = (QUIC_CONNECTION_POOL_FLAGS)GetRandom(2, ThreadID);
-                QUIC_STATUS Status = MsQuic.ConnectionPoolCreate(&PoolConfig, PoolConnections.data());
+                QUIC_STATUS Status = MsQuicTable.ConnectionPoolCreate(&PoolConfig, PoolConnections.data());
                 if (QUIC_SUCCEEDED(Status)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
                         auto ctx = new(std::nothrow) SpinQuicConnection(PoolConnections[i], ThreadID);
@@ -1241,13 +1240,13 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                             std::lock_guard<std::mutex> Lock(Connections);
                             Connections.push_back(PoolConnections[i]);
                         } else {
-                            MsQuic.ConnectionClose(PoolConnections[i]);
+                            MsQuicTable.ConnectionClose(PoolConnections[i]);
                         }
                     }
                 } else if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
                         if (PoolConnections[i] != nullptr) {
-                            MsQuic.ConnectionClose(PoolConnections[i]);
+                            MsQuicTable.ConnectionClose(PoolConnections[i]);
                         }
                     }
                 }
@@ -1271,7 +1270,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                     Sizes[i] = MaxBufferSizes[GetRandom(BufferCount, ThreadID)];
                 }
                 auto Buffers = StreamCtx->AllocateReceiveBuffers(Sizes);
-                MsQuic.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
+                MsQuicTable.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
             }
             break;
         }
@@ -1312,7 +1311,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
         }
 
         if (!QUIC_SUCCEEDED(
-            MsQuic.ConfigurationOpen(
+            MsQuicTable.ConfigurationOpen(
                 Gb.Registration,
                 Gb.Alpns,
                 Gb.AlpnCount,
@@ -1327,7 +1326,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
         ListenerCtx.ServerConfiguration = Gb.ServerConfiguration;
 
         if (!QUIC_SUCCEEDED(
-            MsQuic.ConfigurationLoadCredential(
+            MsQuicTable.ConfigurationLoadCredential(
                 Gb.ServerConfiguration,
                 CredConfig))) {
             goto CredLoadFail;
@@ -1337,7 +1336,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
             for (auto &pt : SpinSettings.Ports) {
                 HQUIC Listener;
                 if (!QUIC_SUCCEEDED(
-                    (MsQuic.ListenerOpen(Gb.Registration, SpinQuicServerHandleListenerEvent, &ListenerCtx, &Listener)))) {
+                    (MsQuicTable.ListenerOpen(Gb.Registration, SpinQuicServerHandleListenerEvent, &ListenerCtx, &Listener)))) {
                     goto CleanupListeners;
                 }
 
@@ -1345,8 +1344,8 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
                 QuicAddrSetFamily(&sockAddr, GetRandom(2, ThreadID) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
                 QuicAddrSetPort(&sockAddr, pt);
 
-                if (!QUIC_SUCCEEDED(MsQuic.ListenerStart(Listener, &Gb.Alpns[i], 1, &sockAddr))) {
-                    MsQuic.ListenerClose(Listener);
+                if (!QUIC_SUCCEEDED(MsQuicTable.ListenerStart(Listener, &Gb.Alpns[i], 1, &sockAddr))) {
+                    MsQuicTable.ListenerClose(Listener);
                     goto CleanupListeners;
                 }
                 Listeners.push_back(Listener);
@@ -1367,11 +1366,11 @@ CleanupListeners:
         while (Listeners.size() > 0) {
             auto Listener = Listeners.back();
             Listeners.pop_back();
-            MsQuic.ListenerClose(Listener);
+            MsQuicTable.ListenerClose(Listener);
         }
 
         for (auto &Connection : Connections) {
-            MsQuic.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+            MsQuicTable.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
 
         while (Connections.size() > 0) {
@@ -1381,7 +1380,7 @@ CleanupListeners:
         }
 
 CredLoadFail:
-        MsQuic.ConfigurationClose(Gb.ServerConfiguration);
+        MsQuicTable.ConfigurationClose(Gb.ServerConfiguration);
 ConfigOpenFail:
         CxPlatFreeSelfSignedCert(CredConfig);
     } while (!InitializeSuccess);
@@ -1410,7 +1409,7 @@ CXPLAT_THREAD_CALLBACK(ClientSpin, Context)
     //
 
     for (auto &Connection : Connections) {
-        MsQuic.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        MsQuicTable.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 
     while (Connections.size() > 0) {
@@ -1488,7 +1487,7 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
         }
 
         if (ExecConfig) {
-            MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, ExecConfigSize, ExecConfig);
+            MsQuicTable.SetParam(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, ExecConfigSize, ExecConfig);
         }
 
         QUIC_SETTINGS QuicSettings{0};
@@ -1496,14 +1495,14 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
 
         if (0 == GetRandom(4, ThreadID)) {
             uint16_t RetryMemoryPercent = 0;
-            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent))) {
+            if (!QUIC_SUCCEEDED(MsQuicTable.SetParam(nullptr, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent))) {
                 break;
             }
         }
 
         if (0 == GetRandom(4, ThreadID)) {
             uint16_t LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
-            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode))) {
+            if (!QUIC_SUCCEEDED(MsQuicTable.SetParam(nullptr, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode))) {
                 break;
             }
         }
@@ -1511,7 +1510,7 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
         if (0 == GetRandom(4, ThreadID)) {
             uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
             CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
-            if (!QUIC_SUCCEEDED(MsQuic.SetParam(
+            if (!QUIC_SUCCEEDED(MsQuicTable.SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
                     sizeof(StatelessResetKey),
@@ -1524,7 +1523,7 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
         RegConfig.AppName = "spinquic";
         RegConfig.ExecutionProfile = FuzzData ? QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER : (QUIC_EXECUTION_PROFILE)GetRandom(4, ThreadID);
 
-        if (!QUIC_SUCCEEDED(MsQuic.RegistrationOpen(&RegConfig, &Gb.Registration))) {
+        if (!QUIC_SUCCEEDED(MsQuicTable.RegistrationOpen(&RegConfig, &Gb.Registration))) {
             break;
         }
 
@@ -1560,11 +1559,11 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
 
         for (uint32_t j = 0; j < Gb.AlpnCount; j++) {
             HQUIC Configuration;
-            if (!QUIC_SUCCEEDED(MsQuic.ConfigurationOpen(Gb.Registration, &Gb.Alpns[j], 1, &QuicSettings, sizeof(QuicSettings), nullptr, &Configuration))) {
+            if (!QUIC_SUCCEEDED(MsQuicTable.ConfigurationOpen(Gb.Registration, &Gb.Alpns[j], 1, &QuicSettings, sizeof(QuicSettings), nullptr, &Configuration))) {
                 break;
             }
-            if (!QUIC_SUCCEEDED(MsQuic.ConfigurationLoadCredential(Configuration, &CredConfig))) {
-                MsQuic.ConfigurationClose(Configuration);
+            if (!QUIC_SUCCEEDED(MsQuicTable.ConfigurationLoadCredential(Configuration, &CredConfig))) {
+                MsQuicTable.ConfigurationClose(Configuration);
                 break;
             }
             Gb.ClientConfigurations.push_back(Configuration);
@@ -1628,11 +1627,11 @@ void start() {
         //
         const QUIC_API_TABLE* TempMsQuic = nullptr;
         ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
-        CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
+        CxPlatCopyMemory(&MsQuicTable, TempMsQuic, sizeof(MsQuicTable));
 
         if (SpinSettings.AllocFailDenominator > 0) {
             if (QUIC_FAILED(
-                MsQuic.SetParam(
+                MsQuicTable.SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
                     sizeof(SpinSettings.AllocFailDenominator),
@@ -1644,7 +1643,7 @@ void start() {
         if (SpinSettings.LossPercent != 0) {
             QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
             if (QUIC_FAILED(
-                MsQuic.SetParam(
+                MsQuicTable.SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                     sizeof(Value),
