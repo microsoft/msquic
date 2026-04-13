@@ -365,8 +365,8 @@ TEST_F(BbrTest, OnDataLost_PersistentCongestion)
 //
 // Test: OnDataLost - Non-Persistent Loss Reduces RecoveryWindow
 // Scenario: Sends 10000 bytes via OnDataSent, then triggers a non-persistent loss of
-// 1200 bytes. The RecoveryWindow should be reduced by the lost bytes from the current
-// BytesInFlight: max(BytesInFlight=8800, MinCW=4928) - 1200 = 7600.
+// 1200 bytes. The RecoveryWindow is max(BytesInFlight - 1200, MinCW) =
+// max(8800 - 1200, 4928) = max(7600, 4928) = 7600.
 //
 TEST_F(BbrTest, OnDataLost_NonPersistent)
 {
@@ -928,8 +928,8 @@ TEST_F(BbrTest, BandwidthFilter_NoLastAckedInfo)
 // Test: BandwidthFilter - Zero SendElapsed Fallback
 // Scenario: Creates a packet with HasLastAckedPacketInfo where SentTime equals
 // LastAckedPacketInfo.SentTime, making SendElapsed=0. When SendElapsed is zero, BBR
-// uses AckElapsed to compute the delivery rate. With AckElapsed=100000us and 12000
-// bytes delivered, AckRate=320000 is used.
+// uses AckElapsed to compute the delivery rate. With AckElapsed=100000us and 4000
+// bytes delivered (NumTotalAcked=12000 - LastTotalBytesAcked=8000), AckRate=320000.
 //
 TEST_F(BbrTest, BandwidthFilter_ZeroSendElapsed)
 {
@@ -986,7 +986,8 @@ TEST_F(BbrTest, BandwidthFilter_AckElapsedSecondBranch)
 // Test: BandwidthFilter - Zero AckElapsed Uses SendRate Only
 // Scenario: Creates a packet where LastAdjustedAckTime equals AckEvent.AdjustedAckTime,
 // making AckElapsed=0. When AckElapsed is zero, AckRate becomes UINT64_MAX and BBR
-// uses SendRate alone. With SendElapsed=100000us and 12000 bytes, SendRate=400000.
+// uses SendRate alone. With SendElapsed=100000us and 5000 sent bytes
+// (TotalBytesSent=15000 - LastTotalBytesSent=10000), SendRate=400000.
 // min(400000, UINT64_MAX) = 400000.
 //
 TEST_F(BbrTest, BandwidthFilter_ZeroAckElapsed)
@@ -1089,7 +1090,7 @@ TEST_F(BbrTest, BandwidthFilter_AppLimitedExit)
 // Scenario: Pumps a high bandwidth sample (rate=10,000,000 → BW=80,000,000 in filter
 // units) to establish a filter maximum. Then sends an app-limited packet
 // (IsAppLimited=TRUE) with lower delivery rate (48000). Since 48000 < 80,000,000
-// and IsAppLimited=TRUE, both conditions of the update guard (line 184) are FALSE,
+// and IsAppLimited=TRUE, both conditions of the update guard are FALSE,
 // so the filter is NOT updated.
 //
 TEST_F(BbrTest, BandwidthFilter_AppLimitedNoUpdate)
@@ -1119,8 +1120,8 @@ TEST_F(BbrTest, BandwidthFilter_AppLimitedNoUpdate)
 //
 // Test: BandwidthFilter - Multiple Packets in Single ACK
 // Scenario: Creates two chained packets (Packet1.Next = &Packet2) with different
-// timing data and acknowledges them together. Packet1 has SendRate=400000/AckRate=320000
-// and Packet2 has a higher rate. BbrBandwidthFilterOnPacketAcked processes both packets
+// timing data and acknowledges them together. Packet1 has SendRate=400000/AckRate=480000
+// (DeliveryRate=min=400000) and Packet2 has a higher rate. BbrBandwidthFilterOnPacketAckedprocesses both packets
 // and the filter retains the maximum.
 //
 TEST_F(BbrTest, BandwidthFilter_MultiplePackets)
@@ -1184,6 +1185,7 @@ TEST_F(BbrTest, BtlbwFound_BandwidthGrowingResetsCounter)
 // Scenario: Enters CONSERVATIVE recovery via 1200-byte loss from 10000 bytes in flight.
 // Then sends 5000 more bytes and ACKs 2000 with HasLoss=TRUE and LargestAck=15
 // (new round trip triggers CONSERVATIVE → GROWTH). In GROWTH state, RecoveryWindow
+// increases by BytesAcked: max(RecoveryWindow + BytesAcked, BytesInFlight + BytesAcked).
 //
 TEST_F(BbrTest, RecoveryWindow_GrowthAddsBytes)
 {
@@ -1401,7 +1403,7 @@ TEST_F(BbrTest, GetSendAllowance_PacingDisabled)
 // sample yet). The sentinel check in bbr.c compares MinRtt to UINT32_MAX, so
 // UINT64_MAX != UINT32_MAX causes pacing to fall through to the STARTUP formula:
 // max(BW*PacingGain*Time, CW*PacingGain/GAIN_UNIT - BIF). With BW=0, the first term
-// is 0; the second is large (12320*739/256 - 1000 ≈ 34588). This is capped first to
+// is 0; the second is large (12320*739/256 - 1000 = 34564). This is capped first to
 // CW-BIF=11320, then to CW>>2=3080.
 //
 TEST_F(BbrTest, GetSendAllowance_MinRttMax)
@@ -1412,7 +1414,7 @@ TEST_F(BbrTest, GetSendAllowance_MinRttMax)
     // MinRtt is UINT64_MAX initially. The sentinel check compares to UINT32_MAX,
     // so it falls through to pacing code.
     // STARTUP formula: max(BW*PacingGain*Time/GAIN_UNIT, CW*PacingGain/GAIN_UNIT - BIF)
-    // = max(0, 12320*739/256 - 1000) ≈ 34588, capped to CW-BIF=11320, then CW>>2=3080.
+    // = max(0, 12320*739/256 - 1000) = 34564, capped to CW-BIF=11320, then CW>>2=3080.
     uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 50000, TRUE);
     ASSERT_EQ(Allowance, 3080u);
 }
@@ -2027,8 +2029,8 @@ TEST_F(BbrTest, OnDataAcknowledged_WithNetStats)
 //
 // Test: OnDataAcknowledged - NULL AckedPackets With AppLimited Flag
 // Scenario: Sends 5000 bytes, then acknowledges 1200 with AckedPackets=NULL and
-// IsLargestAckedPacketAppLimited=TRUE. Since AckedPackets is NULL, the ternary at
-// line 816-817 resolves LastAckedPacketAppLimited to FALSE regardless of the flag.
+// IsLargestAckedPacketAppLimited=TRUE. Since AckedPackets is NULL, the ternary
+// resolves LastAckedPacketAppLimited to FALSE regardless of the flag.
 // BytesInFlight is decremented normally.
 //
 TEST_F(BbrTest, OnDataAcknowledged_AppLimitedPacket)
