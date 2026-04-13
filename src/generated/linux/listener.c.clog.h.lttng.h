@@ -12,7 +12,7 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateStopComplete,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -34,7 +34,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateStopComplete,
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateNewConnection,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -44,54 +44,93 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateNewConnection,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ListenerCibirIdSet
-// [list][%p] CIBIR ID set (len %hhu, offset %hhu)
+// Decoder Ring for ListenerCibirIdSetInfo
+// [list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)
 // QuicTraceLogVerbose(
-            ListenerCibirIdSet,
-            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            ListenerCibirIdSetInfo,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Listener,
             Listener->CibirId[0],
-            Listener->CibirId[1]);
+            Listener->CibirId[1],
+            (unsigned long long)QuicCibirIdToUint64(
+                Listener->CibirId + 2,
+                Listener->CibirId[0]));
 // arg2 = arg2 = Listener = arg2
 // arg3 = arg3 = Listener->CibirId[0] = arg3
 // arg4 = arg4 = Listener->CibirId[1] = arg4
+// arg5 = arg5 = (unsigned long long)QuicCibirIdToUint64(
+                Listener->CibirId + 2,
+                Listener->CibirId[0]) = arg5
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCibirIdSet,
+TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCibirIdSetInfo,
     TP_ARGS(
         const void *, arg2,
         unsigned char, arg3,
-        unsigned char, arg4), 
+        unsigned char, arg4,
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
     )
 )
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CibirIdSet
-// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// Decoder Ring for ListenerPartitionIndexSet
+// [list][%p] PartitionIndex set (index %hu)
+// QuicTraceLogVerbose(
+            ListenerPartitionIndexSet,
+            "[list][%p] PartitionIndex set (index %hu)",
+            Listener,
+            Listener->PartitionIndex);
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Listener->PartitionIndex = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerPartitionIndexSet,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned short, arg3),
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned short, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CibirIdSetInfo
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)
 // QuicTraceLogConnInfo(
-            CibirIdSet,
+            CibirIdSetInfo,
             Connection,
-            "CIBIR ID set (len %hhu, offset %hhu)",
+            "CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Connection->CibirId[0],
-            Connection->CibirId[1]);
+            Connection->CibirId[1],
+            (unsigned long long)QuicCibirIdToUint64(
+                Connection->CibirId + 2,
+                Connection->CibirId[0]));
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->CibirId[0] = arg3
 // arg4 = arg4 = Connection->CibirId[1] = arg4
+// arg5 = arg5 = (unsigned long long)QuicCibirIdToUint64(
+                Connection->CibirId + 2,
+                Connection->CibirId[0]) = arg5
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LISTENER_C, CibirIdSet,
+TRACEPOINT_EVENT(CLOG_LISTENER_C, CibirIdSetInfo,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned char, arg4), 
+        unsigned char, arg4,
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
     )
 )
 
@@ -111,7 +150,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, CibirIdSet,
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiEnter,
     TP_ARGS(
         unsigned int, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -134,7 +173,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiEnter,
 TRACEPOINT_EVENT(CLOG_LISTENER_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -157,7 +196,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, AllocFailure,
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCreated,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -177,7 +216,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCreated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiExitStatus,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -196,7 +235,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiExitStatus,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerDestroyed,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -213,7 +252,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerDestroyed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiExit,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -237,7 +276,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -269,7 +308,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStarted,
         unsigned int, arg4_len,
         const void *, arg4,
         unsigned int, arg5_len,
-        const void *, arg5), 
+        const void *, arg5),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -293,7 +332,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStarted,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStopped,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -315,7 +354,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStopped,
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerRundown,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -338,7 +377,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerRundown,
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ConnError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
