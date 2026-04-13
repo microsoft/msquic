@@ -289,7 +289,7 @@ struct SpinQuicStream {
     uint8_t SendOffset {0};
     bool Deleting {false};
     uint64_t PendingRecvLength {UINT64_MAX}; // UINT64_MAX means no pending receive
-    std::vector<uint8_t> RecvBuffer;
+    std::vector<std::vector<uint8_t>> RecvBuffers;
     SpinQuicStream(SpinQuicConnection& Connection, HQUIC Handle = nullptr) :
         Connection(Connection), Handle(Handle) {}
     ~SpinQuicStream() { Deleting = true; MsQuicTable.StreamClose(Handle); }
@@ -301,12 +301,13 @@ struct SpinQuicStream {
         for (auto Size : Sizes) {
             TotalSize += Size;
         }
-        size_t Offset = RecvBuffer.size();
-        RecvBuffer.resize(Offset + TotalSize);
+        RecvBuffers.emplace_back(TotalSize);
+        auto& Backing = RecvBuffers.back();
         std::vector<QUIC_BUFFER> Buffers(Sizes.size());
+        size_t Offset = 0;
         for (size_t i = 0; i < Sizes.size(); i++) {
             Buffers[i].Length = Sizes[i];
-            Buffers[i].Buffer = RecvBuffer.data() + Offset;
+            Buffers[i].Buffer = Backing.data() + Offset;
             Offset += Sizes[i];
         }
         return Buffers;
