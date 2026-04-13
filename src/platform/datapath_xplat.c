@@ -198,7 +198,7 @@ CxPlatSocketCreateUdp(
             Status = QUIC_STATUS_INVALID_STATE;
             goto Error;
         } else if (CibirRequested) {
-             QuicTraceLogWarning(
+            QuicTraceLogWarning(
                 WarnNoXdpForCibirSockets,
                 "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. "
                 "Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");

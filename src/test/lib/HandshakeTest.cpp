@@ -3920,6 +3920,7 @@ QuicTestCibirExtension(
         // CIBIR + XDP requires an explicit local port. Reserve an ephemeral port
         // up front so the listener always binds to a known port.
         //
+        TEST_NOT_EQUAL(0, PortReservation.Port);
         ServerLocalAddr.SetPort(PortReservation.Port);
     }
 #endif
@@ -4490,6 +4491,7 @@ QuicTestConnectionPoolCreate(
         // If Cibir+XDP mode is active, we can't pass in a 0 local port
         // hoping the stack will assign us an ephemeral port.
         //
+        TEST_NOT_EQUAL(0, PortReservation.Port);
         ServerAddr.SetPort(PortReservation.Port);
     }
 #endif
