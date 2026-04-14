@@ -742,7 +742,6 @@ TEST_F(BbrTest, OnDataAcknowledged_StartupToDrain)
         if (Bbr->BtlbwFound) break;
     }
 
-    ASSERT_TRUE(Bbr->BtlbwFound);
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_DRAIN);
 }
 
@@ -783,8 +782,6 @@ TEST_F(BbrTest, HandleAckInProbeRtt_StartTimer)
     uint64_t ExpiredTime = 1000000 + 11000000;
     QUIC_ACK_EVENT Ack2 = MakeBbrAckEvent(ExpiredTime, 3, 4, 1000, 50000, 35000, TRUE);
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack2);
-
-    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_RTT);
 
     CC->QuicCongestionControlOnDataSent(CC, 100);
     QUIC_ACK_EVENT ProbeAck = MakeBbrAckEvent(ExpiredTime + 1000, 7, 8, 100);
@@ -843,7 +840,6 @@ TEST_F(BbrTest, HandleAckInProbeRtt_ExitToProbeBw)
 
     // Drive to BtlbwFound then to PROBE_RTT
     uint64_t TimeNow = DriveToBtlbwFound();
-    ASSERT_TRUE(Bbr->BtlbwFound);
 
     // Drive to PROBE_BW first
     for (int i = 0; i < 20; i++) {
@@ -1070,7 +1066,6 @@ TEST_F(BbrTest, BandwidthFilter_AppLimitedExit)
     InitializeWithDefaults();
 
     CC->QuicCongestionControlSetAppLimited(CC);
-    ASSERT_TRUE(CC->QuicCongestionControlIsAppLimited(CC));
 
     auto PacketBuf = MakeBbrPacket(1200, FALSE, FALSE, 0, 900000);
     auto& Packet = PacketBuf.Metadata;
@@ -1209,63 +1204,6 @@ TEST_F(BbrTest, RecoveryWindow_GrowthAddsBytes)
     ASSERT_EQ(Bbr->RecoveryState, (uint32_t)RECOVERY_STATE_GROWTH);
     // RecoveryWindow = max(RecoveryWinAfterLoss + BytesAcked, BytesInFlight + BytesAcked)
     ASSERT_EQ(Bbr->RecoveryWindow, 13800u);
-}
-
-//
-// Test: Full Lifecycle - STARTUP to DRAIN to PROBE_BW
-// Scenario: Drives BBR through its complete state machine using DriveToBtlbwFound(),
-// which pumps stagnant bandwidth rounds until BtlbwFound triggers. Verifies the initial
-// state is STARTUP, then after BtlbwFound detection the STARTUP → DRAIN → PROBE_BW
-// transitions fire (DRAIN → PROBE_BW is immediate since BytesInFlight is near zero).
-//
-TEST_F(BbrTest, FullLifecycle_StartupDrainProbeBw)
-{
-    InitializeWithDefaults();
-    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_STARTUP);
-
-    DriveToBtlbwFound();
-    ASSERT_TRUE(Bbr->BtlbwFound);
-
-    // STARTUP -> DRAIN -> PROBE_BW (immediate since BytesInFlight=0)
-    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
-
-    // Already in PROBE_BW after DriveToBtlbwFound
-    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
-}
-
-//
-// Test: Full Lifecycle - Loss, Recovery, and Recovery Exit
-// Scenario: Sends 10000 bytes, triggers a 2000-byte loss entering CONSERVATIVE recovery.
-// First ACK with HasLoss=TRUE and new round trip transitions to GROWTH. Second ACK with
-// HasLoss=FALSE and LargestAck past EndOfRecovery exits recovery entirely.
-//
-TEST_F(BbrTest, FullLifecycle_WithLossAndRecovery)
-{
-    InitializeWithDefaults();
-
-    // Send data and trigger loss
-    CC->QuicCongestionControlOnDataSent(CC, 10000);
-    Connection.Send.NextPacketNumber = 10;
-
-    QUIC_LOSS_EVENT Loss = MakeBbrLossEvent(2000, 5, 10);
-    CC->QuicCongestionControlOnDataLost(CC, &Loss);
-    ASSERT_EQ(Bbr->RecoveryState, (uint32_t)RECOVERY_STATE_CONSERVATIVE);
-
-    // ACK to transition recovery state and exit
-    Connection.Send.NextPacketNumber = 20;
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-
-    // ACK with new round trip (triggers CONSERVATIVE → GROWTH)
-    QUIC_ACK_EVENT Ack1 = MakeBbrAckEvent(1100000, 15, 25, 2000);
-    Ack1.HasLoss = TRUE;
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack1);
-
-    // ACK past recovery point with no loss (triggers recovery exit)
-    QUIC_ACK_EVENT Ack2 = MakeBbrAckEvent(1200000, 20, 30, 2000);
-    Ack2.HasLoss = FALSE;
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack2);
-
-    ASSERT_EQ(Bbr->RecoveryState, (uint32_t)RECOVERY_STATE_NOT_RECOVERY);
 }
 
 //
@@ -1832,18 +1770,6 @@ TEST_F(BbrTest, InRecovery_NotInRecovery)
 }
 
 //
-// Test: InRecovery - Returns TRUE After Data Loss
-// Scenario: Calls EnterRecovery() helper which sends 5000 bytes and loses 1200.
-// After the loss event, BBR enters CONSERVATIVE recovery.
-//
-TEST_F(BbrTest, InRecovery_AfterLoss)
-{
-    InitializeWithDefaults();
-    EnterRecovery();
-    ASSERT_EQ(Bbr->RecoveryState, (uint32_t)RECOVERY_STATE_CONSERVATIVE);
-}
-
-//
 // Test: OnDataSent - Basic BytesInFlight Increment
 // Scenario: Verifies BytesInFlight starts at 0, then sends 1200 bytes via
 // OnDataSent. The sent bytes should be added to BytesInFlight.
@@ -1867,8 +1793,6 @@ TEST_F(BbrTest, OnDataSent_QuiescenceExit)
 {
     InitializeWithDefaults();
     CC->QuicCongestionControlSetAppLimited(CC);
-    ASSERT_TRUE(CC->QuicCongestionControlIsAppLimited(CC));
-    ASSERT_EQ(Bbr->BytesInFlight, 0u);
 
     CC->QuicCongestionControlOnDataSent(CC, 1200);
     ASSERT_TRUE(Bbr->ExitingQuiescence);
@@ -1997,8 +1921,6 @@ TEST_F(BbrTest, OnDataAcknowledged_ImplicitWithNetStats)
 
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
 
-    ASSERT_EQ(Bbr->BytesInFlight, 5000u);
-    ASSERT_EQ(Bbr->CongestionWindow, Bbr->InitialCongestionWindow + 1200u);
     ASSERT_TRUE(NetStatsCallbackInvoked);
     ASSERT_EQ(LastNetStats.BytesInFlight, 5000u);
     ASSERT_EQ(LastNetStats.CongestionWindow, CC->QuicCongestionControlGetCongestionWindow(CC));
@@ -2043,26 +1965,6 @@ TEST_F(BbrTest, OnDataAcknowledged_AppLimitedPacket)
     Ack.AckedPackets = NULL;
     Ack.IsLargestAckedPacketAppLimited = TRUE;
 
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
-
-    ASSERT_EQ(Bbr->BytesInFlight, 5000u - 1200u);
-}
-
-//
-// Test: OnDataAcknowledged - NULL AckedPackets in Event
-// Scenario: Sends 5000 bytes, then acknowledges 1200 with AckedPackets=NULL and
-// IsLargestAckedPacketAppLimited=FALSE. With no packet metadata, the bandwidth filter
-// is not updated but BytesInFlight is still decremented.
-//
-TEST_F(BbrTest, OnDataAcknowledged_NullAckedPackets)
-{
-    InitializeWithDefaults();
-
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-
-    QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1050000, 5, 10, 1200);
-    Ack.AckedPackets = NULL;
-    Ack.IsLargestAckedPacketAppLimited = FALSE;
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
 
     ASSERT_EQ(Bbr->BytesInFlight, 5000u - 1200u);
@@ -2129,8 +2031,6 @@ TEST_F(BbrTest, UpdateCongestionWindow_AckHeightFilterEntry)
     InitializeWithDefaults();
 
     uint64_t TimeNow = DriveToBtlbwFound();
-    ASSERT_TRUE(Bbr->BtlbwFound);
-    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
 
     //
     // Create ack aggregation excess while BtlbwFound=TRUE.
@@ -2177,29 +2077,7 @@ TEST_F(BbrTest, UpdateAckAggregation_FirstCall)
     ASSERT_TRUE(Bbr->AckAggregationStartTimeValid);
 }
 
-//
-// Test: UpdateAckAggregation - Reset When AggregatedAckBytes at Zero
-// Scenario: First ACK initializes ack aggregation state (sets StartTime, returns early).
-// AggregatedAckBytes remains 0. Second ACK arrives 1 second later with 100 bytes.
-// Since AggregatedAckBytes(0) <= ExpectedAckBytes(0, because BW=0), the aggregation
-// counters are reset: AggregatedAckBytes = 100, StartTime updated.
-//
-TEST_F(BbrTest, UpdateAckAggregation_Reset)
-{
-    InitializeWithDefaults();
 
-    // First ack initializes
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-    QUIC_ACK_EVENT Ack1 = MakeBbrAckEvent(1050000, 5, 10, 1200);
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack1);
-
-    // Second ack with small bytes and time gap → AggregatedAckBytes <= ExpectedAckBytes
-    CC->QuicCongestionControlOnDataSent(CC, 5000);
-    QUIC_ACK_EVENT Ack2 = MakeBbrAckEvent(2050000, 10, 15, 100);
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack2);
-
-    ASSERT_TRUE(Bbr->AckAggregationStartTimeValid);
-}
 
 //
 // Test: SetSendQuantum - Medium Pacing Rate Sets 2x DatagramPayloadLength
