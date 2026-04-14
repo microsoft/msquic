@@ -1230,6 +1230,103 @@ TEST_F(BbrTest, ProbeBw_HighGainNoAdvance)
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
 }
 
+//
+// Test: PROBE_BW - Drain Gain Phase Advances Cycle When BytesInFlight Low
+// Scenario: Drives to PROBE_BW via DriveToBtlbwFound(), then advances the pacing gain
+// cycle by sending ACKs with TimeNow spaced > MinRtt apart until PacingCycleIndex
+// reaches 1 (drain gain = 192 < GAIN_UNIT = 256). Once in drain gain phase, sends an
+// ACK with low BytesInFlight (below TargetCwnd), which forces ShouldAdvancePacingGainCycle = TRUE.
+//
+TEST_F(BbrTest, ProbeBw_DrainGainAdvancesCycle)
+{
+    InitializeWithDefaults();
+
+    uint64_t TimeNow = DriveToBtlbwFound();
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
+
+    // Establish MinRtt so cycle advance condition (elapsed > MinRtt) can be met.
+    // DriveToBtlbwFound already set MinRtt = 45000.
+
+    // Advance the pacing gain cycle until we reach index 1 (drain gain = 192).
+    // Each ACK with elapsed > MinRtt advances the cycle by 1.
+    // Index 0 (high gain) suppresses advance if !HasLoss && PrevInflight < TargetCwnd,
+    // so we set HasLoss=TRUE to force advance through index 0.
+    uint64_t LargestAck = 300;
+    uint64_t LargestSent = 310;
+    for (int i = 0; i < 8; i++) {
+        TimeNow += Bbr->MinRtt + 1000; // Ensure elapsed > MinRtt
+        CC->QuicCongestionControlOnDataSent(CC, 1200);
+        QUIC_ACK_EVENT Ack = MakeBbrAckEvent(TimeNow, LargestAck, LargestSent, 1200, 50000, 45000, TRUE);
+        Ack.HasLoss = TRUE; // Force advance past high-gain phase (index 0)
+        CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+        LargestAck += 10;
+        LargestSent += 10;
+        if (Bbr->PacingCycleIndex == 1) break;
+    }
+
+    ASSERT_EQ(Bbr->PacingCycleIndex, (uint8_t)1);
+    ASSERT_EQ(Bbr->PacingGain, (uint32_t)192); // kDrainGain < GAIN_UNIT
+
+    // Now in drain gain phase. Send an ACK with BytesInFlight <= TargetCwnd.
+    // This triggers the PacingGain < GAIN_UNIT branch and sets
+    // ShouldAdvancePacingGainCycle = TRUE, advancing past index 1.
+    TimeNow += Bbr->MinRtt + 1000;
+    CC->QuicCongestionControlOnDataSent(CC, 100);
+    QUIC_ACK_EVENT DrainAck = MakeBbrAckEvent(TimeNow, LargestAck, LargestSent + 10, 100, 50000, 45000, TRUE);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &DrainAck);
+
+    // Cycle should have advanced past index 1 to index 2.
+    ASSERT_EQ(Bbr->PacingCycleIndex, (uint8_t)2);
+}
+
+//
+// Test: PROBE_BW - High Gain Phase Suppresses Cycle Advance When No Loss And Low Inflight
+// Scenario: Drives to PROBE_BW via DriveToBtlbwFound(), then advances the pacing gain
+// cycle until PacingCycleIndex reaches 0 (high gain = 320 > GAIN_UNIT = 256). Once in
+// high gain phase, sends an ACK with elapsed > MinRtt (so ShouldAdvancePacingGainCycle
+// would normally be TRUE), but HasLoss=FALSE and BytesInFlight < TargetCwnd. This overrides ShouldAdvancePacingGainCycle
+// to FALSE, preventing the cycle from advancing.
+//
+TEST_F(BbrTest, ProbeBw_HighGainSuppressesCycleAdvance)
+{
+    InitializeWithDefaults();
+
+    uint64_t TimeNow = DriveToBtlbwFound();
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
+
+    // Advance cycle to index 0 (high gain = 320).
+    // Use HasLoss=TRUE to force advance through any index.
+    uint64_t LargestAck = 300;
+    uint64_t LargestSent = 310;
+    for (int i = 0; i < 8; i++) {
+        if (Bbr->PacingCycleIndex == 0) break;
+        TimeNow += Bbr->MinRtt + 1000;
+        CC->QuicCongestionControlOnDataSent(CC, 1200);
+        QUIC_ACK_EVENT Ack = MakeBbrAckEvent(TimeNow, LargestAck, LargestSent, 1200, 50000, 45000, TRUE);
+        Ack.HasLoss = TRUE;
+        CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+        LargestAck += 10;
+        LargestSent += 10;
+    }
+
+    ASSERT_EQ(Bbr->PacingCycleIndex, (uint8_t)0);
+    ASSERT_EQ(Bbr->PacingGain, (uint32_t)320); // kHighGain > GAIN_UNIT
+
+    // Now in high gain phase. Send an ACK with:
+    // - elapsed > MinRtt (so ShouldAdvancePacingGainCycle starts TRUE)
+    // - HasLoss = FALSE
+    // - BytesInFlight very low (< TargetCwnd)
+    // This triggers the suppression branch, setting ShouldAdvancePacingGainCycle = FALSE.
+    TimeNow += Bbr->MinRtt + 1000;
+    CC->QuicCongestionControlOnDataSent(CC, 100);
+    QUIC_ACK_EVENT HighGainAck = MakeBbrAckEvent(TimeNow, LargestAck, LargestSent + 10, 100, 50000, 45000, TRUE);
+    HighGainAck.HasLoss = FALSE;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &HighGainAck);
+
+    // Cycle should NOT have advanced — still at index 0.
+    ASSERT_EQ(Bbr->PacingCycleIndex, (uint8_t)0);
+}
+
 //====================================================================
 //
 //  Implementation-specific tests - loosely coupled
