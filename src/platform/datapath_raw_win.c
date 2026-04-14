@@ -170,7 +170,11 @@ RawSocketCreateUdp(
         goto Error;
     }
 
-    CxPlatDpRawPlumbRulesOnSocket(Socket, TRUE);
+    Status = CxPlatDpRawPlumbRulesOnSocket(Socket, TRUE);
+    if (QUIC_FAILED(Status)) {
+        CxPlatRemoveSocket(&Raw->SocketPool, Socket);
+        goto Error;
+    }
 
 Error:
 

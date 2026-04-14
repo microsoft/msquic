@@ -853,7 +853,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(Interface->RuleLock)
-void
+QUIC_STATUS
 CxPlatDpRawInterfaceUpdateRules(
     _In_ XDP_INTERFACE* Interface
     )
@@ -863,6 +863,8 @@ CxPlatDpRawInterfaceUpdateRules(
         .Direction = XDP_HOOK_RX,
         .SubLayer = XDP_HOOK_INSPECT,
     };
+
+    QUIC_STATUS ReturnStatus = QUIC_STATUS_SUCCESS;
 
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
 
@@ -892,6 +894,9 @@ CxPlatDpRawInterfaceUpdateRules(
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XdpCreateProgram");
+            if (QUIC_SUCCEEDED(ReturnStatus)) {
+                ReturnStatus = Status;
+            }
             continue;
         }
 
@@ -901,10 +906,12 @@ CxPlatDpRawInterfaceUpdateRules(
 
         Queue->RxProgram = NewRxProgram;
     }
+
+    return ReturnStatus;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 CxPlatDpRawInterfaceAddRules(
     _In_ XDP_INTERFACE* Interface,
     _In_reads_(Count) const XDP_RULE* Rules,
@@ -913,6 +920,8 @@ CxPlatDpRawInterfaceAddRules(
 {
 #pragma warning(push)
 #pragma warning(disable:6386) // Buffer overrun while writing to 'NewRules' - FALSE POSITIVE
+
+    QUIC_STATUS Status;
 
     CxPlatLockAcquire(&Interface->RuleLock);
     // TODO - Don't always allocate a new array?
@@ -923,7 +932,7 @@ CxPlatDpRawInterfaceAddRules(
             "[ lib] ERROR, %s.",
             "No more room for rules");
         CxPlatLockRelease(&Interface->RuleLock);
-        return;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
 
     const size_t OldSize = sizeof(XDP_RULE) * (size_t)Interface->RuleCount;
@@ -937,7 +946,7 @@ CxPlatDpRawInterfaceAddRules(
             "XDP_RULE",
             NewSize);
         CxPlatLockRelease(&Interface->RuleLock);
-        return;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     if (Interface->RuleCount > 0) {
@@ -952,11 +961,13 @@ CxPlatDpRawInterfaceAddRules(
     }
     Interface->Rules = NewRules;
 
-    CxPlatDpRawInterfaceUpdateRules(Interface);
+    Status = CxPlatDpRawInterfaceUpdateRules(Interface);
 
     CxPlatLockRelease(&Interface->RuleLock);
 
 #pragma warning(pop)
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1423,12 +1434,13 @@ CxPlatDpRawClearPortBit(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
         XDP_RULE Rules[5] = {0};
@@ -1501,11 +1513,30 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
         }
         CXPLAT_LIST_ENTRY* Entry;
+        CXPLAT_LIST_ENTRY* FailedEntry = NULL;
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
             if (IsCreated) {
-                CxPlatDpRawInterfaceAddRules(Interface, Rules, RulesSize);
+                QUIC_STATUS AddStatus = CxPlatDpRawInterfaceAddRules(Interface, Rules, RulesSize);
+                if (QUIC_FAILED(AddStatus) && QUIC_SUCCEEDED(Status)) {
+                    Status = AddStatus;
+                    FailedEntry = Entry;
+                    break; // stop installing on further interfaces
+                }
             } else {
+                CxPlatDpRawInterfaceRemoveRules(Interface, Rules, RulesSize);
+            }
+        }
+
+        //
+        // If installation failed partway through, best-effort remove rules from
+        // interfaces that were already successfully configured.
+        //
+        if (IsCreated && QUIC_FAILED(Status) && FailedEntry != NULL) {
+            for (CXPLAT_LIST_ENTRY* CleanupEntry = Xdp->Interfaces.Flink;
+                 CleanupEntry != FailedEntry;
+                 CleanupEntry = CleanupEntry->Flink) {
+                XDP_INTERFACE* Interface = CONTAINING_RECORD(CleanupEntry, XDP_INTERFACE, Link);
                 CxPlatDpRawInterfaceRemoveRules(Interface, Rules, RulesSize);
             }
         }
@@ -1515,6 +1546,7 @@ CxPlatDpRawPlumbRulesOnSocket(
         // TODO - Optimization: apply only to the correct interface.
         //
         CXPLAT_LIST_ENTRY* Entry;
+        CXPLAT_LIST_ENTRY* FailedEntry = NULL;
         XDP_MATCH_TYPE MatchType;
         uint8_t* IpAddress;
         size_t IpAddressSize;
@@ -1566,14 +1598,33 @@ CxPlatDpRawPlumbRulesOnSocket(
                             "Allocation of '%s' failed. (%llu bytes)",
                             "PortSet",
                             XDP_PORT_SET_BUFFER_SIZE);
-                        return;
+                        Status = QUIC_STATUS_OUT_OF_MEMORY;
+                        FailedEntry = Entry;
+                        break;
                     }
                     CxPlatDpRawSetPortBit(
                         (uint8_t*)NewRule.Pattern.IpPortSet.PortSet.PortSet,
                         Socket->LocalAddress.Ipv4.sin_port);
                     memcpy(
                         &NewRule.Pattern.IpPortSet.Address, IpAddress, IpAddressSize);
-                    CxPlatDpRawInterfaceAddRules(Interface, &NewRule, 1);
+                    QUIC_STATUS AddStatus = CxPlatDpRawInterfaceAddRules(Interface, &NewRule, 1);
+                    if (QUIC_FAILED(AddStatus)) {
+                        Status = AddStatus;
+                        if (AddStatus == QUIC_STATUS_OUT_OF_MEMORY ||
+                            AddStatus == QUIC_STATUS_BUFFER_TOO_SMALL) {
+                            //
+                            // The rule was not copied into Interface->Rules — we still own
+                            // the PortSet buffer and must free it. On XdpCreateProgram failure,
+                            // the rule was already added to Interface->Rules which now owns
+                            // the PortSet buffer; do not free it in that case.
+                            //
+                            CxPlatFree(
+                                (uint8_t*)NewRule.Pattern.IpPortSet.PortSet.PortSet,
+                                PORT_SET_TAG);
+                        }
+                        FailedEntry = Entry;
+                        break;
+                    }
                 }
             } else {
                 //
@@ -1587,7 +1638,39 @@ CxPlatDpRawPlumbRulesOnSocket(
                 CxPlatLockRelease(&Interface->RuleLock);
             }
         }
+
+        //
+        // If installation failed partway through, best-effort clear port bits
+        // on interfaces that were already successfully configured.
+        //
+        if (IsCreated && QUIC_FAILED(Status) && FailedEntry != NULL) {
+            for (CXPLAT_LIST_ENTRY* CleanupEntry = Xdp->Interfaces.Flink;
+                 CleanupEntry != FailedEntry;
+                 CleanupEntry = CleanupEntry->Flink) {
+                XDP_INTERFACE* Interface = CONTAINING_RECORD(CleanupEntry, XDP_INTERFACE, Link);
+                XDP_RULE* CleanupRule = NULL;
+                CxPlatLockAcquire(&Interface->RuleLock);
+                for (uint8_t i = 0; i < Interface->RuleCount; ++i) {
+                    if (Interface->Rules[i].Match == MatchType &&
+                        memcmp(
+                            &Interface->Rules[i].Pattern.IpPortSet.Address,
+                            IpAddress,
+                            IpAddressSize) == 0) {
+                        CleanupRule = &Interface->Rules[i];
+                        break;
+                    }
+                }
+                if (CleanupRule) {
+                    CxPlatDpRawClearPortBit(
+                        (uint8_t*)CleanupRule->Pattern.IpPortSet.PortSet.PortSet,
+                        Socket->LocalAddress.Ipv4.sin_port);
+                }
+                CxPlatLockRelease(&Interface->RuleLock);
+            }
+        }
     }
+
+    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
