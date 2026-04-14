@@ -35,16 +35,6 @@ is rejected at `listener.c:822-824` with `CONNECTION_REFUSED`.
 `registration.c:476` → `QuicWorkerIsOverloaded` → checks
 `Worker->AverageQueueDelay > MsQuicLib.Settings.MaxWorkerQueueDelayUs`
 
-**Guidance for the user**
-- Ignore the failure if it is a rare occurence
-- Consider increasing the `MaxWorkerQueueDelayUs` for tests otherwise
-
-
-**References**:
-- GitHub issue: https://github.com/microsoft/msquic/issues/5835
-- Failing test: `AppData/WithSendArgs.Send/353`
-- CI config: `BVT-Debug-windows-windows-2025-x64-quictls-UseXdp-UseQtip`
-
 ---
 
 ## 2. Windows CryptoAPI Stall — Watchdog Timeout During Certificate Operations
@@ -83,9 +73,3 @@ seconds that also loads TLS credentials or performs handshakes. Examples:
 - `Basic.ConnectionCloseFromCallback` (watchdog: 2000ms)
 - Other tests with tight watchdog timeouts that iterate over multiple
   TLS configurations
-
-**Guidance for the user**:
-- Ignore the failure if it is a rare occurrence — it depends on transient
-  CI runner CRL cache state
-- If a specific test is frequently affected, consider increasing its
-  `CxPlatWatchdog` timeout to 5000ms or higher
