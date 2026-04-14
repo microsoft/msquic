@@ -160,6 +160,52 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed , arg2
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathCibirWarning
+// [data][%p] CIBIR detected, %s
+// QuicTraceLogWarning(
+                DatapathCibirWarning,
+                "[data][%p] CIBIR detected, %s",
+                Socket,
+                "Skipping OS port reservation for this server socket.");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = "Skipping OS port reservation for this server socket." = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DatapathCibirWarning
+#define _clog_4_ARGS_TRACE_DatapathCibirWarning(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCibirWarning , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathCibirIdUsed
+// [data][%p] Using CIBIR ID (len %hhu, id 0x%llx)
+// QuicTraceLogWarning(
+            DatapathCibirIdUsed,
+            "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+            Socket,
+            Config->CibirIdLength,
+            (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Config->CibirIdLength = arg3
+// arg4 = arg4 = (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength) = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DatapathCibirIdUsed
+#define _clog_5_ARGS_TRACE_DatapathCibirIdUsed(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCibirIdUsed , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathRecvEmpty
 // [data][%p] Dropping datagram with empty payload.
 // QuicTraceLogWarning(

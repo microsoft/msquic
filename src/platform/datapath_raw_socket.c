@@ -890,7 +890,7 @@ CxPlatTryAddSocket(
     // binding an auxiliary (dual stack) socket.
     //
 
-    if (Socket->ReserveAuxTcpSock) {
+    if (Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         Socket->AuxSocket =
             socket(
                 AF_INET6,
@@ -928,28 +928,6 @@ CxPlatTryAddSocket(
             goto Error;
         }
 
-        if (Socket->CibirIdLength) {
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    Socket->AuxSocket,
-                    SOL_SOCKET,
-                    SO_REUSEADDR,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set SO_REUSEADDR");
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-        }
-
         CxPlatConvertToMappedV6(&Socket->LocalAddress, &MappedAddress);
 #if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
         if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
@@ -960,7 +938,7 @@ CxPlatTryAddSocket(
 
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
 
-    if (Socket->ReserveAuxTcpSock) {
+    if (Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         QUIC_ADDR_STR LocalAddressString = {0};
         QuicAddrToString(&MappedAddress, &LocalAddressString);
         QuicTraceLogVerbose(
@@ -1142,7 +1120,7 @@ CxPlatTryAddSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
-        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress, Socket->ReserveAuxTcpSock)) {
+        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress, Socket->ReserveAuxTcpSockForQtip)) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;
         }
