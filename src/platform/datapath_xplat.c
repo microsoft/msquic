@@ -147,6 +147,9 @@ CxPlatSocketCreateUdp(
             goto Error;
         }
 
+        BOOLEAN RequiresQtip = (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP);
+        BOOLEAN CibirRequested = (Config->CibirIdLength > 0);
+
         (*NewSocket)->RawSocketAvailable = 0;
         if (CreateRaw && Datapath->RawDataPath) {
             Status =
@@ -160,17 +163,45 @@ CxPlatSocketCreateUdp(
                     RawSockCreateFail,
                     "[sock] Failed to create raw socket, status:%d", Status);
                 BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
-                if (IsWildcardAddr && (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
+                if (IsWildcardAddr && RequiresQtip) {
+                    //
+                    // This retry loop is purely for QTIP listener sockets that try to reserve both a UDP/TCP port,
+                    // which may run into a port collision for TCP if the UDP ephemeral port collides with something
+                    // in the TCP pool. So just try it again.
+                    //
                     CxPlatSocketDelete(*NewSocket);
                     continue;
                 }
-                if (!(Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
-                    Status = QUIC_STATUS_SUCCESS; // Silently fail non-QTIP raw socket creation.
+                if ((!RequiresQtip && !CibirRequested) || ((*NewSocket)->HasFixedRemoteAddress && CibirRequested && !RequiresQtip)) {
+                    //
+                    // Allow fallback to OS UDP sockets in these 2 cases only:
+                    //  - XDP with no QTIP and no CIBIR.
+                    //  - Non-QTIP XDP with CIBIR enabled for client sockets only. CIBIR transport parameter
+                    //    negotiation can still work without XDP. Cannot fallback for server sockets because
+                    //    MsQuic skips OS UDP socket creation to allow for CIBIR port sharing across multiple
+                    //    processes.
+                    //
+                    QuicTraceLogWarning(
+                        WarnFallbackToOsSockets,
+                        "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.");
+                    Status = QUIC_STATUS_SUCCESS;
                 } else {
                     CxPlatSocketDelete(*NewSocket);
                 }
                 goto Error;
             }
+        } else if (RequiresQtip) {
+            QuicTraceLogError(
+                ErrNoXdpForQtip,
+                "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
+            CxPlatSocketDelete(*NewSocket);
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        } else if (CibirRequested) {
+            QuicTraceLogWarning(
+                WarnNoXdpForCibirSockets,
+                "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. "
+                "Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
         }
         break;
     }
@@ -232,7 +263,7 @@ CxPlatSocketGetQtipEnabled(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    return Socket->ReserveAuxTcpSock;
+    return Socket->ReserveAuxTcpSockForQtip;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -436,16 +467,16 @@ CxPlatResolveRoute(
     if (Socket->HasFixedRemoteAddress) {
         //
         // For clients,
-        // It must be true that Route->UseQTIP == Socket->ReserveAuxTcpSock because client
+        // It must be true that Route->UseQTIP == Socket->ReserveAuxTcpSockForQtip because client
         // connections can only send/recv either UDP or TCP traffic.
         //
         // For servers,
-        // It could be the case that Route->UseQTIP != Socket->ReserveAuxTcpSock. The state of
-        // Socket->ReserveAuxTcpSock simply determines whether or not we initialize an auxiliary TCP socket
+        // It could be the case that Route->UseQTIP != Socket->ReserveAuxTcpSockForQtip. The state of
+        // Socket->ReserveAuxTcpSockForQtip simply determines whether or not we initialize an auxiliary TCP socket
         // to prevent XDP from hijacking traffic from other processes. Therefore, servers rely
         // on the receive path to set Route->UseQTIP, depending on the type of XDP traffic it sees.
         //
-        Route->UseQTIP = Socket->ReserveAuxTcpSock;
+        Route->UseQTIP = Socket->ReserveAuxTcpSockForQtip;
     }
 
     #if defined(_KERNEL_MODE) || defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
