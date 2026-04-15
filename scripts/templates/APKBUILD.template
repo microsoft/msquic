@@ -9,9 +9,9 @@ _quictls=QUICTLS_COMMIT_HASH
 _openssl=OPENSSL_COMMIT_HASH
 pkgdesc="Cross-platform, C implementation of the IETF QUIC protocol, exposed to C, C++, C# and Rust."
 url="https://github.com/microsoft/msquic"
-arch="x86_64 armv7 aarch64"
+arch="all"
 license="MIT"
-makedepends="cmake numactl-dev linux-headers lttng-ust-dev openssl-dev perl xz"
+makedepends="cmake samurai numactl-dev linux-headers lttng-ust-dev openssl-dev perl xz"
 checkdepends="perf"
 subpackages="$pkgname-dev $pkgname-doc"
 source="msquic-$pkgver.tar.gz::ARCHIVE_URI_PLACEHOLDER
@@ -32,7 +32,7 @@ prepare() {
 }
 
 build() {
-	cmake -B build \
+	cmake -B build -G Ninja \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DQUIC_TLS_LIB=quictls \
