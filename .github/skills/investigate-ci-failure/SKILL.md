@@ -23,26 +23,24 @@ The user will typically provide:
 
 ## Known Issues Catalog
 
-Before starting a full investigation, read
+Before starting an investigation, read
 `.github/skills/investigate-ci-failure/known_ci_issues.md`. It contains
 previously diagnosed CI failures with their symptom patterns and root causes.
 If the failure you investigate matches a known pattern, carefully confirm it
 based on logs and dumps and report it to the user with the guidance provided.
 
-**If the failing test is NOT already in the catalog**, you MUST perform a
+**If the failure is NOT listed in the catalog**, you MUST perform a
 full in-depth investigation through all phases below. Do NOT short-circuit
 the analysis by concluding "known flaky" or "inherently intermittent" based
-on superficial similarity to other failures. You **must** inspect logs or
+on superficial similarity to other failures. You **must** inspect detailed logs or
 dumps to root cause the failure based on verifiable evidences.
 Every uncataloged test failure must be traced to a specific root cause backed
 by log/trace evidence. If logs or artifacts are expired, state explicitly
 what evidence is missing and what concrete diagnostic steps are needed to
 obtain it — do not substitute speculation for trace analysis.
 
-The Known Issues Catalog is for rarely occurring issues that we can't fix,
-such as issues caused by GitHub runner resource contention. If the issue
-can be fixed, don't add it to the catalog. If the issue can't be fixed,
-ask the user if it should be added to the catalog.
+The Known Issues Catalog is for rarely occurring issues that can't be fixed.
+If the issue can be fixed, don't add it to the catalog and propose a fix instead.
 Never add an issue to the catalog without explicit user confirmation.
 
 ## Investigation Workflow
@@ -129,6 +127,8 @@ For each hypothesis, starting with the most plausible:
 
 1. Examine the logs, artifacts, and run history for supporting or
    contradicting evidence.
+   - Always inspect the MsQuic detailed logs (e.g. `quic.log`, `quic.etl`...)
+     if available, and confirm any other findings is consistent with them.
 2. Classify each hypothesis:
    - **CONFIRMED** — strong evidence supports it; no contradicting evidence.
    - **ELIMINATED** — evidence directly contradicts it.
@@ -142,11 +142,13 @@ For each hypothesis, starting with the most plausible:
 
 1. Distinguish the **root cause** (fundamental defect) from the
    **proximate cause** (immediate trigger).
-   - Example: Proximate cause is "test timed out." Root cause is "the test
-     waits for a connection callback that races with a shutdown event."
+   - Example: Proximate cause is "test timed out" or "packets are lost". Root cause is "the test
+     waits for a connection callback that races with a shutdown event" or "the loss recovery logic
+     contains a bug preventing it from recovering a packet".
 2. Trace the **causal chain** from root cause → observed failure.
 3. Ask: "If we fix only the proximate cause, will the root cause produce
-   other failures?" If yes, the fix is incomplete.
+   other failures?" If yes, **the fix is incomplete**.
+4. Search for the root cause even if it isn't related to recent code changes.
 
 ### Phase 6 — Present Analysis and Suggest Fixes
 
@@ -157,8 +159,8 @@ For each hypothesis, starting with the most plausible:
    - Confidence level (High / Medium / Low)
 
 2. **Suggest remediation options**, ranked by effectiveness:
-   - Immediate fix to unblock CI
    - Long-term fix to prevent recurrence
+   - Immediate fix to unblock CI
    - Diagnostic steps if root cause is not fully determined
 
 3. **Wait for user direction.** Do NOT implement fixes or create PRs
