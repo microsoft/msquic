@@ -932,7 +932,7 @@ QuicBindingProcessStatelessOperation(
 
         if (PacketLength >= RecvPacket->AvailBufferLength) {
             //
-            // Can't go over the recieve packet's length.
+            // Can't go over the receive packet's length.
             //
             PacketLength = (uint8_t)RecvPacket->AvailBufferLength - 1;
         }
