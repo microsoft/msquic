@@ -12,6 +12,7 @@ set(SOURCES
     MtuTest.cpp
     OwnershipTest.cpp
     PathTest.cpp
+    DatapathWinUserTest.cpp
     QuicDrill.cpp
     TestConnection.cpp
     TestListener.cpp

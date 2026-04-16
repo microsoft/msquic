@@ -913,6 +913,299 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
     );
 
 //
+// DataPath WinUser tests
+//
+
+void
+QuicTestDataPathInitUdp(
+    );
+
+void
+QuicTestDataPathInitUdpTcp(
+    );
+
+void
+QuicTestDataPathInitNullOutput(
+    );
+
+void
+QuicTestDataPathInitNullWorkerPool(
+    );
+
+void
+QuicTestDataPathInitUdpMissingRecv(
+    );
+
+void
+QuicTestDataPathInitUdpMissingUnreach(
+    );
+
+void
+QuicTestDataPathInitTcpMissingAccept(
+    );
+
+void
+QuicTestDataPathInitTcpMissingConnect(
+    );
+
+void
+QuicTestDataPathInitTcpMissingRecv(
+    );
+
+void
+QuicTestDataPathInitTcpMissingSendComplete(
+    );
+
+void
+QuicTestDataPathInitDscpOnRecv(
+    );
+
+void
+QuicTestDataPathFeatureQuery(
+    );
+
+void
+QuicTestDataPathIsPaddingPreferred(
+    );
+
+void
+QuicTestDataPathResolveLocalhostV4(
+    );
+
+void
+QuicTestDataPathResolveLocalhostV6(
+    );
+
+void
+QuicTestDataPathResolveNumericV4(
+    );
+
+void
+QuicTestDataPathResolveNumericV6(
+    );
+
+void
+QuicTestDataPathResolveInvalidHost(
+    );
+
+void
+QuicTestDataPathGetLocalAddresses(
+    );
+
+void
+QuicTestDataPathGetGatewayAddresses(
+    );
+
+void
+QuicTestDataPathUdpServerSocket(
+    );
+
+void
+QuicTestDataPathUdpClientSocket(
+    );
+
+void
+QuicTestDataPathUdpGetLocalAddress(
+    );
+
+void
+QuicTestDataPathUdpGetRemoteAddress(
+    );
+
+void
+QuicTestDataPathUdpGetMtu(
+    );
+
+void
+QuicTestDataPathUdpBindV4(
+    );
+
+void
+QuicTestDataPathUdpBindV6(
+    );
+
+void
+QuicTestDataPathUdpPcpSocket(
+    );
+
+void
+QuicTestDataPathSendDataAllocFree(
+    );
+
+void
+QuicTestDataPathSendDataAllocBuffer(
+    );
+
+void
+QuicTestDataPathSendDataFreeBuffer(
+    );
+
+void
+QuicTestDataPathSendDataIsFull(
+    );
+
+void
+QuicTestDataPathSendDataAllocMultiple(
+    );
+
+void
+QuicTestDataPathUdpSendLoopback(
+    );
+
+void
+QuicTestDataPathUdpSendRecvLoopback(
+    const FamilyArgs& Params
+    );
+
+void
+QuicTestDataPathTcpListener(
+    );
+
+void
+QuicTestDataPathTcpClient(
+    );
+
+void
+QuicTestDataPathTcpConnect(
+    );
+
+void
+QuicTestDataPathUpdateIdleTimeout(
+    );
+
+void
+QuicTestDataPathSendWithEcn(
+    );
+
+void
+QuicTestDataPathSendWithDscp(
+    );
+
+void
+QuicTestDataPathSendRecvV6(
+    );
+
+void
+QuicTestDataPathServerSocketV6(
+    );
+
+void
+QuicTestDataPathUdpShareFlag(
+    );
+
+void
+QuicTestDataPathSendWithMaxThroughput(
+    );
+
+void
+QuicTestDataPathSendRecvDscpV6(
+    );
+
+void
+QuicTestDataPathSendWithEcnV6(
+    );
+
+void
+QuicTestDataPathTcpConnectV6(
+    );
+
+void
+QuicTestDataPathTcpStatistics(
+    );
+
+void
+QuicTestDataPathTcpSendRecv(
+    );
+
+void
+QuicTestDataPathUdpBindSpecificPort(
+    );
+
+void
+QuicTestDataPathMultipleSendRecv(
+    );
+
+void
+QuicTestDataPathFeatureQueryWithFlags(
+    );
+
+void
+QuicTestDataPathInitWithClientRecvContextLength(
+    );
+
+void
+QuicTestDataPathSendDataSegmented(
+    );
+
+void
+QuicTestDataPathRecvDataReturnNull(
+    );
+
+void
+QuicTestDataPathUdpDualStack(
+    );
+
+void
+QuicTestDataPathSendDataFreeBufferSegmented(
+    );
+
+void
+QuicTestDataPathTcpConnectDisconnect(
+    );
+
+void
+QuicTestDataPathSendLargePayload(
+    );
+
+void
+QuicTestDataPathInitDscpRecvDscpSocket(
+    );
+
+void
+QuicTestDataPathServerSendToRemote(
+    );
+
+void
+QuicTestDataPathServerSendToRemoteV6(
+    );
+
+void
+QuicTestDataPathSendEcnAndDscp(
+    );
+
+void
+QuicTestDataPathSendEcnAndDscpV6(
+    );
+
+void
+QuicTestDataPathTcpCreateWithLocalAddr(
+    );
+
+void
+QuicTestDataPathSegmentedSendOverWire(
+    );
+
+void
+QuicTestDataPathResolveUnspecFamily(
+    );
+
+void
+QuicTestDataPathSendDataIsFullSegmented(
+    );
+
+void
+QuicTestDataPathTcpListenerV6(
+    );
+
+void
+QuicTestDataPathUdpSocketWithLocalAndRemote(
+    );
+
+void
+QuicTestDataPathDscpRecvSendRecv(
+    );
+
+//
 // QuicDrill tests
 //
 void

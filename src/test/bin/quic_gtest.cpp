@@ -1328,7 +1328,7 @@ INSTANTIATE_TEST_SUITE_P(
     WithCustomCertificateValidationArgs,
     testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
 
-struct WithClientCertificateArgs : 
+struct WithClientCertificateArgs :
     public testing::TestWithParam<ClientCertificateArgs> {
 
     static ::std::vector<ClientCertificateArgs> Generate() {
@@ -2823,6 +2823,588 @@ TEST(Basic, ConnectionPriority) {
         QuicTestConnectionPriority();
     }
 }
+
+#ifdef _WIN32 // DataPathWinUser tests — Windows user-mode only
+
+// DataPathWinUser tests (user-mode only — not available in kernel mode)
+
+TEST(DataPathWinUser, InitUdp) {
+    TestLogger Logger("QuicTestDataPathInitUdp");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitUdp();
+}
+
+TEST(DataPathWinUser, InitUdpTcp) {
+    TestLogger Logger("QuicTestDataPathInitUdpTcp");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitUdpTcp();
+}
+
+TEST(DataPathWinUser, InitNullOutput) {
+    TestLogger Logger("QuicTestDataPathInitNullOutput");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitNullOutput();
+}
+
+TEST(DataPathWinUser, InitNullWorkerPool) {
+    TestLogger Logger("QuicTestDataPathInitNullWorkerPool");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitNullWorkerPool();
+}
+
+TEST(DataPathWinUser, InitUdpMissingRecv) {
+    TestLogger Logger("QuicTestDataPathInitUdpMissingRecv");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitUdpMissingRecv();
+}
+
+TEST(DataPathWinUser, InitUdpMissingUnreach) {
+    TestLogger Logger("QuicTestDataPathInitUdpMissingUnreach");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitUdpMissingUnreach();
+}
+
+TEST(DataPathWinUser, InitTcpMissingAccept) {
+    TestLogger Logger("QuicTestDataPathInitTcpMissingAccept");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitTcpMissingAccept();
+}
+
+TEST(DataPathWinUser, InitTcpMissingConnect) {
+    TestLogger Logger("QuicTestDataPathInitTcpMissingConnect");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitTcpMissingConnect();
+}
+
+TEST(DataPathWinUser, InitTcpMissingRecv) {
+    TestLogger Logger("QuicTestDataPathInitTcpMissingRecv");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitTcpMissingRecv();
+}
+
+TEST(DataPathWinUser, InitTcpMissingSendComplete) {
+    TestLogger Logger("QuicTestDataPathInitTcpMissingSendComplete");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitTcpMissingSendComplete();
+}
+
+TEST(DataPathWinUser, InitDscpOnRecv) {
+    TestLogger Logger("QuicTestDataPathInitDscpOnRecv");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitDscpOnRecv();
+}
+
+TEST(DataPathWinUser, FeatureQuery) {
+    TestLogger Logger("QuicTestDataPathFeatureQuery");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathFeatureQuery();
+}
+
+TEST(DataPathWinUser, IsPaddingPreferred) {
+    TestLogger Logger("QuicTestDataPathIsPaddingPreferred");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathIsPaddingPreferred();
+}
+
+TEST(DataPathWinUser, ResolveLocalhostV4) {
+    TestLogger Logger("QuicTestDataPathResolveLocalhostV4");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathResolveLocalhostV4();
+}
+
+TEST(DataPathWinUser, ResolveLocalhostV6) {
+    TestLogger Logger("QuicTestDataPathResolveLocalhostV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathResolveLocalhostV6();
+}
+
+TEST(DataPathWinUser, ResolveNumericV4) {
+    TestLogger Logger("QuicTestDataPathResolveNumericV4");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathResolveNumericV4();
+}
+
+TEST(DataPathWinUser, ResolveNumericV6) {
+    TestLogger Logger("QuicTestDataPathResolveNumericV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathResolveNumericV6();
+}
+
+TEST(DataPathWinUser, ResolveInvalidHost) {
+    TestLogger Logger("QuicTestDataPathResolveInvalidHost");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathResolveInvalidHost();
+}
+
+TEST(DataPathWinUser, GetLocalAddresses) {
+    TestLogger Logger("QuicTestDataPathGetLocalAddresses");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathGetLocalAddresses();
+}
+
+TEST(DataPathWinUser, GetGatewayAddresses) {
+    TestLogger Logger("QuicTestDataPathGetGatewayAddresses");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathGetGatewayAddresses();
+}
+
+TEST(DataPathWinUser, UdpServerSocket) {
+    TestLogger Logger("QuicTestDataPathUdpServerSocket");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpServerSocket();
+}
+
+TEST(DataPathWinUser, UdpClientSocket) {
+    TestLogger Logger("QuicTestDataPathUdpClientSocket");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpClientSocket();
+}
+
+TEST(DataPathWinUser, UdpGetLocalAddress) {
+    TestLogger Logger("QuicTestDataPathUdpGetLocalAddress");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpGetLocalAddress();
+}
+
+TEST(DataPathWinUser, UdpGetRemoteAddress) {
+    TestLogger Logger("QuicTestDataPathUdpGetRemoteAddress");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpGetRemoteAddress();
+}
+
+TEST(DataPathWinUser, UdpGetMtu) {
+    TestLogger Logger("QuicTestDataPathUdpGetMtu");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpGetMtu();
+}
+
+TEST(DataPathWinUser, UdpBindV4) {
+    TestLogger Logger("QuicTestDataPathUdpBindV4");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpBindV4();
+}
+
+TEST(DataPathWinUser, UdpBindV6) {
+    TestLogger Logger("QuicTestDataPathUdpBindV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpBindV6();
+}
+
+TEST(DataPathWinUser, UdpPcpSocket) {
+    TestLogger Logger("QuicTestDataPathUdpPcpSocket");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpPcpSocket();
+}
+
+TEST(DataPathWinUser, SendDataAllocFree) {
+    TestLogger Logger("QuicTestDataPathSendDataAllocFree");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendDataAllocFree();
+}
+
+TEST(DataPathWinUser, SendDataAllocBuffer) {
+    TestLogger Logger("QuicTestDataPathSendDataAllocBuffer");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendDataAllocBuffer();
+}
+
+TEST(DataPathWinUser, SendDataFreeBuffer) {
+    TestLogger Logger("QuicTestDataPathSendDataFreeBuffer");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendDataFreeBuffer();
+}
+
+TEST(DataPathWinUser, SendDataIsFull) {
+    TestLogger Logger("QuicTestDataPathSendDataIsFull");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendDataIsFull();
+}
+
+TEST(DataPathWinUser, SendDataAllocMultiple) {
+    TestLogger Logger("QuicTestDataPathSendDataAllocMultiple");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendDataAllocMultiple();
+}
+
+TEST(DataPathWinUser, UdpSendLoopback) {
+    TestLogger Logger("QuicTestDataPathUdpSendLoopback");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpSendLoopback();
+}
+
+TEST_P(WithFamilyArgs, DataPathWinUserUdpSendRecvLoopback) {
+    TestLoggerT<ParamType> Logger("QuicTestDataPathUdpSendRecvLoopback", GetParam());
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpSendRecvLoopback(GetParam());
+}
+
+TEST(DataPathWinUser, TcpListener) {
+    TestLogger Logger("QuicTestDataPathTcpListener");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpListener();
+}
+
+TEST(DataPathWinUser, TcpClient) {
+    TestLogger Logger("QuicTestDataPathTcpClient");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpClient();
+}
+
+TEST(DataPathWinUser, TcpConnect) {
+    TestLogger Logger("QuicTestDataPathTcpConnect");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpConnect();
+}
+
+TEST(DataPathWinUser, UpdateIdleTimeout) {
+    TestLogger Logger("QuicTestDataPathUpdateIdleTimeout");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUpdateIdleTimeout();
+}
+
+TEST(DataPathWinUser, SendWithEcn) {
+    TestLogger Logger("QuicTestDataPathSendWithEcn");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendWithEcn();
+}
+
+TEST(DataPathWinUser, SendWithDscp) {
+    TestLogger Logger("QuicTestDataPathSendWithDscp");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendWithDscp();
+}
+
+TEST(DataPathWinUser, SendRecvV6) {
+    TestLogger Logger("QuicTestDataPathSendRecvV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendRecvV6();
+}
+
+TEST(DataPathWinUser, ServerSocketV6) {
+    TestLogger Logger("QuicTestDataPathServerSocketV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathServerSocketV6();
+}
+
+TEST(DataPathWinUser, UdpShareFlag) {
+    TestLogger Logger("QuicTestDataPathUdpShareFlag");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpShareFlag();
+}
+
+TEST(DataPathWinUser, SendWithMaxThroughput) {
+    TestLogger Logger("QuicTestDataPathSendWithMaxThroughput");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendWithMaxThroughput();
+}
+
+TEST(DataPathWinUser, SendRecvDscpV6) {
+    TestLogger Logger("QuicTestDataPathSendRecvDscpV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendRecvDscpV6();
+}
+
+TEST(DataPathWinUser, SendWithEcnV6) {
+    TestLogger Logger("QuicTestDataPathSendWithEcnV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendWithEcnV6();
+}
+
+TEST(DataPathWinUser, TcpConnectV6) {
+    TestLogger Logger("QuicTestDataPathTcpConnectV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpConnectV6();
+}
+
+TEST(DataPathWinUser, TcpStatistics) {
+    TestLogger Logger("QuicTestDataPathTcpStatistics");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpStatistics();
+}
+
+TEST(DataPathWinUser, TcpSendRecv) {
+    TestLogger Logger("QuicTestDataPathTcpSendRecv");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpSendRecv();
+}
+
+TEST(DataPathWinUser, UdpBindSpecificPort) {
+    TestLogger Logger("QuicTestDataPathUdpBindSpecificPort");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpBindSpecificPort();
+}
+
+TEST(DataPathWinUser, MultipleSendRecv) {
+    TestLogger Logger("QuicTestDataPathMultipleSendRecv");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathMultipleSendRecv();
+}
+
+TEST(DataPathWinUser, FeatureQueryWithFlags) {
+    TestLogger Logger("QuicTestDataPathFeatureQueryWithFlags");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathFeatureQueryWithFlags();
+}
+
+TEST(DataPathWinUser, InitWithClientRecvContextLength) {
+    TestLogger Logger("QuicTestDataPathInitWithClientRecvContextLength");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitWithClientRecvContextLength();
+}
+
+TEST(DataPathWinUser, SendDataSegmented) {
+    TestLogger Logger("QuicTestDataPathSendDataSegmented");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendDataSegmented();
+}
+
+TEST(DataPathWinUser, RecvDataReturnNull) {
+    TestLogger Logger("QuicTestDataPathRecvDataReturnNull");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathRecvDataReturnNull();
+}
+
+TEST(DataPathWinUser, UdpDualStack) {
+    TestLogger Logger("QuicTestDataPathUdpDualStack");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpDualStack();
+}
+
+TEST(DataPathWinUser, SendDataFreeBufferSegmented) {
+    TestLogger Logger("QuicTestDataPathSendDataFreeBufferSegmented");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendDataFreeBufferSegmented();
+}
+
+TEST(DataPathWinUser, TcpConnectDisconnect) {
+    TestLogger Logger("QuicTestDataPathTcpConnectDisconnect");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpConnectDisconnect();
+}
+
+TEST(DataPathWinUser, SendLargePayload) {
+    TestLogger Logger("QuicTestDataPathSendLargePayload");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendLargePayload();
+}
+
+TEST(DataPathWinUser, InitDscpRecvDscpSocket) {
+    TestLogger Logger("QuicTestDataPathInitDscpRecvDscpSocket");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathInitDscpRecvDscpSocket();
+}
+
+TEST(DataPathWinUser, ServerSendToRemote) {
+    TestLogger Logger("QuicTestDataPathServerSendToRemote");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathServerSendToRemote();
+}
+
+TEST(DataPathWinUser, ServerSendToRemoteV6) {
+    TestLogger Logger("QuicTestDataPathServerSendToRemoteV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathServerSendToRemoteV6();
+}
+
+TEST(DataPathWinUser, SendEcnAndDscp) {
+    TestLogger Logger("QuicTestDataPathSendEcnAndDscp");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendEcnAndDscp();
+}
+
+TEST(DataPathWinUser, SendEcnAndDscpV6) {
+    TestLogger Logger("QuicTestDataPathSendEcnAndDscpV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendEcnAndDscpV6();
+}
+
+TEST(DataPathWinUser, TcpCreateWithLocalAddr) {
+    TestLogger Logger("QuicTestDataPathTcpCreateWithLocalAddr");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpCreateWithLocalAddr();
+}
+
+TEST(DataPathWinUser, SegmentedSendOverWire) {
+    TestLogger Logger("QuicTestDataPathSegmentedSendOverWire");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSegmentedSendOverWire();
+}
+
+TEST(DataPathWinUser, ResolveUnspecFamily) {
+    TestLogger Logger("QuicTestDataPathResolveUnspecFamily");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathResolveUnspecFamily();
+}
+
+TEST(DataPathWinUser, SendDataIsFullSegmented) {
+    TestLogger Logger("QuicTestDataPathSendDataIsFullSegmented");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathSendDataIsFullSegmented();
+}
+
+TEST(DataPathWinUser, TcpListenerV6) {
+    TestLogger Logger("QuicTestDataPathTcpListenerV6");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathTcpListenerV6();
+}
+
+TEST(DataPathWinUser, UdpSocketWithLocalAndRemote) {
+    TestLogger Logger("QuicTestDataPathUdpSocketWithLocalAndRemote");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathUdpSocketWithLocalAndRemote();
+}
+
+TEST(DataPathWinUser, DscpRecvSendRecv) {
+    TestLogger Logger("QuicTestDataPathDscpRecvSendRecv");
+    if (TestingKernelMode) {
+        GTEST_SKIP_("User-mode only");
+    }
+    QuicTestDataPathDscpRecvSendRecv();
+}
+
+#endif // _WIN32
 
 // Drill tests
 
