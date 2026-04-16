@@ -126,6 +126,7 @@ The `check-dotnet.yml` CI workflow validates the generated .NET interop files ar
 ## Pull Requests
 
 When creating pull requests, always follow the PR template at `.github/pull_request_template.md`.
+If asked to fix a specific issue, mention the issue number in the PR description (e.g. "Fixes #1234").
 
 ## Update These Instructions
 
