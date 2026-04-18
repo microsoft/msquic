@@ -719,13 +719,18 @@ QuicTestNatPortRebind(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr);
 
-    AddrHelper.IncrementPort();
+    // Skip the port if it collides with the server's port,
+    // the ReplaceAddressHelper can't simulate a NAT rebind in that case.
+    do {
+        AddrHelper.IncrementPort();
+    } while (QuicAddrGetPort(&AddrHelper.New) == ServerLocalAddr.GetPort());
+
     if (KeepAlivePaddingSize) {
         Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
     }
     Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
 
-    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1000))
+    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(TestWaitTimeout))
     TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &Context.PeerAddr.SockAddr));
 
     Connection.Shutdown(1);
@@ -781,7 +786,7 @@ QuicTestNatAddrRebind(
     }
     Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(1));
 
-    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1000))
+    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(TestWaitTimeout))
     TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &Context.PeerAddr.SockAddr));
 
     Connection.Shutdown(1);
