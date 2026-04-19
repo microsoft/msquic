@@ -787,17 +787,56 @@ if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
         else()
             if(QUIC_OPENSSL_ROOT_DIR)
                 set(OPENSSL_ROOT_DIR "${QUIC_OPENSSL_ROOT_DIR}")
+                find_path(OPENSSL_PKGCONFIG_DIR
+                    NAMES openssl.pc libcrypto.pc libssl.pc
+                    PATHS
+                        "${QUIC_OPENSSL_ROOT_DIR}/lib/pkgconfig"
+                        "${QUIC_OPENSSL_ROOT_DIR}/lib64/pkgconfig"
+                        "${QUIC_OPENSSL_ROOT_DIR}/share/pkgconfig"
+                    NO_DEFAULT_PATH
+                )
+                if(OPENSSL_PKGCONFIG_DIR)
+                    message(STATUS "Found OpenSSL pkgconfig dir: ${OPENSSL_PKGCONFIG_DIR}")
+                    set(ENV{PKG_CONFIG_PATH} "${OPENSSL_PKGCONFIG_DIR}")
+                else()
+                    message(WARNING "No pkgconfig directory found under ${QUIC_OPENSSL_ROOT_DIR}, pkg-config may use system OpenSSL metadata")
+                endif()
             endif()
             if(NOT BUILD_SHARED_LIBS)
                 set(OPENSSL_USE_STATIC_LIBS TRUE)
             endif()
             find_package(OpenSSL 3.5.0 REQUIRED)
+
             # OpenSSL::SSL and OpenSSL::Crypto imported targets propagate transitive dependencies
-            # (for example zstd). BUILD_SHARED_LIBS is OFF and those transitive static libs can be linked again via
-            # src/platform/CMakeLists.txt, causing duplicate/static link failures.
-            # Keep link ownership consistent to avoid duplicate transitive linkage.
+            # (for example zstd) when BUILD_SHARED_LIBS is OFF. However, the paths of those transitive
+            # static libs are not correctly propagated by FindOpenSSL.cmake. So, we add only libcrypto
+            # and libssl to the link interface at this time, and add those transitive dependencies below.
             target_include_directories(OpenSSLQuic INTERFACE ${OPENSSL_INCLUDE_DIR})
             target_link_libraries(OpenSSLQuic INTERFACE ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+
+            # If OpenSSL was built with zlib/zstd support, we find and link the static libraries explicitly
+            # to satisfy the transitive dependency that FindOpenSSL.cmake adds via pkg-config metadata.
+            get_target_property(CRYPTO_LIBS OpenSSL::Crypto INTERFACE_LINK_LIBRARIES)
+            if(NOT BUILD_SHARED_LIBS AND CRYPTO_LIBS)
+                if("z" IN_LIST CRYPTO_LIBS OR "ZLIB::ZLIB" IN_LIST CRYPTO_LIBS)
+                    find_library(ZLIB_STATIC_LIB NAMES "z${CMAKE_STATIC_LIBRARY_SUFFIX}" "libz${CMAKE_STATIC_LIBRARY_SUFFIX}" z)
+                    if(ZLIB_STATIC_LIB)
+                        message(STATUS "Linking zlib for OpenSSL: ${ZLIB_STATIC_LIB}")
+                        target_link_libraries(OpenSSLQuic INTERFACE ${ZLIB_STATIC_LIB})
+                    else()
+                        message(STATUS "zlib in OpenSSL deps but not found, skipping")
+                    endif()
+                endif()
+                if("zstd" IN_LIST CRYPTO_LIBS)
+                    find_library(ZSTD_STATIC_LIB NAMES "zstd${CMAKE_STATIC_LIBRARY_SUFFIX}" "libzstd${CMAKE_STATIC_LIBRARY_SUFFIX}" zstd)
+                    if(ZSTD_STATIC_LIB)
+                        message(STATUS "Linking zstd for OpenSSL: ${ZSTD_STATIC_LIB}")
+                        target_link_libraries(OpenSSLQuic INTERFACE ${ZSTD_STATIC_LIB})
+                    else()
+                        message(STATUS "zstd in OpenSSL deps but not found, skipping")
+                    endif()
+                endif()
+            endif()
         endif()
         add_library(MsQuic::OpenSSL ALIAS OpenSSLQuic)
     else()
