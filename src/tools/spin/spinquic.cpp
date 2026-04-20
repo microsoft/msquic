@@ -207,6 +207,17 @@ CXPLAT_LOCK RunThreadLock;
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
 static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
 
+//
+// Sizes used for app-owned receive buffers. Kept separate from (and smaller
+// than) MaxBufferSizes because each provide call appends a backing buffer
+// that lives until the stream is destroyed. Without this, 10MB entries plus
+// accumulation produce multi-GB peaks that blow the per-iteration watchdog
+// during teardown under the debug heap.
+//
+const uint32_t RecvBufferSizes[] = { 1, 32, 256, 1024, 1400, 5000, 10000, 64000 };
+static const size_t RecvBufferSizeCount = ARRAYSIZE(RecvBufferSizes);
+static const size_t MaxOutstandingRecvBuffers = 8;
+
 struct SpinQuicGlobals {
     uint64_t StartTimeMs;
     const QUIC_API_TABLE* MsQuic {nullptr};
@@ -297,6 +308,9 @@ struct SpinQuicStream {
         return (SpinQuicStream*)MsQuicTable.GetContext(Stream);
     }
     std::vector<QUIC_BUFFER> AllocateReceiveBuffers(const std::vector<uint32_t>& Sizes) {
+        if (RecvBuffers.size() >= MaxOutstandingRecvBuffers) {
+            return {};
+        }
         size_t TotalSize = 0;
         for (auto Size : Sizes) {
             TotalSize += Size;
@@ -527,10 +541,12 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
             uint32_t BufCount = GetRandom(3, ThreadID) + 1; // 1-3 buffers
             std::vector<uint32_t> Sizes(BufCount);
             for (uint32_t i = 0; i < BufCount; i++) {
-                Sizes[i] = MaxBufferSizes[GetRandom(BufferCount, ThreadID)];
+                Sizes[i] = RecvBufferSizes[GetRandom(RecvBufferSizeCount, ThreadID)];
             }
             auto Buffers = StreamCtx->AllocateReceiveBuffers(Sizes);
-            MsQuicTable.StreamProvideReceiveBuffers(Event->PEER_STREAM_STARTED.Stream, BufCount, Buffers.data());
+            if (!Buffers.empty()) {
+                MsQuicTable.StreamProvideReceiveBuffers(Event->PEER_STREAM_STARTED.Stream, (uint32_t)Buffers.size(), Buffers.data());
+            }
         }
         ctx->AddStream(Event->PEER_STREAM_STARTED.Stream);
         break;
@@ -1022,10 +1038,12 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                     uint32_t BufCount = GetRandom(5, ThreadID) + 1; // 1-5 buffers
                     std::vector<uint32_t> Sizes(BufCount);
                     for (uint32_t i = 0; i < BufCount; i++) {
-                        Sizes[i] = MaxBufferSizes[GetRandom(BufferCount, ThreadID)];
+                        Sizes[i] = RecvBufferSizes[GetRandom(RecvBufferSizeCount, ThreadID)];
                     }
                     auto Buffers = ctx->AllocateReceiveBuffers(Sizes);
-                    MsQuicTable.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
+                    if (!Buffers.empty()) {
+                        MsQuicTable.StreamProvideReceiveBuffers(Stream, (uint32_t)Buffers.size(), Buffers.data());
+                    }
                 }
                 SpinQuicGetRandomParam(Stream, ThreadID);
                 SpinQuicSetRandomStreamParam(Stream, ThreadID);
@@ -1268,10 +1286,12 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 uint32_t BufCount = GetRandom(3, ThreadID) + 1; // 1-3 buffers
                 std::vector<uint32_t> Sizes(BufCount);
                 for (uint32_t i = 0; i < BufCount; i++) {
-                    Sizes[i] = MaxBufferSizes[GetRandom(BufferCount, ThreadID)];
+                    Sizes[i] = RecvBufferSizes[GetRandom(RecvBufferSizeCount, ThreadID)];
                 }
                 auto Buffers = StreamCtx->AllocateReceiveBuffers(Sizes);
-                MsQuicTable.StreamProvideReceiveBuffers(Stream, BufCount, Buffers.data());
+                if (!Buffers.empty()) {
+                    MsQuicTable.StreamProvideReceiveBuffers(Stream, (uint32_t)Buffers.size(), Buffers.data());
+                }
             }
             break;
         }
