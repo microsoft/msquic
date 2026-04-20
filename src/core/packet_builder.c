@@ -999,10 +999,9 @@ QuicPacketBuilderFinalize(
 
     //
     // Per RFC 9001 s4.9.1, a client MUST discard Initial keys when it first
-    // sends a Handshake packet. This fires on ANY Handshake packet (including
-    // ACK-only) so that Initial bytes in flight are released from congestion
-    // control. The next iteration of the send loop will then have CC allowance
-    // to write the CRYPTO frame with the TLS Finished.
+    // sends a Handshake packet. It must be done on ANY Handshake packet, to
+    // ensure the congestion control state is cleared and Initial bytes in flight
+    // are not limiting Handshake packets.
     //
     if (QuicConnIsClient(Connection) &&
         Builder->Key->Type == QUIC_PACKET_KEY_HANDSHAKE) {

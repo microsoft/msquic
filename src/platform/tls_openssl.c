@@ -3322,10 +3322,8 @@ more_handshake:
 Exit:
 
     //
-    // Set buffer offsets unconditionally (not gated on !ERROR) because write
-    // keys may be installed asynchronously via the secrets callback before
-    // this exit code runs. On error, the connection is torn down before
-    // these offsets are consumed.
+    // Always set buffer offsets if keys have been installed to preserve code invariants.
+    // On error, the connection will be torn down anyway.
     //
     if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
         State->BufferOffsetHandshake == 0) {
