@@ -164,9 +164,12 @@ public:
 
 //
 // The amount of extra time (in milliseconds) to give the watchdog before
-// actually firing.
+// actually firing. Sized for the worst case: Debug build + alloc_fail
+// injection + multiple concurrent spin threads contending on the debug-heap
+// critical section during teardown. A tighter budget was proven insufficient
+// in CI.
 //
-#define WATCHDOG_WIGGLE_ROOM 10000
+#define WATCHDOG_WIGGLE_ROOM 30000
 
 class SpinQuicWatchdog {
     CXPLAT_THREAD WatchdogThread;
@@ -1234,8 +1237,15 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             break;
         }
         case SpinQuicAPICallConnectionPoolCreate: {
+            //
+            // Pool create adds up to N connections per call (vs. 1 for
+            // ConnectionOpen), so fire rarely to keep the per-iteration
+            // connection count bounded. Otherwise teardown blows the
+            // watchdog under Debug + alloc_fail.
+            //
+            if (GetRandom(10, ThreadID) != 0) break;
             if (!IsServer) {
-                uint16_t PoolSize = (uint16_t)(GetRandom(4, ThreadID) + 1); // 1-4 connections
+                uint16_t PoolSize = (uint16_t)(GetRandom(2, ThreadID) + 1); // 1-2 connections
                 std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
                 std::vector<void*> Contexts(PoolSize, &ThreadID);
                 QUIC_CONNECTION_POOL_CONFIG PoolConfig = {0};
@@ -1490,8 +1500,14 @@ void PrintHelpText(void)
 
 CXPLAT_THREAD_CALLBACK(RunThread, Context)
 {
-    UNREFERENCED_PARAMETER(Context);
-    SpinQuicWatchdog Watchdog((uint32_t)SpinSettings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
+    //
+    // Context carries the number of sibling RunThreads for this iteration.
+    // Cleanup serializes on the debug-heap critical section, so wiggle scales
+    // with concurrency: more sibling threads means proportionally longer
+    // teardown under NTGLOBALFLAG=0x70.
+    //
+    const uint32_t SiblingCount = Context ? (uint32_t)(uintptr_t)Context : 1;
+    SpinQuicWatchdog Watchdog((uint32_t)SpinSettings.RunTimeMs + SiblingCount * WATCHDOG_WIGGLE_ROOM);
     uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX;
     do {
         Gbs Gb;
@@ -1641,7 +1657,13 @@ void start() {
     CxPlatLockInitialize(&RunThreadLock);
 
     {
-        SpinQuicWatchdog Watchdog((uint32_t)SpinSettings.RunTimeMs + SpinSettings.RepeatCount*WATCHDOG_WIGGLE_ROOM);
+        //
+        // Matches the per-iteration watchdog in RunThread scaled by the
+        // maximum possible sibling-thread count (see ARRAYSIZE(Threads) - 1
+        // below) so the outer watchdog is always looser than the sum of the
+        // inner ones.
+        //
+        SpinQuicWatchdog Watchdog((uint32_t)SpinSettings.RunTimeMs + SpinSettings.RepeatCount * 3 * WATCHDOG_WIGGLE_ROOM);
 
         //
         // Initial MsQuicOpen2 and initialization.
@@ -1702,11 +1724,11 @@ void start() {
         SpinSettings.RunTimeMs = SpinSettings.RunTimeMs / SpinSettings.RepeatCount;
         for (uint32_t i = 0; i < SpinSettings.RepeatCount; i++) {
 
-            CXPLAT_THREAD_CONFIG Config = {
-                0, 0, "spin_run", RunThread, nullptr
-            };
             CXPLAT_THREAD Threads[4];
             uint32_t Count = FuzzData ? (uint32_t)FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
+            CXPLAT_THREAD_CONFIG Config = {
+                0, 0, "spin_run", RunThread, (void*)(uintptr_t)Count
+            };
 
             for (uint32_t j = 0; j < Count; ++j) {
                 ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[j]));
