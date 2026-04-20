@@ -779,8 +779,6 @@ typedef struct CXPLAT_SQE {
 #if DEBUG
     BOOLEAN IsQueued; // Debug flag to catch double queueing.
 #endif
-    HANDLE WcpEvent;      // Manual-reset event for wake packets
-    HANDLE WaitCompletionPacket;    // Wait completion packet bound to Event
 } CXPLAT_SQE;
 
 // Extended SQE with Wait Completion Packet support for manual events
@@ -869,15 +867,7 @@ CxPlatEventQEnqueue(
     sqe->IsQueued;
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
-    if (!PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped)){
-        if (sqe->WcpEvent) {
-            CxPlatEventSet(sqe->WcpEvent);
-            return TRUE;
-        } else {
-            return FALSE;
-        }
-    }
-    return TRUE;
+    return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
 
 QUIC_INLINE
@@ -960,42 +950,6 @@ CxPlatSqeInitialize(
     UNREFERENCED_PARAMETER(queue);
     CxPlatZeroMemory(sqe, sizeof(*sqe));
     sqe->Completion = completion;
-
-    if (sqe->WcpEvent == NULL) {
-        CxPlatEventInitialize(&sqe->WcpEvent, TRUE, FALSE);
-    }
-    if (sqe->WcpEvent == NULL) {
-        return FALSE;
-    }
-
-    NTSTATUS status = CxPlatNtCreateWaitCompletionPacket(&sqe->WaitCompletionPacket,
-                                                  GENERIC_ALL,
-                                                  NULL);
-    if (!NT_SUCCESS(status)) {
-        CloseHandle(sqe->WcpEvent);
-        return FALSE;
-    }
-
-    status = CxPlatNtAssociateWaitCompletionPacket(
-        sqe->WaitCompletionPacket,
-        *queue,
-        sqe->WcpEvent,
-        NULL,
-        sqe,
-        0,          // IoStatus STATUS_SUCCESS
-        0,
-        NULL);
-
-    if (!NT_SUCCESS(status)) {
-        NTSTATUS CancelStatus = CxPlatNtCancelWaitCompletionPacket(
-                sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
-                TRUE);              // RemoveSignaledPacket
-        CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
-        CloseHandle(sqe->WaitCompletionPacket);
-        CloseHandle(sqe->WcpEvent);
-        return FALSE;
-    }
-
     return TRUE;
 }
 
@@ -1088,15 +1042,6 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     )
 {
-    if (sqe->WcpEvent)
-    {
-        NTSTATUS CancelStatus = CxPlatNtCancelWaitCompletionPacket(
-            sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
-            TRUE);              // RemoveSignaledPacket
-        CXPLAT_DBG_ASSERT(NT_SUCCESS(CancelStatus));
-        CloseHandle(sqe->WaitCompletionPacket);
-        CloseHandle(sqe->WcpEvent);
-    }
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(sqe);
     // No-op for base SQE
