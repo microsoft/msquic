@@ -1323,6 +1323,24 @@ TEST_P(WithCustomCertificateValidationArgs, CustomClientCertificateValidation) {
     }
 }
 
+TEST(Handshake, CustomServerCertValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomServerCertValidationAfterShutdown");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomServerCertValidationAfterShutdown)));
+    } else {
+        QuicTestCustomServerCertValidationAfterShutdown();
+    }
+}
+
+TEST(Handshake, CustomClientCertValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomClientCertValidationAfterShutdown");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomClientCertValidationAfterShutdown)));
+    } else {
+        QuicTestCustomClientCertValidationAfterShutdown();
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithCustomCertificateValidationArgs,

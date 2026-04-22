@@ -1281,6 +1281,144 @@ QuicTestCustomClientCertificateValidation(
 }
 
 void
+QuicTestCustomServerCertValidationAfterShutdown()
+{
+    //
+    // Client enables async custom server cert validation, shuts down the
+    // connection while validation is still pending, and then completes the
+    // validation. This used to crash due to a null SourceCids dereference.
+    //
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, MsQuicSettings{}, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, MsQuicSettings{}, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    UniquePtr<TestConnection> Server;
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_USER_CANCELED;
+    Listener.Context = &ServerAcceptCtx;
+
+    TestConnection Client(Registration);
+    TEST_TRUE(Client.IsValid());
+
+    Client.SetExpectedCustomValidationResult(true);
+    Client.SetAsyncCustomValidationResult(true);
+    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_UNSPEC,
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            ServerLocalAddr.GetPort()));
+
+    //
+    // Wait for the cert validation callback to fire.
+    // We configured the callback to defer the validation.
+    //
+    if (!Client.WaitForPeerCertReceived()) {
+        TEST_FAILURE("Timed out waiting for peer certificate.");
+        return;
+    }
+
+    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+    if (!Client.WaitForShutdownComplete()) {
+        return;
+    }
+
+    //
+    // Complete the validation after shutdown. This must not crash.
+    //
+    TEST_QUIC_SUCCEEDED(Client.SetCustomValidationResult(true));
+}
+
+void
+QuicTestCustomClientCertValidationAfterShutdown()
+{
+    //
+    // Server enables async custom client cert validation, the client
+    // disconnects while validation is still pending, and then the server
+    // completes the validation. This is the exact scenario from the original
+    // kernel crash dump.
+    //
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, MsQuicSettings{}, ServerSelfSignedCredConfigClientAuth);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, MsQuicSettings{}, ClientCertCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    UniquePtr<TestConnection> Server;
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_USER_CANCELED;
+    ServerAcceptCtx.AsyncCustomCertValidation = true;
+    ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_UNTRUSTED_ROOT);
+    Listener.Context = &ServerAcceptCtx;
+
+    TestConnection Client(Registration);
+    TEST_TRUE(Client.IsValid());
+    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_UNSPEC,
+            QUIC_TEST_LOOPBACK_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            ServerLocalAddr.GetPort()));
+
+    if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
+        TEST_FAILURE("Timed out waiting for server accept.");
+    }
+
+    TEST_NOT_EQUAL(nullptr, Server);
+
+    //
+    // Wait for the server's cert validation callback to fire.
+    // We configured the callback to defer the validation.
+    //
+    if (!Server->WaitForPeerCertReceived()) {
+        TEST_FAILURE("Timed out waiting for peer certificate.");
+        return;
+    }
+
+    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+    if (!Server->WaitForShutdownComplete()) {
+        return;
+    }
+
+    //
+    // Now complete the certificate validation after shutdown. This must not crash.
+    //
+    TEST_QUIC_SUCCEEDED(Server->SetCustomValidationResult(TRUE));
+}
+
+void
 QuicTestShutdownDuringHandshake(
     const ShutdownDuringHandshakeArgs& Params
     )
