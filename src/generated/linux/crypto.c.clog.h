@@ -130,9 +130,9 @@ tracepoint(CLOG_CRYPTO_C, HandshakeConfirmedServer , arg1);\
 // [conn][%p] Custom cert validation succeeded
 // QuicTraceLogConnInfo(
             CustomCertValidationSuccess,
-            QuicCryptoGetConnection(Crypto),
+            Connection,
             "Custom cert validation succeeded");
-// arg1 = arg1 = QuicCryptoGetConnection(Crypto) = arg1
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_CustomCertValidationSuccess
 #define _clog_3_ARGS_TRACE_CustomCertValidationSuccess(uniqueId, arg1, encoded_arg_string)\
