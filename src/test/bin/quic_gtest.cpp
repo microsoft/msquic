@@ -1328,7 +1328,28 @@ INSTANTIATE_TEST_SUITE_P(
     WithCustomCertificateValidationArgs,
     testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
 
-struct WithClientCertificateArgs : 
+struct WithAcceptTicket :
+    public testing::TestWithParam<bool> {
+};
+
+TEST_P(WithAcceptTicket, CustomTicketValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomTicketValidationAfterShutdown");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomTicketValidationAfterShutdown), GetParam()));
+    } else {
+        QuicTestCustomTicketValidationAfterShutdown(GetParam());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithAcceptTicket,
+    testing::Values(true, false),
+    [](const testing::TestParamInfo<bool>& info) {
+        return info.param ? "Accept" : "Reject";
+    });
+
+struct WithClientCertificateArgs :
     public testing::TestWithParam<ClientCertificateArgs> {
 
     static ::std::vector<ClientCertificateArgs> Generate() {

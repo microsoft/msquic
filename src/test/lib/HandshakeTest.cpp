@@ -1286,6 +1286,114 @@ QuicTestCustomClientCertificateValidation(
 }
 
 void
+QuicTestCustomTicketValidationAfterShutdown(
+    bool AcceptTicket
+    )
+{
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    UNREFERENCED_PARAMETER(AcceptTicket);
+    return;
+#else
+    //
+    // Server enables async custom ticket validation via QUIC_CONNECTION_EVENT_RESUMED.
+    // The client shuts down the connection while ticket validation is still pending,
+    // and then the server completes the validation. This must not crash.
+    //
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, MsQuicSettings{}, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    //
+    // Prime resumption to obtain a ticket.
+    //
+    QUIC_BUFFER* ResumptionTicket = nullptr;
+    QuicTestPrimeResumption(
+        QUIC_ADDRESS_FAMILY_INET,
+        Registration,
+        ServerConfiguration,
+        ClientConfiguration,
+        &ResumptionTicket);
+    if (ResumptionTicket == nullptr) {
+        return;
+    }
+
+    //
+    // Now attempt a resumed connection. The server will return PENDING
+    // from the RESUMED callback, deferring ticket validation.
+    //
+    TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    UniquePtr<TestConnection> Server;
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    Listener.Context = &ServerAcceptCtx;
+
+    TestConnection Client(Registration);
+    TEST_TRUE(Client.IsValid());
+
+    //
+    // Configure server to defer ticket validation asynchronously.
+    //
+    ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_PENDING;
+
+    TEST_QUIC_SUCCEEDED(
+        Client.SetResumptionTicket(ResumptionTicket));
+    CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_INET,
+            QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+            ServerLocalAddr.GetPort()));
+
+    //
+    // Wait for the server to receive the RESUMED event.
+    //
+    if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
+        TEST_FAILURE("Timed out waiting for server accept.");
+        return;
+    }
+    TEST_NOT_EQUAL(nullptr, Server.get());
+
+    if (!Server->WaitForResumed()) {
+        TEST_FAILURE("Timed out waiting for server RESUMED event.");
+        return;
+    }
+
+    //
+    // Shut down the client (and wait for server to see it) while ticket
+    // validation is still pending on the server.
+    //
+    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, QUIC_TEST_NO_ERROR);
+    if (!Server->WaitForShutdownComplete()) {
+        return;
+    }
+
+    //
+    // Complete the ticket validation after shutdown. This must not crash.
+    //
+    TEST_QUIC_SUCCEEDED(
+        Server->SetCustomTicketValidationResult(AcceptTicket));
+#endif // QUIC_DISABLE_0RTT_TESTS
+}
+
+void
 QuicTestShutdownDuringHandshake(
     const ShutdownDuringHandshakeArgs& Params
     )
