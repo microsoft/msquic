@@ -148,7 +148,7 @@ CxPlatDpRawUpdatePollingIdleTimeout(
 // that it should update any filtering rules as necessary.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated

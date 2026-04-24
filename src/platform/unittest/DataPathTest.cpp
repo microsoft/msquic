@@ -1357,4 +1357,37 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 500));
 }
 
+#ifdef DEBUG
+TEST_F(DataPathTest, XdpRuleAddOomCleanup)
+{
+    //
+    // Verify CxPlatDpRawInterfaceAddRules cleanup path does not crash when
+    // allocation fails mid-way through rule installation on XDP sockets.
+    // Only meaningful when running with the XDP/DuoNic datapath.
+    //
+    if (!UseDuoNic) {
+        GTEST_SKIP();
+    }
+
+    QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW, CXPLAT_SOCKET_FLAG_XDP));
+
+    QuicAddr LocalAddr = GetNewUnspecIPv4();
+
+    //
+    // Fail every 2nd allocation so the socket struct (alloc #1) succeeds and
+    // the XDP rule array allocation inside CxPlatDpRawInterfaceAddRules
+    // (alloc #2) is the one that fails, reaching the cleanup path.
+    //
+    CxPlatSetAllocFailDenominator(-2);
+    {
+        CxPlatSocket Socket(Datapath, &LocalAddr.SockAddr, nullptr, nullptr, CXPLAT_SOCKET_FLAG_XDP);
+        ASSERT_TRUE(QUIC_FAILED(Socket.GetInitStatus()));
+    }
+    CxPlatSetAllocFailDenominator(0);
+}
+#endif // DEBUG
+
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());
