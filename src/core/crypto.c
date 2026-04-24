@@ -1753,6 +1753,7 @@ QuicCryptoCustomCertValidationComplete(
     // Nothing to do in that case.
     //
     if (Connection->State.ShutdownComplete) {
+        Crypto->PendingValidationBufferLength = 0;
         return;
     }
 
