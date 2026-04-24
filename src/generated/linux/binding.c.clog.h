@@ -96,12 +96,12 @@ tracepoint(CLOG_BINDING_C, PacketTxStatelessReset , arg2);\
             "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
             QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
-            QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer,
+            QuicCidBufToStr(NewDestCid, CidTotalLength).Buffer,
             QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
             (uint16_t)sizeof(Token));
 // arg2 = arg2 = RecvPacket->LH->Version = arg2
 // arg3 = arg3 = QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer = arg3
-// arg4 = arg4 = QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer = arg4
+// arg4 = arg4 = QuicCidBufToStr(NewDestCid, CidTotalLength).Buffer = arg4
 // arg5 = arg5 = QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer = arg5
 // arg6 = arg6 = (uint16_t)sizeof(Token) = arg6
 ----------------------------------------------------------*/

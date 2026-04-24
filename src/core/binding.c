@@ -995,9 +995,18 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
+        const uint8_t CidTotalLength = MsQuicLib.CidTotalLength;
         uint8_t NewDestCid[QUIC_CID_MAX_LENGTH];
-        CXPLAT_DBG_ASSERT(sizeof(NewDestCid) >= MsQuicLib.CidTotalLength);
-        CxPlatRandom(sizeof(NewDestCid), NewDestCid);
+        CXPLAT_DBG_ASSERT(sizeof(NewDestCid) >= CidTotalLength);
+        //
+        // RFC 9000 sec. 17.2.5.1: "This value MUST NOT be equal to the
+        // Destination Connection ID field of the packet sent by the client."
+        // Regenerate until the new Source CID differs from the client's DCID.
+        //
+        do {
+            CxPlatRandom(CidTotalLength, NewDestCid);
+        } while (RecvPacket->DestCidLen == CidTotalLength &&
+                 memcmp(NewDestCid, RecvPacket->DestCid, CidTotalLength) == 0);
 
         QUIC_TOKEN_CONTENTS Token = { 0 };
         Token.Authenticated.Timestamp = (uint64_t)CxPlatTimeEpochMs64();
@@ -1008,14 +1017,14 @@ QuicBindingProcessStatelessOperation(
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
         uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
-        if (MsQuicLib.CidTotalLength >= CXPLAT_IV_LENGTH) {
+        if (CidTotalLength >= CXPLAT_IV_LENGTH) {
             CxPlatCopyMemory(Iv, NewDestCid, CXPLAT_IV_LENGTH);
-            for (uint8_t i = CXPLAT_IV_LENGTH; i < MsQuicLib.CidTotalLength; ++i) {
+            for (uint8_t i = CXPLAT_IV_LENGTH; i < CidTotalLength; ++i) {
                 Iv[i % CXPLAT_IV_LENGTH] ^= NewDestCid[i];
             }
         } else {
             CxPlatZeroMemory(Iv, CXPLAT_IV_LENGTH);
-            CxPlatCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
+            CxPlatCopyMemory(Iv, NewDestCid, CidTotalLength);
         }
 
         CxPlatDispatchLockAcquire(&Partition->StatelessRetryKeysLock);
@@ -1043,7 +1052,7 @@ QuicBindingProcessStatelessOperation(
             QuicPacketEncodeRetryV1(
                 RecvPacket->LH->Version,
                 RecvPacket->SourceCid, RecvPacket->SourceCidLen,
-                NewDestCid, MsQuicLib.CidTotalLength,
+                NewDestCid, CidTotalLength,
                 RecvPacket->DestCid, RecvPacket->DestCidLen,
                 sizeof(Token),
                 (uint8_t*)&Token,
@@ -1059,7 +1068,7 @@ QuicBindingProcessStatelessOperation(
             "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
             QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
-            QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer,
+            QuicCidBufToStr(NewDestCid, CidTotalLength).Buffer,
             QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
             (uint16_t)sizeof(Token));
 
