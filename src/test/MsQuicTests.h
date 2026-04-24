@@ -351,6 +351,12 @@ QuicTestCustomClientCertificateValidation(
     const CustomCertValidationArgs& Params
     );
 
+void
+QuicTestCustomServerCertValidationAfterShutdown();
+
+void
+QuicTestCustomClientCertValidationAfterShutdown();
+
 struct ClientCertificateArgs {
     int Family;
     bool UseClientCertificate;

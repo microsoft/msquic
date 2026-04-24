@@ -545,6 +545,8 @@ ExecuteTestRequest(
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestCustomServerCertificateValidation);
     RegisterTestFunction(QuicTestCustomClientCertificateValidation);
+    RegisterTestFunction(QuicTestCustomServerCertValidationAfterShutdown);
+    RegisterTestFunction(QuicTestCustomClientCertValidationAfterShutdown);
     RegisterTestFunction(QuicTestConnectClientCertificate);
     RegisterTestFunction(QuicTestCibirExtension);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
