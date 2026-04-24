@@ -1778,6 +1778,18 @@ QuicCryptoCustomTicketValidationComplete(
         return;
     }
 
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
+    //
+    // The connection might have been shutdown during the ticket validation.
+    // Nothing to do in that case.
+    //
+    if (Connection->State.ShutdownComplete) {
+        Crypto->TicketValidationPending = FALSE;
+        Crypto->PendingValidationBufferLength = 0;
+        return;
+    }
+
     if (Result) {
         //
         // Just call completion.
@@ -1815,7 +1827,6 @@ QuicCryptoCustomTicketValidationComplete(
             Crypto->TlsState.WriteKeys[i] = NULL;
         }
         QuicRecvBufferResetRead(&Crypto->RecvBuffer);
-        QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
         QUIC_STATUS Status = QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
         if (Status != QUIC_STATUS_SUCCESS) {
             QuicConnFatalError(Connection, Status, "Failed finalizing resumption ticket rejection");
