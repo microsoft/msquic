@@ -3805,24 +3805,31 @@ CxPlatSendDataComplete(
 {
     CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
 
-    if (IoResult != QUIC_STATUS_SUCCESS) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
-            IoResult,
-            "WSASendMsg completion");
-    }
+    //
+    // Acquire rundown before accessing any fields of SocketProc->Parent
+    // to prevent use-after-free during socket shutdown.
+    //
+    if (CxPlatRundownAcquire(&SocketProc->RundownRef)) {
+        CXPLAT_SOCKET* Socket = SocketProc->Parent;
 
-    if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
-        if (CxPlatRundownAcquire(&SocketProc->RundownRef)) {
-            SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
-                SocketProc->Parent,
-                SocketProc->Parent->ClientContext,
+        if (IoResult != QUIC_STATUS_SUCCESS) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                IoResult,
+                "WSASendMsg completion");
+        }
+
+        if (Socket->Type != CXPLAT_SOCKET_UDP) {
+            Socket->Datapath->TcpHandlers.SendComplete(
+                Socket,
+                Socket->ClientContext,
                 IoResult,
                 SendData->TotalSize);
-            CxPlatRundownRelease(&SocketProc->RundownRef);
         }
+
+        CxPlatRundownRelease(&SocketProc->RundownRef);
     }
 
     SendDataFree(SendData);
