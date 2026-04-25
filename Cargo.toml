@@ -105,5 +105,5 @@ bindgen = { version = "0.72", optional = true }
 bitflags = "2.9"
 libc = "0.2"
 c-types = "6.0"
-ctor = "0.8"
+ctor = "0.9"
 socket2 = "0.6"

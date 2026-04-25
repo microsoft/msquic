@@ -334,6 +334,11 @@ QuicAckFrameDecode(
 
         Largest -= (Block.Gap + 1);
         Count = Block.AckBlock + 1;
+    
+        if (Count > Largest + 1) {
+            *InvalidFrame = TRUE;
+            return FALSE;
+        }
 
         //
         // N.B. The efficiency here isn't great because we are always inserting

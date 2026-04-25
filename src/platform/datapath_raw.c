@@ -221,7 +221,7 @@ CxPlatDpRawRxEthernet(
         }
 
         if (Socket) {
-            CXPLAT_DBG_ASSERT(!Socket->HasFixedRemoteAddress || Socket->ReserveAuxTcpSock == PacketChain->Route->UseQTIP);
+            CXPLAT_DBG_ASSERT(!Socket->HasFixedRemoteAddress || Socket->ReserveAuxTcpSockForQtip == PacketChain->Route->UseQTIP);
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
                 uint8_t SocketType = PacketChain->Route->UseQTIP ? L4_TYPE_TCP : L4_TYPE_UDP;
                 //
@@ -336,7 +336,7 @@ RawSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(!Socket->HasFixedRemoteAddress || Route->UseQTIP == Socket->ReserveAuxTcpSock);
+    CXPLAT_DBG_ASSERT(!Socket->HasFixedRemoteAddress || Route->UseQTIP == Socket->ReserveAuxTcpSockForQtip);
     if (Route->UseQTIP &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {

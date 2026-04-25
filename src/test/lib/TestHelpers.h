@@ -96,6 +96,71 @@ QuitTestIsFeatureSupported(uint32_t Feature) {
 #include "msquic.hpp"
 #include "quic_toeplitz.h"
 
+#if defined(_WIN32) && !defined(_KERNEL_MODE)
+//
+// Reserves an ephemeral UDP port by binding a socket to port 0. The socket
+// stays open to hold the reservation until Release() is called (or the object
+// is destroyed). This minimizes the TOCTOU window between discovering a free
+// port and having the listener bind to it.
+//
+struct QuicTestPortReservation {
+    uint16_t Port{0};
+
+    QuicTestPortReservation() = default;
+
+    QuicTestPortReservation(
+        _In_ QUIC_ADDRESS_FAMILY Family
+        )
+    {
+        int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
+
+        Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
+        if (Sock == INVALID_SOCKET) {
+            return;
+        }
+
+        QUIC_ADDR Addr{};
+        QuicAddrSetFamily(&Addr, Family);
+
+        int AddrSize =
+            (af == AF_INET) ?
+                (int)sizeof(struct sockaddr_in) :
+                (int)sizeof(struct sockaddr_in6);
+
+        if (bind(Sock, (struct sockaddr*)&Addr, AddrSize) == 0) {
+            int AddrLen = AddrSize;
+            if (getsockname(Sock, (struct sockaddr*)&Addr, &AddrLen) == 0) {
+                Port = QuicAddrGetPort(&Addr);
+            }
+        }
+
+        if (Port == 0) {
+            Release();
+        }
+    }
+
+    ~QuicTestPortReservation() { Release(); }
+
+    QuicTestPortReservation(const QuicTestPortReservation&) = delete;
+    QuicTestPortReservation& operator=(const QuicTestPortReservation&) = delete;
+
+    //
+    // Releases the port reservation by closing the held socket. Call this
+    // immediately before the listener binds to the same port.
+    //
+    void Release()
+    {
+        if (Sock != INVALID_SOCKET) {
+            closesocket(Sock);
+            Sock = INVALID_SOCKET;
+        }
+    }
+
+private:
+    SOCKET Sock{INVALID_SOCKET};
+};
+#endif // _WIN32 && !_KERNEL_MODE
+
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
 #define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H
 

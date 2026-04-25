@@ -2,6 +2,40 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WarnFallbackToOsSockets
+// [sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.
+// QuicTraceLogWarning(
+                        WarnFallbackToOsSockets,
+                        "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnFallbackToOsSockets,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WarnNoXdpForCibirSockets
+// [sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. "
+                "Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.
+// QuicTraceLogWarning(
+                WarnNoXdpForCibirSockets,
+                "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. "
+                "Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibirSockets,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathInitFail
 // [  dp] Failed to initialize datapath, status:%d
 // QuicTraceLogVerbose(
@@ -50,5 +84,21 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, RawSockCreateFail,
         int, arg2), 
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ErrNoXdpForQtip
+// [sock] Error: app requested QTIP but XDP not enabled/available/initialized.
+// QuicTraceLogError(
+                ErrNoXdpForQtip,
+                "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForQtip,
+    TP_ARGS(
+), 
+    TP_FIELDS(
     )
 )

@@ -1228,6 +1228,7 @@ SocketCreateUdp(
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
     CXPLAT_DBG_ASSERT(IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
+    CXPLAT_DBG_ASSERT(Config->CibirIdLength <= sizeof(Config->CibirId));
 
     const uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
     CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
@@ -1255,7 +1256,7 @@ SocketCreateUdp(
     Socket->NumPerProcessorSockets = NumPerProcessorSockets;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
-    Socket->ReserveAuxTcpSock = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
+    Socket->ReserveAuxTcpSockForQtip = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
 
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
@@ -1269,19 +1270,52 @@ SocketCreateUdp(
     //
     // Servers always initialize per-proc UDP sockets.
     //
-    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSock && !IsServerSocket) ? 1 : SocketCount);
-
-    if (Socket->ReserveAuxTcpSock && !IsServerSocket) {
-        //
-        // Client will skip normal socket settings to use AuxSocket in raw socket.
-        //
-        goto Skip;
-    }
+    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) ? 1 : SocketCount);
 
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH :
             Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+
+    if (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) {
+        //
+        // QTIP clients will skip normal UDP socket reservation to use AuxSocket (TCP socket reservation) in raw socket.
+        //
+        goto Skip;
+    }
+
+    if (Config->CibirIdLength > 0 && IsServerSocket) {
+        BOOLEAN XdpEnabled = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
+        BOOLEAN XdpAvailable = Datapath->RawDataPath != NULL;
+        if (XdpEnabled && XdpAvailable) {
+            //
+            // CIBIR with XDP: skip OS port reservation so multiple processes
+            // can share the same UDP port. XDP handles demuxing via CIBIR ID.
+            //
+            Socket->SkipCreatingOsSockets = TRUE;
+            CxPlatRefInitializeEx(&Socket->RefCount, 1);
+            if (Config->LocalAddress == NULL || Config->LocalAddress->Ipv4.sin_port == 0) {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    (uint32_t)QUIC_STATUS_INVALID_PARAMETER,
+                    "CIBIR server socket with XDP requires an explicit local port");
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                goto Error;
+            }
+            QuicTraceLogWarning(
+                DatapathCibirWarning,
+                "[data][%p] CIBIR detected, %s",
+                Socket,
+                "Skipping OS port reservation for this server socket.");
+            goto Skip;
+        }
+        //
+        // CIBIR without XDP: fall through to normal socket creation.
+        // Transport parameter negotiation still works, just no port sharing.
+        //
+    }
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         CxPlatRefInitialize(&Socket->PerProcSockets[i].RefCount);
@@ -1827,9 +1861,20 @@ SocketCreateUdp(
         }
     }
 
+Skip:
+
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-Skip:
+    if (Config->CibirIdLength > 0) {
+        QuicTraceLogWarning(
+            DatapathCibirIdUsed,
+            "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+            Socket,
+            Config->CibirIdLength,
+            (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength));
+    }
 
     if (Config->RemoteAddress != NULL) {
         Socket->RemoteAddress = *Config->RemoteAddress;
@@ -1843,7 +1888,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->ReserveAuxTcpSock) {
+    if (!Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
@@ -2380,8 +2425,12 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->ReserveAuxTcpSock && Socket->HasFixedRemoteAddress) {
-        // QTIP did not initialize PerProcSockets only for Client sockets.
+    if ((Socket->ReserveAuxTcpSockForQtip && Socket->HasFixedRemoteAddress) ||
+        Socket->SkipCreatingOsSockets) {
+        //
+        // QTIP client or CIBIR skip: PerProcSockets were not initialized
+        // (or already cleaned up). Just release the socket directly.
+        //
         CxPlatSocketRelease(Socket);
     } else {
         const uint16_t SocketCount =
