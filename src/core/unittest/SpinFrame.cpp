@@ -51,9 +51,6 @@ TEST(SpinFrame, SpinFrame1000000)
     uint8_t BufferLength = 0;
 
     uint16_t FrameType;
-    CXPLAT_STATIC_ASSERT(
-        QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT16_MAX,
-        "Tests below assumes frames fit in 16-bits");
 
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);
 

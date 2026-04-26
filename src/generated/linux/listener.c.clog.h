@@ -259,11 +259,11 @@ tracepoint(CLOG_LISTENER_C, ApiExit );\
 // Decoder Ring for ListenerErrorStatus
 // [list][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-            ListenerErrorStatus,
-            "[list][%p] ERROR, %u, %s.",
-            Listener,
-            Status,
-            "Get binding");
+                ListenerErrorStatus,
+                "[list][%p] ERROR, %u, %s.",
+                Listener,
+                Status,
+                "Get binding");
 // arg2 = arg2 = Listener = arg2
 // arg3 = arg3 = Status = arg3
 // arg4 = arg4 = "Get binding" = arg4

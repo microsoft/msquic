@@ -34,6 +34,7 @@ QuicPartitionInitialize(
     Partition->Index = Index;
     Partition->Processor = Processor;
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_CONNECTION), QUIC_POOL_CONN, &Partition->ConnectionPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_QMUX), QUIC_POOL_CONN_QMUX, &Partition->ConnectionQMuxPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_TRANSPORT_PARAMETERS), QUIC_POOL_TP, &Partition->TransportParamPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_PACKET_SPACE), QUIC_POOL_TP, &Partition->PacketSpacePool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Partition->StreamPool);
@@ -44,6 +45,7 @@ QuicPartitionInitialize(
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Partition->StatelessContextPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Partition->OperPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK), QUIC_POOL_APP_BUFFER_CHUNK, &Partition->AppBufferChunkPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_BUFFER) + QX_DEFAULT_SEND_BUFFER_SIZE + 2, QUIC_POOL_QMUX_SEND_BUFFER, &Partition->QmuxSendBufferPool);
     CxPlatLockInitialize(&Partition->ResetTokenLock);
     CxPlatDispatchLockInitialize(&Partition->StatelessRetryKeysLock);
 
@@ -59,6 +61,7 @@ QuicPartitionUninitialize(
         CxPlatKeyFree(Partition->StatelessRetryKeys[i].Key);
     }
     CxPlatPoolUninitialize(&Partition->ConnectionPool);
+    CxPlatPoolUninitialize(&Partition->ConnectionQMuxPool);
     CxPlatPoolUninitialize(&Partition->TransportParamPool);
     CxPlatPoolUninitialize(&Partition->PacketSpacePool);
     CxPlatPoolUninitialize(&Partition->StreamPool);

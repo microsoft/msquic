@@ -876,6 +876,13 @@ QuicLibraryLazyInitialize(
         QuicBindingUnreachable,
     };
 
+    const CXPLAT_TCP_DATAPATH_CALLBACKS DatapathTcpCallbacks = {
+        QuicQMuxTcpAccept,
+        QuicQMuxTcpConnect,
+        QuicQMuxTcpReceive,
+        QuicQMuxTcpSendComplete,
+    };
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN CreatedWorkerPool = FALSE;
 
@@ -914,7 +921,7 @@ QuicLibraryLazyInitialize(
         CxPlatDataPathInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
-            NULL,                   // TcpCallbacks
+            &DatapathTcpCallbacks,
             MsQuicLib.WorkerPool,
             &InitConfig,
             &MsQuicLib.Datapath);
@@ -2157,6 +2164,10 @@ MsQuicOpenVersion(
     Api->RegistrationClose2 = MsQuicRegistrationClose2;
 
     Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
+
+    Api->ConnectionQmuxOpen = MsQuicConnectionQmuxOpen;
+    Api->ConnectionQmuxOpenInPartition = MsQuicConnectionQmuxOpenInPartition;
+    Api->ListenerQmuxOpen = MsQuicListenerQmuxOpen;
 
     *QuicApi = Api;
 

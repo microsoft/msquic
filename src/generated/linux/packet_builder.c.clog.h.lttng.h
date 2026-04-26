@@ -5,9 +5,9 @@
 // Decoder Ring for NoSrcCidAvailable
 // [conn][%p] No src CID to send with
 // QuicTraceLogConnWarning(
-            NoSrcCidAvailable,
-            Connection,
-            "No src CID to send with");
+                NoSrcCidAvailable,
+                Connection,
+                "No src CID to send with");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, NoSrcCidAvailable,
@@ -78,6 +78,29 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, GetPacketTypeFailure,
 // arg3 = arg3 = (uint16_t)Builder->TotalCountDatagrams = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned short, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned short, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketBuilderQMuxSend
+// [conn][%p] Sending %hu bytes
+// QuicTraceLogConnVerbose(
+        PacketBuilderQMuxSend,
+        Connection,
+        "Sending %hu bytes",
+        Builder->DatagramLength);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Builder->DatagramLength = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderQMuxSend,
     TP_ARGS(
         const void *, arg1,
         unsigned short, arg3), 

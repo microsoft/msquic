@@ -1875,6 +1875,26 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnReceiveTcpData": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u TCP data, %u bytes",
+      "UniqueId": "ConnReceiveTcpData",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnRecoveryExit": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Recovery complete",
@@ -1887,10 +1907,50 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnRecvTcpData": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u TCP data, %u bytes",
+      "UniqueId": "ConnRecvTcpData",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnRecvUdpDatagrams": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
       "UniqueId": "ConnRecvUdpDatagrams",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnRefLeak": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Ref leak detected: Type=%u, Count=%u",
+      "UniqueId": "ConnRefLeak",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -3351,6 +3411,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DecodeTPMaxRecordSize": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Max Record Size (%llu)",
+      "UniqueId": "DecodeTPMaxRecordSize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPMaxUdpPayloadSize": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Max Udp Payload Size (%llu bytes)",
@@ -3867,6 +3943,22 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Max Bidirectional Streams (%llu)",
       "UniqueId": "EncodeTPMaxBidiStreams",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPMaxRecordSize": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Max Record Size (%llu)",
+      "UniqueId": "EncodeTPMaxRecordSize",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -5086,6 +5178,94 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogQxPing": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   QX PING %hu %llu",
+      "UniqueId": "FrameLogQxPing",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogQxPingInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   QX PING [Invalid]",
+      "UniqueId": "FrameLogQxPingInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogQxTransportParameters": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS",
+      "UniqueId": "FrameLogQxTransportParameters",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogQxTransportParametersInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS [Invalid]",
+      "UniqueId": "FrameLogQxTransportParametersInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogReliableResetStream": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu",
@@ -5494,6 +5674,46 @@
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   TIMESTAMP [Invalid]",
       "UniqueId": "FrameLogTimestampInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogTransportParameters": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   TRANSPORT_PARAMETERS",
+      "UniqueId": "FrameLogTransportParameters",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogTransportParametersInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   TRANSPORT_PARAMETERS [Invalid]",
+      "UniqueId": "FrameLogTransportParametersInvalid",
       "splitArgs": [
         {
           "DefinationEncoding": "c",
@@ -7793,6 +8013,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "PacketBuilderQMuxSend": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Sending %hu bytes",
+      "UniqueId": "PacketBuilderQMuxSend",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "PacketBuilderSendBatch": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Sending batch. %hu datagrams",
@@ -8989,9 +9225,45 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "QMuxRecvPacket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][RX] %hu bytes",
+      "UniqueId": "QMuxRecvPacket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "QMuxRecvTcpData": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u TCP data, %u bytes",
+      "UniqueId": "QMuxRecvTcpData",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "QueueDatagrams": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Queuing %u UDP datagrams",
+      "TraceString": "[conn][%p] Queuing %u TCP data",
       "UniqueId": "QueueDatagrams",
       "splitArgs": [
         {
@@ -11314,6 +11586,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "StreamRefLeak": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] ID:%lu Ref leak detected: Type=%u, Count=%u",
+      "UniqueId": "StreamRefLeak",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "lu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "StreamRundown": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu",
@@ -11369,6 +11665,62 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "TcpConnected": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TCP connected",
+      "UniqueId": "TcpConnected",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "TcpConnectFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TCP connect failed",
+      "UniqueId": "TcpConnectFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "TcpDataReceived": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TCP data received: %u bytes in %u segments",
+      "UniqueId": "TcpDataReceived",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "TcpDisconnected": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TCP disconnected",
+      "UniqueId": "TcpDisconnected",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
     },
     "TestCaseEnd": {
       "ModuleProperites": {},
@@ -12004,7 +12356,7 @@
     },
     "WarnNoXdpForCibirSockets": {
       "ModuleProperites": {},
-      "TraceString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \"\r\n                \"Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.",
+      "TraceString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \"\n                \"Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation.",
       "UniqueId": "WarnNoXdpForCibirSockets",
       "splitArgs": [],
       "macroName": "QuicTraceLogWarning"
@@ -13568,14 +13920,29 @@
         "EncodingString": "[conn][%p] Read Key Updated, %hhu."
       },
       {
+        "UniquenessHash": "ea996997-be29-898f-197a-5382d3390ed6",
+        "TraceID": "ConnReceiveTcpData",
+        "EncodingString": "[conn][%p] Recv %u TCP data, %u bytes"
+      },
+      {
         "UniquenessHash": "5eef16d4-a574-2e5c-62c1-d561f0040322",
         "TraceID": "ConnRecoveryExit",
         "EncodingString": "[conn][%p] Recovery complete"
       },
       {
+        "UniquenessHash": "0f9b2a6c-1982-68d5-f02b-4c7e6d9b1498",
+        "TraceID": "ConnRecvTcpData",
+        "EncodingString": "[conn][%p] Recv %u TCP data, %u bytes"
+      },
+      {
         "UniquenessHash": "acc96e76-ae1e-91d0-d525-216dedbaf2f0",
         "TraceID": "ConnRecvUdpDatagrams",
         "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
+      },
+      {
+        "UniquenessHash": "1c0688bf-e92f-d93d-6a2f-e2e7bf153b8b",
+        "TraceID": "ConnRefLeak",
+        "EncodingString": "[conn][%p] Ref leak detected: Type=%u, Count=%u"
       },
       {
         "UniquenessHash": "60a38bc0-4218-963b-507a-5d7cb5c08596",
@@ -14028,6 +14395,11 @@
         "EncodingString": "[conn][%p] TP: Max Datagram Frame Size (%llu bytes)"
       },
       {
+        "UniquenessHash": "782af1d9-bfcb-fa4f-c488-e5559748d489",
+        "TraceID": "DecodeTPMaxRecordSize",
+        "EncodingString": "[conn][%p] TP: Max Record Size (%llu)"
+      },
+      {
         "UniquenessHash": "dcdc839f-72fd-686f-4a16-b070ed7bea5f",
         "TraceID": "DecodeTPMaxUdpPayloadSize",
         "EncodingString": "[conn][%p] TP: Max Udp Payload Size (%llu bytes)"
@@ -14196,6 +14568,11 @@
         "UniquenessHash": "c5697d69-e02a-7775-a151-c34f748320aa",
         "TraceID": "EncodeTPMaxBidiStreams",
         "EncodingString": "[conn][%p] TP: Max Bidirectional Streams (%llu)"
+      },
+      {
+        "UniquenessHash": "8916122b-7bab-4f45-e5a1-640dca04353d",
+        "TraceID": "EncodeTPMaxRecordSize",
+        "EncodingString": "[conn][%p] TP: Max Record Size (%llu)"
       },
       {
         "UniquenessHash": "7ccb258f-6f1d-cdd4-761c-8b098b4fb5b6",
@@ -14503,6 +14880,26 @@
         "EncodingString": "[%c][%cX][%llu]   PING"
       },
       {
+        "UniquenessHash": "3a358fd2-94a1-2908-a009-4d53fd814b07",
+        "TraceID": "FrameLogQxPing",
+        "EncodingString": "[%c][%cX][%llu]   QX PING %hu %llu"
+      },
+      {
+        "UniquenessHash": "a36fb469-edc9-608c-3349-d6e0cdd7d37a",
+        "TraceID": "FrameLogQxPingInvalid",
+        "EncodingString": "[%c][%cX][%llu]   QX PING [Invalid]"
+      },
+      {
+        "UniquenessHash": "11d140ee-e227-de4c-5048-478fe91c73dc",
+        "TraceID": "FrameLogQxTransportParameters",
+        "EncodingString": "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS"
+      },
+      {
+        "UniquenessHash": "f810691d-882e-84d0-3fb4-9d6729e4083e",
+        "TraceID": "FrameLogQxTransportParametersInvalid",
+        "EncodingString": "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS [Invalid]"
+      },
+      {
         "UniquenessHash": "114e293d-3c55-bda4-2768-2c68d7b2e75e",
         "TraceID": "FrameLogReliableResetStream",
         "EncodingString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu"
@@ -14586,6 +14983,16 @@
         "UniquenessHash": "1315a113-88c2-8ce3-cca0-a0f84ffdb729",
         "TraceID": "FrameLogTimestampInvalid",
         "EncodingString": "[%c][%cX][%llu]   TIMESTAMP [Invalid]"
+      },
+      {
+        "UniquenessHash": "a2bd8600-8021-3472-4ea2-a7defacb1502",
+        "TraceID": "FrameLogTransportParameters",
+        "EncodingString": "[%c][%cX][%llu]   TRANSPORT_PARAMETERS"
+      },
+      {
+        "UniquenessHash": "af714637-3d07-a34f-76d0-c6044f4849b7",
+        "TraceID": "FrameLogTransportParametersInvalid",
+        "EncodingString": "[%c][%cX][%llu]   TRANSPORT_PARAMETERS [Invalid]"
       },
       {
         "UniquenessHash": "0663ac49-e402-40ea-b23a-851ef032e5d5",
@@ -15313,6 +15720,11 @@
         "EncodingString": "[pack][%llu] Batch sent"
       },
       {
+        "UniquenessHash": "01f7a1ec-36fa-0fe8-7608-ce2f801e8d90",
+        "TraceID": "PacketBuilderQMuxSend",
+        "EncodingString": "[conn][%p] Sending %hu bytes"
+      },
+      {
         "UniquenessHash": "f2859068-aa3b-758e-45b8-db7e1bf4063f",
         "TraceID": "PacketBuilderSendBatch",
         "EncodingString": "[conn][%p] Sending batch. %hu datagrams"
@@ -15713,9 +16125,19 @@
         "EncodingString": "[ nmr][%p] Client detached"
       },
       {
-        "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
+        "UniquenessHash": "d14c152d-8718-3d9c-e7b6-bc64ee534bbf",
+        "TraceID": "QMuxRecvPacket",
+        "EncodingString": "[conn][%p][RX] %hu bytes"
+      },
+      {
+        "UniquenessHash": "27044228-9730-d443-fd93-bee18dc7c248",
+        "TraceID": "QMuxRecvTcpData",
+        "EncodingString": "[conn][%p] Recv %u TCP data, %u bytes"
+      },
+      {
+        "UniquenessHash": "1e2665cc-1c0a-e656-f1f2-fa996a19400f",
         "TraceID": "QueueDatagrams",
-        "EncodingString": "[conn][%p] Queuing %u UDP datagrams"
+        "EncodingString": "[conn][%p] Queuing %u TCP data"
       },
       {
         "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
@@ -16483,6 +16905,11 @@
         "EncodingString": "[strm][%p] Recv State: %hhu"
       },
       {
+        "UniquenessHash": "d7e23b39-7b45-95e8-822e-8c372ad074c6",
+        "TraceID": "StreamRefLeak",
+        "EncodingString": "[strm][%p] ID:%lu Ref leak detected: Type=%u, Count=%u"
+      },
+      {
         "UniquenessHash": "c91c925c-07e9-3204-5459-5d3b19d137d8",
         "TraceID": "StreamRundown",
         "EncodingString": "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu"
@@ -16496,6 +16923,26 @@
         "UniquenessHash": "cc7f8746-a729-760b-90cc-8f3973b3fde2",
         "TraceID": "StreamWriteFrames",
         "EncodingString": "[strm][%p] Writing frames to packet %llu"
+      },
+      {
+        "UniquenessHash": "ea812011-b593-6288-c838-f58a92f10cc1",
+        "TraceID": "TcpConnected",
+        "EncodingString": "[conn][%p] TCP connected"
+      },
+      {
+        "UniquenessHash": "53de14af-210d-3ec7-101c-01e2e6126e57",
+        "TraceID": "TcpConnectFailed",
+        "EncodingString": "[conn][%p] TCP connect failed"
+      },
+      {
+        "UniquenessHash": "781051db-9374-94f7-eacf-4102d1e9feb7",
+        "TraceID": "TcpDataReceived",
+        "EncodingString": "[conn][%p] TCP data received: %u bytes in %u segments"
+      },
+      {
+        "UniquenessHash": "87fad627-6efa-61f9-2421-702aeab09868",
+        "TraceID": "TcpDisconnected",
+        "EncodingString": "[conn][%p] TCP disconnected"
       },
       {
         "UniquenessHash": "b79cc8df-4d28-f459-11b2-ba8160512a09",
@@ -16738,9 +17185,9 @@
         "EncodingString": "[sock] Warning: XDP successfully initialized but failed to plumb XDP rules. Falling back to using normal OS sockets."
       },
       {
-        "UniquenessHash": "f64bb75f-b263-c56d-d94f-57e933a7ff4f",
+        "UniquenessHash": "d304c2a7-b78d-312e-c635-02deec55eb50",
         "TraceID": "WarnNoXdpForCibirSockets",
-        "EncodingString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \"\r\n                \"Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation."
+        "EncodingString": "[sock] Warning: app requested CIBIR but XDP not enabled/available/initialized. \"\n                \"Falling back to normal OS sockets to allow for CIBIR transport parameter negotiation."
       },
       {
         "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",

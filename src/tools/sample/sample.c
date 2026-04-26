@@ -67,12 +67,12 @@ const QUIC_REGISTRATION_CONFIG RegConfig = { "quicsample", QUIC_EXECUTION_PROFIL
 //
 // The protocol name used in the Application Layer Protocol Negotiation (ALPN).
 //
-const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
+const QUIC_BUFFER Alpn = { sizeof("h3qx-01") - 1, (uint8_t*)"h3qx-01" };
 
 //
 // The UDP port used by the server side of the protocol.
 //
-const uint16_t UdpPort = 4567;
+const uint16_t UdpPort = 4433;
 
 //
 // The default idle timeout period (1 second) used for the protocol.
@@ -82,7 +82,7 @@ const uint64_t IdleTimeoutMs = 1000;
 //
 // The length of buffer sent over the streams in the protocol.
 //
-const uint32_t SendBufferLength = 100;
+const uint32_t SendBufferLength = 100000;
 
 //
 // The QUIC API/function table returned from MsQuicOpen2. It contains all the
@@ -384,7 +384,7 @@ ServerStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received\n", Stream);
+        printf("[strm][%p] Data received %lu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         //
@@ -652,7 +652,7 @@ RunServer(
     //
     // Create/allocate a new listener object.
     //
-    if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
+    if (QUIC_FAILED(Status = MsQuic->ListenerQmuxOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
         printf("ListenerOpen failed, 0x%x!\n", Status);
         goto Error;
     }
@@ -705,7 +705,7 @@ ClientStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received\n", Stream);
+        printf("[strm][%p] Data received %lu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         //
@@ -895,6 +895,12 @@ ClientLoadConfiguration(
     //
     Settings.IdleTimeoutMs = IdleTimeoutMs;
     Settings.IsSet.IdleTimeoutMs = TRUE;
+    // Settings.KeepAliveIntervalMs = 1000;
+    // Settings.IsSet.KeepAliveIntervalMs = TRUE;
+    Settings.PeerBidiStreamCount = 100;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+    Settings.PeerUnidiStreamCount = 100;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
 
     //
     // Configures a default client configuration, optionally disabling
@@ -954,7 +960,7 @@ RunClient(
     //
     // Allocate a new connection object.
     //
-    if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
+    if (QUIC_FAILED(Status = MsQuic->ConnectionQmuxOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
         printf("ConnectionOpen failed, 0x%x!\n", Status);
         goto Error;
     }

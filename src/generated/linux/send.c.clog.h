@@ -79,9 +79,9 @@ tracepoint(CLOG_SEND_C, ClearSendFlags , arg1, arg3);\
 // Decoder Ring for EcnValidationUnknown
 // [conn][%p] ECN unknown.
 // QuicTraceLogConnInfo(
-                    EcnValidationUnknown,
-                    Connection,
-                    "ECN unknown.");
+                        EcnValidationUnknown,
+                        Connection,
+                        "ECN unknown.");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_EcnValidationUnknown

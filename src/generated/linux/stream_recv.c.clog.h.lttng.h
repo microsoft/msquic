@@ -520,9 +520,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamError,
         StreamReceiveFrame,
         "[strm][%p] Processing frame in packet %llu",
         Stream,
-        Packet->PacketId);
+        Packet ? Packet->PacketId : 0);
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = Packet->PacketId = arg3
+// arg3 = arg3 = Packet ? Packet->PacketId : 0 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrame,
     TP_ARGS(

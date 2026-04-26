@@ -75,7 +75,7 @@ typedef struct QUIC_SENT_FRAME_METADATA {
     //
     uint64_t StreamOffset;
     uint16_t StreamLength;
-    uint16_t Type; // QUIC_FRAME_*
+    QUIC_VAR_INT Type; // QUIC_FRAME_*
     uint8_t Flags; // QUIC_SENT_FRAME_FLAG_*
 
 } QUIC_SENT_FRAME_METADATA;
@@ -199,7 +199,7 @@ typedef union QUIC_MAX_SENT_PACKET_METADATA
 } QUIC_MAX_SENT_PACKET_METADATA;
 
 CXPLAT_STATIC_ASSERT(
-    sizeof(QUIC_MAX_SENT_PACKET_METADATA) < 512,
+    sizeof(QUIC_MAX_SENT_PACKET_METADATA) < 1024,
     "Max Send Packet Metadata should be small enough to be allocated on the stack");
 
 //

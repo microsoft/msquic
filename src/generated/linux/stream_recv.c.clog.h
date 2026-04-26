@@ -500,9 +500,9 @@ tracepoint(CLOG_STREAM_RECV_C, StreamError , arg2, arg3);\
         StreamReceiveFrame,
         "[strm][%p] Processing frame in packet %llu",
         Stream,
-        Packet->PacketId);
+        Packet ? Packet->PacketId : 0);
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = Packet->PacketId = arg3
+// arg3 = arg3 = Packet ? Packet->PacketId : 0 = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_StreamReceiveFrame
 #define _clog_4_ARGS_TRACE_StreamReceiveFrame(uniqueId, encoded_arg_string, arg2, arg3)\

@@ -89,6 +89,10 @@ typedef struct CXPLAT_TLS {
     const QUIC_HKDF_LABELS* HkdfLabels;
 
     //
+    // Indicates if this TLS session is for a QMUX connection.
+    //
+    BOOLEAN IsQMux : 1;
+    //
     // Indicates if the endpoint is acting as a server.
     //
     BOOLEAN IsServer : 1;
@@ -147,6 +151,10 @@ typedef struct CXPLAT_TLS {
     // Pointer to derived TLS secrets for encryption and decryption.
     //
     QUIC_TLS_SECRETS* TlsSecrets;
+
+    BIO *rbio;
+
+    BIO *wbio;
 
 } CXPLAT_TLS;
 
@@ -931,16 +939,46 @@ CxPlatTlsAlpnSelectCallback(
 
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
-    // 
-    // QUIC already parsed and picked the ALPN to use and set it in the
-    // NegotiatedAlpn variable.
-    // 
+    if (!TlsContext->IsQMux) {
+        // 
+        // QUIC already parsed and picked the ALPN to use and set it in the
+        // NegotiatedAlpn variable.
+        // 
 
-    CXPLAT_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
-    *OutLen = TlsContext->State->NegotiatedAlpn[0];
-    *Out = TlsContext->State->NegotiatedAlpn + 1;
+        CXPLAT_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
+        *OutLen = TlsContext->State->NegotiatedAlpn[0];
+        *Out = TlsContext->State->NegotiatedAlpn + 1;
+        return SSL_TLSEXT_ERR_OK;
+    } else {
+        const uint8_t* AlpnList =  TlsContext->AlpnBuffer;
+        uint16_t AlpnListLength = TlsContext->AlpnBufferLength;
 
-    return SSL_TLSEXT_ERR_OK;
+        //
+        // We want to respect the server's ALPN preference order (i.e. Listener) and
+        // not the client's. So we loop over every ALPN in the listener and then see
+        // if there is a match in the client's list.
+        //
+
+        while (AlpnListLength != 0) {
+            CXPLAT_ANALYSIS_ASSUME(AlpnList[0] + 1 <= AlpnListLength);
+            const uint8_t* Result =
+                CxPlatTlsAlpnFindInList(
+                    (uint16_t)InLen,
+                    In,
+                    AlpnList[0],
+                    AlpnList + 1);
+            if (Result != NULL) {
+                *Out = AlpnList + 1;
+                *OutLen = AlpnList[0];
+                TlsContext->State->NegotiatedAlpn = AlpnList;
+                return SSL_TLSEXT_ERR_OK;
+            }
+            AlpnListLength -= AlpnList[0] + 1;
+            AlpnList += AlpnList[0] + 1;
+        }
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+
 }
 
 //
@@ -1778,7 +1816,7 @@ CxPlatTlsSecConfigCreate(
 
     Ret = SSL_CTX_set_max_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
     if (Ret != 1) {
-        QuicTraceEvent(
+        QuicTraceEvent( 
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             ERR_get_error(),
@@ -2420,6 +2458,138 @@ static long FreeBioAuxData(BIO *B, int Oper,
     return Ret;
 }
 
+
+static int Hexval(char c)
+{
+    if ('0' <= c && c <= '9') return c - '0';
+    if ('a' <= c && c <= 'f') return c - 'a' + 10;
+    if ('A' <= c && c <= 'F') return c - 'A' + 10;
+    return -1;
+}
+
+static int HexToBytes(const char *hex, uint8_t *out, size_t outlen)
+{
+    size_t i = 0;
+
+    while (hex[0] && hex[1]) {
+        int hi = Hexval(hex[0]);
+        int lo = Hexval(hex[1]);
+        if (hi < 0 || lo < 0 || i >= outlen)
+            return -1;
+
+        out[i++] = ((uint8_t)hi << 4) | (uint8_t)lo;
+        hex += 2;
+    }
+    return (int)i;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+void
+CxPlatTlsKeyLogCallback(const SSL* Ssl, const char* Line)
+{
+    CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)SSL_get_app_data(Ssl);
+    char Label[64];
+    char RandomHex[65];
+    char SecretHex[129];
+
+    if (TlsContext->TlsSecrets == NULL) {
+        return;
+    }
+
+#pragma warning(push)
+#pragma warning(disable : 4996) // sscanf is safe here because the format string limits the number of characters read, preventing buffer overflows.
+    if (sscanf(Line, "%63s %64s %128s", Label, RandomHex, SecretHex) != 3) {
+        return;
+    }
+#pragma warning(pop)
+
+    if (memcmp(Label, "CLIENT_HANDSHAKE_TRAFFIC_SECRET", sizeof("CLIENT_HANDSHAKE_TRAFFIC_SECRET") - 1) == 0) {
+        if (!TlsContext->TlsSecrets->IsSet.ClientRandom) {
+            if (HexToBytes(RandomHex, TlsContext->TlsSecrets->ClientRandom, sizeof(TlsContext->TlsSecrets->ClientRandom)) != sizeof(TlsContext->TlsSecrets->ClientRandom)) {
+                return;
+            }
+            TlsContext->TlsSecrets->IsSet.ClientRandom = TRUE;
+        }
+        if (!TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret) {
+            int SecretLen = HexToBytes(SecretHex, TlsContext->TlsSecrets->ClientHandshakeTrafficSecret, sizeof(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret));
+            if (SecretLen < 0) {
+                return;
+            }
+            if (TlsContext->TlsSecrets->SecretLength == 0) {
+                TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
+            } else if (TlsContext->TlsSecrets->SecretLength != (uint8_t)SecretLen) {
+                return;
+            }
+            TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+        }
+    }
+
+    if (memcmp(Label, "SERVER_HANDSHAKE_TRAFFIC_SECRET", sizeof("SERVER_HANDSHAKE_TRAFFIC_SECRET") - 1) == 0) {
+        if (!TlsContext->TlsSecrets->IsSet.ClientRandom) {
+            if (HexToBytes(RandomHex, TlsContext->TlsSecrets->ClientRandom, sizeof(TlsContext->TlsSecrets->ClientRandom)) != sizeof(TlsContext->TlsSecrets->ClientRandom)) {
+                return;
+            }
+            TlsContext->TlsSecrets->IsSet.ClientRandom = TRUE;
+        }
+        if (!TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret) {
+            int SecretLen = HexToBytes(SecretHex, TlsContext->TlsSecrets->ServerHandshakeTrafficSecret, sizeof(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret));
+            if (SecretLen < 0) {
+                return;
+            }
+            if (TlsContext->TlsSecrets->SecretLength == 0) {
+                TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
+            } else if (TlsContext->TlsSecrets->SecretLength != (uint8_t)SecretLen) {
+                return;
+            }
+            TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+        }
+    }
+
+    if (memcmp(Label, "CLIENT_TRAFFIC_SECRET_0", sizeof("CLIENT_TRAFFIC_SECRET_0") - 1) == 0) {
+        if (!TlsContext->TlsSecrets->IsSet.ClientRandom) {
+            if (HexToBytes(RandomHex, TlsContext->TlsSecrets->ClientRandom, sizeof(TlsContext->TlsSecrets->ClientRandom)) != sizeof(TlsContext->TlsSecrets->ClientRandom)) {
+                return;
+            }
+            TlsContext->TlsSecrets->IsSet.ClientRandom = TRUE;
+        }
+        if (!TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0) {
+            int SecretLen = HexToBytes(SecretHex, TlsContext->TlsSecrets->ClientTrafficSecret0, sizeof(TlsContext->TlsSecrets->ClientTrafficSecret0));
+            if (SecretLen < 0) {
+                return;
+            }
+            if (TlsContext->TlsSecrets->SecretLength == 0) {
+                TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
+            } else if (TlsContext->TlsSecrets->SecretLength != (uint8_t)SecretLen) {
+                return;
+            }
+            TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+        }
+    }
+
+    if (memcmp(Label, "SERVER_TRAFFIC_SECRET_0", sizeof("SERVER_TRAFFIC_SECRET_0") - 1) == 0) {
+        if (!TlsContext->TlsSecrets->IsSet.ClientRandom) {
+            if (HexToBytes(RandomHex, TlsContext->TlsSecrets->ClientRandom, sizeof(TlsContext->TlsSecrets->ClientRandom)) != sizeof(TlsContext->TlsSecrets->ClientRandom)) {
+                return;
+            }
+            TlsContext->TlsSecrets->IsSet.ClientRandom = TRUE;
+        }
+        if (!TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0) {
+            int SecretLen = HexToBytes(SecretHex, TlsContext->TlsSecrets->ServerTrafficSecret0, sizeof(TlsContext->TlsSecrets->ServerTrafficSecret0));
+            if (SecretLen < 0) {
+                return;
+            }
+            if (TlsContext->TlsSecrets->SecretLength == 0) {
+                TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
+            } else if (TlsContext->TlsSecrets->SecretLength != (uint8_t)SecretLen) {
+                return;
+            }
+            TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+        }
+    }
+
+}
+
 //
 // @brief Initializes a new QUIC TLS context using OpenSSL.
 //
@@ -2472,10 +2642,10 @@ CxPlatTlsInitialize(
     CXPLAT_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
     UNREFERENCED_PARAMETER(State);
-    struct AUX_DATA *AData;
-    BIO *ossl_bio = NULL;
 
-    CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+    if (!Config->IsQMux) {
+        CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+    }
     if (Config->SecConfig == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
@@ -2494,6 +2664,7 @@ CxPlatTlsInitialize(
 
     CxPlatZeroMemory(TlsContext, sizeof(CXPLAT_TLS));
 
+    TlsContext->IsQMux = Config->IsQMux;
     TlsContext->Connection = Config->Connection;
     TlsContext->HkdfLabels = Config->HkdfLabels;
     TlsContext->IsServer = Config->IsServer;
@@ -2538,6 +2709,9 @@ CxPlatTlsInitialize(
         }
     }
 
+    if (TlsContext->IsQMux) {
+        SSL_CTX_set_keylog_callback(TlsContext->SecConfig->SSLCtx, CxPlatTlsKeyLogCallback);
+    }
     //
     // Create a SSL object for the connection.
     //
@@ -2565,46 +2739,87 @@ CxPlatTlsInitialize(
     //
     SSL_set1_groups_list(TlsContext->Ssl, "secp256r1:x25519");
 
-    if (!SSL_set_quic_tls_cbs(TlsContext->Ssl, OpenSslQuicDispatch, NULL)) {
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s. ",
-            TlsContext->Connection,
-            "SSL_set_quic_tls_cbs failed");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Exit;
-    }
+    if (!TlsContext->IsQMux) {
+        if (!SSL_set_quic_tls_cbs(TlsContext->Ssl, OpenSslQuicDispatch, NULL)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s. ",
+                TlsContext->Connection,
+                "SSL_set_quic_tls_cbs failed");
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+            goto Exit;
+        }
 
-    //
-    // Note This has to happen after the SSL_set_quic_tls_cbs call
-    // as it installs null bios for us
-    //
-    AData = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_TLS_AUX_DATA);
-    if (AData == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Adata",
-            sizeof(struct AUX_DATA));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-    memset(AData, 0, sizeof(struct AUX_DATA));
-    CxPlatListInitializeHead(&AData->RecordList);
-    ossl_bio = BIO_new(BIO_s_null());
-    if (ossl_bio == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Unable to allocate BIO");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit; 
-    }
-    BIO_set_app_data(ossl_bio, AData);
-    BIO_set_callback_ex(ossl_bio, FreeBioAuxData);
-    SSL_set_bio(TlsContext->Ssl, ossl_bio, ossl_bio);
+        //
+        // Note This has to happen after the SSL_set_quic_tls_cbs call
+        // as it installs null bios for us
+        //
+        struct AUX_DATA *AData = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_TLS_AUX_DATA);
+        if (AData == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Adata",
+                sizeof(struct AUX_DATA));
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+        memset(AData, 0, sizeof(struct AUX_DATA));
+        CxPlatListInitializeHead(&AData->RecordList);
+        BIO *ossl_bio = BIO_new(BIO_s_null());
+        if (ossl_bio == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Unable to allocate BIO");
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit; 
+        }
+        BIO_set_app_data(ossl_bio, AData);
+        BIO_set_callback_ex(ossl_bio, FreeBioAuxData);
+        SSL_set_bio(TlsContext->Ssl, ossl_bio, ossl_bio);
 
-    SSL_set_app_data(TlsContext->Ssl, TlsContext);
+        SSL_set_app_data(TlsContext->Ssl, TlsContext);
+
+        if (SSL_set_quic_tls_transport_params(
+                TlsContext->Ssl,
+                Config->LocalTPBuffer,
+                Config->LocalTPLength) != 1) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "SSL_set_quic_transport_params failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+        AData->Tp = Config->LocalTPBuffer;
+    } else {
+        TlsContext->rbio = BIO_new(BIO_s_mem());
+        if (TlsContext->rbio == NULL) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "BIO_new failed");
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+
+        TlsContext->wbio = BIO_new(BIO_s_mem());
+        if (TlsContext->wbio == NULL) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "BIO_new failed");
+            BIO_free(TlsContext->rbio);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+        SSL_set_bio(TlsContext->Ssl, TlsContext->rbio, TlsContext->wbio);
+        SSL_set_app_data(TlsContext->Ssl, TlsContext);
+    }
 
     if (Config->IsServer) {
         SSL_set_accept_state(TlsContext->Ssl);
@@ -2664,19 +2879,6 @@ CxPlatTlsInitialize(
         }
     }
 
-    if (SSL_set_quic_tls_transport_params(
-            TlsContext->Ssl,
-            Config->LocalTPBuffer,
-            Config->LocalTPLength) != 1) {
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "SSL_set_quic_transport_params failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-    AData->Tp = Config->LocalTPBuffer;
 
     if (Config->ResumptionTicketBuffer) {
         CXPLAT_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
@@ -3160,17 +3362,22 @@ CxPlatTlsProcessData(
     }
 
     if (Buffer != NULL) {
-        Consumed = *BufferLength;
-        MRet = ProcessNewMessage(TlsContext->Ssl, Buffer,
-                                 *BufferLength, &Consumed);
-        if (MRet == 0) {
-            //
-            // There was an allocation failure
-            // Indicate we consumed nothing
-            //
-            Consumed = 0;
+        if (!TlsContext->IsQMux) {
+            Consumed = *BufferLength;
+            MRet = ProcessNewMessage(TlsContext->Ssl, Buffer,
+                                    *BufferLength, &Consumed);
+            if (MRet == 0) {
+                //
+                // There was an allocation failure
+                // Indicate we consumed nothing
+                //
+                Consumed = 0;
+            }
+            *BufferLength = *BufferLength - (uint32_t)Consumed;
+        } else {
+            BIO_write(TlsContext->rbio, Buffer, (int)*BufferLength);
+            *BufferLength = 0;
         }
-        *BufferLength = *BufferLength - (uint32_t)Consumed;
     }
 
     if (!State->HandshakeComplete) {
@@ -3208,22 +3415,25 @@ more_handshake:
                 goto Exit;
             }
         } else {
-            lentry = AData->RecordList.Flink;
-            if (lentry != &AData->RecordList) {
-                entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
-                //
-                // If the first entry on the list is
-                // not incomplete, try to move the handshake
-                // forward, otherwise we're done here
-                //
-                if (entry->Incomplete != 1) {
-                    goto more_handshake;
+            if (!TlsContext->IsQMux) {
+                lentry = AData->RecordList.Flink;
+                if (lentry != &AData->RecordList) {
+                    entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
+                    //
+                    // If the first entry on the list is
+                    // not incomplete, try to move the handshake
+                    // forward, otherwise we're done here
+                    //
+                    if (entry->Incomplete != 1) {
+                        goto more_handshake;
+                    }
                 }
             }
         }
 
-        if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT
-            && AData->SecretSet[QUIC_PACKET_KEY_1_RTT][DIR_READ].Secret != NULL) {
+        if ((!TlsContext->IsQMux && TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT
+            && AData->SecretSet[QUIC_PACKET_KEY_1_RTT][DIR_READ].Secret != NULL) ||
+            (TlsContext->IsQMux && SSL_is_init_finished(TlsContext->Ssl))) {
             QuicTraceLogConnInfo(
                 OpenSslHandshakeComplete,
                 TlsContext->Connection,
@@ -3315,37 +3525,146 @@ more_handshake:
                 }
             }
         }
-    } else {
+    } else if (!TlsContext->IsQMux) {
         SSL_read(TlsContext->Ssl, NULL, 0);
     }
 
 Exit:
 
-    //
-    // Always set buffer offsets if keys have been installed to preserve code invariants.
-    // On error, the connection will be torn down anyway.
-    //
-    if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
-        State->BufferOffsetHandshake == 0) {
-        State->BufferOffsetHandshake = State->BufferTotalLength;
-        QuicTraceLogConnInfo(
-            OpenSslHandshakeDataStart,
-            TlsContext->Connection,
-            "Writing Handshake data starts at %u",
-            State->BufferOffsetHandshake);
-    }
-    if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
-        State->BufferOffset1Rtt == 0) {
-        State->BufferOffset1Rtt = State->BufferTotalLength;
-        QuicTraceLogConnInfo(
-            OpenSsl1RttDataStart,
-            TlsContext->Connection,
-            "Writing 1-RTT data starts at %u",
-            State->BufferOffset1Rtt);
+    if (!TlsContext->IsQMux) {
+        //
+        // Always set buffer offsets if keys have been installed to preserve code invariants.
+        // On error, the connection will be torn down anyway.
+        //
+        if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
+            State->BufferOffsetHandshake == 0) {
+            State->BufferOffsetHandshake = State->BufferTotalLength;
+            QuicTraceLogConnInfo(
+                OpenSslHandshakeDataStart,
+                TlsContext->Connection,
+                "Writing Handshake data starts at %u",
+                State->BufferOffsetHandshake);
+        }
+        if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
+            State->BufferOffset1Rtt == 0) {
+            State->BufferOffset1Rtt = State->BufferTotalLength;
+            QuicTraceLogConnInfo(
+                OpenSsl1RttDataStart,
+                TlsContext->Connection,
+                "Writing 1-RTT data starts at %u",
+                State->BufferOffset1Rtt);
+        }
     }
 
     return TlsContext->ResultFlags;
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsReadData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_writes_bytes_(*BufferLength)
+        uint8_t* Buffer,
+    _Inout_ uint32_t* BufferLength
+    )
+{
+    CXPLAT_FRE_ASSERT(TlsContext->IsQMux);
+    int len = SSL_read(TlsContext->Ssl, Buffer, (int)*BufferLength);
+    if (len > 0) {
+        *BufferLength = (uint32_t)len;
+    } else {
+        int err = SSL_get_error(TlsContext->Ssl, len);
+
+        if (err == SSL_ERROR_WANT_READ ||
+            err == SSL_ERROR_WANT_WRITE) {
+            *BufferLength = 0;
+        } else if (err == SSL_ERROR_ZERO_RETURN) {
+            *BufferLength = 0;
+        } else {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "SSL_read failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        }
+    }
+    return TlsContext->ResultFlags;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsWriteData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t* Buffer,
+    _In_ uint32_t BufferLength
+    )
+{
+
+    uint32_t off = 0;
+
+    while (off < BufferLength) {
+        int ret = SSL_write(TlsContext->Ssl, Buffer + off, (int)(BufferLength - off));
+
+        if (ret > 0) {
+            off += ret;
+            continue;
+        }
+
+        int err = SSL_get_error(TlsContext->Ssl, ret);
+        if (err == SSL_ERROR_WANT_READ ||
+            err == SSL_ERROR_WANT_WRITE) {
+            /* event loop */
+            continue;
+        }
+
+        /* fatal */
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "SSL_write failed");
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        break;
+    }
+    return TlsContext->ResultFlags;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsSendData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_writes_bytes_(*BufferLength)
+        uint8_t* Buffer,
+    _Inout_ uint32_t* BufferLength
+    )
+{
+    CXPLAT_FRE_ASSERT(TlsContext->IsQMux);
+    if (BIO_pending(TlsContext->wbio) == 0) {
+        *BufferLength = 0;
+        return TlsContext->ResultFlags;
+    }
+    int len = BIO_read(TlsContext->wbio, Buffer, (int)*BufferLength);
+    if (len < 0) {
+        int err = SSL_get_error(TlsContext->Ssl, len);
+        if (err == SSL_ERROR_WANT_READ) {
+            *BufferLength = 0;
+        } else {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "BIO_read failed");
+            printf("BIO_read error: %d\n", err);
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        }
+    } else {
+        *BufferLength = (uint32_t)len;
+    }
+    return TlsContext->ResultFlags;
+}
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

@@ -36,8 +36,9 @@ QuicListenerIsOnWorker(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
-MsQuicListenerOpen(
+QuicListenerOpen(
     _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ BOOLEAN IsQmux,
     _In_ _Pre_defensive_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*NewListener, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -82,6 +83,7 @@ MsQuicListenerOpen(
     Listener->ClientContext = Context;
     Listener->Stopped = TRUE;
     Listener->DosModeEventsEnabled = FALSE;
+    Listener->IsQmux = IsQmux;
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
     CxPlatRefInitialize(&Listener->RefCount);
 
@@ -135,6 +137,44 @@ Error:
         Status);
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicListenerOpen(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ _Pre_defensive_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewListener, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewListener
+    )
+{
+    return QuicListenerOpen(
+        RegistrationHandle,
+        FALSE,
+        Handler,
+        Context,
+        NewListener);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicListenerQmuxOpen(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ _Pre_defensive_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewListener, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewListener
+    )
+{
+    return QuicListenerOpen(
+        RegistrationHandle,
+        TRUE,
+        Handler,
+        Context,
+        NewListener);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -328,74 +368,98 @@ MsQuicListenerStart(
         goto Error;
     }
 
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
-    UdpConfig.LocalAddress = &BindingLocalAddress;
-    UdpConfig.RemoteAddress = NULL;
-    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_SHARE | CXPLAT_SOCKET_SERVER_OWNED; // Listeners always share the binding.
-    UdpConfig.InterfaceIndex = 0;
+    if (!Listener->IsQmux) {
+        CXPLAT_UDP_CONFIG UdpConfig = {0};
+        UdpConfig.LocalAddress = &BindingLocalAddress;
+        UdpConfig.RemoteAddress = NULL;
+        UdpConfig.Flags = CXPLAT_SOCKET_FLAG_SHARE | CXPLAT_SOCKET_SERVER_OWNED; // Listeners always share the binding.
+        UdpConfig.InterfaceIndex = 0;
 #ifdef QUIC_COMPARTMENT_ID
-    UdpConfig.CompartmentId = QuicCompartmentIdGetCurrent();
+        UdpConfig.CompartmentId = QuicCompartmentIdGetCurrent();
 #endif
 #ifdef QUIC_OWNING_PROCESS
-    UdpConfig.OwningProcess = NULL;     // Owning process not supported for listeners.
+        UdpConfig.OwningProcess = NULL;     // Owning process not supported for listeners.
 #endif
-    if (Listener->Partitioned) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_PARTITIONED;
-        UdpConfig.PartitionIndex = Listener->PartitionIndex;
-    }
+        if (Listener->Partitioned) {
+            UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_PARTITIONED;
+            UdpConfig.PartitionIndex = Listener->PartitionIndex;
+        }
 
-    // for RAW datapath
-    UdpConfig.CibirIdLength = Listener->CibirId[0];
-    UdpConfig.CibirIdOffsetSrc = MsQuicLib.CidServerIdLength + 2;
-    UdpConfig.CibirIdOffsetDst = MsQuicLib.CidServerIdLength + 2;
-    if (UdpConfig.CibirIdLength) {
-        CXPLAT_DBG_ASSERT(UdpConfig.CibirIdLength <= sizeof(UdpConfig.CibirId));
-        CxPlatCopyMemory(
-            UdpConfig.CibirId,
-            &Listener->CibirId[2],
-            UdpConfig.CibirIdLength);
-    }
+        // for RAW datapath
+        UdpConfig.CibirIdLength = Listener->CibirId[0];
+        UdpConfig.CibirIdOffsetSrc = MsQuicLib.CidServerIdLength + 2;
+        UdpConfig.CibirIdOffsetDst = MsQuicLib.CidServerIdLength + 2;
+        if (UdpConfig.CibirIdLength) {
+            CXPLAT_DBG_ASSERT(UdpConfig.CibirIdLength <= sizeof(UdpConfig.CibirId));
+            CxPlatCopyMemory(
+                UdpConfig.CibirId,
+                &Listener->CibirId[2],
+                UdpConfig.CibirIdLength);
+        }
 
-    if (MsQuicLib.Settings.XdpEnabled) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_XDP;
-    }
-    if (MsQuicLib.Settings.QTIPEnabled) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
-    }
+        if (MsQuicLib.Settings.XdpEnabled) {
+            UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_XDP;
+        }
+        if (MsQuicLib.Settings.QTIPEnabled) {
+            UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
+        }
 
-    CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
-    Status =
-        QuicLibraryGetBinding(
-            &UdpConfig,
-            &Listener->Binding);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            ListenerErrorStatus,
-            "[list][%p] ERROR, %u, %s.",
-            Listener,
-            Status,
-            "Get binding");
-        goto Error;
+        CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
+        Status =
+            QuicLibraryGetBinding(
+                &UdpConfig,
+                &Listener->Binding);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                ListenerErrorStatus,
+                "[list][%p] ERROR, %u, %s.",
+                Listener,
+                Status,
+                "Get binding");
+            goto Error;
+        }
+    } else {
+        Status =
+            CxPlatSocketCreateTcpListener(
+                MsQuicLib.Datapath,
+                &BindingLocalAddress,
+                Listener,
+                &Listener->Socket);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                ListenerErrorStatus,
+                "[list][%p] ERROR, %u, %s.",
+                Listener,
+                Status,
+                "Create TCP listener");
+            goto Error;
+        }
     }
 
     Listener->Stopped = FALSE;
     CxPlatEventReset(Listener->StopEvent);
     CxPlatRefInitialize(&Listener->StartRefCount);
 
-    Status = QuicBindingRegisterListener(Listener->Binding, Listener);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            ListenerErrorStatus,
-            "[list][%p] ERROR, %u, %s.",
-            Listener,
-            Status,
-            "Register with binding");
-        QuicListenerStartRelease(Listener, FALSE);
-        goto Error;
+    if (!Listener->IsQmux) {
+        Status = QuicBindingRegisterListener(Listener->Binding, Listener);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                ListenerErrorStatus,
+                "[list][%p] ERROR, %u, %s.",
+                Listener,
+                Status,
+                "Register with binding");
+            QuicListenerStartRelease(Listener, FALSE);
+            goto Error;
+        }
     }
 
     if (PortUnspecified) {
-        QuicBindingGetLocalAddress(Listener->Binding, &BindingLocalAddress);
+        if (!Listener->IsQmux) {
+            QuicBindingGetLocalAddress(Listener->Binding, &BindingLocalAddress);
+        } else {
+            CxPlatSocketGetLocalAddress(Listener->Socket, &BindingLocalAddress);
+        }
         QuicAddrSetPort(
             &Listener->LocalAddress,
             QuicAddrGetPort(&BindingLocalAddress));
@@ -415,6 +479,10 @@ Error:
         if (Listener->Binding != NULL) {
             QuicLibraryReleaseBinding(Listener->Binding);
             Listener->Binding = NULL;
+        }
+        if (Listener->Socket != NULL) {
+            CxPlatSocketDelete(Listener->Socket);
+            Listener->Socket = NULL;
         }
         if (Listener->AlpnList != NULL) {
             CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
@@ -597,12 +665,20 @@ QuicListenerStopAsync(
     _In_ QUIC_LISTENER* Listener
     )
 {
-    if (Listener->Binding != NULL) {
-        QuicBindingUnregisterListener(Listener->Binding, Listener);
-        QuicLibraryReleaseBinding(Listener->Binding);
-        Listener->Binding = NULL;
+    if (!Listener->IsQmux) {
+        if (Listener->Binding != NULL) {
+            QuicBindingUnregisterListener(Listener->Binding, Listener);
+            QuicLibraryReleaseBinding(Listener->Binding);
+            Listener->Binding = NULL;
 
-        QuicListenerStartRelease(Listener, TRUE);
+            QuicListenerStartRelease(Listener, TRUE);
+        }
+    } else {
+        if (Listener->Socket != NULL) {
+            CxPlatSocketDelete(Listener->Socket);
+            Listener->Socket = NULL;
+            QuicListenerStartRelease(Listener, TRUE);
+        }
     }
 }
 

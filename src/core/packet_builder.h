@@ -224,6 +224,12 @@ QuicPacketBuilderFinalize(
     _In_ BOOLEAN FlushBatchedDatagrams
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPacketBuilderQMuxFinalize(
+    _Inout_ QUIC_PACKET_BUILDER* Builder
+    );
+
 //
 // Returns TRUE if congestion control isn't currently blocking sends.
 //
@@ -247,7 +253,7 @@ QUIC_INLINE
 BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ uint8_t FrameType,
+    _In_ uint64_t FrameType,
     _In_ BOOLEAN IsAckEliciting
     )
 {

@@ -146,6 +146,122 @@ MsQuicConnectionOpenInPartition(
             NewConnection);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+QuicConnectionQmuxOpenInPartition(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ uint16_t PartitionIndex,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _In_ BOOLEAN Partitioned,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewConnection
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_REGISTRATION* Registration;
+    QUIC_CONNECTION* Connection = NULL;
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_OPEN,
+        RegistrationHandle);
+
+    if (!IS_REGISTRATION_HANDLE(RegistrationHandle) ||
+        PartitionIndex >= MsQuicLib.PartitionCount ||
+        NewConnection == NULL ||
+        Handler == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Registration = (QUIC_REGISTRATION*)RegistrationHandle;
+
+    //
+    // Just use the current partition for now. Once the connection receives a
+    // packet the partition can be updated accordingly.
+    //
+    Status =
+        QuicConnQMuxAlloc(
+            Registration,
+            &MsQuicLib.Partitions[PartitionIndex],
+            NULL,
+            FALSE,
+            &Connection);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    //
+    // Hard partitioning is only supported on a subset of platforms.
+    //
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
+    Connection->State.Partitioned = Partitioned;
+#else
+    UNREFERENCED_PARAMETER(Partitioned);
+#endif
+    Connection->ClientCallbackHandler = Handler;
+    Connection->ClientContext = Context;
+
+    *NewConnection = (HQUIC)Connection;
+    Status = QUIC_STATUS_SUCCESS;
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionQmuxOpen(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewConnection
+    )
+{
+    return
+        QuicConnectionQmuxOpenInPartition(
+            RegistrationHandle,
+            QuicLibraryGetCurrentPartition()->Index,
+            Handler,
+            Context,
+            FALSE,
+            NewConnection);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionQmuxOpenInPartition(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ uint16_t PartitionIndex,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewConnection
+    )
+{
+    return
+        QuicConnectionQmuxOpenInPartition(
+            RegistrationHandle,
+            PartitionIndex,
+            Handler,
+            Context,
+            TRUE,
+            NewConnection);
+}
+
 #pragma warning(push)
 #pragma warning(disable:6014) // SAL doesn't understand the free happens on the worker
 _IRQL_requires_max_(PASSIVE_LEVEL)

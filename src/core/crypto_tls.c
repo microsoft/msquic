@@ -68,6 +68,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_GREASE_QUIC_BIT                          0x2AB2          // N/A
 #define QUIC_TP_ID_RELIABLE_RESET_ENABLED                   0x17f7586d2cb570   // varint
 #define QUIC_TP_ID_ENABLE_TIMESTAMP                         0x7158          // varint
+#define QX_TP_ID_MAX_RECORD_SIZE                               0x0571c59429cd0845 // varint  
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -904,6 +905,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_ENABLE_TIMESTAMP,
                 QuicVarIntSize(value));
     }
+    if (TransportParams->Flags & QX_TP_FLAG_MAX_RECORD_SIZE) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QX_TP_ID_MAX_RECORD_SIZE,
+                QuicVarIntSize(TransportParams->MaxRecordSize));
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1245,6 +1252,18 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Timestamp (%u)",
             value);
+    }
+    if (TransportParams->Flags & QX_TP_FLAG_MAX_RECORD_SIZE) {
+        TPBuf =
+            TlsWriteTransportParamVarInt(
+                QX_TP_ID_MAX_RECORD_SIZE,
+                TransportParams->MaxRecordSize,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPMaxRecordSize,
+            Connection,
+            "TP: Max Record Size (%llu)",
+            TransportParams->MaxRecordSize);
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1952,6 +1971,24 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             TransportParams->Flags |= (uint32_t)value;
             break;
         }
+
+        case QX_TP_ID_MAX_RECORD_SIZE:
+            if (!TRY_READ_VAR_INT(TransportParams->MaxRecordSize)) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QX_TP_ID_MAX_RECORD_SIZE");
+                goto Exit;
+            }
+            TransportParams->Flags |= QX_TP_FLAG_MAX_RECORD_SIZE;
+            QuicTraceLogConnVerbose(
+                DecodeTPMaxRecordSize,
+                Connection,
+                "TP: Max Record Size (%llu)",
+                TransportParams->MaxRecordSize);
+            break;
 
         default:
             if (QuicTpIdIsReserved(Id)) {

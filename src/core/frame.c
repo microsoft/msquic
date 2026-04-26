@@ -280,6 +280,9 @@ QuicAckFrameDecode(
     )
 {
     *InvalidFrame = FALSE;
+    if (Ecn != NULL) {
+        CxPlatZeroMemory(Ecn, sizeof(*Ecn));
+    }
     CXPLAT_DBG_ASSERT(AckRanges->SubRanges); // Should be pre-initialized.
 
     //
@@ -358,6 +361,7 @@ QuicAckFrameDecode(
         //
         // The ECN section was provided. Decode it as well.
         //
+        CXPLAT_DBG_ASSERT(Ecn != NULL);
         if (!QuicAckEcnDecode(BufferLength, Buffer, Offset, Ecn)) {
             return FALSE;
         }
@@ -662,7 +666,7 @@ QuicStreamFrameDecode(
     _Out_ QUIC_STREAM_EX* Frame
     )
 {
-    QUIC_STREAM_FRAME_TYPE Type = { .Type = FrameType };
+    QUIC_STREAM_FRAME_TYPE Type = { .Type = (uint8_t)FrameType };
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID)) {
         return FALSE;
     }
@@ -1078,7 +1082,7 @@ QuicPathChallengeFrameEncode(
     }
 
     Buffer = Buffer + *Offset;
-    Buffer = QuicUint8Encode(FrameType, Buffer);
+    Buffer = QuicUint8Encode((uint8_t)FrameType, Buffer);
     CxPlatCopyMemory(Buffer, Frame->Data, sizeof(Frame->Data));
     *Offset += RequiredLength;
 
@@ -1224,7 +1228,7 @@ QuicDatagramFrameDecode(
     _Out_ QUIC_DATAGRAM_EX* Frame
     )
 {
-    QUIC_DATAGRAM_FRAME_TYPE Type = { .Type = FrameType };
+    QUIC_DATAGRAM_FRAME_TYPE Type = { .Type = (uint8_t)FrameType };
     if (Type.LEN) {
         if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Length) ||
             BufferLength < Frame->Length + *Offset) {
@@ -1328,6 +1332,96 @@ QuicTimestampFrameDecode(
         return FALSE;
     }
 
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QxTransportParametersFrameEncode(
+    _In_ const QX_TRANSPORT_PARAMETERS_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QX_FRAME_TRANSPORT_PARAMETERS) +     // Type
+        QuicVarIntSize(Frame->Length) +
+        (uint16_t)Frame->Length;
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QX_FRAME_TRANSPORT_PARAMETERS, Buffer);
+    Buffer = QuicVarIntEncode(Frame->Length, Buffer);
+    CxPlatCopyMemory(Buffer, Frame->TP, Frame->Length);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QxTransportParametersFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QX_TRANSPORT_PARAMETERS_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Length) ||
+        BufferLength < Frame->Length + *Offset) {
+        return FALSE;
+    }
+    Frame->TP = Buffer + *Offset;
+    *Offset += (uint16_t)Frame->Length;
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QxPingFrameEncode(
+    _In_ const QX_PING_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    QUIC_FRAME_TYPE FrameType = !Frame->IsResponse ? QX_FRAME_PING : QX_FRAME_PING_1;
+    uint16_t RequiredLength =
+        QuicVarIntSize(FrameType) +
+        QuicVarIntSize(Frame->SequenceNumber);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(FrameType, Buffer);
+    Buffer = QuicVarIntEncode(Frame->SequenceNumber, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QxPingFrameDecode(
+    _In_ QUIC_FRAME_TYPE FrameType,
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QX_PING_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->SequenceNumber)) {
+        return FALSE;
+    }
+    Frame->IsResponse = (FrameType == QX_FRAME_PING_1);
     return TRUE;
 }
 
@@ -2010,6 +2104,51 @@ QuicFrameLog(
             Frame.ErrorCode,
             Frame.FinalSize,
             Frame.ReliableSize);
+        break;
+    }
+
+    case QX_FRAME_TRANSPORT_PARAMETERS: {
+        QX_TRANSPORT_PARAMETERS_EX Frame;
+        if (!QxTransportParametersFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogQxTransportParametersInvalid,
+                "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogQxTransportParameters,
+            "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber);
+        break;
+    }
+
+    case QX_FRAME_PING:
+    case QX_FRAME_PING_1: {
+        QX_PING_EX Frame;
+        if (!QxPingFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogQxPingInvalid,
+                "[%c][%cX][%llu]   QX PING [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogQxPing,
+            "[%c][%cX][%llu]   QX PING %hu %llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.IsResponse,
+            Frame.SequenceNumber);
         break;
     }
 
