@@ -44,12 +44,6 @@ struct SmartRange {
         Dump();
     #endif
     }
-    void Remove(uint64_t low, uint64_t count) {
-        ASSERT_TRUE(QuicRangeRemoveRange(&range, low, count));
-    #ifndef LOG_ONLY_FAILURES
-        Dump();
-    #endif
-    }
     int Find(uint64_t value) {
         QUIC_RANGE_SEARCH_KEY Key = { value, value };
         return QuicRangeSearch(&range, &Key);
@@ -318,127 +312,92 @@ TEST(RangeTest, AddRangeThreeOverlapAndAdjacentAfter4)
     ASSERT_EQ(range.Max(), (uint32_t)399);
 }
 
-TEST(RangeTest, RemoveRangeBefore)
-{
-    SmartRange range;
-    range.Add(100, 100);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-    range.Remove(0, 99);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-    range.Remove(0, 100);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-}
-
-TEST(RangeTest, RemoveRangeAfter)
-{
-    SmartRange range;
-    range.Add(100, 100);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-    range.Remove(201, 99);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-    range.Remove(200, 100);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-}
-
-TEST(RangeTest, RemoveRangeFront)
-{
-    SmartRange range;
-    range.Add(100, 100);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-    range.Remove(100, 20);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)120);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-}
-
-TEST(RangeTest, RemoveRangeBack)
-{
-    SmartRange range;
-    range.Add(100, 100);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-    range.Remove(180, 20);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)179);
-}
-
-TEST(RangeTest, RemoveRangeAll)
-{
-    SmartRange range;
-    range.Add(100, 100);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    ASSERT_EQ(range.Min(), (uint32_t)100);
-    ASSERT_EQ(range.Max(), (uint32_t)199);
-    range.Remove(100, 100);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)0);
-}
-
 TEST(RangeTest, ExampleAckTest)
 {
+    //
+    // Simulates the production ACK tracker pattern: add received packet
+    // numbers, then trim via QuicRangeSetMin as ACKs are acknowledged.
+    //
     SmartRange range;
     range.Add(10000);
     range.Add(10001);
     range.Add(10003);
     range.Add(10002);
     ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    range.Remove(10000, 2);
+    ASSERT_EQ(range.Min(), 10000ull);
+    ASSERT_EQ(range.Max(), 10003ull);
+
+    // Peer ACKs up to 10001, trim everything <= 10001.
+    QuicRangeSetMin(&range.range, 10002);
     ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    range.Remove(10000, 4);
+    ASSERT_EQ(range.Min(), 10002ull);
+    ASSERT_EQ(range.Max(), 10003ull);
+
+    // Peer ACKs up to 10003, trim everything.
+    QuicRangeSetMin(&range.range, 10004);
     ASSERT_EQ(range.ValidCount(), (uint32_t)0);
+
+    // Receive more packets.
     range.Add(10005);
     range.Add(10006);
     range.Add(10004);
     range.Add(10007);
     ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    range.Remove(10005, 2);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)2);
-    range.Remove(10004, 1);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    range.Remove(10007, 1);
+    ASSERT_EQ(range.Min(), 10004ull);
+    ASSERT_EQ(range.Max(), 10007ull);
+
+    // Peer ACKs up to 10007.
+    QuicRangeSetMin(&range.range, 10008);
     ASSERT_EQ(range.ValidCount(), (uint32_t)0);
 }
 
 TEST(RangeTest, ExampleAckWithLossTest)
 {
+    //
+    // Simulates receiving packets with gaps (loss), then trimming via
+    // QuicRangeSetMin as ACKs are acknowledged.
+    //
     SmartRange range;
     range.Add(10000);
     range.Add(10001);
-    range.Add(10003);
+    range.Add(10003); // 10002 lost
     ASSERT_EQ(range.ValidCount(), (uint32_t)2);
+
+    // 10002 arrives (retransmitted).
     range.Add(10002);
     ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    range.Remove(10000, 2);
-    range.Remove(10003, 1);
+
+    // Peer ACKs up to 10001, trim.
+    QuicRangeSetMin(&range.range, 10002);
     ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    range.Remove(10002, 1);
+    ASSERT_EQ(range.Min(), 10002ull);
+    ASSERT_EQ(range.Max(), 10003ull);
+
+    // Peer ACKs up to 10003, trim all.
+    QuicRangeSetMin(&range.range, 10004);
     ASSERT_EQ(range.ValidCount(), (uint32_t)0);
+
+    // New batch of packets.
     range.Add(10004);
     range.Add(10005);
     range.Add(10006);
     ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    range.Remove(10004, 3);
+
+    // Peer ACKs all.
+    QuicRangeSetMin(&range.range, 10007);
     ASSERT_EQ(range.ValidCount(), (uint32_t)0);
+
+    // Another batch with a gap.
     range.Add(10008);
     range.Add(10009);
+    range.Add(10011); // 10010 lost
+    ASSERT_EQ(range.ValidCount(), (uint32_t)2);
+
+    // Peer ACKs up to 10009, trim front range.
+    QuicRangeSetMin(&range.range, 10010);
     ASSERT_EQ(range.ValidCount(), (uint32_t)1);
-    range.Remove(10008, 2);
-    ASSERT_EQ(range.ValidCount(), (uint32_t)0);
+    ASSERT_EQ(range.Min(), 10011ull);
+    ASSERT_EQ(range.Max(), 10011ull);
 }
 
 TEST(RangeTest, AddLots)
@@ -448,10 +407,14 @@ TEST(RangeTest, AddLots)
         range.Add(i);
     }
     ASSERT_EQ(range.ValidCount(), (uint32_t)200);
-    for (uint32_t i = 0; i < 398; i += 2) {
-        range.Remove(i, 1);
-    }
+    //
+    // Use SetMin to trim from the front, verifying the range still works
+    // after many additions and removals.
+    //
+    QuicRangeSetMin(&range.range, 397);
     ASSERT_EQ(range.ValidCount(), (uint32_t)1);
+    ASSERT_EQ(range.Min(), 398ull);
+    ASSERT_EQ(range.Max(), 398ull);
 }
 
 TEST(RangeTest, HitMax)
@@ -468,7 +431,10 @@ TEST(RangeTest, HitMax)
     ASSERT_EQ(range.ValidCount(), MaxCount);
     ASSERT_EQ(range.Min(), 2ull);
     ASSERT_EQ(range.Max(), MaxCount*2);
-    range.Remove(2, 1);
+    //
+    // Use SetMin to trim the front, then verify we can add back.
+    //
+    QuicRangeSetMin(&range.range, 4);
     ASSERT_EQ(range.ValidCount(), MaxCount - 1);
     ASSERT_EQ(range.Min(), 4ull);
     ASSERT_EQ(range.Max(), MaxCount*2);
