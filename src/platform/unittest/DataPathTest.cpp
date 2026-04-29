@@ -1361,9 +1361,13 @@ TEST_P(DataPathTest, TcpDataServer)
 TEST_F(DataPathTest, XdpRuleAddOomCleanup)
 {
     //
-    // Verify CxPlatDpRawInterfaceAddRules cleanup path does not crash when
-    // allocation fails mid-way through rule installation on XDP sockets.
-    // Only meaningful when running with the XDP/DuoNic datapath.
+    // Verify the XDP rule plumbing failure path: when CxPlatDpRawInterfaceAddRules
+    // fails (e.g. due to allocation failure), CxPlatDpRawPlumbRulesOnSocket must
+    // propagate the error and RawSocketCreateUdp must invoke
+    // CxPlatDpRawPlumbRulesOnSocket(FALSE) for best-effort cleanup of any
+    // partially-installed state, then return failure to the caller without
+    // leaking resources or crashing. Only meaningful when running with the
+    // XDP/DuoNic datapath.
     //
     if (!UseDuoNic) {
         GTEST_SKIP();
@@ -1379,7 +1383,8 @@ TEST_F(DataPathTest, XdpRuleAddOomCleanup)
     //
     // Fail every 2nd allocation so the socket struct (alloc #1) succeeds and
     // the XDP rule array allocation inside CxPlatDpRawInterfaceAddRules
-    // (alloc #2) is the one that fails, reaching the cleanup path.
+    // (alloc #2) is the one that fails, exercising both the failure-propagation
+    // path and the RawSocketCreateUdp-driven cleanup path.
     //
     CxPlatSetAllocFailDenominator(-2);
     {

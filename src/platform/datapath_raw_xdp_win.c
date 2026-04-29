@@ -1513,30 +1513,21 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
         }
         CXPLAT_LIST_ENTRY* Entry;
-        CXPLAT_LIST_ENTRY* FailedEntry = NULL;
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
             if (IsCreated) {
                 QUIC_STATUS AddStatus = CxPlatDpRawInterfaceAddRules(Interface, Rules, RulesSize);
-                if (QUIC_FAILED(AddStatus) && QUIC_SUCCEEDED(Status)) {
+                if (QUIC_FAILED(AddStatus)) {
+                    //
+                    // Stop on first failure and propagate. The caller is
+                    // responsible for invoking this function again with
+                    // IsCreated=FALSE to roll back any rules already
+                    // installed on previous interfaces.
+                    //
                     Status = AddStatus;
-                    FailedEntry = Entry;
-                    break; // stop installing on further interfaces
+                    break;
                 }
             } else {
-                CxPlatDpRawInterfaceRemoveRules(Interface, Rules, RulesSize);
-            }
-        }
-
-        //
-        // If installation failed partway through, best-effort remove rules from
-        // interfaces that were already successfully configured.
-        //
-        if (IsCreated && QUIC_FAILED(Status) && FailedEntry != NULL) {
-            for (CXPLAT_LIST_ENTRY* CleanupEntry = Xdp->Interfaces.Flink;
-                 CleanupEntry != FailedEntry;
-                 CleanupEntry = CleanupEntry->Flink) {
-                XDP_INTERFACE* Interface = CONTAINING_RECORD(CleanupEntry, XDP_INTERFACE, Link);
                 CxPlatDpRawInterfaceRemoveRules(Interface, Rules, RulesSize);
             }
         }
@@ -1546,7 +1537,6 @@ CxPlatDpRawPlumbRulesOnSocket(
         // TODO - Optimization: apply only to the correct interface.
         //
         CXPLAT_LIST_ENTRY* Entry;
-        CXPLAT_LIST_ENTRY* FailedEntry = NULL;
         XDP_MATCH_TYPE MatchType;
         uint8_t* IpAddress;
         size_t IpAddressSize;
@@ -1599,7 +1589,6 @@ CxPlatDpRawPlumbRulesOnSocket(
                             "PortSet",
                             XDP_PORT_SET_BUFFER_SIZE);
                         Status = QUIC_STATUS_OUT_OF_MEMORY;
-                        FailedEntry = Entry;
                         break;
                     }
                     CxPlatDpRawSetPortBit(
@@ -1622,7 +1611,12 @@ CxPlatDpRawPlumbRulesOnSocket(
                                 (uint8_t*)NewRule.Pattern.IpPortSet.PortSet.PortSet,
                                 PORT_SET_TAG);
                         }
-                        FailedEntry = Entry;
+                        //
+                        // Stop on first failure and propagate. The caller is
+                        // responsible for invoking this function again with
+                        // IsCreated=FALSE to roll back any port bits already
+                        // set on previous interfaces.
+                        //
                         break;
                     }
                 }
@@ -1633,36 +1627,6 @@ CxPlatDpRawPlumbRulesOnSocket(
                 if (Rule) {
                     CxPlatDpRawClearPortBit(
                         (uint8_t*)Rule->Pattern.IpPortSet.PortSet.PortSet,
-                        Socket->LocalAddress.Ipv4.sin_port);
-                }
-                CxPlatLockRelease(&Interface->RuleLock);
-            }
-        }
-
-        //
-        // If installation failed partway through, best-effort clear port bits
-        // on interfaces that were already successfully configured.
-        //
-        if (IsCreated && QUIC_FAILED(Status) && FailedEntry != NULL) {
-            for (CXPLAT_LIST_ENTRY* CleanupEntry = Xdp->Interfaces.Flink;
-                 CleanupEntry != FailedEntry;
-                 CleanupEntry = CleanupEntry->Flink) {
-                XDP_INTERFACE* Interface = CONTAINING_RECORD(CleanupEntry, XDP_INTERFACE, Link);
-                XDP_RULE* CleanupRule = NULL;
-                CxPlatLockAcquire(&Interface->RuleLock);
-                for (uint8_t i = 0; i < Interface->RuleCount; ++i) {
-                    if (Interface->Rules[i].Match == MatchType &&
-                        memcmp(
-                            &Interface->Rules[i].Pattern.IpPortSet.Address,
-                            IpAddress,
-                            IpAddressSize) == 0) {
-                        CleanupRule = &Interface->Rules[i];
-                        break;
-                    }
-                }
-                if (CleanupRule) {
-                    CxPlatDpRawClearPortBit(
-                        (uint8_t*)CleanupRule->Pattern.IpPortSet.PortSet.PortSet,
                         Socket->LocalAddress.Ipv4.sin_port);
                 }
                 CxPlatLockRelease(&Interface->RuleLock);
