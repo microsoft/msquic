@@ -1378,7 +1378,16 @@ TEST_F(DataPathTest, XdpRuleAddOomCleanup)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW, CXPLAT_SOCKET_FLAG_XDP));
 
-    QuicAddr LocalAddr = GetNewUnspecIPv4();
+    //
+    // Create a client (connected) QTIP socket — providing a RemoteAddress
+    // makes RawSocketCreateUdp take the connected-socket path which reaches
+    // CxPlatDpRawPlumbRulesOnSocket. A non-wildcard local + no remote would
+    // be rejected with QUIC_STATUS_INVALID_STATE before rule plumbing runs.
+    // QTIP also disables the wildcard retry loop and the OS-socket fallback
+    // in CxPlatSocketCreateUdp so the rule-plumbing failure propagates
+    // deterministically.
+    //
+    QuicAddr RemoteAddr = GetNewLocalIPv4();
 
     //
     // Fail every 2nd allocation so the socket struct (alloc #1) succeeds and
@@ -1388,7 +1397,7 @@ TEST_F(DataPathTest, XdpRuleAddOomCleanup)
     //
     CxPlatSetAllocFailDenominator(-2);
     {
-        CxPlatSocket Socket(Datapath, &LocalAddr.SockAddr, nullptr, nullptr, CXPLAT_SOCKET_FLAG_XDP);
+        CxPlatSocket Socket(Datapath, nullptr, &RemoteAddr.SockAddr, nullptr, CXPLAT_SOCKET_FLAG_XDP | CXPLAT_SOCKET_FLAG_QTIP);
         ASSERT_TRUE(QUIC_FAILED(Socket.GetInitStatus()));
     }
     CxPlatSetAllocFailDenominator(0);
