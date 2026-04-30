@@ -13,8 +13,8 @@
 
 .PARAMETER Distro
     Target distribution to test. If not specified, tests all distributions.
-    Valid values: Ubuntu_22_04, Ubuntu_24_04, Debian_12, Debian_13, AzureLinux_3_0, 
-                  CentOS_Stream_9, RHEL_10, Fedora_42, Fedora_43, 
+    Valid values: Ubuntu_22_04, Ubuntu_24_04, Ubuntu_26_04, Debian_12, Debian_13, AzureLinux_3_0,
+                  CentOS_Stream_9, RHEL_10, Fedora_42, Fedora_43,
                   OpenSUSE_15_6, OpenSUSE_16_0, SLES_15_6, SLES_15_7, SLES_16
 
 .PARAMETER PackagesPath
@@ -69,6 +69,9 @@
     .\validate-msquic-docker.ps1 -Distro Ubuntu_24_04
 
 .EXAMPLE
+    .\validate-msquic-docker.ps1 -Distro Ubuntu_26_04
+
+.EXAMPLE
     .\validate-msquic-docker.ps1 -Arch arm64 -Distro AzureLinux_3_0 -PackagesPath C:\packages
 
 .EXAMPLE
@@ -117,7 +120,7 @@ param(
 
     [Parameter()]
     [ValidateSet(
-        'Ubuntu_22_04', 'Ubuntu_24_04', 'Ubuntu_25_10',
+        'Ubuntu_22_04', 'Ubuntu_24_04', 'Ubuntu_25_10', 'Ubuntu_26_04',
         'Debian_12', 'Debian_13',
         'AzureLinux_3_0',
         'CentOS_Stream_9', 'CentOS_Stream_10',
@@ -169,21 +172,22 @@ function Initialize-PackageFolderStructure {
     param(
         [string]$BasePath
     )
-    
+
     Write-Host ""
     Write-Host "Creating package folder structure at: $BasePath" -ForegroundColor Cyan
     Write-Host ""
-    
+
     # Create base directory
     if (-not (Test-Path $BasePath)) {
         New-Item -ItemType Directory -Path $BasePath -Force | Out-Null
     }
-    
+
     # Define all supported distros
     $distros = @(
         'ubuntu_22_04',
         'ubuntu_24_04',
         'ubuntu_25_10',
+        'ubuntu_26_04',
         'debian_12',
         'debian_13',
         'azurelinux_3_0',
@@ -199,7 +203,7 @@ function Initialize-PackageFolderStructure {
         'sles_15_7',
         'sles_16'
     )
-    
+
     foreach ($distro in $distros) {
         $distroPath = Join-Path $BasePath $distro
         if (-not (Test-Path $distroPath)) {
@@ -210,7 +214,7 @@ function Initialize-PackageFolderStructure {
             Write-Host "  Exists:  $distro/" -ForegroundColor Yellow
         }
     }
-    
+
     Write-Host ""
     Write-Host "Folder structure created. Place packages in the appropriate folders:" -ForegroundColor Cyan
     Write-Host ""
@@ -228,7 +232,7 @@ function Initialize-PackageFolderStructure {
 # Helper function to extract version from package filename and create sortable version object
 function Get-PackageVersion {
     param([string]$Filename)
-    
+
     # DEB: libmsquic_2.4.8_amd64.deb -> 2.4.8
     # RPM: libmsquic-2.4.8-1.x86_64.rpm -> 2.4.8
     if ($Filename -match 'libmsquic[_-](\d+)\.(\d+)\.(\d+)') {
@@ -245,11 +249,11 @@ function Get-PackageVersion {
 # Helper function to sort packages by semantic version (descending) and return latest
 function Get-LatestPackage {
     param([string[]]$Packages)
-    
+
     if (-not $Packages -or $Packages.Count -eq 0) {
         return $null
     }
-    
+
     $versionedList = @()
     foreach ($pkg in $Packages) {
         $ver = Get-PackageVersion $pkg
@@ -257,20 +261,20 @@ function Get-LatestPackage {
             $versionedList += $ver
         }
     }
-    
+
     if ($versionedList.Count -eq 0) {
         return $null
     }
-    
-    $sorted = $versionedList | Sort-Object -Property @{Expression = { $_.Major }; Descending = $true }, 
-    @{Expression = { $_.Minor }; Descending = $true }, 
+
+    $sorted = $versionedList | Sort-Object -Property @{Expression = { $_.Major }; Descending = $true },
+    @{Expression = { $_.Minor }; Descending = $true },
     @{Expression = { $_.Patch }; Descending = $true }
-    
+
     # Handle single item case
     if ($sorted -is [hashtable]) {
         return $sorted.Original
     }
-    
+
     return $sorted[0].Original
 }
 
@@ -328,19 +332,19 @@ function Download-Packages {
         Write-Host "Target version: $TargetVersion" -ForegroundColor Yellow
     }
     Write-Host ""
-    
+
     # First create the folder structure
     Initialize-PackageFolderStructure -BasePath $BasePath
-    
+
     # Package URL mappings - base URLs for each distro
     # DEB packages are in pool/main/libm/libmsquic/ (same for testing)
     # RPM packages: prod uses prod/Packages/l/, testing uses testing/Packages/l/
-    
+
     # For testing repo:
     # - DEB (Ubuntu/Debian): Same prod URL, just filter for ~rc packages
     # - RPM (RHEL/CentOS/Fedora/SLES/openSUSE): Use testing/Packages/l/ instead of prod/Packages/l/
     # - Azure Linux: Uses ms-oss path, testing may not exist
-    
+
     $packageSources = @{
         'ubuntu_22_04'     = @{
             'type'    = 'deb'
@@ -354,6 +358,10 @@ function Download-Packages {
         'ubuntu_25_10'     = @{
             'type'    = 'deb'
             'baseUrl' = 'https://packages.microsoft.com/ubuntu/25.10/prod/pool/main/libm/libmsquic/'
+        }
+        'ubuntu_26_04'     = @{
+            'type'    = 'deb'
+            'baseUrl' = 'https://packages.microsoft.com/ubuntu/26.04/prod/pool/main/libm/libmsquic/'
         }
         'debian_12'        = @{
             'type'    = 'deb'
@@ -427,9 +435,9 @@ function Download-Packages {
             'testingUrl' = 'https://packages.microsoft.com/sles/16/testing/Packages/l/'
         }
     }
-    
+
     $downloadResults = @()
-    
+
     foreach ($distro in $packageSources.Keys) {
         $distroPath = Join-Path $BasePath $distro
         $source = $packageSources[$distro]
@@ -464,20 +472,20 @@ function Download-Packages {
 
                 $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing -ErrorAction Stop
                 $html = $response.Content
-            
+
                 if ($source['type'] -eq 'deb') {
                     # Find all .deb files and get the latest versions for each architecture
                     $debPattern = 'href="(libmsquic_[^"]+\.deb)"'
                     $regexMatches = [regex]::Matches($html, $debPattern)
-                
+
                     if ($regexMatches.Count -eq 0) {
                         Write-Host "  WARNING: No DEB packages found" -ForegroundColor Yellow
                         continue
                     }
-                
+
                     # Extract all filenames first, then filter
                     $allDebFiles = $regexMatches | ForEach-Object { $_.Groups[1].Value }
-                
+
                     # Group by architecture and find latest
                     # For testing repo: only include RC versions (~rc)
                     # For prod repo: exclude RC versions
@@ -537,11 +545,11 @@ function Download-Packages {
                 else {
                     # RPM - need to handle x86_64 and aarch64
                     $rpmPattern = 'href="(libmsquic-[^"]+\.rpm)"'
-                
+
                     # x86_64
                     $x64RegexMatches = [regex]::Matches($html, $rpmPattern)
                     $allX64RpmFiles = $x64RegexMatches | ForEach-Object { $_.Groups[1].Value }
-                
+
                     # For testing repo (RPM): we're already using testing URL, so include all packages
                     # For prod repo: exclude RC versions
                     if ($UseTestingRepo) {
@@ -552,7 +560,7 @@ function Download-Packages {
                         $x64Files = $allX64RpmFiles | Where-Object { $_ -match '\.x86_64\.rpm$' -and $_ -notmatch '~rc' }
                     }
                     $latestX64 = Get-PackageByVersion -Packages $x64Files -TargetVersion $TargetVersion
-                
+
                     if ($latestX64) {
                         $downloadUrl = "$baseUrl$latestX64"
                         $outputFile = Join-Path $distroPath $latestX64
@@ -574,7 +582,7 @@ function Download-Packages {
                         # Use prod arm64 URL if available
                         $arm64Url = $source['arm64Url']
                     }
-                
+
                     if ($arm64Url -ne $baseUrl) {
                         Write-Host "  Fetching arm64 package list from: $arm64Url" -ForegroundColor Gray
                         $arm64Response = Invoke-WebRequest -Uri $arm64Url -UseBasicParsing -ErrorAction Stop
@@ -583,10 +591,10 @@ function Download-Packages {
                     else {
                         $arm64Html = $html
                     }
-                
+
                     $arm64RegexMatches = [regex]::Matches($arm64Html, $rpmPattern)
                     $allArm64RpmFiles = $arm64RegexMatches | ForEach-Object { $_.Groups[1].Value }
-                
+
                     if ($UseTestingRepo) {
                         $arm64Files = $allArm64RpmFiles | Where-Object { $_ -match '\.aarch64\.rpm$' }
                     }
@@ -594,7 +602,7 @@ function Download-Packages {
                         $arm64Files = $allArm64RpmFiles | Where-Object { $_ -match '\.aarch64\.rpm$' -and $_ -notmatch '~rc' }
                     }
                     $latestArm64 = Get-PackageByVersion -Packages $arm64Files -TargetVersion $TargetVersion
-                
+
                     if ($latestArm64) {
                         $downloadUrl = "$arm64Url$latestArm64"
                         $outputFile = Join-Path $distroPath $latestArm64
@@ -630,7 +638,7 @@ function Download-Packages {
             Write-Host "  WARNING: No packages found for $distro from any source" -ForegroundColor Yellow
         }
     }
-    
+
     # Summary
     Write-Host ""
     Write-Host "=== Download Summary ===" -ForegroundColor Cyan
@@ -709,26 +717,26 @@ if ($DeletePackages) {
         Write-Host "ERROR: Path does not exist: $DeletePackages" -ForegroundColor Red
         exit 1
     }
-    
+
     Write-Host ""
     Write-Host "=== Deleting Packages ===" -ForegroundColor Cyan
     Write-Host "Path: $DeletePackages" -ForegroundColor Gray
     Write-Host ""
-    
+
     $totalDeleted = 0
     $subdirs = Get-ChildItem -Path $DeletePackages -Directory -ErrorAction SilentlyContinue
-    
+
     foreach ($subdir in $subdirs) {
         $files = Get-ChildItem -Path $subdir.FullName -File -ErrorAction SilentlyContinue
         $fileCount = ($files | Measure-Object).Count
-        
+
         if ($fileCount -gt 0) {
             Write-Host "  Cleaning $($subdir.Name): $fileCount file(s)" -ForegroundColor Yellow
             $files | Remove-Item -Force
             $totalDeleted += $fileCount
         }
     }
-    
+
     Write-Host ""
     Write-Host "Deleted $totalDeleted package file(s)" -ForegroundColor Green
     Write-Host ""
@@ -824,7 +832,7 @@ if (-not $PackagesPath) {
 # Architectures: x64, arm64, arm32 (armhf/armv7), ppc64le, s390x where available
 # .NET runtime will be installed as needed for testing
 $DockerImages = @{
-    # Ubuntu: 25.10, 24.04, 22.04 - Arm32, Arm64, x64
+    # Ubuntu: 26.04, 25.10, 24.04, 22.04 - Arm32, Arm64, x64
     'Ubuntu_22_04'     = @{
         'x64'           = 'ubuntu:22.04'
         'arm64'         = 'ubuntu:22.04'
@@ -843,6 +851,13 @@ $DockerImages = @{
         'x64'           = 'ubuntu:25.10'
         'arm64'         = 'ubuntu:25.10'
         'arm32'         = 'ubuntu:25.10'  # armhf support
+        'type'          = 'deb'
+        'dotnetVersion' = '9.0'
+    }
+    'Ubuntu_26_04'     = @{
+        'x64'           = 'ubuntu:26.04'
+        'arm64'         = 'ubuntu:26.04'
+        'arm32'         = 'ubuntu:26.04'  # armhf support
         'type'          = 'deb'
         'dotnetVersion' = '9.0'
     }
@@ -1163,7 +1178,7 @@ function Get-InstallScript {
         [string]$Arch,
         [string]$DistroName
     )
-    
+
     # Map architecture names for DEB packages
     $debArch = switch ($Arch) {
         'x64' { 'amd64' }
@@ -1171,7 +1186,7 @@ function Get-InstallScript {
         'arm32' { 'armhf' }
         default { 'amd64' }
     }
-    
+
     # Map architecture names for RPM packages
     $rpmArch = switch ($Arch) {
         'x64' { 'x86_64' }
@@ -1181,10 +1196,10 @@ function Get-InstallScript {
         's390x' { 's390x' }
         default { 'x86_64' }
     }
-    
+
     # Distro folder name (lowercase with underscores)
     $distroFolder = $DistroName.ToLower()
-    
+
     # Library load validation - simple test that verifies libmsquic can be loaded
     # Uses python ctypes which is available on most systems
     $libraryValidationScript = @(
@@ -1237,7 +1252,7 @@ function Get-InstallScript {
         '    echo "SUCCESS: All library dependencies resolved"',
         'fi'
     )
-    
+
     if ($PackageType -eq 'deb') {
         $script = @(
             'set -e',

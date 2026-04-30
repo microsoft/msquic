@@ -170,6 +170,29 @@ jobs:
             pkg_arch: armhf
             prod_url: "https://packages.microsoft.com/ubuntu/24.04/prod/pool/main/libm/libmsquic"
 
+          # Ubuntu 26.04 (DEB)
+          - friendlyName: "Ubuntu 26.04 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "ubuntu:26.04"
+            type: deb
+            pkg_arch: amd64
+            prod_url: "https://packages.microsoft.com/ubuntu/26.04/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Ubuntu 26.04 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "ubuntu:26.04"
+            type: deb
+            pkg_arch: arm64
+            prod_url: "https://packages.microsoft.com/ubuntu/26.04/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Ubuntu 26.04 arm32"
+            arch: arm
+            platform: "linux/arm/v7"
+            image: "ubuntu:26.04"
+            type: deb
+            pkg_arch: armhf
+            prod_url: "https://packages.microsoft.com/ubuntu/26.04/prod/pool/main/libm/libmsquic"
+
           # Debian 12 (DEB)
           - friendlyName: "Debian 12 x64"
             arch: x64

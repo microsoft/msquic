@@ -33,6 +33,9 @@ jobs:
           { config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", time64: "-Time64Distro" },
           { config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", time64: "-Time64Distro" },
           { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-26.04", arch: "arm", tls: "quictls", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-26.04", arch: "arm64", tls: "quictls", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-26.04", arch: "x64", tls: "quictls", time64: "-Time64Distro" },
         ]
     uses: ./.github/workflows/package-reuse-linux.yml
     with:
@@ -51,6 +54,7 @@ jobs:
         vec: [
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
           { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls" },
+          { config: "Release", os: "ubuntu-26.04", arch: "x64", tls: "quictls" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
@@ -91,6 +95,10 @@ jobs:
           { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "ubuntu:24.04" },
           { friendlyName: "Ubuntu 24.04 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", image: "ubuntu:24.04" },
           { friendlyName: "Ubuntu 24.04 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", image: "ubuntu:24.04" },
+          # Ubuntu 26.04 - DEB
+          { friendlyName: "Ubuntu 26.04 x64", config: "Release", os: "ubuntu-26.04", arch: "x64", tls: "quictls", image: "ubuntu:26.04" },
+          { friendlyName: "Ubuntu 26.04 ARM32", config: "Release", os: "ubuntu-26.04", arch: "arm", tls: "quictls", image: "ubuntu:26.04" },
+          { friendlyName: "Ubuntu 26.04 ARM64", config: "Release", os: "ubuntu-26.04", arch: "arm64", tls: "quictls", image: "ubuntu:26.04" },
           # Debian 12 - DEB
           { friendlyName: "Debian 12 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "debian:12" },
           { friendlyName: "Debian 12 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "quictls", image: "debian:12" },
