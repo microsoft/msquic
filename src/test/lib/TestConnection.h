@@ -82,6 +82,7 @@ class TestConnection
     CXPLAT_EVENT EventPeerClosed;
     CXPLAT_EVENT EventShutdownComplete;
     CXPLAT_EVENT EventResumptionTicketReceived;
+    CXPLAT_EVENT EventPeerCertReceived;
     CXPLAT_EVENT* EventDeleted;
 
     NEW_STREAM_CALLBACK_HANDLER NewStreamCallback;
@@ -177,6 +178,8 @@ public:
     bool WaitForShutdownComplete();
 
     bool WaitForPeerClose();
+
+    bool WaitForPeerCertReceived();
 
     void SetShutdownCompleteCallback(CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER Handler) {
         ShutdownCompleteCallback = Handler;

@@ -1722,15 +1722,27 @@ QuicCryptoCustomCertValidationComplete(
     _In_ QUIC_TLS_ALERT_CODES TlsAlert
     )
 {
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
     if (!Crypto->CertValidationPending) {
         return;
     }
 
     Crypto->CertValidationPending = FALSE;
+
+    //
+    // The connection might have been shutdown during the cert validation.
+    // Nothing to do in that case.
+    //
+    if (Connection->State.ShutdownComplete) {
+        Crypto->PendingValidationBufferLength = 0;
+        return;
+    }
+
     if (Result) {
         QuicTraceLogConnInfo(
             CustomCertValidationSuccess,
-            QuicCryptoGetConnection(Crypto),
+            Connection,
             "Custom cert validation succeeded");
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
@@ -1744,11 +1756,11 @@ QuicCryptoCustomCertValidationComplete(
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
-            QuicCryptoGetConnection(Crypto),
+            Connection,
             "Custom cert validation failed.");
         CXPLAT_DBG_ASSERT(TlsAlert <= QUIC_TLS_ALERT_CODE_MAX);
         QuicConnTransportError(
-            QuicCryptoGetConnection(Crypto),
+            Connection,
             QUIC_ERROR_CRYPTO_ERROR(0xFF & TlsAlert));
     }
     Crypto->PendingValidationBufferLength = 0;
