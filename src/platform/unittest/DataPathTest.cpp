@@ -1357,4 +1357,55 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 500));
 }
 
+//
+// CxPlatSetAllocFailDenominator is only available in DEBUG builds, so
+// this test must be DEBUG-only.
+//
+#ifdef DEBUG
+TEST_F(DataPathTest, XdpRuleAddOomCleanup)
+{
+    //
+    // Verify the XDP rule plumbing failure path: when CxPlatDpRawInterfaceAddRules
+    // fails (e.g. due to allocation failure), CxPlatDpRawPlumbRulesOnSocket must
+    // propagate the error and RawSocketCreateUdp must invoke
+    // CxPlatDpRawPlumbRulesOnSocket(FALSE) for best-effort cleanup of any
+    // partially-installed state, then return failure to the caller without
+    // leaking resources or crashing. Only meaningful when running with the
+    // XDP/DuoNic datapath.
+    //
+    if (!UseDuoNic) {
+        GTEST_SKIP();
+    }
+
+    QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW, CXPLAT_SOCKET_FLAG_XDP));
+
+    //
+    // Create a client (connected) QTIP socket — providing a RemoteAddress
+    // makes RawSocketCreateUdp take the connected-socket path which reaches
+    // CxPlatDpRawPlumbRulesOnSocket. A non-wildcard local + no remote would
+    // be rejected with QUIC_STATUS_INVALID_STATE before rule plumbing runs.
+    // QTIP also disables the wildcard retry loop and the OS-socket fallback
+    // in CxPlatSocketCreateUdp so the rule-plumbing failure propagates
+    // deterministically.
+    //
+    QuicAddr RemoteAddr = GetNewLocalIPv4();
+
+    //
+    // Fail every 2nd allocation so the socket struct (alloc #1) succeeds and
+    // the XDP rule array allocation inside CxPlatDpRawInterfaceAddRules
+    // (alloc #2) is the one that fails, exercising both the failure-propagation
+    // path and the RawSocketCreateUdp-driven cleanup path.
+    //
+    CxPlatSetAllocFailDenominator(-2);
+    {
+        CxPlatSocket Socket(Datapath, nullptr, &RemoteAddr.SockAddr, nullptr, CXPLAT_SOCKET_FLAG_XDP | CXPLAT_SOCKET_FLAG_QTIP);
+        ASSERT_TRUE(QUIC_FAILED(Socket.GetInitStatus()));
+    }
+    CxPlatSetAllocFailDenominator(0);
+}
+#endif // DEBUG
+
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());
