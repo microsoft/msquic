@@ -938,11 +938,7 @@ CxPlatDpRawInterfaceAddRules(
         // they were not transferred to Interface->Rules.
         //
         for (uint8_t i = 0; i < Count; i++) {
-            if ((Rules[i].Match == XDP_MATCH_IPV4_UDP_PORT_SET ||
-                 Rules[i].Match == XDP_MATCH_IPV4_TCP_PORT_SET ||
-                 Rules[i].Match == XDP_MATCH_IPV6_UDP_PORT_SET ||
-                 Rules[i].Match == XDP_MATCH_IPV6_TCP_PORT_SET) &&
-                Rules[i].Pattern.IpPortSet.PortSet.PortSet != NULL) {
+            if (Rules[i].Pattern.IpPortSet.PortSet.PortSet) {
                 CxPlatFree(
                     (uint8_t*)Rules[i].Pattern.IpPortSet.PortSet.PortSet,
                     PORT_SET_TAG);
@@ -967,11 +963,7 @@ CxPlatDpRawInterfaceAddRules(
         // they were not transferred to Interface->Rules.
         //
         for (uint8_t i = 0; i < Count; i++) {
-            if ((Rules[i].Match == XDP_MATCH_IPV4_UDP_PORT_SET ||
-                 Rules[i].Match == XDP_MATCH_IPV4_TCP_PORT_SET ||
-                 Rules[i].Match == XDP_MATCH_IPV6_UDP_PORT_SET ||
-                 Rules[i].Match == XDP_MATCH_IPV6_TCP_PORT_SET) &&
-                Rules[i].Pattern.IpPortSet.PortSet.PortSet != NULL) {
+            if (Rules[i].Pattern.IpPortSet.PortSet.PortSet) {
                 CxPlatFree(
                     (uint8_t*)Rules[i].Pattern.IpPortSet.PortSet.PortSet,
                     PORT_SET_TAG);
