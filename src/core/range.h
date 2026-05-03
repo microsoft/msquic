@@ -311,19 +311,6 @@ QuicRangeRemoveSubranges(
     );
 
 //
-// O(n) Removes a range of values from the range object. Returns TRUE if
-// successful or FALSE on an allocation failure.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != FALSE)
-BOOLEAN
-QuicRangeRemoveRange(
-    _Inout_ QUIC_RANGE* Range,
-    _In_ uint64_t LowValue,
-    _In_ uint64_t Count
-    );
-
-//
 // Drops all values in the range below the input value.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
