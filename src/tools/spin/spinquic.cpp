@@ -1372,7 +1372,9 @@ CleanupListeners:
             MsQuicTable.ListenerClose(Listener);
         }
 
+        BOOLEAN CloseAsync = TRUE;
         for (auto &Connection : Connections) {
+            MsQuicTable.SetParam(Connection, QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync);
             MsQuicTable.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
 
@@ -1411,7 +1413,9 @@ CXPLAT_THREAD_CALLBACK(ClientSpin, Context)
     // Clean up
     //
 
+    BOOLEAN CloseAsync = TRUE;
     for (auto &Connection : Connections) {
+        MsQuicTable.SetParam(Connection, QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync);
         MsQuicTable.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 
