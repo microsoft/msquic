@@ -168,6 +168,14 @@ public:
 //
 #define WATCHDOG_WIGGLE_ROOM 10000
 
+//
+// Per-thread cap on the number of live connections kept in the spin
+// Connections vector. Bounds the time spent in the synchronous cleanup
+// loop at the end of ClientSpin/ServerSpin so the watchdog window is
+// not exhausted before the cleanup completes.
+//
+#define MAX_LIVE_CONNECTIONS_PER_SPIN 128
+
 class SpinQuicWatchdog {
     CXPLAT_THREAD WatchdogThread;
     CXPLAT_EVENT ShutdownEvent;
@@ -565,6 +573,12 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
         if (!GetRandom(20, ThreadID)) {
             return QUIC_STATUS_CONNECTION_REFUSED;
+        }
+        {
+            std::lock_guard<std::mutex> Lock(Connections);
+            if (Connections.size() >= MAX_LIVE_CONNECTIONS_PER_SPIN) {
+                return QUIC_STATUS_CONNECTION_REFUSED;
+            }
         }
         MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, &((ListenerContext*)Context)->ThreadID);
         QUIC_STATUS Status =
@@ -979,6 +993,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
         switch (GetRandom(SpinQuicAPICallCount, ThreadID)) {
         case SpinQuicAPICallConnectionOpen:
             if (!IsServer) {
+                if (Connections.size() >= MAX_LIVE_CONNECTIONS_PER_SPIN) continue;
                 auto ctx = new SpinQuicConnection(ThreadID);
                 if (ctx == nullptr) continue;
 
@@ -1219,6 +1234,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
         }
         case SpinQuicAPICallConnectionPoolCreate: {
             if (!IsServer) {
+                if (Connections.size() + 4 > MAX_LIVE_CONNECTIONS_PER_SPIN) continue;
                 uint16_t PoolSize = (uint16_t)(GetRandom(4, ThreadID) + 1); // 1-4 connections
                 std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
                 std::vector<void*> Contexts(PoolSize, &ThreadID);
@@ -1372,12 +1388,8 @@ CleanupListeners:
             MsQuicTable.ListenerClose(Listener);
         }
 
-        {
-            BOOLEAN CloseAsync = TRUE;
-            for (auto &Connection : Connections) {
-                MsQuicTable.SetParam(Connection, QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync);
-                MsQuicTable.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
-            }
+        for (auto &Connection : Connections) {
+            MsQuicTable.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
 
         while (Connections.size() > 0) {
@@ -1415,9 +1427,7 @@ CXPLAT_THREAD_CALLBACK(ClientSpin, Context)
     // Clean up
     //
 
-    BOOLEAN CloseAsync = TRUE;
     for (auto &Connection : Connections) {
-        MsQuicTable.SetParam(Connection, QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync);
         MsQuicTable.ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 
