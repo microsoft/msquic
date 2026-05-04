@@ -69,9 +69,6 @@
     .\validate-msquic-docker.ps1 -Distro Ubuntu_24_04
 
 .EXAMPLE
-    .\validate-msquic-docker.ps1 -Distro Ubuntu_26_04
-
-.EXAMPLE
     .\validate-msquic-docker.ps1 -Arch arm64 -Distro AzureLinux_3_0 -PackagesPath C:\packages
 
 .EXAMPLE
