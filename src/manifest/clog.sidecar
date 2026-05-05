@@ -1907,10 +1907,10 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ConnRecvTcpData": {
+    "QMuxRecvTcpData": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Recv %u TCP data, %u bytes",
-      "UniqueId": "ConnRecvTcpData",
+      "UniqueId": "QMuxRecvTcpData",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -14015,7 +14015,7 @@
       },
       {
         "UniquenessHash": "0f9b2a6c-1982-68d5-f02b-4c7e6d9b1498",
-        "TraceID": "ConnRecvTcpData",
+        "TraceID": "QMuxRecvTcpData",
         "EncodingString": "[conn][%p] Recv %u TCP data, %u bytes"
       },
       {

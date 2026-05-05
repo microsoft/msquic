@@ -111,7 +111,7 @@ QuicPacketBuilderInitialize(
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
     Builder->EncryptionOverhead = !QuicConnIsQMux(Connection) ?
         CXPLAT_ENCRYPTION_OVERHEAD :
-        QuicConnGetQMux(Connection)->TlsRecordOverhead.MaxTrailer;
+        (uint16_t)QuicConnGetQMux(Connection)->TlsRecordOverhead.MaxTrailer;
     Builder->TotalDatagramsLength = 0;
 
     if (!QuicConnIsQMux(Connection)) {
@@ -512,10 +512,10 @@ QuicPacketBuilderQMuxPrepare(
     BOOLEAN Result = FALSE;
     CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection));
     QUIC_QMUX* QMux = QuicConnGetQMux(Builder->Connection);
-    uint16_t DatagramSize = QMux->TlsRecordOverhead.MaxHeader
+    uint16_t DatagramSize = (uint16_t)QMux->TlsRecordOverhead.MaxHeader
         + QuicVarIntSize(QX_TP_MAX_RECORD_SIZE_DEFAULT)
         + QX_TP_MAX_RECORD_SIZE_DEFAULT
-        + QMux->TlsRecordOverhead.MaxTrailer;
+        + (uint16_t)QMux->TlsRecordOverhead.MaxTrailer;
     QuicPacketBuilderValidate(Builder, FALSE);
 
     //
@@ -1326,7 +1326,7 @@ QuicPacketBuilderQMuxFinalize(
         QuicConnFatalError(Connection, QUIC_STATUS_TLS_ERROR, "Encryption failure");
         goto Exit;
     }
-    Builder->Datagram->Length = EncryptBuffer.DataLength;
+    Builder->Datagram->Length = (uint32_t)EncryptBuffer.DataLength;
     Builder->DatagramLength = (uint16_t)Builder->Datagram->Length;
 
     //
@@ -1335,7 +1335,7 @@ QuicPacketBuilderQMuxFinalize(
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
 
     Builder->Metadata->SentTime = CxPlatTimeUs64();
-    Builder->Metadata->PacketLength = Builder->Datagram->Length;
+    Builder->Metadata->PacketLength = (uint16_t)Builder->Datagram->Length;
     Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
 
     for (uint8_t i = 0; i < Builder->Metadata->FrameCount; ++i) {

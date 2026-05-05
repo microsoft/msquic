@@ -917,7 +917,7 @@ QuicQMuxRecvData(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     QuicTraceEvent(
-        QMuxRecvTcpData,
+        ConnRecvTcpData,
         "[conn][%p] Recv %u TCP data, %u bytes",
         Connection,
         RecvDataChainCount,
@@ -1018,7 +1018,7 @@ QuicQMuxRecvData(
                         break;
                     }
                     QuicTraceEvent(
-                        QMuxRecvPacket,
+                        ConnRecvPacket,
                         "[conn][%p][RX] %hu bytes",
                         Connection,
                         (uint16_t)RecordLength);
@@ -1026,7 +1026,7 @@ QuicQMuxRecvData(
                     QuicQMuxRecvFrames(QMux, QMux->RecvBuffer + ProcessOffset + RecordOffset,
                         (uint16_t)RecordLength);
                     QuicConnResetIdleTimeout(Connection);
-                    ProcessOffset += RecordOffset + RecordLength;
+                    ProcessOffset += RecordOffset + (uint16_t)RecordLength;
                 } while (ProcessOffset < QMux->RecvBufferLength);
                 if (ProcessOffset > 0 && ProcessOffset < QMux->RecvBufferLength) {
                     //

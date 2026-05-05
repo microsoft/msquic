@@ -2276,6 +2276,26 @@
                 name="Count2"
                 />
           </template>
+          <template tid="tid_CONN_COUNT">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt16"
+                name="Count"
+                />
+          </template>
+          <template tid="tid_RELEASE_CHAIN">
+            <data
+                inType="win:Pointer"
+                name="Owner"
+                />
+            <data
+                inType="win:Pointer"
+                name="ReleaseChain"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -3461,11 +3481,20 @@
           <event
               keywords="ut:Connection ut:DataFlow"
               level="win:Informational"
-              message="$(string.Etw.ConnReceiveTcpData)"
+              message="$(string.Etw.ConnRecvTcpData)"
               opcode="Connection"
-              symbol="QuicConnReceiveTcpData"
+              symbol="QuicConnRecvTcpData"
               template="tid_CONN_COUNT_COUNT"
               value="5197"
+              />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Informational"
+              message="$(string.Etw.ConnRecvPacket)"
+              opcode="Connection"
+              symbol="QuicConnRecvPacket"
+              template="tid_CONN_COUNT"
+              value="5201"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
@@ -4186,8 +4215,12 @@
             value="[conn][%1] Recv %2 UDP datagrams, %3 bytes"
             />
         <string
-            id="Etw.ConnReceiveTcpData"
+            id="Etw.ConnRecvTcpData"
             value="[conn][%p] Recv %u TCP data, %u bytes"
+            />
+        <string
+            id="Etw.ConnRecvPacket"
+            value="[conn][%p][RX] %hu bytes"
             />
         <string
             id="Etw.StreamCreated"

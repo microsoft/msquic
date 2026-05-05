@@ -3576,7 +3576,7 @@ CxPlatTlsHandshake(
     int Ret;
     CXPLAT_DBG_ASSERT(InputBuffer != NULL || *InputBufferLength == 0);
     CXPLAT_DBG_ASSERT(OutputBuffer != NULL || *OutputBufferLength == 0);
-    CXPLAT_DBG_ASSERT(TlsContext->IsQMux)
+    CXPLAT_DBG_ASSERT(TlsContext->IsQMux);
 
     TlsContext->State = State;
     TlsContext->ResultFlags = 0;

@@ -384,7 +384,7 @@ ServerStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received %lu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        printf("[strm][%p] Data received %llu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         //
@@ -706,7 +706,7 @@ ClientStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received %lu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        printf("[strm][%p] Data received %llu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         //

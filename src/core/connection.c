@@ -2184,7 +2184,7 @@ QuicConnStart(
             goto Exit;
         }
         QuicConnResetIdleTimeout(Connection);
-        CxPlatEventWaitWithTimeout(QMux->ConnectEvent, Connection->Settings.HandshakeIdleTimeoutMs);
+        CxPlatEventWaitWithTimeout(QMux->ConnectEvent, (uint32_t)Connection->Settings.HandshakeIdleTimeoutMs);
         if (!Connection->State.TcpConnected) {
             Status = QUIC_STATUS_CONNECTION_TIMEOUT;
             goto Exit;
@@ -2677,7 +2677,7 @@ QuicConnGenerateLocalTransportParameters(
             LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
         }
 
-        if (!QuicConnIsQMux(Connection)) {
+        if (!QuicConnIsQMux(Connection) && SourceCid != NULL) {
             LocalTP->Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
             QUIC_STATUS Status =
                 QuicLibraryGenerateStatelessResetToken(
@@ -2705,7 +2705,7 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->OrigDestCID->Length);
 
             if (Connection->State.HandshakeUsedRetryPacket) {
-                CXPLAT_DBG_ASSERT(SourceCid->Link.Next != NULL);
+                CXPLAT_DBG_ASSERT(SourceCid != NULL && SourceCid->Link.Next != NULL);
                 const QUIC_CID_HASH_ENTRY* PrevSourceCid =
                     CXPLAT_CONTAINING_RECORD(
                         SourceCid->Link.Next,
