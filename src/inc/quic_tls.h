@@ -492,35 +492,6 @@ CxPlatTlsDecrypt(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsSendData(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_writes_bytes_(*BufferLength)
-        uint8_t* Buffer,
-    _Inout_ uint32_t* BufferLength
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsReadData(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_writes_bytes_(*BufferLength)
-        uint8_t* Buffer,
-    _Inout_ uint32_t* BufferLength
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsWriteData(
-    _In_ CXPLAT_TLS* TlsContext,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t* Buffer,
-    _Inout_ uint32_t BufferLength
-    );
-
-
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsGetRecordOverhead(
     _In_ CXPLAT_TLS* TlsContext,
