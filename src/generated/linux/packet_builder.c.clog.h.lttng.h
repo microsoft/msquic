@@ -90,23 +90,27 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PacketBuilderQMuxSend
-// [conn][%p] Sending %hu bytes
+// Decoder Ring for PacketBuilderQMuxSendBatch
+// [conn][%p] Sending batch. %hu datagrams %u bytes
 // QuicTraceLogConnVerbose(
-        PacketBuilderQMuxSend,
-        Connection,
-        "Sending %hu bytes",
-        Builder->DatagramLength);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Builder->DatagramLength = arg3
+        PacketBuilderQMuxSendBatch,
+        Builder->Connection,
+        "Sending batch. %hu datagrams %u bytes",
+        (uint16_t)Builder->TotalCountDatagrams,
+        Builder->TotalDatagramsLength);
+// arg1 = arg1 = Builder->Connection = arg1
+// arg3 = arg3 = (uint16_t)Builder->TotalCountDatagrams = arg3
+// arg4 = arg4 = Builder->TotalDatagramsLength = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderQMuxSend,
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderQMuxSendBatch,
     TP_ARGS(
         const void *, arg1,
-        unsigned short, arg3), 
+        unsigned short, arg3,
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 

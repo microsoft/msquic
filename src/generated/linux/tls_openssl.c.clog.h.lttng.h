@@ -140,6 +140,29 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for OpenSslBIOWriteError
+// [conn][%p] BIO_write failed, error: %d
+// QuicTraceLogConnError(
+                OpenSslBIOWriteError,
+                TlsContext->Connection,
+                "BIO_write failed, error: %d",
+                Err);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = Err = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslBIOWriteError,
+    TP_ARGS(
+        const void *, arg1,
+        int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for OpenSslHandshakeDataStart
 // [conn][%p] Writing Handshake data starts at %u
 // QuicTraceLogConnInfo(

@@ -3561,6 +3561,242 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsHandshake(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
+    _In_reads_bytes_(*InputBufferLength)
+        const uint8_t * InputBuffer,
+    _Inout_ uint32_t * InputBufferLength,
+    _Out_writes_bytes_(*OutputBufferLength)
+        uint8_t* OutputBuffer,
+    _Inout_ uint32_t* OutputBufferLength,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
+    )
+{
+    int Ret;
+    CXPLAT_DBG_ASSERT(InputBuffer != NULL || *InputBufferLength == 0);
+    CXPLAT_DBG_ASSERT(OutputBuffer != NULL || *OutputBufferLength == 0);
+    CXPLAT_DBG_ASSERT(TlsContext->IsQMux)
+
+    TlsContext->State = State;
+    TlsContext->ResultFlags = 0;
+
+    if (DataType == CXPLAT_TLS_TICKET_DATA) {
+        QuicTraceLogConnVerbose(
+            OpenSslSendTicketData,
+            TlsContext->Connection,
+            "Sending ticket data, %u bytes",
+            *InputBufferLength);
+
+        SSL_SESSION* Session = SSL_get_session(TlsContext->Ssl);
+        if (Session == NULL) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "SSL_get_session failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+        if (!SSL_SESSION_set1_ticket_appdata(Session, InputBuffer, *InputBufferLength)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "SSL_SESSION_set1_ticket_appdata failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
+        if (!SSL_new_session_ticket(TlsContext->Ssl)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "SSL_new_session_ticket failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+        Ret = SSL_do_handshake(TlsContext->Ssl);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                SSL_get_error(TlsContext->Ssl, Ret),
+                "SSL_do_handshake failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
+        goto Exit;
+    }
+
+    if (InputBuffer != NULL && *InputBufferLength > 0) {
+        Ret = BIO_write(TlsContext->rbio, InputBuffer, (int)*InputBufferLength);
+        if (Ret < 0) {
+            int Err = SSL_get_error(TlsContext->Ssl, Ret);
+            QuicTraceLogConnError(
+                OpenSslBIOWriteError,
+                TlsContext->Connection,
+                "BIO_write failed, error: %d",
+                Err);
+           TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        }
+        *InputBufferLength -= Ret;
+    }
+
+    if (!State->HandshakeComplete) {
+        Ret = SSL_do_handshake(TlsContext->Ssl);
+        if (Ret <= 0) {
+            int Err = SSL_get_error(TlsContext->Ssl, Ret);
+            switch (Err) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                break;
+            case SSL_ERROR_SSL: {
+                char buf[256];
+                const char* file;
+                int line;
+                ERR_error_string_n(ERR_get_error_all(&file, &line, NULL, NULL, NULL), buf, sizeof(buf));
+                QuicTraceLogConnError(
+                    OpenSslHandshakeErrorStr,
+                    TlsContext->Connection,
+                    "TLS handshake error: %s, file:%s:%d",
+                    buf,
+                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                    line);
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+
+            default:
+                QuicTraceLogConnError(
+                    OpenSslHandshakeError,
+                    TlsContext->Connection,
+                    "TLS handshake error: %d",
+                    Err);
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+        }
+
+        if (SSL_is_init_finished(TlsContext->Ssl)) {
+            QuicTraceLogConnInfo(
+                OpenSslHandshakeComplete,
+                TlsContext->Connection,
+                "TLS Handshake complete");
+            State->HandshakeComplete = TRUE;
+            if (SSL_session_reused(TlsContext->Ssl)) {
+                QuicTraceLogConnInfo(
+                    OpenSslHandshakeResumed,
+                    TlsContext->Connection,
+                    "TLS Handshake resumed");
+                State->SessionResumed = TRUE;
+            }
+            if (!TlsContext->IsServer) {
+                int EarlyDataStatus = SSL_get_early_data_status(TlsContext->Ssl);
+                if (EarlyDataStatus == SSL_EARLY_DATA_ACCEPTED) {
+                    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
+
+                } else if (EarlyDataStatus == SSL_EARLY_DATA_REJECTED) {
+                    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_REJECTED;
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
+                }
+            }
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
+
+
+            if (!TlsContext->IsServer) {
+                const uint8_t* NegotiatedAlpn;
+                uint32_t NegotiatedAlpnLength;
+                SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn, &NegotiatedAlpnLength);
+                if (NegotiatedAlpnLength == 0) {
+                    QuicTraceLogConnError(
+                        OpenSslAlpnNegotiationFailure,
+                        TlsContext->Connection,
+                        "Failed to negotiate ALPN");
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    goto Exit;
+                }
+                if (NegotiatedAlpnLength > UINT8_MAX) {
+                    QuicTraceLogConnError(
+                        OpenSslInvalidAlpnLength,
+                        TlsContext->Connection,
+                        "Invalid negotiated ALPN length");
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    goto Exit;
+                }
+                TlsContext->State->NegotiatedAlpn =
+                    CxPlatTlsAlpnFindInList(
+                        TlsContext->AlpnBufferLength,
+                        TlsContext->AlpnBuffer,
+                        (uint8_t)NegotiatedAlpnLength,
+                        NegotiatedAlpn);
+                if (TlsContext->State->NegotiatedAlpn == NULL) {
+                    QuicTraceLogConnError(
+                        OpenSslNoMatchingAlpn,
+                        TlsContext->Connection,
+                        "Failed to find a matching ALPN");
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    goto Exit;
+                }
+            } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+                !TlsContext->PeerCertReceived) {
+                QUIC_STATUS ValidationResult =
+                    (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                    (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+                    TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) ?
+                        QUIC_STATUS_CERT_NO_CERT :
+                        QUIC_STATUS_SUCCESS;
+
+                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                        TlsContext->Connection,
+                        NULL,
+                        NULL,
+                        0,
+                        ValidationResult)) {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Indicate null certificate received failed");
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    TlsContext->State->AlertCode = CXPLAT_TLS_ALERT_CODE_REQUIRED_CERTIFICATE;
+                    goto Exit;
+                }
+            }
+        }
+    }
+
+    if (BIO_pending(TlsContext->wbio) == 0) {
+        *OutputBufferLength = 0;
+        goto Exit;
+    }
+
+    Ret = BIO_read(TlsContext->wbio, OutputBuffer, (int)*OutputBufferLength);
+    if (Ret < 0) {
+        int Err = SSL_get_error(TlsContext->Ssl, Ret);
+        QuicTraceLogConnError(
+            OpenSslBIOWriteError,
+            TlsContext->Connection,
+            "BIO_write failed, error: %d",
+            Err);
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+    } else {
+        *OutputBufferLength = (uint32_t)Ret;
+    }
+
+Exit:
+
+    return TlsContext->ResultFlags;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsReadData(
     _In_ CXPLAT_TLS* TlsContext,
     _Out_writes_bytes_(*BufferLength)
@@ -3656,7 +3892,6 @@ CxPlatTlsSendData(
                 "[ tls][%p] ERROR, %s.",
                 TlsContext->Connection,
                 "BIO_read failed");
-            printf("BIO_read error: %d\n", err);
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         }
     } else {

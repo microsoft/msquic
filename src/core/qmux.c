@@ -172,15 +172,48 @@ QuicQMuxProcessHandshakeData(
         goto Exit;
     }
 
-    uint32_t Offset = 0;
+    CXPLAT_SEND_CONFIG SendConfig = { &QMux->Route, 16384 + 256, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
+
+    SendData = CxPlatSendDataAlloc(QMux->Socket, &SendConfig);
+    if (SendData == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "packet send context",
+            0);
+        goto Exit;
+    }
+
+    uint32_t BufferOffset = 0;
     uint32_t RemainingBufferLength = BufferLength;
+    uint32_t SendBufferLength;
+    uint32_t SendBufferOffset = 0;
+    QUIC_BUFFER* SendBuffer = NULL;
     do {
+        if (SendBuffer == NULL || SendBufferOffset == SendBuffer->Length) {
+            SendBuffer = CxPlatSendDataAllocBuffer(SendData, 16384 + 256);
+            if (SendBuffer == NULL) {
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "packet datagram",
+                    16384 + 256);
+                goto Exit;
+            }
+            SendBufferOffset = 0;
+        }
+        SendBufferLength = SendBuffer->Length - SendBufferOffset;
+
         QMux->ResultFlags =
-            CxPlatTlsProcessData(
+            CxPlatTlsHandshake(
                 QMux->TLS,
                 CXPLAT_TLS_CRYPTO_DATA,
-                Buffer + Offset,
+                Buffer + BufferOffset,
                 &RemainingBufferLength,
+                SendBuffer->Buffer + SendBufferOffset,
+                &SendBufferLength,
                 &QMux->TlsState);
         if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
             Status = QUIC_STATUS_TLS_ERROR;
@@ -197,69 +230,17 @@ QuicQMuxProcessHandshakeData(
                 NULL);
             goto Exit;
         }
-        Offset = BufferLength - RemainingBufferLength;
-    } while (RemainingBufferLength > 0);
+        BufferOffset = BufferLength - RemainingBufferLength;
+        SendBufferOffset += SendBufferLength;
+        TotalSendLength += SendBufferLength;
+    } while (RemainingBufferLength > 0 || SendBufferLength > 0);
+    SendBuffer->Length = SendBufferOffset;
 
     if (QMux->TlsState.HandshakeComplete) {
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_QX_TRANSPORT_PARAMETERS);
     }
 
-    CXPLAT_SEND_CONFIG SendConfig = { &QMux->Route, 4096, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
-    SendData = CxPlatSendDataAlloc(QMux->Socket, &SendConfig);
-    if (SendData == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "packet send context",
-            0);
-        goto Exit;
-    }
 
-    uint32_t SendBufferLength;
-    uint32_t SendBufferOffset = 0;
-    QUIC_BUFFER* SendBuffer = NULL;
-    do {
-        if (SendBuffer == NULL || SendBufferOffset == SendBuffer->Length) {
-            SendBuffer = CxPlatSendDataAllocBuffer(SendData, 4096);
-            if (SendBuffer == NULL) {
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "packet datagram",
-                    4096);
-                goto Exit;
-            }
-        }
-
-        SendBufferLength = SendBuffer->Length - SendBufferOffset;
-        QMux->ResultFlags =
-            CxPlatTlsSendData(
-                QMux->TLS,
-                SendBuffer->Buffer + SendBufferOffset,
-                &SendBufferLength);
-        if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
-            Status = QUIC_STATUS_TLS_ERROR;
-            QuicTraceEvent(
-                ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
-                Connection,
-                Status,
-                "CxPlatTlsSendData");
-            QuicConnCloseLocally(
-                Connection,
-                QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-                (uint64_t)Status,
-                NULL);
-            goto Exit;
-        }
-        if (SendBufferLength > 0) {
-            SendBufferOffset += SendBufferLength;
-            TotalSendLength += SendBufferLength;
-        }
-    } while (SendBufferLength > 0);
-    SendBuffer->Length = SendBufferOffset;
 Exit:
     if (SendData != NULL) {
         if (QUIC_SUCCEEDED(Status) && TotalSendLength > 0) {

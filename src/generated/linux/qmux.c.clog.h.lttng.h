@@ -238,6 +238,29 @@ TRACEPOINT_EVENT(CLOG_QMUX_C, IndicateConnected,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "connection QMux",
+            sizeof(QUIC_QMUX));
+// arg2 = arg2 = "connection QMux" = arg2
+// arg3 = arg3 = sizeof(QUIC_QMUX) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_QMUX_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnErrorStatus
 // [conn][%p] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -259,29 +282,6 @@ TRACEPOINT_EVENT(CLOG_QMUX_C, ConnErrorStatus,
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "packet send context",
-            0);
-// arg2 = arg2 = "packet send context" = arg2
-// arg3 = arg3 = 0 = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_QMUX_C, AllocFailure,
-    TP_ARGS(
-        const char *, arg2,
-        unsigned long long, arg3), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
-        ctf_integer(uint64_t, arg3, arg3)
     )
 )
 
@@ -379,10 +379,10 @@ TRACEPOINT_EVENT(CLOG_QMUX_C, ConnHandshakeComplete,
 // Decoder Ring for QMuxRecvPacket
 // [conn][%p][RX] %hu bytes
 // QuicTraceEvent(
-                        QMuxRecvPacket,
-                        "[conn][%p][RX] %hu bytes",
-                        Connection,
-                        (uint16_t)RecordLength);
+                    QMuxRecvPacket,
+                    "[conn][%p][RX] %hu bytes",
+                    Connection,
+                    (uint16_t)RecordLength);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = (uint16_t)RecordLength = arg3
 ----------------------------------------------------------*/

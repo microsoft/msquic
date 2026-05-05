@@ -108,19 +108,21 @@ tracepoint(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PacketBuilderQMuxSend
-// [conn][%p] Sending %hu bytes
+// Decoder Ring for PacketBuilderQMuxSendBatch
+// [conn][%p] Sending batch. %hu datagrams %u bytes
 // QuicTraceLogConnVerbose(
-        PacketBuilderQMuxSend,
-        Connection,
-        "Sending %hu bytes",
-        Builder->DatagramLength);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Builder->DatagramLength = arg3
+        PacketBuilderQMuxSendBatch,
+        Builder->Connection,
+        "Sending batch. %hu datagrams %u bytes",
+        (uint16_t)Builder->TotalCountDatagrams,
+        Builder->TotalDatagramsLength);
+// arg1 = arg1 = Builder->Connection = arg1
+// arg3 = arg3 = (uint16_t)Builder->TotalCountDatagrams = arg3
+// arg4 = arg4 = Builder->TotalDatagramsLength = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PacketBuilderQMuxSend
-#define _clog_4_ARGS_TRACE_PacketBuilderQMuxSend(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_PACKET_BUILDER_C, PacketBuilderQMuxSend , arg1, arg3);\
+#ifndef _clog_5_ARGS_TRACE_PacketBuilderQMuxSendBatch
+#define _clog_5_ARGS_TRACE_PacketBuilderQMuxSendBatch(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketBuilderQMuxSendBatch , arg1, arg3, arg4);\
 
 #endif
 

@@ -214,6 +214,7 @@ typedef enum CXPLAT_TLS_RESULT_FLAGS {
     CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0010, // The server accepted the early (0-RTT) data.
     CXPLAT_TLS_RESULT_EARLY_DATA_REJECT   = 0x0020, // The server rejected the early (0-RTT) data.
     CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE  = 0x0040, // Handshake complete.
+    CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL    = 0x0080, // Provided buffer was too small for the data.
     CXPLAT_TLS_RESULT_ERROR               = 0x8000  // An error occured.
 
 } CXPLAT_TLS_RESULT_FLAGS;
@@ -441,6 +442,29 @@ CxPlatTlsProcessData(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsHandshake(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
+    _In_reads_bytes_(*InputBufferLength)
+        const uint8_t * InputBuffer,
+    _Inout_ uint32_t * InputBufferLength,
+    _Out_writes_bytes_(*OutputBufferLength)
+        uint8_t* OutputBuffer,
+    _Inout_ uint32_t* OutputBufferLength,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsSendData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_writes_bytes_(*BufferLength)
+        uint8_t* Buffer,
+    _Inout_ uint32_t* BufferLength
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsReadData(
     _In_ CXPLAT_TLS* TlsContext,
     _Out_writes_bytes_(*BufferLength)
@@ -457,14 +481,6 @@ CxPlatTlsWriteData(
     _Inout_ uint32_t BufferLength
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsSendData(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_writes_bytes_(*BufferLength)
-        uint8_t* Buffer,
-    _Inout_ uint32_t* BufferLength
-    );
 
 //
 // Sets a Security Configuration parameter.

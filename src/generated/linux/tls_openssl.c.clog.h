@@ -154,6 +154,26 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for OpenSslBIOWriteError
+// [conn][%p] BIO_write failed, error: %d
+// QuicTraceLogConnError(
+                OpenSslBIOWriteError,
+                TlsContext->Connection,
+                "BIO_write failed, error: %d",
+                Err);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = Err = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_OpenSslBIOWriteError
+#define _clog_4_ARGS_TRACE_OpenSslBIOWriteError(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_TLS_OPENSSL_C, OpenSslBIOWriteError , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for OpenSslHandshakeDataStart
 // [conn][%p] Writing Handshake data starts at %u
 // QuicTraceLogConnInfo(

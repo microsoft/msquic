@@ -7733,6 +7733,22 @@
       ],
       "macroName": "QuicTraceLogConnError"
     },
+    "OpenSslBIOWriteError": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] BIO_write failed, error: %d",
+      "UniqueId": "OpenSslBIOWriteError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
     "OpenSslContextCleaningUp": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Cleaning up",
@@ -8025,6 +8041,26 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "PacketBuilderQMuxSendBatch": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Sending batch. %hu datagrams %u bytes",
+      "UniqueId": "PacketBuilderQMuxSendBatch",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -15625,6 +15661,11 @@
         "EncodingString": "[conn][%p] Failed to negotiate ALPN"
       },
       {
+        "UniquenessHash": "cb83793f-6b18-b2a0-659c-1674e5e91eff",
+        "TraceID": "OpenSslBIOWriteError",
+        "EncodingString": "[conn][%p] BIO_write failed, error: %d"
+      },
+      {
         "UniquenessHash": "a241a44d-19e5-3ddd-03b3-2e65b093720f",
         "TraceID": "OpenSslContextCleaningUp",
         "EncodingString": "[conn][%p] Cleaning up"
@@ -15723,6 +15764,11 @@
         "UniquenessHash": "01f7a1ec-36fa-0fe8-7608-ce2f801e8d90",
         "TraceID": "PacketBuilderQMuxSend",
         "EncodingString": "[conn][%p] Sending %hu bytes"
+      },
+      {
+        "UniquenessHash": "fe35b780-889d-bcdf-b43c-7ae63c262234",
+        "TraceID": "PacketBuilderQMuxSendBatch",
+        "EncodingString": "[conn][%p] Sending batch. %hu datagrams %u bytes"
       },
       {
         "UniquenessHash": "f2859068-aa3b-758e-45b8-db7e1bf4063f",
