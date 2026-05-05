@@ -214,6 +214,26 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslBIOReadError , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for OpenSslSSLReadError
+// [conn][%p] SSL_read failed, error: %d
+// QuicTraceLogConnError(
+                    OpenSslSSLReadError,
+                    TlsContext->Connection,
+                    "SSL_read failed, error: %d",
+                    Err);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = Err = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_OpenSslSSLReadError
+#define _clog_4_ARGS_TRACE_OpenSslSSLReadError(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_TLS_OPENSSL_C, OpenSslSSLReadError , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for OpenSslHandshakeDataStart
 // [conn][%p] Writing Handshake data starts at %u
 // QuicTraceLogConnInfo(

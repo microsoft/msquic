@@ -480,6 +480,18 @@ CxPlatTlsEncrypt(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatTlsDecrypt(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(*InputBufferLength)
+        const uint8_t * InputBuffer,
+    _Inout_ uint32_t * InputBufferLength,
+    _Out_writes_bytes_(*OutputBufferLength)
+        uint8_t* OutputBuffer,
+    _Inout_ uint32_t* OutputBufferLength
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsSendData(
     _In_ CXPLAT_TLS* TlsContext,
