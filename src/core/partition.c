@@ -45,7 +45,6 @@ QuicPartitionInitialize(
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Partition->StatelessContextPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Partition->OperPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK), QUIC_POOL_APP_BUFFER_CHUNK, &Partition->AppBufferChunkPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_BUFFER) + QX_DEFAULT_SEND_BUFFER_SIZE + 2, QUIC_POOL_QMUX_SEND_BUFFER, &Partition->QmuxSendBufferPool);
     CxPlatLockInitialize(&Partition->ResetTokenLock);
     CxPlatDispatchLockInitialize(&Partition->StatelessRetryKeysLock);
 

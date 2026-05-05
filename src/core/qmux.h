@@ -51,6 +51,14 @@ typedef struct QUIC_QMUX {
     uint32_t TcpReceiveQueueByteCount;
 
     //
+    // Buffer for decrypted data.
+    //
+    uint8_t* RecvBuffer;
+    uint32_t RecvBufferAllocLength;
+    uint32_t RecvBufferLength;
+    uint32_t RecvBufferOffset;
+
+    //
     // Sequence numbers for QX_PING frames.
     // The next ping sequence number to send, and the last one received from the peer.
     //
@@ -60,6 +68,19 @@ typedef struct QUIC_QMUX {
     BOOLEAN RecvPing;
 
 } QUIC_QMUX;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicQMuxInitialize(
+    _In_ QUIC_CONNECTION* Connection,
+    _Out_ QUIC_QMUX** NewQMux
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicQMuxUninitialize(
+    _In_ QUIC_QMUX* QMux
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

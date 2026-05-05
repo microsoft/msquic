@@ -94,7 +94,6 @@ typedef struct QUIC_CACHEALIGN QUIC_PARTITION {
     CXPLAT_POOL StatelessContextPool;       // QUIC_STATELESS_CONTEXT
     CXPLAT_POOL OperPool;                   // QUIC_OPERATION
     CXPLAT_POOL AppBufferChunkPool;         // QUIC_RECV_CHUNK
-    CXPLAT_POOL QmuxSendBufferPool;         // QX_DEFAULT_SEND_BUFFER_SIZE
 
     //
     // Per-processor performance counters.

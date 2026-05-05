@@ -334,23 +334,13 @@ QuicConnQMuxAlloc(
     }
 
     CxPlatZeroMemory(Connection, sizeof(QUIC_CONNECTION));
-
-    Connection->QMux = CxPlatPoolAlloc(&Partition->ConnectionQMuxPool);
-    if (Connection->QMux == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "connection QMux",
-            sizeof(QUIC_QMUX));
-        CxPlatPoolFree(Connection);
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    CxPlatZeroMemory(Connection->QMux, sizeof(QUIC_QMUX));
-
-    Connection->QMux->Connection = Connection;
-
     Connection->Partition = Partition;
+
+    Status = QuicQMuxInitialize(Connection, &Connection->QMux);
+    if (QUIC_FAILED(Status)) {
+        CxPlatPoolFree(Connection);
+        return Status;
+    }
 
 #if DEBUG
     InterlockedIncrement(&MsQuicLib.ConnectionCount);
@@ -385,11 +375,6 @@ QuicConnQMuxAlloc(
     QuicOperationQueueInitialize(&Connection->OperQ);
     QuicSendInitialize(&Connection->Send, &Connection->Settings);
     QuicDatagramInitialize(&Connection->Datagram);
-
-    QUIC_QMUX* QMux = QuicConnGetQMux(Connection);
-    QMux->TcpReceiveQueueTail = &QMux->TcpReceiveQueue;
-    CxPlatDispatchLockInitialize(&QMux->TcpReceiveQueueLock);
-    CxPlatEventInitialize(&QMux->ConnectEvent, TRUE, FALSE);
 
     Connection->EarliestExpirationTime = UINT64_MAX;
     for (QUIC_CONN_TIMER_TYPE Type = 0; Type < QUIC_CONN_TIMER_COUNT; ++Type) {
@@ -566,7 +551,6 @@ QuicConnQMuxFree(
     )
 {
     QUIC_PARTITION* Partition = Connection->Partition;
-    QUIC_QMUX* QMux = QuicConnGetQMux(Connection);
 #ifdef QUIC_SILO
     QUIC_SILO Silo = NULL;
     QuicConfigurationAttachSilo(Connection->Configuration);
@@ -593,10 +577,6 @@ QuicConnQMuxFree(
     if (Connection->Worker != NULL) {
         QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
         QuicOperationQueueClear(&Connection->OperQ, Partition);
-    }
-    if (QMux->TcpReceiveQueue != NULL) {
-        CxPlatRecvDataReturn(QMux->TcpReceiveQueue);
-        QMux->TcpReceiveQueue = NULL;
     }
     CxPlatDispatchLockUninitialize(&Connection->ReceiveQueueLock);
     QuicOperationQueueUninitialize(&Connection->OperQ);
@@ -637,7 +617,8 @@ QuicConnQMuxFree(
 #if DEBUG
     QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONNECTION, &Connection->DbgObjectLink);
 #endif
-    CxPlatPoolFree(QMux);
+    QuicQMuxUninitialize(Connection->QMux);
+    Connection->QMux = NULL;
     QuicTraceEvent(
         ConnDestroyed,
         "[conn][%p] Destroyed",

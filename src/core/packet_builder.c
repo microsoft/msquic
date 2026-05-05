@@ -1335,8 +1335,7 @@ QuicPacketBuilderQMuxFinalize(
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
 
     Builder->Metadata->SentTime = CxPlatTimeUs64();
-    Builder->Metadata->PacketLength =
-        Builder->HeaderLength + PayloadLength;
+    Builder->Metadata->PacketLength = Builder->Datagram->Length;
     Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
 
     for (uint8_t i = 0; i < Builder->Metadata->FrameCount; ++i) {

@@ -25,6 +25,77 @@ QuicQMuxProcessHandshakeData(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+QuicQMuxInitialize(
+    _In_ QUIC_CONNECTION* Connection,
+    _Out_ QUIC_QMUX** NewQMux
+    )
+{
+    QUIC_QMUX* QMux = NULL;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    QMux = CxPlatPoolAlloc(&Connection->Partition->ConnectionQMuxPool);
+    if (QMux == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "connection QMux",
+            sizeof(QUIC_QMUX));
+        goto Error;
+    }
+
+    CxPlatZeroMemory(QMux, sizeof(QUIC_QMUX));
+
+    QMux->RecvBufferAllocLength = QX_TP_MAX_RECORD_SIZE_DEFAULT + 2; // Add 2 bytes for length field.
+    QMux->RecvBuffer = CXPLAT_ALLOC_NONPAGED(QMux->RecvBufferAllocLength, QUIC_POOL_QMUX_RECV_BUFFER);
+    if (QMux->RecvBuffer == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QMux receive buffer",
+            QMux->RecvBufferAllocLength);
+        goto Error;
+    }
+
+    QMux->Connection = Connection;
+    QMux->TcpReceiveQueueTail = &QMux->TcpReceiveQueue;
+    CxPlatDispatchLockInitialize(&QMux->TcpReceiveQueueLock);
+    CxPlatEventInitialize(&QMux->ConnectEvent, TRUE, FALSE);
+
+    *NewQMux = QMux;
+    return Status;
+
+Error:
+    if (QMux != NULL && QMux->RecvBuffer != NULL) {
+        CXPLAT_FREE(QMux->RecvBuffer, QUIC_POOL_QMUX_RECV_BUFFER);
+    }
+    if (QMux != NULL) {
+        CxPlatPoolFree(QMux);
+    }
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicQMuxUninitialize(
+    _In_ QUIC_QMUX* QMux
+    )
+{
+    if (QMux->TcpReceiveQueue != NULL) {
+        CxPlatRecvDataReturn(QMux->TcpReceiveQueue);
+        QMux->TcpReceiveQueue = NULL;
+    }
+
+    if (QMux->RecvBuffer != NULL) {
+        CXPLAT_FREE(QMux->RecvBuffer, QUIC_POOL_QMUX_RECV_BUFFER);
+        QMux->RecvBuffer = NULL;
+    }
+    CxPlatPoolFree(QMux);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 QuicQMuxInitializeTls(
     _Inout_ QUIC_QMUX* QMux,
     _In_ CXPLAT_SEC_CONFIG* SecConfig
@@ -848,8 +919,6 @@ Done:
     return TRUE;
 }
 
-#pragma warning(push)
-#pragma warning(disable:6262) // Function uses large amount of stack; ReadBuffer is bounded by QX_TP_MAX_RECORD_SIZE_DEFAULT (16KB) and only used in user-mode TCP path
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicQMuxRecvData(
@@ -878,7 +947,6 @@ QuicQMuxRecvData(
     CXPLAT_RECV_DATA* RecvData;
     while ((RecvData = RecvDataChain) != NULL) {
         RecvDataChain = (CXPLAT_RECV_DATA*)RecvData->Next;
-        RecvData->Next = NULL;
 
         CXPLAT_DBG_ASSERT(RecvData != NULL);
         if (!QMux->TlsState.HandshakeComplete) {
@@ -946,25 +1014,14 @@ QuicQMuxRecvData(
     }
 
     if (QMux->TlsState.HandshakeComplete) {
-        uint8_t ReadBuffer[QX_TP_MAX_RECORD_SIZE_DEFAULT + 2]; // +2 for QUIC varint
-        uint32_t ReadBufferLength;
-        uint32_t ReadBufferOffset = 0;
-        QUIC_VAR_INT RecordLength = 0;
-        uint16_t RecordOffset = 0;
+        uint32_t RecvBufferLength;
         do {
-            if (RecordLength == 0) {
-                ReadBufferLength = sizeof(ReadBuffer) - ReadBufferOffset;
-            } else {
-                CXPLAT_FRE_ASSERTMSG(
-                    RecordLength <= sizeof(ReadBuffer) - ReadBufferOffset,
-                    "Record length should never exceed the buffer size");
-                ReadBufferLength = (uint32_t)(RecordLength - (ReadBufferOffset - RecordOffset));
-            }
+            RecvBufferLength = QMux->RecvBufferAllocLength - QMux->RecvBufferOffset;
             QMux->ResultFlags =
                 CxPlatTlsReadData(
                     QMux->TLS,
-                    ReadBuffer + ReadBufferOffset,
-                    &ReadBufferLength);
+                    QMux->RecvBuffer + QMux->RecvBufferOffset,
+                    &RecvBufferLength);
             if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
                 Status = QUIC_STATUS_TLS_ERROR;
                 QuicTraceEvent(
@@ -980,28 +1037,46 @@ QuicQMuxRecvData(
                     NULL);
                 goto Error;
             }
-            if (ReadBufferLength > 0) {
-                if (RecordLength == 0) {
-                    QuicVarIntDecode((uint16_t)ReadBufferLength, ReadBuffer, &RecordOffset, &RecordLength);
-                }
-                if (RecordLength > 0 &&
-                    ReadBufferLength + ReadBufferOffset >= RecordOffset + RecordLength) {
-                    QuicTraceEvent(
-                        QMuxRecvPacket,
-                        "[conn][%p][RX] %hu bytes",
-                        Connection,
-                        (uint16_t)RecordLength);
+            QMux->RecvBufferOffset += RecvBufferLength;
+            QMux->RecvBufferLength += RecvBufferLength;
 
-                    QuicQMuxRecvFrames(QMux, ReadBuffer + RecordOffset, (uint16_t)RecordLength);
-                    ReadBufferOffset = 0;
-                    RecordLength = 0;
-                    RecordOffset = 0;
-                } else {
-                    ReadBufferOffset += ReadBufferLength;
+            QUIC_VAR_INT RecordLength = 0;
+            uint16_t RecordOffset = 0;
+            uint32_t Offset = 0;
+            do {
+                QuicVarIntDecode((uint16_t)(QMux->RecvBufferLength - Offset),
+                    QMux->RecvBuffer + Offset,
+                    &RecordOffset,
+                    &RecordLength);
+                if (RecordLength == 0) {
+                    break;
                 }
+                if (QMux->RecvBufferLength - Offset < RecordOffset + RecordLength) {
+                    break;
+                }
+                QuicTraceEvent(
+                    QMuxRecvPacket,
+                    "[conn][%p][RX] %hu bytes",
+                    Connection,
+                    (uint16_t)RecordLength);
+
+                QuicQMuxRecvFrames(QMux, QMux->RecvBuffer + Offset + RecordOffset,
+                    (uint16_t)RecordLength);
+                Offset += RecordOffset + RecordLength;
+            } while (Offset < QMux->RecvBufferLength);
+            if (Offset > 0 && Offset < QMux->RecvBufferLength) {
+                //
+                // Move any remaining data to the beginning of the buffer for the next
+                // receive.
+                //
+                memmove(QMux->RecvBuffer, QMux->RecvBuffer + Offset, QMux->RecvBufferLength - Offset);
             }
-        } while (ReadBufferLength > 0);
+            QMux->RecvBufferLength -= Offset;
+            QMux->RecvBufferOffset -= Offset;
+        } while (RecvBufferLength > 0);
     }
+    
+
     QuicConnResetIdleTimeout(Connection);
 
 Error:
@@ -1009,7 +1084,6 @@ Error:
         CxPlatRecvDataReturn(ReleaseChain);
     }
 }
-#pragma warning(pop)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
