@@ -169,12 +169,14 @@ public:
 #define WATCHDOG_WIGGLE_ROOM 10000
 
 //
-// Per-thread cap on the number of live connections kept in the spin
-// Connections vector. Bounds the time spent in the synchronous cleanup
-// loop at the end of ClientSpin/ServerSpin so the watchdog window is
-// not exhausted before the cleanup completes.
+// Soft pressure on live-connection count to bound the cleanup phase.
+// When Connections.size() exceeds SOFT_CONNECTION_TARGET the random API
+// pick is progressively biased toward ConnectionClose: probability of
+// redirect = (Live - SOFT_CONNECTION_TARGET) / SOFT_CONNECTION_TARGET,
+// reaching 100% by 2 * SOFT_CONNECTION_TARGET. No hard cap — bursts are
+// allowed; the average is what's bounded.
 //
-#define MAX_LIVE_CONNECTIONS_PER_SPIN 128
+#define SOFT_CONNECTION_TARGET 64
 
 class SpinQuicWatchdog {
     CXPLAT_THREAD WatchdogThread;
@@ -573,12 +575,6 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
         if (!GetRandom(20, ThreadID)) {
             return QUIC_STATUS_CONNECTION_REFUSED;
-        }
-        {
-            std::lock_guard<std::mutex> Lock(Connections);
-            if (Connections.size() >= MAX_LIVE_CONNECTIONS_PER_SPIN) {
-                return QUIC_STATUS_CONNECTION_REFUSED;
-            }
         }
         MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, &((ListenerContext*)Context)->ThreadID);
         QUIC_STATUS Status =
@@ -990,10 +986,26 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             continue; \
         }
 
-        switch (GetRandom(SpinQuicAPICallCount, ThreadID)) {
+        uint32_t APICall = GetRandom(SpinQuicAPICallCount, ThreadID);
+
+        //
+        // Above SOFT_CONNECTION_TARGET, replace the random pick with a
+        // ConnectionClose with probability (Excess / SOFT_CONNECTION_TARGET).
+        // Pulls the count back toward the target without forbidding bursts.
+        //
+        {
+            size_t Live = Connections.size();
+            if (Live > SOFT_CONNECTION_TARGET) {
+                size_t Excess = Live - SOFT_CONNECTION_TARGET;
+                if (GetRandom((size_t)SOFT_CONNECTION_TARGET, ThreadID) < Excess) {
+                    APICall = SpinQuicAPICallConnectionClose;
+                }
+            }
+        }
+
+        switch (APICall) {
         case SpinQuicAPICallConnectionOpen:
             if (!IsServer) {
-                if (Connections.size() >= MAX_LIVE_CONNECTIONS_PER_SPIN) continue;
                 auto ctx = new SpinQuicConnection(ThreadID);
                 if (ctx == nullptr) continue;
 
@@ -1234,7 +1246,6 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
         }
         case SpinQuicAPICallConnectionPoolCreate: {
             if (!IsServer) {
-                if (Connections.size() + 4 > MAX_LIVE_CONNECTIONS_PER_SPIN) continue;
                 uint16_t PoolSize = (uint16_t)(GetRandom(4, ThreadID) + 1); // 1-4 connections
                 std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
                 std::vector<void*> Contexts(PoolSize, &ThreadID);
