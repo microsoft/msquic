@@ -131,7 +131,7 @@ ShutdownCompletion(
     )
 {
     CXPLAT_WORKER* Worker =
-        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_WORKER, ShutdownSqe);
+        CXPLAT_CONTAINING_RECORD((CXPLAT_SQE_WCP*)CxPlatCqeGetSqe(Cqe), CXPLAT_WORKER, ShutdownSqe);
 
     Worker->StoppedThread = TRUE;
 }

@@ -80,7 +80,9 @@ extern "C" {
 
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
+#ifndef STATUS_CANCELLED
 #define STATUS_CANCELLED                 ((NTSTATUS)0xC0000120L)
+#endif
 
 #ifdef QUIC_RESTRICTED_BUILD
 #ifndef NT_SUCCESS
@@ -787,9 +789,12 @@ typedef struct CXPLAT_SQE_WCP {
     HANDLE WcpEvent;      // Manual-reset event for wake packets
     HANDLE WaitCompletionPacket;    // Wait completion packet bound to Event
 } CXPLAT_SQE_WCP;
+CXPLAT_STATIC_ASSERT(offsetof(CXPLAT_SQE_WCP, BaseSqe) == 0, "BaseSqe must be at offset 0 in CXPLAT_SQE_WCP for correct pointer casting");
+
 //
 // Wait Completion Packet functions from ntdll.dll.
 //
+
 typedef NTSTATUS (NTAPI *FuncNtCreateWaitCompletionPacket)(
     _Out_ PHANDLE WaitCompletionPacketHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -898,7 +903,12 @@ CxPlatEventQEnqueueWcp(
     if (sqe->WcpEvent) {
         CxPlatEventSet(sqe->WcpEvent);
     } else {
-        CxPlatEventQEnqueue(queue, &sqe->BaseSqe);
+        //
+        // If WCP is not available, fall back to PQCS. If the Enqueue fails (extremely rare OOM in kernel),
+        // the worker thread will deadlock waiting for an event that never arrives.
+        // We assert to diagnose the issue if it occurs.
+        //
+        CXPLAT_FRE_ASSERT(CxPlatEventQEnqueue(queue, &sqe->BaseSqe));
     }
 }
 
@@ -938,7 +948,11 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
-// Only WakeSqe and UpdatePollSqe will be using this.
+//
+// Initialize a standard SQE for event queue operations.
+// Uses PQCS (PostQueuedCompletionStatus) for enqueuing.
+// Use this for non-critical operations where enqueue failure is tolerable.
+//
 QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize(
@@ -953,7 +967,11 @@ CxPlatSqeInitialize(
     return TRUE;
 }
 
-// Currently only ShutdownSqe will be using this, but it can be used by any SQE that wants to take advantage of WCP for manual events.
+//
+// Initialize a WCP-enabled SQE. WCP pre-allocates the completion packet at init time, avoiding
+// silent PQCS failures under severe memory pressure that could deadlock the worker thread.
+// Falls back to standard PQCS on older Windows. Use for critical operations (e.g., shutdown).
+//
 QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitializeWcp(
@@ -962,27 +980,22 @@ CxPlatSqeInitializeWcp(
     _Out_ CXPLAT_SQE_WCP* sqe
     )
 {
-    UNREFERENCED_PARAMETER(queue);
     CxPlatZeroMemory(sqe, sizeof(*sqe));
     sqe->BaseSqe.Completion = completion;
 
-    // Only attempt WCP initialization if APIs are available
     if (!CxPlatWcpAvailable()) {
-        // WCP not available - this is acceptable on older Windows versions
-        // SQE will fall back to standard PQCS (with OOM risk)
         return TRUE;
     }
 
-    if (sqe->WcpEvent == NULL) {
-        CxPlatEventInitialize(&sqe->WcpEvent, TRUE, FALSE);
-    }
+    CxPlatEventInitialize(&sqe->WcpEvent, TRUE, FALSE);
     if (sqe->WcpEvent == NULL) {
         return FALSE;
     }
 
-    NTSTATUS status = NtCreateWaitCompletionPacket(&sqe->WaitCompletionPacket,
-                                                  GENERIC_ALL,
-                                                  NULL);
+    NTSTATUS status = NtCreateWaitCompletionPacket(
+        &sqe->WaitCompletionPacket,
+        GENERIC_ALL,
+        NULL);
     if (!NT_SUCCESS(status)) {
         CloseHandle(sqe->WcpEvent);
         return FALSE;
@@ -993,15 +1006,15 @@ CxPlatSqeInitializeWcp(
         *queue,
         sqe->WcpEvent,
         NULL,
-        &sqe->BaseSqe,
+        &sqe->BaseSqe.Overlapped,
         0,          // IoStatus STATUS_SUCCESS
         0,
         NULL);
 
     if (!NT_SUCCESS(status)) {
         NTSTATUS CancelStatus = NtCancelWaitCompletionPacket(
-                sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
-                TRUE);              // RemoveSignaledPacket
+            sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
+            TRUE);              // RemoveSignaledPacket
 
         // Close WCP handle on success or STATUS_CANCELLED (expected states where handle is valid).
         // On other errors, leak to avoid potential corruption.
@@ -1054,8 +1067,8 @@ CxPlatSqeCleanupWcp(
     _In_ CXPLAT_SQE_WCP* sqe
     )
 {
-    if (sqe->WcpEvent)
-    {
+    UNREFERENCED_PARAMETER(queue);
+    if (sqe->WcpEvent) {
         if (sqe->WaitCompletionPacket && CxPlatWcpAvailable()) {
             NTSTATUS CancelStatus = NtCancelWaitCompletionPacket(
                 sqe->WaitCompletionPacket,   // WaitCompletionPacketHandle
@@ -1076,8 +1089,6 @@ CxPlatSqeCleanupWcp(
         sqe->WcpEvent = NULL;
         sqe->WaitCompletionPacket = NULL;
     }
-    UNREFERENCED_PARAMETER(queue);
-    UNREFERENCED_PARAMETER(sqe);
 }
 
 QUIC_INLINE
