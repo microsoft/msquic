@@ -7733,6 +7733,22 @@
       ],
       "macroName": "QuicTraceLogConnError"
     },
+    "OpenSslBIOReadError": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] BIO_read failed, error: %d",
+      "UniqueId": "OpenSslBIOReadError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
     "OpenSslBIOWriteError": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] BIO_write failed, error: %d",
@@ -8000,6 +8016,22 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "OpenSslSSLWriteError": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] SSL_write failed, error: %d",
+      "UniqueId": "OpenSslSSLWriteError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
     },
     "OpenSslTickedDecrypted": {
       "ModuleProperites": {},
@@ -15661,6 +15693,11 @@
         "EncodingString": "[conn][%p] Failed to negotiate ALPN"
       },
       {
+        "UniquenessHash": "ba12fafc-c684-cbc8-2ada-32225176d366",
+        "TraceID": "OpenSslBIOReadError",
+        "EncodingString": "[conn][%p] BIO_read failed, error: %d"
+      },
+      {
         "UniquenessHash": "cb83793f-6b18-b2a0-659c-1674e5e91eff",
         "TraceID": "OpenSslBIOWriteError",
         "EncodingString": "[conn][%p] BIO_write failed, error: %d"
@@ -15749,6 +15786,11 @@
         "UniquenessHash": "78497dcf-70d4-80d5-af6d-0856653591e3",
         "TraceID": "OpenSslSendTicketData",
         "EncodingString": "[conn][%p] Sending ticket data, %u bytes"
+      },
+      {
+        "UniquenessHash": "04f05563-0a09-1ae3-dee6-82c7b7bb7f73",
+        "TraceID": "OpenSslSSLWriteError",
+        "EncodingString": "[conn][%p] SSL_write failed, error: %d"
       },
       {
         "UniquenessHash": "72e491bb-79fd-ba28-760a-54e0b9a4d854",

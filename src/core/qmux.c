@@ -139,6 +139,8 @@ QuicQMuxInitializeTls(
         goto Error;
     }
 
+    CxPlatTlsGetRecordOverhead(QMux->TLS, &QMux->TlsRecordOverhead);
+
     // Crypto->ResumptionTicket = NULL; // Owned by TLS now.
     // Crypto->ResumptionTicketLength = 0;
     if (QuicConnIsClient(Connection)) {

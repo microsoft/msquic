@@ -337,6 +337,24 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
 
 } CXPLAT_TLS_PROCESS_STATE;
 
+typedef struct CXPLAT_TLS_ENCRYPT_BUFFER {
+
+    uint8_t* Base;
+    size_t Capacity;
+
+    size_t DataOffset;
+    size_t DataLength;
+
+} CXPLAT_TLS_ENCRYPT_BUFFER;
+
+
+typedef struct CXPLAT_TLS_RECORD_OVERHEAD {
+
+    size_t MaxHeader;
+    size_t MaxTrailer;
+
+} CXPLAT_TLS_RECORD_OVERHEAD;
+
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
@@ -455,6 +473,13 @@ CxPlatTlsHandshake(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatTlsEncrypt(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Inout_ CXPLAT_TLS_ENCRYPT_BUFFER* Buffer
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsSendData(
     _In_ CXPLAT_TLS* TlsContext,
@@ -481,6 +506,14 @@ CxPlatTlsWriteData(
     _Inout_ uint32_t BufferLength
     );
 
+
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsGetRecordOverhead(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_ CXPLAT_TLS_RECORD_OVERHEAD* Overhead
+    );
 
 //
 // Sets a Security Configuration parameter.

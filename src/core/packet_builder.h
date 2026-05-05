@@ -92,7 +92,7 @@ typedef struct QUIC_PACKET_BUILDER {
     // The size of the encryption AEAD tag at the end of the current QUIC
     // packet.
     //
-    uint8_t EncryptionOverhead;
+    uint16_t EncryptionOverhead;
 
     //
     // The encryption level for the current QUIC packet.

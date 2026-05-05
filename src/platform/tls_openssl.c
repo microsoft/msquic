@@ -3796,6 +3796,82 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatTlsEncrypt(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Inout_ CXPLAT_TLS_ENCRYPT_BUFFER* Buffer
+    )
+{
+    int Ret;
+    CXPLAT_DBG_ASSERT(TlsContext->IsQMux);
+
+    if (Buffer->Capacity < 5 + Buffer->DataLength + 512) {
+        // Not enough room for encryption overhead, which can be up to 5 bytes for the TLS record
+        // header and up to 512 bytes for the trailer.
+        return FALSE;
+    }
+
+    if (Buffer->DataLength > 16384) {
+        // TLS record plaintext cannot exceed 2^14 bytes.
+        return FALSE;
+    }
+
+    const uint8_t* Plaintext =
+        Buffer->Base + Buffer->DataOffset;
+    size_t PlaintextLength = Buffer->DataLength;
+
+    Ret = SSL_write(
+        TlsContext->Ssl,
+        Plaintext,
+        (int)PlaintextLength);
+    if (Ret < 0) {
+        int Err = SSL_get_error(TlsContext->Ssl, Ret);
+        QuicTraceLogConnError(
+            OpenSslSSLWriteError,
+            TlsContext->Connection,
+            "SSL_write failed, error: %d",
+            Err);
+        return FALSE;
+    } else if (Ret == 0) {
+        return FALSE;
+    }
+
+    size_t Offset = 0;
+    Buffer->DataLength = 0;
+    while (BIO_pending(TlsContext->wbio) > 0) {
+        CXPLAT_DBG_ASSERT(Offset < Buffer->Capacity);
+        Ret = BIO_read(TlsContext->wbio, Buffer->Base + Offset, (int)(Buffer->Capacity - Offset));
+        if (Ret < 0) {
+            int Err = SSL_get_error(TlsContext->Ssl, Ret);
+            QuicTraceLogConnError(
+                OpenSslBIOReadError,
+                TlsContext->Connection,
+                "BIO_read failed, error: %d",
+                Err);
+            return FALSE;
+        } else if (Ret == 0) {
+            break;
+        }
+        Offset += (size_t)Ret;
+        Buffer->DataLength += (size_t)Ret;
+    }
+
+    return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsGetRecordOverhead(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_ CXPLAT_TLS_RECORD_OVERHEAD* Overhead
+    )
+{
+    UNREFERENCED_PARAMETER(TlsContext);
+    Overhead->MaxHeader = 5; // TLS record header is always 5 bytes
+    Overhead->MaxTrailer = 512; // Maximum possible trailer length for TLS 1.3 with AEAD ciphers
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsReadData(
     _In_ CXPLAT_TLS* TlsContext,

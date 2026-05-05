@@ -65,7 +65,7 @@ QuicPacketBuilderValidate(
         CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
     }
 
-    CXPLAT_DBG_ASSERT(Builder->EncryptionOverhead <= 16);
+    CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection) || Builder->EncryptionOverhead <= 16);
     if (Builder->SendData == NULL) {
         CXPLAT_DBG_ASSERT(Builder->Datagram == NULL);
     }
@@ -109,7 +109,9 @@ QuicPacketBuilderInitialize(
     Builder->PacketBatchRetransmittable = FALSE;
     Builder->WrittenConnectionCloseFrame = FALSE;
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
-    Builder->EncryptionOverhead = CXPLAT_ENCRYPTION_OVERHEAD;
+    Builder->EncryptionOverhead = !QuicConnIsQMux(Connection) ?
+        CXPLAT_ENCRYPTION_OVERHEAD :
+        QuicConnGetQMux(Connection)->TlsRecordOverhead.MaxTrailer;
     Builder->TotalDatagramsLength = 0;
 
     if (!QuicConnIsQMux(Connection)) {
@@ -510,7 +512,10 @@ QuicPacketBuilderQMuxPrepare(
     BOOLEAN Result = FALSE;
     CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection));
     QUIC_QMUX* QMux = QuicConnGetQMux(Builder->Connection);
-    uint16_t DatagramSize = 5 + 2 + QX_TP_MAX_RECORD_SIZE_DEFAULT + 16; // XXX - 5 byte header, 2 byte length, max record size, max AEAD tag.
+    uint16_t DatagramSize = QMux->TlsRecordOverhead.MaxHeader
+        + QuicVarIntSize(QX_TP_MAX_RECORD_SIZE_DEFAULT)
+        + QX_TP_MAX_RECORD_SIZE_DEFAULT
+        + QMux->TlsRecordOverhead.MaxTrailer;
     QuicPacketBuilderValidate(Builder, FALSE);
 
     //
@@ -1309,24 +1314,19 @@ QuicPacketBuilderQMuxFinalize(
         "[pack][%llu] Encrypting",
         Builder->Metadata->PacketId);
 
-    QMux->ResultFlags = CxPlatTlsWriteData(
-        QMux->TLS,
-        Builder->Datagram->Buffer + 5,
-        (uint32_t)(PayloadLength + QMuxRecordLength));
-    if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
-        QuicConnFatalError(Connection, QUIC_STATUS_TLS_ERROR, "Encryption failure");
-        goto Exit;
-    }
-
-    QMux->ResultFlags =
-        CxPlatTlsSendData(
+    CXPLAT_TLS_ENCRYPT_BUFFER EncryptBuffer = {
+        Builder->Datagram->Buffer,
+        Builder->Datagram->Length,
+        5,
+        PayloadLength + QMuxRecordLength
+    };
+    if (!CxPlatTlsEncrypt(
             QMux->TLS,
-            Builder->Datagram->Buffer,
-            &Builder->Datagram->Length);
-    if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
+            &EncryptBuffer)) {
         QuicConnFatalError(Connection, QUIC_STATUS_TLS_ERROR, "Encryption failure");
         goto Exit;
     }
+    Builder->Datagram->Length = EncryptBuffer.DataLength;
     Builder->DatagramLength = (uint16_t)Builder->Datagram->Length;
 
     //
