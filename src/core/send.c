@@ -1534,27 +1534,20 @@ QuicSendFlush(
 
         Send->TailLossProbeNeeded = FALSE;
 
-        if (!QuicConnIsQMux(Connection)) {
-            if (!WrotePacketFrames ||
-                Builder.Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET ||
-                Builder.Datagram->Length - Builder.DatagramLength < QUIC_MIN_PACKET_SPARE_SPACE) {
+        if (!WrotePacketFrames ||
+            Builder.Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET ||
+            Builder.Datagram->Length - Builder.DatagramLength < QUIC_MIN_PACKET_SPARE_SPACE) {
 
+            //
+            // We now have enough data in the current packet that we should
+            // finalize it.
+            //
+            if ((!QuicConnIsQMux(Connection) && !QuicPacketBuilderFinalize(&Builder, !WrotePacketFrames || FlushBatchedDatagrams)) ||
+                (QuicConnIsQMux(Connection) && !QuicPacketBuilderQMuxFinalize(&Builder, !WrotePacketFrames || FlushBatchedDatagrams))) {
                 //
-                // We now have enough data in the current packet that we should
-                // finalize it.
+                // Don't have any more space to send.
                 //
-                if (!QuicPacketBuilderFinalize(&Builder, !WrotePacketFrames || FlushBatchedDatagrams)) {
-                    //
-                    // Don't have any more space to send.
-                    //
-                    break;
-                }
-            }
-        } else {
-            if (!WrotePacketFrames) {
                 break;
-            } else {
-                QuicPacketBuilderQMuxFinalize(&Builder);
             }
         }
 
@@ -1565,22 +1558,19 @@ QuicSendFlush(
         PrevSendFlags = SendFlags;
 #endif
 
-    } while (QuicConnIsQMux(Connection) ||
-        Builder.SendData != NULL ||
+    } while (Builder.SendData != NULL ||
         Builder.TotalCountDatagrams < QUIC_MAX_DATAGRAMS_PER_SEND);
 
-    if (!QuicConnIsQMux(Connection)) {
-        if (Builder.SendData != NULL) {
-            //
-            // Final send, if there is anything left over.
-            //
+    if (Builder.SendData != NULL) {
+        //
+        // Final send, if there is anything left over.
+        //
+        if (!QuicConnIsQMux(Connection)) {
             QuicPacketBuilderFinalize(&Builder, TRUE);
-            CXPLAT_DBG_ASSERT(Builder.SendData == NULL);
+        } else {
+            QuicPacketBuilderQMuxFinalize(&Builder, TRUE);
         }
-    } else {
-        if (Builder.Datagram != NULL) {
-            QuicPacketBuilderQMuxFinalize(&Builder);
-        }
+        CXPLAT_DBG_ASSERT(Builder.SendData == NULL);
     }
 
     QuicPacketBuilderCleanup(&Builder);

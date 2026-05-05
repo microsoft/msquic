@@ -35,7 +35,7 @@ QuicPacketBuilderSendBatch(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPacketBuilderQMuxSend(
+QuicPacketBuilderQMuxSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     );
 
@@ -48,7 +48,7 @@ QuicPacketBuilderValidate(
     )
 {
     if (ShouldHaveData) {
-        CXPLAT_DBG_ASSERT(Builder->Key != NULL);
+        CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection) || Builder->Key != NULL);
         CXPLAT_DBG_ASSERT(Builder->SendData != NULL);
         CXPLAT_DBG_ASSERT(Builder->Datagram != NULL);
         CXPLAT_DBG_ASSERT(Builder->DatagramLength != 0);
@@ -56,8 +56,8 @@ QuicPacketBuilderValidate(
         CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
     }
 
-    CXPLAT_DBG_ASSERT(Builder->Path != NULL);
-    CXPLAT_DBG_ASSERT(Builder->Path->DestCid != NULL);
+    CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection) || Builder->Path != NULL);
+    CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection) || Builder->Path->DestCid != NULL);
     CXPLAT_DBG_ASSERT(Builder->BatchCount <= QUIC_MAX_CRYPTO_BATCH_COUNT);
 
     if (Builder->Key != NULL) {
@@ -78,7 +78,7 @@ QuicPacketBuilderValidate(
         CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart);
         CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->HeaderLength);
         CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart + Builder->HeaderLength);
-        if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
+        if (!QuicConnIsQMux(Builder->Connection) && Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
             CXPLAT_DBG_ASSERT(Builder->PayloadLengthOffset != 0);
             if (ShouldHaveData) {
                 CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart + Builder->PayloadLengthOffset);
@@ -506,20 +506,119 @@ QuicPacketBuilderQMuxPrepare(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
+    QUIC_CONNECTION* Connection = Builder->Connection;
+    BOOLEAN Result = FALSE;
     CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection));
-    Builder->Datagram = CxPlatPoolAlloc(&Builder->Connection->Partition->QmuxSendBufferPool);
-    if (Builder->Datagram == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QMUX send buffer",
-            sizeof(QUIC_BUFFER) + QX_DEFAULT_SEND_BUFFER_SIZE);
-        return FALSE;
+    QUIC_QMUX* QMux = QuicConnGetQMux(Builder->Connection);
+    uint16_t DatagramSize = 5 + 2 + QX_TP_MAX_RECORD_SIZE_DEFAULT + 16; // XXX - 5 byte header, 2 byte length, max record size, max AEAD tag.
+    QuicPacketBuilderValidate(Builder, FALSE);
+
+    //
+    // Next, make sure the current QUIC packet matches the new packet type. If
+    // the current one doesn't match, finalize it and then start a new one.
+    //
+
+    QUIC_PARTITION* Partition = Connection->Partition;
+    const uint64_t PartitionShifted = ((uint64_t)Partition->Index + 1) << 40;
+
+    BOOLEAN NewQuicPacket = FALSE;
+    if ((Builder->Datagram != NULL && (Builder->Datagram->Length - Builder->DatagramLength) < QUIC_MIN_PACKET_SPARE_SPACE)) {
+        //
+        // The current data cannot go in the current QUIC packet. Finalize the
+        // current QUIC packet up so we can create another.
+        //
+        CXPLAT_DBG_ASSERT(Builder->SendData != NULL);
+        QuicPacketBuilderQMuxFinalize(Builder, FALSE);
+        NewQuicPacket = TRUE;
+
+    } else if (Builder->Datagram == NULL) {
+        NewQuicPacket = TRUE;
     }
-    Builder->Datagram->Buffer = (uint8_t*)(Builder->Datagram + 1) + 2; // +2 for QUIC varint encoding of length
-    Builder->Datagram->Length = QX_DEFAULT_SEND_BUFFER_SIZE;
-    Builder->DatagramLength = 0;
-    return TRUE;
+
+    if (Builder->Datagram == NULL) {
+
+        //
+        // Allocate and initialize a new send buffer (UDP packet/payload).
+        //
+        BOOLEAN SendDataAllocated = FALSE;
+        if (Builder->SendData == NULL) {
+            Builder->BatchId =
+                PartitionShifted | InterlockedIncrement64((int64_t*)&Partition->SendBatchId);
+            CXPLAT_SEND_CONFIG SendConfig = {
+                &QMux->Route,
+                DatagramSize,
+                Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
+                Builder->Connection->Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT ?
+                    CXPLAT_SEND_FLAGS_MAX_THROUGHPUT : CXPLAT_SEND_FLAGS_NONE,
+                Connection->DSCP
+            };
+            Builder->SendData =
+                CxPlatSendDataAlloc(QMux->Socket, &SendConfig);
+            if (Builder->SendData == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "packet send context",
+                    0);
+                goto Error;
+            }
+            SendDataAllocated = TRUE;
+        }
+
+        Builder->Datagram =
+            CxPlatSendDataAllocBuffer(
+                Builder->SendData,
+                DatagramSize);
+        if (Builder->Datagram == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "packet datagram",
+                DatagramSize);
+            if (SendDataAllocated) {
+                CxPlatSendDataFree(Builder->SendData);
+                Builder->SendData = NULL;
+            }
+            goto Error;
+        }
+
+        Builder->DatagramLength = 0;
+        Builder->MinimumDatagramLength = 0;
+    }
+
+    if (NewQuicPacket) {
+
+        //
+        // Initialize the new QUIC packet state.
+        //
+
+        Builder->Metadata->PacketId =
+            PartitionShifted | InterlockedIncrement64((int64_t*)&Partition->SendPacketId);
+        QuicTraceEvent(
+            PacketCreated,
+            "[pack][%llu] Created in batch %llu",
+            Builder->Metadata->PacketId,
+            Builder->BatchId);
+
+        Builder->Metadata->FrameCount = 0;
+#if DEBUG
+        Builder->Metadata->Flags.Freed = FALSE;
+#endif
+
+        Builder->PacketStart = Builder->DatagramLength;
+        Builder->HeaderLength = 5 + 2; // 5 byte header, 2 byte length.
+
+        Builder->DatagramLength += Builder->HeaderLength;
+    }
+
+    Result = TRUE;
+
+Error:
+
+    QuicPacketBuilderValidate(Builder, FALSE);
+
+    return Result;
+
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1126,135 +1225,119 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicPacketBuilderQMuxFinalize(
-    _Inout_ QUIC_PACKET_BUILDER* Builder
-    )
-{
-    CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection));
-
-    if (Builder->DatagramLength > 0) {
-        QuicPacketBuilderQMuxSend(Builder);
-    }
-    CxPlatPoolFree(Builder->Datagram);
-    Builder->Datagram = NULL;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicPacketBuilderSendBatch(
-    _Inout_ QUIC_PACKET_BUILDER* Builder
-    )
-{
-    QuicTraceLogConnVerbose(
-        PacketBuilderSendBatch,
-        Builder->Connection,
-        "Sending batch. %hu datagrams",
-        (uint16_t)Builder->TotalCountDatagrams);
-
-    QuicBindingSend(
-        Builder->Path->Binding,
-        Builder->Connection->Partition,
-        &Builder->Path->Route,
-        Builder->SendData,
-        Builder->TotalDatagramsLength,
-        Builder->TotalCountDatagrams);
-
-    Builder->PacketBatchSent = TRUE;
-    Builder->SendData = NULL;
-    Builder->TotalDatagramsLength = 0;
-    Builder->Metadata->FrameCount = 0;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicPacketBuilderQMuxSend(
-    _Inout_ QUIC_PACKET_BUILDER* Builder
+    _Inout_ QUIC_PACKET_BUILDER* Builder,
+    _In_ BOOLEAN FlushBatchedDatagrams
     )
 {
     QUIC_CONNECTION* Connection = Builder->Connection;
     QUIC_QMUX* QMux = QuicConnGetQMux(Connection);
-    CXPLAT_SEND_DATA* SendData = NULL;
-    uint32_t TotalSendLength = 0;
+    BOOLEAN FinalQuicPacket = FALSE;
+    BOOLEAN CanKeepSending = TRUE;
 
-    QuicTraceLogConnVerbose(
-        PacketBuilderQMuxSend,
-        Connection,
-        "Sending %hu bytes",
-        Builder->DatagramLength);
+    QuicPacketBuilderValidate(Builder, FALSE);
 
-    QuicFrameLogAll(
-        Connection,
-        FALSE,
-        0,
-        Builder->DatagramLength,
-        Builder->Datagram->Buffer,
-        0);
+    if (Builder->Datagram == NULL || Builder->Metadata->FrameCount == 0) {
+        //
+        // Nothing got framed into this packet. Undo the header of this
+        // packet.
+        //
+        if (Builder->Datagram != NULL) {
+            Builder->DatagramLength -= Builder->HeaderLength;
+            Builder->HeaderLength = 0;
+            CanKeepSending = FALSE;
 
-    uint8_t QMuxRecordLength = QuicVarIntSize(Builder->DatagramLength);
+            if (Builder->DatagramLength == 0) {
+                CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
+                Builder->Datagram = NULL;
+            }
+        }
+        FinalQuicPacket = FlushBatchedDatagrams && (Builder->TotalCountDatagrams != 0);
+        goto Exit;
+    }
+
+    QuicPacketBuilderValidate(Builder, TRUE);
+
+    //
+    // Calculate some of the packet buffer parameters (mostly used for encryption).
+    //
+    uint8_t* Header =
+        Builder->Datagram->Buffer + Builder->PacketStart;
+    uint16_t PayloadLength =
+        Builder->DatagramLength - (Builder->PacketStart + Builder->HeaderLength);
+    uint16_t ExpectedFinalDatagramLength =
+        Builder->DatagramLength + Builder->EncryptionOverhead;
+
+    if (FlushBatchedDatagrams ||
+        (uint16_t)Builder->Datagram->Length - ExpectedFinalDatagramLength < QUIC_MIN_PACKET_SPARE_SPACE) {
+        FinalQuicPacket = TRUE;
+    }
+
+    uint8_t QMuxRecordLength = QuicVarIntSize(PayloadLength);
     CXPLAT_DBG_ASSERT(QMuxRecordLength <= 2); // QMUX datagram length must fit in 2 bytes.
-    QuicVarIntEncode(Builder->DatagramLength, Builder->Datagram->Buffer - QMuxRecordLength);
+    if (QMuxRecordLength == 1) {
+        CxPlatMoveMemory(
+            Header + (Builder->HeaderLength - 1), // Move the payload forward by 1 byte.
+            Header + Builder->HeaderLength,
+            PayloadLength);
+        Builder->HeaderLength -= 1;
+        Builder->DatagramLength -= 1;
+    }
+    QuicVarIntEncode(PayloadLength, Header + 5); // XXX 5 byte TLS record header.
+
+#ifdef QUIC_FUZZER
+    QuicFuzzInjectHook(Builder);
+#endif
+
+    if (QuicTraceLogVerboseEnabled()) {
+        QuicFrameLogAll(
+            Connection,
+            FALSE,
+            0,
+            Builder->HeaderLength + PayloadLength,
+            Header,
+            Builder->HeaderLength);
+    }
+
+    //
+    // Encrypt the data.
+    //
+
+    QuicTraceEvent(
+        PacketEncrypt,
+        "[pack][%llu] Encrypting",
+        Builder->Metadata->PacketId);
 
     QMux->ResultFlags = CxPlatTlsWriteData(
         QMux->TLS,
-        Builder->Datagram->Buffer - QMuxRecordLength,
-        (uint32_t)(Builder->DatagramLength + QMuxRecordLength));
+        Builder->Datagram->Buffer + 5,
+        (uint32_t)(PayloadLength + QMuxRecordLength));
     if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
+        QuicConnFatalError(Connection, QUIC_STATUS_TLS_ERROR, "Encryption failure");
         goto Exit;
     }
 
-    CXPLAT_SEND_CONFIG SendConfig = { &QMux->Route, 16645, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
-    SendData = CxPlatSendDataAlloc(QMux->Socket, &SendConfig);
-    if (SendData == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "packet send context",
-            0);
+    QMux->ResultFlags =
+        CxPlatTlsSendData(
+            QMux->TLS,
+            Builder->Datagram->Buffer,
+            &Builder->Datagram->Length);
+    if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
+        QuicConnFatalError(Connection, QUIC_STATUS_TLS_ERROR, "Encryption failure");
         goto Exit;
     }
+    Builder->DatagramLength = (uint16_t)Builder->Datagram->Length;
 
-    uint32_t SendBufferLength;
-    uint32_t SendBufferOffset = 0;
-    QUIC_BUFFER* SendBuffer = NULL;
-    do {
-        if (SendBuffer == NULL || SendBufferOffset == SendBuffer->Length) {
-            SendBuffer = CxPlatSendDataAllocBuffer(SendData, 16645);
-            if (SendBuffer == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "packet datagram",
-                    16645);
-                goto Exit;
-            }
-        }
+    //
+    // Track the sent packet.
+    //
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
 
-        SendBufferLength = SendBuffer->Length - SendBufferOffset;
-        QMux->ResultFlags =
-            CxPlatTlsSendData(
-                QMux->TLS,
-                SendBuffer->Buffer + SendBufferOffset,
-                &SendBufferLength);
-        if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
-            break;
-        }
-        if (SendBufferLength > 0) {
-            SendBufferOffset += SendBufferLength;
-            TotalSendLength += SendBufferLength;
-        }
-    } while (SendBufferLength > 0);
-    SendBuffer->Length = SendBufferOffset;
-
-Exit:
-    if (SendData != NULL) {
-        if (TotalSendLength > 0) {
-            CxPlatSocketSend(QMux->Socket, &QMux->Route, SendData);
-            QuicConnResetIdleTimeout(Connection);
-        } else {
-            CxPlatSendDataFree(SendData);
-        }
-    }
+    Builder->Metadata->SentTime = CxPlatTimeUs64();
+    Builder->Metadata->PacketLength =
+        Builder->HeaderLength + PayloadLength;
+    Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
 
     for (uint8_t i = 0; i < Builder->Metadata->FrameCount; ++i) {
         switch (Builder->Metadata->Frames[i].Type) {
@@ -1295,4 +1378,101 @@ Exit:
     QuicSentPacketMetadataReleaseFrames(Builder->Metadata, Connection);
 
     Builder->Metadata->FrameCount = 0;
+
+Exit:
+
+    //
+    // Send the packet out if necessary.
+    //
+
+    if (FinalQuicPacket) {
+        if (Builder->Datagram != NULL) {
+            if (Builder->Metadata->Flags.EcnEctSet) {
+                ++Connection->Send.NumPacketsSentWithEct;
+            }
+            Builder->Datagram->Length = Builder->DatagramLength;
+            Builder->Datagram = NULL;
+            ++Builder->TotalCountDatagrams;
+            Builder->TotalDatagramsLength += Builder->DatagramLength;
+            Builder->DatagramLength = 0;
+        }
+
+        if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendData)) {
+            CXPLAT_DBG_ASSERT(Builder->TotalCountDatagrams > 0);
+            QuicPacketBuilderQMuxSendBatch(Builder);
+            CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount == 0);
+            QuicTraceEvent(
+                PacketBatchSent,
+                "[pack][%llu] Batch sent",
+                Builder->BatchId);
+        }
+    } else if (FlushBatchedDatagrams) {
+        if (Builder->Datagram != NULL) {
+            CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
+            Builder->Datagram = NULL;
+            Builder->DatagramLength = 0;
+        }
+        if (Builder->SendData != NULL) {
+            CxPlatSendDataFree(Builder->SendData);
+            Builder->SendData = NULL;
+        }
+    }
+
+    QuicPacketBuilderValidate(Builder, FALSE);
+
+    CXPLAT_DBG_ASSERT(!FlushBatchedDatagrams || Builder->SendData == NULL);
+
+    return CanKeepSending;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPacketBuilderSendBatch(
+    _Inout_ QUIC_PACKET_BUILDER* Builder
+    )
+{
+    QuicTraceLogConnVerbose(
+        PacketBuilderSendBatch,
+        Builder->Connection,
+        "Sending batch. %hu datagrams",
+        (uint16_t)Builder->TotalCountDatagrams);
+
+    QuicBindingSend(
+        Builder->Path->Binding,
+        Builder->Connection->Partition,
+        &Builder->Path->Route,
+        Builder->SendData,
+        Builder->TotalDatagramsLength,
+        Builder->TotalCountDatagrams);
+
+    Builder->PacketBatchSent = TRUE;
+    Builder->SendData = NULL;
+    Builder->TotalDatagramsLength = 0;
+    Builder->Metadata->FrameCount = 0;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPacketBuilderQMuxSendBatch(
+    _Inout_ QUIC_PACKET_BUILDER* Builder
+    )
+{
+    QUIC_CONNECTION* Connection = Builder->Connection;
+    QUIC_QMUX* QMux = QuicConnGetQMux(Connection);
+
+    QuicTraceLogConnVerbose(
+        PacketBuilderQMuxSendBatch,
+        Builder->Connection,
+        "Sending batch. %hu datagrams %u bytes",
+        (uint16_t)Builder->TotalCountDatagrams,
+        Builder->TotalDatagramsLength);
+
+    CxPlatSocketSend(QMux->Socket, &QMux->Route, Builder->SendData);
+
+    Builder->PacketBatchSent = TRUE;
+    Builder->SendData = NULL;
+    Builder->TotalDatagramsLength = 0;
+    Builder->Metadata->FrameCount = 0;
+
+    QuicConnResetIdleTimeout(Connection);
 }

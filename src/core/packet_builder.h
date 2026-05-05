@@ -225,9 +225,10 @@ QuicPacketBuilderFinalize(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicPacketBuilderQMuxFinalize(
-    _Inout_ QUIC_PACKET_BUILDER* Builder
+    _Inout_ QUIC_PACKET_BUILDER* Builder,
+    _In_ BOOLEAN FlushBatchedDatagrams
     );
 
 //
