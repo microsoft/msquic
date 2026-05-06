@@ -1236,7 +1236,7 @@ CxPlatTlsClientHelloCallback(
     const uint8_t* TransportParams;
     size_t TransportParamLen;
 
-    if (!SSL_client_hello_get0_ext(
+    if (!TlsContext->IsQMux && !SSL_client_hello_get0_ext(
             Ssl,
             TlsContext->QuicTpExtType,
             &TransportParams,
@@ -3567,15 +3567,14 @@ CxPlatTlsHandshake(
     _In_reads_bytes_(*InputBufferLength)
         const uint8_t * InputBuffer,
     _Inout_ uint32_t * InputBufferLength,
-    _Out_writes_bytes_(*OutputBufferLength)
-        uint8_t* OutputBuffer,
-    _Inout_ uint32_t* OutputBufferLength,
+    _Inout_ QUIC_BUFFER* OutputBuffers,
+    _Inout_ uint32_t OutputBuffersCount,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
     int Ret;
     CXPLAT_DBG_ASSERT(InputBuffer != NULL || *InputBufferLength == 0);
-    CXPLAT_DBG_ASSERT(OutputBuffer != NULL || *OutputBufferLength == 0);
+    CXPLAT_DBG_ASSERT(OutputBuffers != NULL && OutputBuffersCount > 0);
     CXPLAT_DBG_ASSERT(TlsContext->IsQMux);
 
     TlsContext->State = State;
@@ -3645,7 +3644,7 @@ CxPlatTlsHandshake(
                 Err);
            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         }
-        *InputBufferLength -= Ret;
+        *InputBufferLength = Ret;
     }
 
     if (!State->HandshakeComplete) {
@@ -3772,22 +3771,39 @@ CxPlatTlsHandshake(
         }
     }
 
-    if (BIO_pending(TlsContext->wbio) == 0) {
-        *OutputBufferLength = 0;
-        goto Exit;
+    uint32_t OutputBufferCount = 0;
+    QUIC_BUFFER *OutputBuffer = &OutputBuffers[OutputBufferCount];
+    size_t OutputBufferOffset = 0;
+    while (BIO_pending(TlsContext->wbio)) {
+        if (OutputBufferOffset == OutputBuffer->Length) {
+            OutputBufferCount++;
+            if (OutputBufferCount == OutputBuffersCount) {
+                break;
+            }
+            OutputBuffer = &OutputBuffers[OutputBufferCount];
+            OutputBufferOffset = 0;
+        }
+        Ret = BIO_read(TlsContext->wbio,
+            OutputBuffer->Buffer + OutputBufferOffset,
+            (int)(OutputBuffer->Length - OutputBufferOffset));
+        if (Ret < 0) {
+            int Err = SSL_get_error(TlsContext->Ssl, Ret);
+            QuicTraceLogConnError(
+                OpenSslBIOWriteError,
+                TlsContext->Connection,
+                "BIO_write failed, error: %d",
+                Err);
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            break;
+        } else {
+            OutputBufferOffset += (size_t)Ret;
+            OutputBuffer->Length = (uint32_t)OutputBufferOffset;
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_DATA;
+        }
     }
 
-    Ret = BIO_read(TlsContext->wbio, OutputBuffer, (int)*OutputBufferLength);
-    if (Ret < 0) {
-        int Err = SSL_get_error(TlsContext->Ssl, Ret);
-        QuicTraceLogConnError(
-            OpenSslBIOWriteError,
-            TlsContext->Connection,
-            "BIO_write failed, error: %d",
-            Err);
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-    } else {
-        *OutputBufferLength = (uint32_t)Ret;
+    for (uint32_t i = OutputBufferCount + 1; i < OutputBuffersCount; ++i) {
+        OutputBuffers[i].Length = 0;
     }
 
 Exit:
@@ -3887,7 +3903,7 @@ CxPlatTlsDecrypt(
                 Err);
             return FALSE;
         }
-        *InputBufferLength -= Ret;
+        *InputBufferLength = Ret;
     }
 
     size_t Offset = 0;

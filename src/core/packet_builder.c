@@ -16,7 +16,7 @@ Abstract:
 #ifdef QUIC_CLOG
 #include "packet_builder.c.clog.h"
 #endif
-
+#include <stdio.h>
 #ifdef QUIC_FUZZER
 
 __declspec(noinline)
@@ -109,9 +109,13 @@ QuicPacketBuilderInitialize(
     Builder->PacketBatchRetransmittable = FALSE;
     Builder->WrittenConnectionCloseFrame = FALSE;
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
-    Builder->EncryptionOverhead = !QuicConnIsQMux(Connection) ?
-        CXPLAT_ENCRYPTION_OVERHEAD :
-        (uint16_t)QuicConnGetQMux(Connection)->TlsRecordOverhead.MaxTrailer;
+    if (!QuicConnIsQMux(Connection)) {
+        Builder->EncryptionOverhead = CXPLAT_ENCRYPTION_OVERHEAD;
+    } else {
+        CXPLAT_TLS_RECORD_OVERHEAD Overhead;
+        CxPlatTlsGetRecordOverhead(QuicConnGetQMux(Connection)->TLS, &Overhead);
+        Builder->EncryptionOverhead = (uint16_t)Overhead.MaxTrailer;
+    }
     Builder->TotalDatagramsLength = 0;
 
     if (!QuicConnIsQMux(Connection)) {
@@ -512,10 +516,13 @@ QuicPacketBuilderQMuxPrepare(
     BOOLEAN Result = FALSE;
     CXPLAT_DBG_ASSERT(QuicConnIsQMux(Builder->Connection));
     QUIC_QMUX* QMux = QuicConnGetQMux(Builder->Connection);
-    uint16_t DatagramSize = (uint16_t)QMux->TlsRecordOverhead.MaxHeader
+    CXPLAT_TLS_RECORD_OVERHEAD Overhead;
+    CxPlatTlsGetRecordOverhead(QMux->TLS, &Overhead);
+    uint16_t DatagramSize = (uint16_t)Overhead.MaxHeader
         + QuicVarIntSize(QX_TP_MAX_RECORD_SIZE_DEFAULT)
         + QX_TP_MAX_RECORD_SIZE_DEFAULT
-        + (uint16_t)QMux->TlsRecordOverhead.MaxTrailer;
+        + (uint16_t)Overhead.MaxTrailer;
+    printf("QMux DatagramSize: %hu\n", DatagramSize);
     QuicPacketBuilderValidate(Builder, FALSE);
 
     //
@@ -1465,6 +1472,7 @@ QuicPacketBuilderQMuxSendBatch(
         "Sending batch. %hu datagrams %u bytes",
         (uint16_t)Builder->TotalCountDatagrams,
         Builder->TotalDatagramsLength);
+    printf("QMux send batch: %hu datagrams %u bytes\n", (uint16_t)Builder->TotalCountDatagrams, Builder->TotalDatagramsLength);
 
     CxPlatSocketSend(QMux->Socket, &QMux->Route, Builder->SendData);
 

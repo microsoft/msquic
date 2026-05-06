@@ -51,11 +51,6 @@ typedef struct QUIC_QMUX {
     uint32_t TcpReceiveQueueByteCount;
 
     //
-    // TLS record overhead.
-    //
-    CXPLAT_TLS_RECORD_OVERHEAD TlsRecordOverhead;
-
-    //
     // Buffer for decrypted data.
     //
     uint8_t* RecvBuffer;

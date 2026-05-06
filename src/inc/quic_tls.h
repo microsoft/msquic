@@ -247,6 +247,7 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     // Indicates TLS has completed the handshake phase of its exchange.
     //
     BOOLEAN HandshakeComplete : 1;
+    BOOLEAN HandshakeComplete2 : 1;
 
     //
     // Indicates the TLS session was resumed from a previous connection.
@@ -466,11 +467,11 @@ CxPlatTlsHandshake(
     _In_reads_bytes_(*InputBufferLength)
         const uint8_t * InputBuffer,
     _Inout_ uint32_t * InputBufferLength,
-    _Out_writes_bytes_(*OutputBufferLength)
-        uint8_t* OutputBuffer,
-    _Inout_ uint32_t* OutputBufferLength,
+    _Inout_ QUIC_BUFFER* OutputBuffers,
+    _Inout_ uint32_t OutputBuffersCount,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     );
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
