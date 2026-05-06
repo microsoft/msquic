@@ -164,9 +164,15 @@ public:
 
 //
 // The amount of extra time (in milliseconds) to give the watchdog before
-// actually firing.
+// actually firing. Sanitizer builds need substantially more headroom because
+// ASan instrumentation adds 2-3x overhead to per-iteration teardown,
+// especially the registration rundown drain.
 //
+#if defined(__SANITIZE_ADDRESS__)
+#define WATCHDOG_WIGGLE_ROOM 30000
+#else
 #define WATCHDOG_WIGGLE_ROOM 10000
+#endif
 
 //
 // Soft pressure on live-connection count to bound the cleanup phase.
