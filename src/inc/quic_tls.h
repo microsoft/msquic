@@ -215,6 +215,7 @@ typedef enum CXPLAT_TLS_RESULT_FLAGS {
     CXPLAT_TLS_RESULT_EARLY_DATA_REJECT   = 0x0020, // The server rejected the early (0-RTT) data.
     CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE  = 0x0040, // Handshake complete.
     CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL    = 0x0080, // Provided buffer was too small for the data.
+    CXPLAT_TLS_RESULT_RENEGOTIATE         = 0x0100, // Renegotiation requested by the peer (Used internally to schannel).
     CXPLAT_TLS_RESULT_ERROR               = 0x8000  // An error occured.
 
 } CXPLAT_TLS_RESULT_FLAGS;
@@ -247,7 +248,6 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     // Indicates TLS has completed the handshake phase of its exchange.
     //
     BOOLEAN HandshakeComplete : 1;
-    BOOLEAN HandshakeComplete2 : 1;
 
     //
     // Indicates the TLS session was resumed from a previous connection.
@@ -481,13 +481,13 @@ CxPlatTlsEncrypt(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsDecrypt(
     _In_ CXPLAT_TLS* TlsContext,
     _In_reads_bytes_(*InputBufferLength)
         const uint8_t * InputBuffer,
     _Inout_ uint32_t * InputBufferLength,
-    _Out_writes_bytes_(*OutputBufferLength)
+    _Inout_updates_bytes_opt_(*OutputBufferLength)
         uint8_t* OutputBuffer,
     _Inout_ uint32_t* OutputBufferLength
     );

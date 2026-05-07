@@ -1425,7 +1425,6 @@ QxPingFrameDecode(
     return TRUE;
 }
 
-#include <stdio.h>
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicFrameLog(
@@ -2126,7 +2125,6 @@ QuicFrameLog(
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber);
-        printf("QX TRANSPORT_PARAMETERS Length: %llu\n", Frame.Length);
         break;
     }
 

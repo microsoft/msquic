@@ -613,6 +613,16 @@ typedef struct CXPLAT_TLS {
     //
     QUIC_TLS_SECRETS* TlsSecrets;
 
+    _Field_size_bytes_(InputBufferAllocLength)
+    uint8_t* InputBuffer;
+    uint32_t InputBufferLength;
+    uint32_t InputBufferAllocLength;
+
+    _Field_size_bytes_(OutputBufferAllocLength)
+    uint8_t* OutputBuffer;
+    uint32_t OutputBufferLength;
+    uint32_t OutputBufferAllocLength;
+
 } CXPLAT_TLS;
 
 typedef enum QUIC_CERT_BLOB_TYPE {
@@ -1673,6 +1683,12 @@ CxPlatTlsUninitialize(
             TlsContext->PeerTransportParams = NULL;
             TlsContext->PeerTransportParamsLength = 0;
         }
+        if (TlsContext->InputBuffer != NULL) {
+            CXPLAT_FREE(TlsContext->InputBuffer, QUIC_POOL_TLS_BUFFER);
+            TlsContext->InputBuffer = NULL;
+            TlsContext->InputBufferLength = 0;
+            TlsContext->InputBufferAllocLength = 0;
+        }
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 }
@@ -2453,8 +2469,8 @@ CxPlatTlsWriteDataToSchannel(
             //
             // Not all the input buffer was consumed. There is some 'extra' left over.
             //
-            CXPLAT_DBG_ASSERT(InSecBuffers[1].cbBuffer <= *InBufferLength);
-            *InBufferLength -= InSecBuffers[1].cbBuffer;
+            CXPLAT_DBG_ASSERT(ExtraBuffer->cbBuffer <= *InBufferLength);
+            *InBufferLength -= ExtraBuffer->cbBuffer;
         }
 
         QuicTraceLogConnInfo(
@@ -2903,7 +2919,6 @@ Error:
     return Result;
 }
 
-#include <stdio.h>
 _IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsHandshake(
@@ -2917,7 +2932,6 @@ CxPlatTlsHandshake(
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
-    printf("CxPlatTlsHandshake is implemented in Schannel TLS provider\n");
     UNREFERENCED_PARAMETER(DataType);
     SEC_WCHAR* TargetServerName = NULL;
 
@@ -3116,10 +3130,8 @@ CxPlatTlsHandshake(
     uint8_t NewOwnTrafficSecretsCount = 0;
 
     for (uint32_t i = 0; i < OutSecBufferDesc.cBuffers; ++i) {
-        printf("Output buffer %u: Type=%u, Length=%u\n", i, OutSecBufferDesc.pBuffers[i].BufferType, OutSecBufferDesc.pBuffers[i].cbBuffer);
         if (OutputTokenBuffer == NULL &&
             OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_TOKEN) {
-            printf("  This buffer is for TLS output data\n");
             OutputTokenBuffer = &OutSecBufferDesc.pBuffers[i];
         } else if (AlertBuffer == NULL &&
             OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_ALERT &&
@@ -3154,7 +3166,6 @@ CxPlatTlsHandshake(
         }
     }
 
-    printf("SecStatus = 0x%X\n", SecStatus);
     switch (SecStatus) {
     case SEC_E_BUFFER_TOO_SMALL: {
         //
@@ -3398,8 +3409,8 @@ CxPlatTlsHandshake(
             //
             // Not all the input buffer was consumed. There is some 'extra' left over.
             //
-            CXPLAT_DBG_ASSERT(InSecBuffers[1].cbBuffer <= *InputBufferLength);
-            *InputBufferLength -= InSecBuffers[1].cbBuffer;
+            CXPLAT_DBG_ASSERT(ExtraBuffer->cbBuffer <= *InputBufferLength);
+            *InputBufferLength -= ExtraBuffer->cbBuffer;
         }
 
         QuicTraceLogConnInfo(
@@ -3594,7 +3605,6 @@ CxPlatTlsHandshake(
             TlsContext->TlsSecrets = NULL;
         }
 
-        printf("OutputTokenBuffer=%p\n", OutputTokenBuffer);
         if (OutputTokenBuffer != NULL && OutputTokenBuffer->cbBuffer > 0) {
             //
             // There is output data to send back.
@@ -3701,15 +3711,13 @@ CxPlatTlsEncrypt(
     )
 {
     SecBuffer* InSecBuffers = TlsContext->Workspace.InSecBuffers;
-    SecPkgContext_StreamSizes Sizes;
-    QueryContextAttributes(&TlsContext->SchannelContext, SECPKG_ATTR_STREAM_SIZES, &Sizes);
+    CXPLAT_TLS_RECORD_OVERHEAD Overhead;
+    CxPlatTlsGetRecordOverhead(TlsContext, &Overhead);
 
-    printf("Encrypting %llu bytes of data Capacity %llu DataOffset %llu\n", Buffer->DataLength, Buffer->Capacity, Buffer->DataOffset);
-    printf("Stream Sizes: Header %lu Trailer %lu MaxMessage %lu\n", Sizes.cbHeader, Sizes.cbTrailer, Sizes.cbMaximumMessage);
-    if (Buffer->Capacity < Sizes.cbHeader + Buffer->DataLength + Sizes.cbTrailer) {
+    if (Buffer->Capacity < Overhead.MaxHeader + Buffer->DataLength + Overhead.MaxTrailer) {
         return FALSE;
     }
-    if (Buffer->DataOffset != Sizes.cbHeader) {
+    if (Buffer->DataOffset != Overhead.MaxHeader) {
         return FALSE;
     }
 
@@ -3719,7 +3727,7 @@ CxPlatTlsEncrypt(
     InSecBufferDesc.cBuffers = 0;
 
     InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_STREAM_HEADER;
-    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = Sizes.cbHeader;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = (uint32_t)Overhead.MaxHeader;
     InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = Buffer->Base;
 
     InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_DATA;
@@ -3727,7 +3735,7 @@ CxPlatTlsEncrypt(
     InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = Buffer->Base + Buffer->DataOffset;
 
     InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_STREAM_TRAILER;
-    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = Sizes.cbTrailer;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = (uint32_t)Overhead.MaxTrailer;
     InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer =
         Buffer->Base + Buffer->DataOffset + Buffer->DataLength;
 
@@ -3742,48 +3750,238 @@ CxPlatTlsEncrypt(
             &InSecBufferDesc,
             0);
 
-    printf("EncryptMessage returned 0x%X\n", SecStatus);
-    printf("Encrypted buffer lengths: Header %lu Data %lu Trailer %lu\n",
-        InSecBuffers[0].cbBuffer,
-        InSecBuffers[1].cbBuffer,
-        InSecBuffers[2].cbBuffer);
-    Buffer->DataLength = InSecBuffers[0].cbBuffer +
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "EncryptMessage");
+        return FALSE;
+    }
+
+    Buffer->DataLength =
+        InSecBuffers[0].cbBuffer +
         InSecBuffers[1].cbBuffer +
         InSecBuffers[2].cbBuffer;
     return TRUE;
 }
 
+static
+BOOLEAN 
+CopyInputToInternalBuffer(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(InputLength) const uint8_t* Input,
+    _In_ uint32_t InputLength
+    )
+{
+    if (TlsContext->InputBuffer == NULL || TlsContext->InputBufferAllocLength == 0) {
+        TlsContext->InputBufferAllocLength = 65536;
+        TlsContext->InputBufferLength = 0;
+        TlsContext->InputBuffer = CXPLAT_ALLOC_NONPAGED(TlsContext->InputBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        if (TlsContext->InputBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "TLS input Buffer",
+                TlsContext->InputBufferAllocLength);
+            TlsContext->InputBufferAllocLength = 0;
+            return FALSE;
+        }
+    }
+
+    CXPLAT_DBG_ASSERT(TlsContext->InputBuffer != NULL);
+    CXPLAT_DBG_ASSERT(TlsContext->InputBufferAllocLength >= TlsContext->InputBufferLength);
+
+    uint8_t* CurrentInputBuffer = TlsContext->InputBuffer;
+    uint32_t CurrentInputBufferLength = TlsContext->InputBufferLength;
+    uint32_t CurrentInputBufferAllocLength = TlsContext->InputBufferAllocLength;
+
+    if (InputLength > UINT32_MAX - CurrentInputBufferLength) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "TLS input buffer too large");
+        return FALSE;
+    }
+
+    uint32_t RequiredLength = CurrentInputBufferLength + InputLength;
+    if (RequiredLength > CurrentInputBufferAllocLength) {
+        uint32_t NewInputBufferAllocLength = CurrentInputBufferAllocLength;
+        while (RequiredLength > NewInputBufferAllocLength) {
+            if (NewInputBufferAllocLength > UINT32_MAX / 2) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS input buffer too large");
+                return FALSE;
+            }
+            NewInputBufferAllocLength *= 2;
+        }
+
+        uint8_t* NewInputBuffer = CXPLAT_ALLOC_NONPAGED(NewInputBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        if (NewInputBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "TLS input Buffer",
+                NewInputBufferAllocLength);
+            return FALSE;
+        }
+
+        if (CurrentInputBufferLength > 0) {
+            CXPLAT_ANALYSIS_ASSUME(CurrentInputBufferLength <= CurrentInputBufferAllocLength);
+            CXPLAT_ANALYSIS_ASSUME(CurrentInputBufferLength <= NewInputBufferAllocLength);
+#pragma warning(suppress:6385) // Bounds validated above; static analysis loses the relation here.
+            CxPlatCopyMemory(NewInputBuffer, CurrentInputBuffer, CurrentInputBufferLength);
+        }
+
+        CXPLAT_FREE(CurrentInputBuffer, QUIC_POOL_TLS_BUFFER);
+        TlsContext->InputBuffer = NewInputBuffer;
+        TlsContext->InputBufferAllocLength = NewInputBufferAllocLength;
+    }
+
+    CXPLAT_DBG_ASSERT(InputLength <= TlsContext->InputBufferAllocLength - TlsContext->InputBufferLength);
+    CxPlatCopyMemory(TlsContext->InputBuffer + TlsContext->InputBufferLength, Input, InputLength);
+    TlsContext->InputBufferLength += InputLength;
+    return TRUE;
+}
+
+static
+BOOLEAN 
+CopyOutputToInternalBuffer(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(OutputLength) const uint8_t* Output,
+    _In_ uint32_t OutputLength
+    )
+{
+    if (TlsContext->OutputBuffer == NULL || TlsContext->OutputBufferAllocLength == 0) {
+        TlsContext->OutputBufferAllocLength = 65536;
+        TlsContext->OutputBufferLength = 0;
+        TlsContext->OutputBuffer = CXPLAT_ALLOC_NONPAGED(TlsContext->OutputBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        if (TlsContext->OutputBuffer == NULL) {
+            TlsContext->OutputBufferAllocLength = 0;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "TLS output Buffer",
+                TlsContext->OutputBufferAllocLength);
+            return FALSE;
+        }
+    }
+
+    CXPLAT_DBG_ASSERT(TlsContext->OutputBuffer != NULL);
+    CXPLAT_DBG_ASSERT(TlsContext->OutputBufferAllocLength >= TlsContext->OutputBufferLength);
+
+    uint8_t* CurrentOutputBuffer = TlsContext->OutputBuffer;
+    uint32_t CurrentOutputBufferLength = TlsContext->OutputBufferLength;
+    uint32_t CurrentOutputBufferAllocLength = TlsContext->OutputBufferAllocLength;
+
+    if (OutputLength > UINT32_MAX - CurrentOutputBufferLength) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "TLS output buffer too large");
+        return FALSE;
+    }
+
+    uint32_t RequiredLength = CurrentOutputBufferLength + OutputLength;
+    if (RequiredLength > CurrentOutputBufferAllocLength) {
+        uint32_t NewOutputBufferAllocLength = CurrentOutputBufferAllocLength;
+        while (RequiredLength > NewOutputBufferAllocLength) {
+            if (NewOutputBufferAllocLength > UINT32_MAX / 2) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS output buffer too large");
+                return FALSE;
+            }
+            NewOutputBufferAllocLength *= 2;
+        }
+
+        uint8_t* NewOutputBuffer = CXPLAT_ALLOC_NONPAGED(NewOutputBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        if (NewOutputBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "TLS output Buffer",
+                NewOutputBufferAllocLength);
+            return FALSE;
+        }
+
+        if (CurrentOutputBufferLength > 0) {
+            CXPLAT_ANALYSIS_ASSUME(CurrentOutputBufferLength <= CurrentOutputBufferAllocLength);
+            CXPLAT_ANALYSIS_ASSUME(CurrentOutputBufferLength <= NewOutputBufferAllocLength);
+#pragma warning(suppress:6385) // Bounds validated above; static analysis loses the relation here.
+            CxPlatCopyMemory(NewOutputBuffer, CurrentOutputBuffer, CurrentOutputBufferLength);
+        }
+
+        CXPLAT_FREE(CurrentOutputBuffer, QUIC_POOL_TLS_BUFFER);
+        TlsContext->OutputBuffer = NewOutputBuffer;
+        TlsContext->OutputBufferAllocLength = NewOutputBufferAllocLength;
+    }
+
+    CXPLAT_DBG_ASSERT(OutputLength <= TlsContext->OutputBufferAllocLength - TlsContext->OutputBufferLength);
+    CxPlatCopyMemory(TlsContext->OutputBuffer + TlsContext->OutputBufferLength, Output, OutputLength);
+    TlsContext->OutputBufferLength += OutputLength;
+    return TRUE;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsDecrypt(
     _In_ CXPLAT_TLS* TlsContext,
     _In_reads_bytes_(*InputBufferLength)
         const uint8_t * InputBuffer,
-    _Inout_ uint32_t * InputBufferLength,
-    _Out_writes_bytes_(*OutputBufferLength)
+    _Inout_ uint32_t* InputBufferLength,
+    _Inout_updates_bytes_opt_(*OutputBufferLength)
         uint8_t* OutputBuffer,
     _Inout_ uint32_t* OutputBufferLength
     )
 {
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(InputBuffer);
-    UNREFERENCED_PARAMETER(InputBufferLength);
-    UNREFERENCED_PARAMETER(OutputBuffer);
-    UNREFERENCED_PARAMETER(OutputBufferLength);
+    CXPLAT_TLS_RESULT_FLAGS Result = 0;
+    uint32_t OutputBufferCapacity = *OutputBufferLength;
     SecBuffer* InSecBuffers = TlsContext->Workspace.InSecBuffers;
     SecBufferDesc InSecBufferDesc;
+    BOOLEAN Copied = FALSE;
     InSecBufferDesc.ulVersion = SECBUFFER_VERSION;
     InSecBufferDesc.pBuffers = InSecBuffers;
     InSecBufferDesc.cBuffers = 0;
 
-    printf("Decrypting %u bytes of data\n", *InputBufferLength);
-    if (*InputBufferLength == 0) {
-        *OutputBufferLength = 0;
-        return TRUE;
+    if (TlsContext->OutputBufferLength > 0) {
+        if (OutputBuffer == NULL || OutputBufferCapacity < TlsContext->OutputBufferLength) {
+            *OutputBufferLength = TlsContext->OutputBufferLength;
+            Result |= CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL;
+            return Result;
+        }
+        CxPlatCopyMemory(OutputBuffer, TlsContext->OutputBuffer, TlsContext->OutputBufferLength);
+        *OutputBufferLength = TlsContext->OutputBufferLength;
+        TlsContext->OutputBufferLength = 0;
+        return Result;
     }
-    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_DATA;
-    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = *InputBufferLength;
-    InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = (void *)InputBuffer;
+
+    if (*InputBufferLength == 0 && TlsContext->InputBufferLength == 0) {
+        *OutputBufferLength = 0;
+        return Result;
+    }
+    if (TlsContext->InputBufferLength > 0) {
+        if (!CopyInputToInternalBuffer(TlsContext, InputBuffer, *InputBufferLength)) {
+            *OutputBufferLength = 0;
+            return Result;
+        }
+        Copied = TRUE;
+        InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_DATA;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->InputBufferLength;
+        InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = (void *)TlsContext->InputBuffer;
+    } else {
+        InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_DATA;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = *InputBufferLength;
+        InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = (void *)InputBuffer;
+    }
 
     InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
     InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = 0;
@@ -3804,31 +4002,72 @@ CxPlatTlsDecrypt(
             0,
             NULL);
 
+    SecBuffer* OutputDataBuffer = NULL;
+    SecBuffer* ExtraBuffer = NULL;
     switch (SecStatus) {
-        case SEC_E_OK:
-            for (uint32_t i = 0; i < InSecBufferDesc.cBuffers; ++i) {
-                printf("Buffer %u Type %u Length %u\n", i, InSecBuffers[i].BufferType, InSecBuffers[i].cbBuffer);
-                if (InSecBuffers[i].BufferType == SECBUFFER_DATA) {
-                    if (InSecBuffers[i].pvBuffer == (void *)OutputBuffer) {
-                        *OutputBufferLength = InSecBuffers[i].cbBuffer;
-                    } else {
-                        if (*OutputBufferLength < InSecBuffers[i].cbBuffer) {
-                            *OutputBufferLength = InSecBuffers[i].cbBuffer;
-                            return FALSE;
-                        }
-                        CxPlatCopyMemory(OutputBuffer,
-                            InSecBuffers[i].pvBuffer,
-                            InSecBuffers[i].cbBuffer);
-                        *OutputBufferLength = InSecBuffers[i].cbBuffer;
-                    }
-                    return TRUE;
-                }
+    case SEC_E_OK:
+        for (uint32_t i = 0; i < InSecBufferDesc.cBuffers; ++i) {
+            if (InSecBuffers[i].BufferType == SECBUFFER_DATA) {
+                OutputDataBuffer = &InSecBuffers[i];
+            } else if (InSecBuffers[i].BufferType == SECBUFFER_EXTRA) {
+                ExtraBuffer = &InSecBuffers[i];
             }
+        }
         break;
-        default:
-            printf("DecryptMessage failed with 0x%X\n", SecStatus);
+    case SEC_I_RENEGOTIATE:
+        Result |= CXPLAT_TLS_RESULT_RENEGOTIATE;
+        *InputBufferLength = 0;
+        *OutputBufferLength = 0;
+        break;
+    case SEC_E_INCOMPLETE_MESSAGE:
+        if (!Copied) {
+             if (!CopyInputToInternalBuffer(TlsContext, InputBuffer, *InputBufferLength)) {
+                *OutputBufferLength = 0;
+                return Result;
+            }
+        }
+        *OutputBufferLength = 0;
+        break;
+    default:
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "DecryptMessage");
+        *InputBufferLength = 0;
+        *OutputBufferLength = 0;
+        break;
     }
-    return FALSE;
+
+    if (SecStatus == SEC_E_OK && OutputDataBuffer != NULL) {
+        if (OutputBuffer == NULL || OutputBufferCapacity < OutputDataBuffer->cbBuffer) {
+            if (!CopyOutputToInternalBuffer(TlsContext,
+                (const uint8_t*)OutputDataBuffer->pvBuffer,
+                OutputDataBuffer->cbBuffer)) {
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                *OutputBufferLength = 0;
+                return Result;
+            }
+            *OutputBufferLength = OutputDataBuffer->cbBuffer;
+            Result |= CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL;
+            return Result;
+        }
+        memcpy(OutputBuffer, OutputDataBuffer->pvBuffer, OutputDataBuffer->cbBuffer);
+        *OutputBufferLength = OutputDataBuffer->cbBuffer;
+        TlsContext->InputBufferLength = 0; // Clear the recv buffer since we've consumed it all
+    }
+
+    if (SecStatus == SEC_E_OK && ExtraBuffer != NULL && ExtraBuffer->cbBuffer > 0) {
+        CxPlatMoveMemory((uint8_t*)InputBuffer + (*InputBufferLength - ExtraBuffer->cbBuffer),
+            ExtraBuffer->pvBuffer,
+            ExtraBuffer->cbBuffer);
+        *InputBufferLength -= ExtraBuffer->cbBuffer;
+    }
+    if (!(SecStatus == SEC_E_OK && OutputDataBuffer != NULL)) {
+        *OutputBufferLength = 0;
+    }
+    return Result;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

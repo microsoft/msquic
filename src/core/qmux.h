@@ -56,7 +56,6 @@ typedef struct QUIC_QMUX {
     uint8_t* RecvBuffer;
     uint32_t RecvBufferAllocLength;
     uint32_t RecvBufferLength;
-    uint32_t RecvBufferOffset;
 
     //
     // Sequence numbers for QX_PING frames.

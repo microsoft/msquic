@@ -151,8 +151,6 @@ Error:
     return Status;
 }
 
-#include <stdio.h>
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicQMuxProcessHandshakeData(
@@ -222,7 +220,6 @@ QuicQMuxProcessHandshakeData(
         }
 
         CxPlatCopyMemory(OldOutputBuffers, OutputBuffers, sizeof(OutputBuffers));
-        printf("Calling CxPlatTlsHandshake with input buffer length=%u, output buffers count=%u\n", ConsumedBufferLength, OutputBuffersCount);  
         QMux->ResultFlags &= ~(CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL | CXPLAT_TLS_RESULT_DATA);
         QMux->ResultFlags =
             CxPlatTlsHandshake(
@@ -233,7 +230,6 @@ QuicQMuxProcessHandshakeData(
                 OutputBuffers,
                 OutputBuffersCount,
                 &QMux->TlsState);
-        printf("CxPlatTlsHandshake returned flags: 0x%02x\n", QMux->ResultFlags);
         if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
             Status = QUIC_STATUS_TLS_ERROR;
             QuicTraceEvent(
@@ -266,8 +262,6 @@ QuicQMuxProcessHandshakeData(
                 OutputBuffers[i].Buffer += OutputBuffers[i].Length;
                 OutputBuffers[i].Length = OldOutputBuffers[i].Length - OutputBuffers[i].Length;
             }
-        } else {
-            QMux->TlsState.HandshakeComplete2 = TRUE;
         }
     } while (ConsumedBufferLength > 0 ||
         (QMux->ResultFlags & CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL));
@@ -276,15 +270,9 @@ QuicQMuxProcessHandshakeData(
         SendBuffers[i]->Length = (uint32_t)(OutputBuffers[i].Buffer - SendBuffers[i]->Buffer);
     }
 
-    if (QMux->TlsState.HandshakeComplete) {
-        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_QX_TRANSPORT_PARAMETERS);
-    }
-
-
 Exit:
     if (SendData != NULL) {
         if (QUIC_SUCCEEDED(Status) && TotalSendLength > 0) {
-            printf("QMux sending handshake data, total length=%u\n", TotalSendLength);
             CxPlatSocketSend(QMux->Socket, &QMux->Route, SendData);
             QuicConnResetIdleTimeout(Connection);
         } else {
@@ -974,8 +962,7 @@ QuicQMuxRecvData(
         uint32_t ConsumedRecvDataLength = RecvDataLength;
         uint32_t RecvDataOffset = 0;
         CXPLAT_DBG_ASSERT(RecvData != NULL);
-        // if (!QMux->TlsState.HandshakeComplete || (!QMux->TlsState.HandshakeComplete2 && QuicConnIsClient(Connection))) {            
-        if (!QMux->TlsState.HandshakeComplete) {            
+        if (!QMux->TlsState.HandshakeComplete) {
             Status = QuicQMuxProcessHandshakeData(QMux, RecvData->Buffer, &ConsumedRecvDataLength);
             if (QUIC_FAILED(Status)) {
                 QuicTraceEvent(
@@ -988,18 +975,19 @@ QuicQMuxRecvData(
             }
             RecvDataOffset += ConsumedRecvDataLength;
             ConsumedRecvDataLength = RecvDataLength - RecvDataOffset;
-            if (QMux->TlsState.HandshakeComplete) {
+            if (QMux->ResultFlags & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE) {
                 QuicTraceEvent(
                     ConnHandshakeComplete,
                     "[conn][%p] Handshake complete",
                     Connection);
+
+                QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_QX_TRANSPORT_PARAMETERS);
 
                 Connection->State.Connected = TRUE;
                 QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_CONNECTED);
 
                 QUIC_CONNECTION_EVENT Event = { 0 };
                 Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
-                printf("Negotiated ALPN: %p\n", QMux->TlsState.NegotiatedAlpn);
                 // Event.CONNECTED.NegotiatedAlpnLength = QMux->TlsState.NegotiatedAlpn[0];
                 // Event.CONNECTED.NegotiatedAlpn = QMux->TlsState.NegotiatedAlpn + 1;
 
@@ -1016,31 +1004,88 @@ QuicQMuxRecvData(
         if (QMux->TlsState.HandshakeComplete) {
             uint32_t AppendedRecvBufferLength;
             do {
-                AppendedRecvBufferLength = QMux->RecvBufferAllocLength - QMux->RecvBufferOffset;
-                if (!CxPlatTlsDecrypt(
+                AppendedRecvBufferLength = QMux->RecvBufferAllocLength - QMux->RecvBufferLength;
+                QMux->ResultFlags =
+                    CxPlatTlsDecrypt(
                         QMux->TLS,
                         RecvData->Buffer + RecvDataOffset,
                         &ConsumedRecvDataLength,
-                        QMux->RecvBuffer + QMux->RecvBufferOffset,
-                        &AppendedRecvBufferLength)) {
+                        QMux->RecvBuffer + QMux->RecvBufferLength,
+                        &AppendedRecvBufferLength);
+                if (QMux->ResultFlags & CXPLAT_TLS_RESULT_RENEGOTIATE) {
+                    ConsumedRecvDataLength = RecvDataLength - RecvDataOffset;
+                    Status =
+                        QuicQMuxProcessHandshakeData(
+                            QMux,
+                            RecvData->Buffer + RecvDataOffset,
+                            &ConsumedRecvDataLength);
+                    if (QUIC_FAILED(Status)) {
+                        goto Error;
+                    }
+                    RecvDataOffset += ConsumedRecvDataLength;
+                    ConsumedRecvDataLength = RecvDataLength - RecvDataOffset;
+                    continue;
+                } else if (QMux->ResultFlags & CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL) {
+                    uint32_t RequiredLength = QMux->RecvBufferLength + AppendedRecvBufferLength;
+                    uint32_t NewRecvBufferAllocLength = QMux->RecvBufferAllocLength;
+                    while (RequiredLength > NewRecvBufferAllocLength) {
+                        if (NewRecvBufferAllocLength > UINT32_MAX / 2) {
+                            QuicTraceEvent(
+                                ConnError,
+                                "[conn][%p] ERROR, %s.",
+                                Connection,
+                                "Decrypted data exceeds maximum buffer size");
+                            Status = QUIC_STATUS_OUT_OF_MEMORY;
+                            QuicConnCloseLocally(
+                                Connection,
+                                QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                                (uint64_t)Status,
+                                NULL);
+                            goto Error;
+                        }
+                        NewRecvBufferAllocLength *= 2;
+                    }
+                    uint8_t* NewRecvBuffer = CXPLAT_ALLOC_NONPAGED(NewRecvBufferAllocLength, QUIC_POOL_QMUX_RECV_BUFFER);
+                    if (NewRecvBuffer == NULL) {
+                        Status = QUIC_STATUS_OUT_OF_MEMORY;
+                        QuicTraceEvent(
+                            AllocFailure,
+                            "Allocation of '%s' failed. (%llu bytes)",
+                            "QMux receive buffer",
+                            NewRecvBufferAllocLength);
+                        QuicConnCloseLocally(
+                            Connection,
+                            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                            (uint64_t)Status,
+                            NULL);
+                        goto Error;
+                    }
+                    if (QMux->RecvBufferLength > 0) {
+                        CxPlatCopyMemory(NewRecvBuffer, QMux->RecvBuffer, QMux->RecvBufferLength);
+                    }
+                    CXPLAT_FREE(QMux->RecvBuffer, QUIC_POOL_QMUX_RECV_BUFFER);
+                    QMux->RecvBuffer = NewRecvBuffer;
+                    QMux->RecvBufferAllocLength = NewRecvBufferAllocLength;
+                    RecvDataOffset += ConsumedRecvDataLength;
+                    ConsumedRecvDataLength = RecvDataLength - RecvDataOffset;
+                    continue;
+                } else if (QMux->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
                     Status = QUIC_STATUS_TLS_ERROR;
                     QuicTraceEvent(
                         ConnErrorStatus,
                         "[conn][%p] ERROR, %u, %s.",
                         Connection,
                         Status,
-                        "CxPlatTlsDecerypt");
-                    // QuicConnCloseLocally(
-                    //     Connection,
-                    //     QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-                    //     (uint64_t)Status,
-                    //     NULL);
+                        "Decrypting TLS data");
+                    QuicConnCloseLocally(
+                        Connection,
+                        QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                        (uint64_t)Status,
+                        NULL);
                     goto Error;
                 }
-                printf("CxPlatTlsDecrypt decrypted %u bytes, appended %u bytes\n", ConsumedRecvDataLength, AppendedRecvBufferLength);
                 RecvDataOffset += ConsumedRecvDataLength;
                 ConsumedRecvDataLength = RecvDataLength - RecvDataOffset;
-                QMux->RecvBufferOffset += AppendedRecvBufferLength;
                 QMux->RecvBufferLength += AppendedRecvBufferLength;
 
                 QUIC_VAR_INT RecordLength = 0;
@@ -1051,7 +1096,6 @@ QuicQMuxRecvData(
                         QMux->RecvBuffer + ProcessOffset,
                         &RecordOffset,
                         &RecordLength);
-                    printf("Decoded record length: %llu\n", RecordLength);
                     if (RecordLength == 0) {
                         break;
                     }
@@ -1077,7 +1121,6 @@ QuicQMuxRecvData(
                     memmove(QMux->RecvBuffer, QMux->RecvBuffer + ProcessOffset, QMux->RecvBufferLength - ProcessOffset);
                 }
                     QMux->RecvBufferLength -= ProcessOffset;
-                    QMux->RecvBufferOffset -= ProcessOffset;
             } while (ConsumedRecvDataLength > 0 || AppendedRecvBufferLength > 0);
         }
     }    
@@ -1233,7 +1276,6 @@ QuicQMuxTcpConnect(
     QUIC_CONNECTION* Connection = QMux->Connection;
 
     if (Connected) {
-        printf("TCP connected\n");
         QuicTraceLogConnInfo(
             TcpConnected,
             Connection,

@@ -3882,7 +3882,7 @@ CxPlatTlsDecrypt(
     _In_reads_bytes_(*InputBufferLength)
         const uint8_t * InputBuffer,
     _Inout_ uint32_t * InputBufferLength,
-    _Out_writes_bytes_(*OutputBufferLength)
+    _Inout_updates_bytes_opt_(*OutputBufferLength)
         uint8_t* OutputBuffer,
     _Inout_ uint32_t* OutputBufferLength
     )

@@ -16,7 +16,6 @@ Abstract:
 #ifdef QUIC_CLOG
 #include "packet_builder.c.clog.h"
 #endif
-#include <stdio.h>
 #ifdef QUIC_FUZZER
 
 __declspec(noinline)
@@ -522,7 +521,6 @@ QuicPacketBuilderQMuxPrepare(
         + QuicVarIntSize(QX_TP_MAX_RECORD_SIZE_DEFAULT)
         + QX_TP_MAX_RECORD_SIZE_DEFAULT
         + (uint16_t)Overhead.MaxTrailer;
-    printf("QMux DatagramSize: %hu\n", DatagramSize);
     QuicPacketBuilderValidate(Builder, FALSE);
 
     //
@@ -1472,12 +1470,12 @@ QuicPacketBuilderQMuxSendBatch(
         "Sending batch. %hu datagrams %u bytes",
         (uint16_t)Builder->TotalCountDatagrams,
         Builder->TotalDatagramsLength);
-    printf("QMux send batch: %hu datagrams %u bytes\n", (uint16_t)Builder->TotalCountDatagrams, Builder->TotalDatagramsLength);
 
     CxPlatSocketSend(QMux->Socket, &QMux->Route, Builder->SendData);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;
+    Builder->TotalCountDatagrams = 0;
     Builder->TotalDatagramsLength = 0;
     Builder->Metadata->FrameCount = 0;
 
