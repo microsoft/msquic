@@ -50,6 +50,7 @@ Abstract:
 #include <share.h>
 #endif
 #include "msquic.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -384,7 +385,7 @@ ServerStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received %I64u bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        printf("[strm][%p] Data received %" PRIu64 " bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         //
@@ -706,7 +707,7 @@ ClientStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received %I64u bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        printf("[strm][%p] Data received %" PRIu64 " bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         //
