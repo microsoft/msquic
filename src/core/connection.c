@@ -7374,10 +7374,17 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(QUIC_ADDR);
-        CxPlatCopyMemory(
-            Buffer,
-            &Connection->Paths[0].Route.LocalAddress,
-            sizeof(QUIC_ADDR));
+        if (!QuicConnIsQMux(Connection)) {
+            CxPlatCopyMemory(
+                Buffer,
+                &Connection->Paths[0].Route.LocalAddress,
+                sizeof(QUIC_ADDR));
+        } else {
+            CxPlatCopyMemory(
+                Buffer,
+                &QuicConnGetQMux(Connection)->Route.LocalAddress,
+                sizeof(QUIC_ADDR));
+        } 
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -7401,10 +7408,17 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(QUIC_ADDR);
-        CxPlatCopyMemory(
-            Buffer,
-            &Connection->Paths[0].Route.RemoteAddress,
-            sizeof(QUIC_ADDR));
+        if (!QuicConnIsQMux(Connection)) {
+            CxPlatCopyMemory(
+                Buffer,
+                &Connection->Paths[0].Route.RemoteAddress,
+                sizeof(QUIC_ADDR));
+        } else {
+            CxPlatCopyMemory(
+                Buffer,
+                &QuicConnGetQMux(Connection)->Route.RemoteAddress,
+                sizeof(QUIC_ADDR));
+        }
 
         Status = QUIC_STATUS_SUCCESS;
         break;
