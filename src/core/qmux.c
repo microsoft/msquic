@@ -188,7 +188,6 @@ QuicQMuxProcessHandshakeData(
 
     uint32_t BufferOffset = 0;
     uint32_t ConsumedBufferLength = *BufferLength;
-    uint32_t SendBufferOffset = 0;
     QUIC_BUFFER* SendBuffer = NULL;
     QUIC_BUFFER* SendBuffers[4];
     QUIC_BUFFER OutputBuffers[4], OldOutputBuffers[4];

@@ -1907,10 +1907,26 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "QMuxRecvTcpData": {
+    "ConnRecvPacket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][RX] %hu bytes",
+      "UniqueId": "ConnRecvPacket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnRecvTcpData": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Recv %u TCP data, %u bytes",
-      "UniqueId": "QMuxRecvTcpData",
+      "UniqueId": "ConnRecvTcpData",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -12163,6 +12179,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "TlsHandshakeData": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TLS handshake data ready to send, length=%u",
+      "UniqueId": "TlsHandshakeData",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "TlsLogSecret": {
       "ModuleProperites": {},
       "TraceString": "[ tls] %s[%u]: %s",
@@ -14014,8 +14046,13 @@
         "EncodingString": "[conn][%p] Recovery complete"
       },
       {
+        "UniquenessHash": "e3cda2a5-021a-2c94-dd18-d62ba9abf622",
+        "TraceID": "ConnRecvPacket",
+        "EncodingString": "[conn][%p][RX] %hu bytes"
+      },
+      {
         "UniquenessHash": "0f9b2a6c-1982-68d5-f02b-4c7e6d9b1498",
-        "TraceID": "QMuxRecvTcpData",
+        "TraceID": "ConnRecvTcpData",
         "EncodingString": "[conn][%p] Recv %u TCP data, %u bytes"
       },
       {
@@ -16239,6 +16276,11 @@
         "EncodingString": "[conn][%p][RX] %hu bytes"
       },
       {
+        "UniquenessHash": "0f9b2a6c-1982-68d5-f02b-4c7e6d9b1498",
+        "TraceID": "QMuxRecvTcpData",
+        "EncodingString": "[conn][%p] Recv %u TCP data, %u bytes"
+      },
+      {
         "UniquenessHash": "27044228-9730-d443-fd93-bee18dc7c248",
         "TraceID": "QMuxRecvTcpData",
         "EncodingString": "[conn][%p] Recv %u TCP data, %u bytes"
@@ -17197,6 +17239,11 @@
         "UniquenessHash": "7312d23f-2305-b54b-e1da-81597fabe281",
         "TraceID": "TlsErrorStatus",
         "EncodingString": "[ tls][%p] ERROR, %u, %s."
+      },
+      {
+        "UniquenessHash": "a11036ea-f0b0-3d3e-846b-a56c50f970bb",
+        "TraceID": "TlsHandshakeData",
+        "EncodingString": "[conn][%p] TLS handshake data ready to send, length=%u"
       },
       {
         "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
