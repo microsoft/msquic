@@ -91,6 +91,8 @@ QuicQMuxUninitialize(
         CXPLAT_FREE(QMux->RecvBuffer, QUIC_POOL_QMUX_RECV_BUFFER);
         QMux->RecvBuffer = NULL;
     }
+    CxPlatDispatchLockUninitialize(&QMux->TcpReceiveQueueLock);
+    CxPlatEventUninitialize(QMux->ConnectEvent);
     CxPlatPoolFree(QMux);
 }
 
