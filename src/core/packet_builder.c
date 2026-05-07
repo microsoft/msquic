@@ -220,7 +220,7 @@ QuicPacketBuilderPrepare(
     BOOLEAN FixedBit = (QuicConnIsClient(Connection) &&
         (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) ? TRUE : Connection->State.FixedBit;
 
-    uint16_t DatagramSize = DatagramSize = Builder->Path->Mtu;
+    uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
         DatagramSize = (uint16_t)Builder->Path->Allowance;
