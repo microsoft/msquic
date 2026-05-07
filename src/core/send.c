@@ -554,12 +554,14 @@ QuicSendWriteFrames(
                 AvailableBufferLength,
                 Builder->Datagram->Buffer)) {
             if (QuicPacketBuilderAddFrame(Builder, QX_FRAME_TRANSPORT_PARAMETERS, FALSE)) {
+                CXPLAT_FREE(Frame.TP, QUIC_POOL_TLS_TRANSPARAMS);
                 return TRUE;
             }
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_QX_TRANSPORT_PARAMETERS;
         } else {
             RanOutOfRoom = TRUE;
         }
+        CXPLAT_FREE(Frame.TP, QUIC_POOL_TLS_TRANSPARAMS);
     }
 
     if (QuicConnIsQMux(Connection) &&
