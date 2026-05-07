@@ -3876,7 +3876,7 @@ CxPlatTlsEncrypt(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsDecrypt(
     _In_ CXPLAT_TLS* TlsContext,
     _In_reads_bytes_(*InputBufferLength)
@@ -3887,6 +3887,7 @@ CxPlatTlsDecrypt(
     _Inout_ uint32_t* OutputBufferLength
     )
 {
+    CXPLAT_TLS_RESULT_FLAGS Result = 0;
     int Ret;
     CXPLAT_DBG_ASSERT(InputBuffer != NULL || *InputBufferLength == 0);
     CXPLAT_DBG_ASSERT(OutputBuffer != NULL && *OutputBufferLength > 0);
@@ -3901,14 +3902,18 @@ CxPlatTlsDecrypt(
                 TlsContext->Connection,
                 "BIO_write failed, error: %d",
                 Err);
-            return FALSE;
+            Result |= CXPLAT_TLS_RESULT_ERROR;
+            return Result;
         }
         *InputBufferLength = Ret;
     }
 
     size_t Offset = 0;
     do {
-        Ret = SSL_read(TlsContext->Ssl, OutputBuffer + Offset, (int)*OutputBufferLength - (int)Offset);
+        Ret =
+            SSL_read(TlsContext->Ssl,
+                OutputBuffer + Offset,
+                (int)*OutputBufferLength - (int)Offset);
         if (Ret < 0) {
             int Err = SSL_get_error(TlsContext->Ssl, Ret);
 
@@ -3922,14 +3927,15 @@ CxPlatTlsDecrypt(
                     TlsContext->Connection,
                     "SSL_read failed, error: %d",
                     Err);
-                return FALSE;
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                return Result;
             }
         }
         Offset += (size_t)Ret;
     } while (Ret > 0 && Offset < *OutputBufferLength);
     *OutputBufferLength = (uint32_t)Offset;
 
-    return TRUE;
+    return Result;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
