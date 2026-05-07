@@ -2184,10 +2184,14 @@ QuicConnStart(
             goto Exit;
         }
         QuicConnResetIdleTimeout(Connection);
-        CxPlatEventWaitWithTimeout(QMux->ConnectEvent, (uint32_t)Connection->Settings.HandshakeIdleTimeoutMs);
-        if (!Connection->State.TcpConnected) {
+        BOOLEAN ConnectCompleted = CxPlatEventWaitWithTimeout(QMux->ConnectEvent, (uint32_t)Connection->Settings.HandshakeIdleTimeoutMs);
+        if (!ConnectCompleted) {
             Status = QUIC_STATUS_CONNECTION_TIMEOUT;
             goto Exit;
+        }
+        if (!Connection->State.TcpConnected) {
+             Status = QUIC_STATUS_INTERNAL_ERROR;
+             goto Exit;
         }
         Connection->State.LocalAddressSet = TRUE;
         CxPlatSocketGetLocalAddress(QMux->Socket, &QMux->Route.LocalAddress);
