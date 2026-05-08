@@ -127,11 +127,14 @@ void PrintUsage()
         "Usage:\n"
         "\n"
         "  quicsample.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>]\n"
+        "  quicsample.exe -client -qmux -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>]\n"
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         "  quicsample.exe -multiclient -count:<N> -unsecure -target:{IPAddress|Hostname}\n"
 #endif
         "  quicsample.exe -server -cert_hash:<...>\n"
         "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>]\n"
+        "  quicsample.exe -server -qmux -cert_hash:<...>\n"
+        "  quicsample.exe -server -qmux -cert_file:<...> -key_file:<...> [-password:<...>]\n"
         );
 }
 
@@ -658,9 +661,16 @@ RunServer(
     //
     // Create/allocate a new listener object.
     //
-    if (QUIC_FAILED(Status = MsQuic->ListenerQmuxOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
-        printf("ListenerOpen failed, 0x%x!\n", Status);
-        goto Error;
+    if (!GetFlag(argc, argv, "qmux")) {
+        if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
+            printf("ListenerOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
+    } else {
+        if (QUIC_FAILED(Status = MsQuic->ListenerQmuxOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
+            printf("ListenerQmuxOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
     }
 
     //
@@ -970,9 +980,16 @@ RunClient(
     //
     // Allocate a new connection object.
     //
-    if (QUIC_FAILED(Status = MsQuic->ConnectionQmuxOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
-        printf("ConnectionOpen failed, 0x%x!\n", Status);
-        goto Error;
+    if (!GetFlag(argc, argv, "qmux")) {
+        if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
+            printf("ConnectionOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
+    } else {
+        if (QUIC_FAILED(Status = MsQuic->ConnectionQmuxOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
+            printf("ConnectionQmuxOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
     }
 
     if ((ResumptionTicketString = GetValue(argc, argv, "ticket")) != NULL) {

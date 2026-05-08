@@ -16,6 +16,7 @@ Abstract:
 #ifdef QUIC_CLOG
 #include "packet_builder.c.clog.h"
 #endif
+
 #ifdef QUIC_FUZZER
 
 __declspec(noinline)
@@ -487,8 +488,6 @@ QuicPacketBuilderPrepare(
         }
 
         Builder->DatagramLength += Builder->HeaderLength;
-    } else {
-        Builder->HeaderLength = 0;
     }
 
     CXPLAT_DBG_ASSERT(Builder->PacketType == NewPacketType);
