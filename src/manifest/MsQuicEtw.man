@@ -3470,22 +3470,13 @@
               value="5195"
               />
           <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              message="$(string.Etw.ConnReleaseChain)"
-              opcode="Connection"
-              symbol="QuicConnReleaseChain"
-              template="tid_RELEASE_CHAIN"
-              value="5196"
-              />
-          <event
               keywords="ut:Connection ut:DataFlow"
               level="win:Informational"
               message="$(string.Etw.ConnRecvTcpData)"
               opcode="Connection"
               symbol="QuicConnRecvTcpData"
               template="tid_CONN_COUNT_COUNT"
-              value="5197"
+              value="5196"
               />
           <event
               keywords="ut:Connection ut:DataFlow"
@@ -3494,7 +3485,7 @@
               opcode="Connection"
               symbol="QuicConnRecvPacket"
               template="tid_CONN_COUNT"
-              value="5201"
+              value="5197"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
