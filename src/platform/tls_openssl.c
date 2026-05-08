@@ -978,7 +978,6 @@ CxPlatTlsAlpnSelectCallback(
         }
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
-
 }
 
 //
@@ -1816,7 +1815,7 @@ CxPlatTlsSecConfigCreate(
 
     Ret = SSL_CTX_set_max_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
     if (Ret != 1) {
-        QuicTraceEvent( 
+        QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             ERR_get_error(),
@@ -2458,7 +2457,6 @@ static long FreeBioAuxData(BIO *B, int Oper,
     return Ret;
 }
 
-
 static int Hexval(char c)
 {
     if ('0' <= c && c <= '9') return c - '0';
@@ -2587,7 +2585,6 @@ CxPlatTlsKeyLogCallback(const SSL* Ssl, const char* Line)
             TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
         }
     }
-
 }
 
 //
@@ -2643,9 +2640,7 @@ CxPlatTlsInitialize(
     uint16_t ServerNameLength = 0;
     UNREFERENCED_PARAMETER(State);
 
-    if (!Config->IsQMux) {
-        CXPLAT_DBG_ASSERT(Config->HkdfLabels);
-    }
+    CXPLAT_DBG_ASSERT(Config->IsQMux || Config->HkdfLabels);
     if (Config->SecConfig == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
@@ -2874,7 +2869,7 @@ CxPlatTlsInitialize(
             }
         }
 
-        if (Config->IsServer || (Config->ResumptionTicketLength != 0)) {
+        if (!Config->IsQMux && (Config->IsServer || (Config->ResumptionTicketLength != 0))) {
             SSL_set_quic_tls_early_data_enabled(TlsContext->Ssl, 1);
         }
     }
@@ -3949,112 +3944,6 @@ CxPlatTlsGetRecordOverhead(
     Overhead->MaxHeader = 5; // TLS record header is always 5 bytes
     Overhead->MaxTrailer = 512; // Maximum possible trailer length for TLS 1.3 with AEAD ciphers
 }
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsReadData(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_writes_bytes_(*BufferLength)
-        uint8_t* Buffer,
-    _Inout_ uint32_t* BufferLength
-    )
-{
-    CXPLAT_FRE_ASSERT(TlsContext->IsQMux);
-    int len = SSL_read(TlsContext->Ssl, Buffer, (int)*BufferLength);
-    if (len > 0) {
-        *BufferLength = (uint32_t)len;
-    } else {
-        int err = SSL_get_error(TlsContext->Ssl, len);
-
-        if (err == SSL_ERROR_WANT_READ ||
-            err == SSL_ERROR_WANT_WRITE) {
-            *BufferLength = 0;
-        } else if (err == SSL_ERROR_ZERO_RETURN) {
-            *BufferLength = 0;
-        } else {
-            QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "SSL_read failed");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-        }
-    }
-    return TlsContext->ResultFlags;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsWriteData(
-    _In_ CXPLAT_TLS* TlsContext,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t* Buffer,
-    _In_ uint32_t BufferLength
-    )
-{
-
-    uint32_t off = 0;
-
-    while (off < BufferLength) {
-        int ret = SSL_write(TlsContext->Ssl, Buffer + off, (int)(BufferLength - off));
-
-        if (ret > 0) {
-            off += ret;
-            continue;
-        }
-
-        int err = SSL_get_error(TlsContext->Ssl, ret);
-        if (err == SSL_ERROR_WANT_READ ||
-            err == SSL_ERROR_WANT_WRITE) {
-            /* event loop */
-            continue;
-        }
-
-        /* fatal */
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "SSL_write failed");
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-        break;
-    }
-    return TlsContext->ResultFlags;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsSendData(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_writes_bytes_(*BufferLength)
-        uint8_t* Buffer,
-    _Inout_ uint32_t* BufferLength
-    )
-{
-    CXPLAT_FRE_ASSERT(TlsContext->IsQMux);
-    if (BIO_pending(TlsContext->wbio) == 0) {
-        *BufferLength = 0;
-        return TlsContext->ResultFlags;
-    }
-    int len = BIO_read(TlsContext->wbio, Buffer, (int)*BufferLength);
-    if (len < 0) {
-        int err = SSL_get_error(TlsContext->Ssl, len);
-        if (err == SSL_ERROR_WANT_READ) {
-            *BufferLength = 0;
-        } else {
-            QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "BIO_read failed");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-        }
-    } else {
-        *BufferLength = (uint32_t)len;
-    }
-    return TlsContext->ResultFlags;
-}
-
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
