@@ -616,11 +616,13 @@ impl Api {
     }
 }
 
-#[dtor::dtor]
-unsafe fn close_msquic() {
-    if !APITABLE.is_null() {
-        MsQuicClose(APITABLE);
-        APITABLE = ptr::null();
+#[ctor::dtor]
+fn close_msquic() {
+    unsafe {
+        if !APITABLE.is_null() {
+            MsQuicClose(APITABLE);
+            APITABLE = ptr::null();
+        }
     }
 }
 
