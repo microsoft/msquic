@@ -912,7 +912,11 @@ impl Connection {
         Self::open_common(registration, handler, true)
     }
 
-    fn open_common<F>(registration: &Registration, handler: F, is_qmux: bool) -> Result<Self, Status>
+    fn open_common<F>(
+        registration: &Registration,
+        handler: F,
+        is_qmux: bool,
+    ) -> Result<Self, Status>
     where
         F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
     {
@@ -1111,7 +1115,11 @@ impl Listener {
         Self::open_common(registration, handler, true)
     }
 
-    fn open_common<F>(registration: &Registration, handler: F, is_qmux: bool) -> Result<Self, Status>
+    fn open_common<F>(
+        registration: &Registration,
+        handler: F,
+        is_qmux: bool,
+    ) -> Result<Self, Status>
     where
         F: Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static,
     {
