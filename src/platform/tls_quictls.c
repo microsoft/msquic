@@ -209,13 +209,12 @@ CxPlatTlsAlpnSelectCallback(
     _In_ void *Arg
     )
 {
-    UNREFERENCED_PARAMETER(In);
-    UNREFERENCED_PARAMETER(InLen);
     UNREFERENCED_PARAMETER(Arg);
-
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
     if (!TlsContext->IsQMux) {
+        UNREFERENCED_PARAMETER(In);
+        UNREFERENCED_PARAMETER(InLen);
         //
         // QUIC already parsed and picked the ALPN to use and set it in the
         // NegotiatedAlpn variable.
@@ -252,6 +251,7 @@ CxPlatTlsAlpnSelectCallback(
             AlpnListLength -= AlpnList[0] + 1;
             AlpnList += AlpnList[0] + 1;
         }
+        *OutLen = 0;
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
 }

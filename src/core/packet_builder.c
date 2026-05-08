@@ -1327,7 +1327,7 @@ QuicPacketBuilderQMuxFinalize(
     if (!CxPlatTlsEncrypt(
             QMux->TLS,
             &EncryptBuffer)) {
-        QuicConnFatalError(Connection, QUIC_STATUS_TLS_ERROR, "Encryption failure");
+        QuicConnFatalError(Connection, QUIC_STATUS_ABORTED, "Encryption failure");
         goto Exit;
     }
     Builder->Datagram->Length = (uint32_t)EncryptBuffer.DataLength;

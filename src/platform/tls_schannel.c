@@ -2932,6 +2932,21 @@ CxPlatTlsHandshake(
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
+#ifdef _KERNEL_MODE
+    UNREFERENCED_PARAMETER(DataType);
+    UNREFERENCED_PARAMETER(InputBuffer);
+    UNREFERENCED_PARAMETER(InputBufferLength);
+    UNREFERENCED_PARAMETER(OutputBuffers);
+    UNREFERENCED_PARAMETER(OutputBuffersCount);
+    UNREFERENCED_PARAMETER(State);
+
+    QuicTraceEvent(
+        TlsError,
+        "[ tls][%p] ERROR, %s.",
+        TlsContext->Connection,
+        "Handshake not supported in kernel mode");
+    return CXPLAT_TLS_RESULT_ERROR;
+#else
     UNREFERENCED_PARAMETER(DataType);
     SEC_WCHAR* TargetServerName = NULL;
 
@@ -3699,6 +3714,7 @@ CxPlatTlsHandshake(
     }
 
     return Result;
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -3708,6 +3724,16 @@ CxPlatTlsEncrypt(
     _Inout_ CXPLAT_TLS_ENCRYPT_BUFFER* Buffer
     )
 {
+#ifdef _KERNEL_MODE
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(Buffer);
+    QuicTraceEvent(
+        TlsError,
+        "[ tls][%p] ERROR, %s.",
+        TlsContext->Connection,
+        "Encrypt not supported in kernel mode");
+    return FALSE;
+#else
     SecBuffer* InSecBuffers = TlsContext->Workspace.InSecBuffers;
     CXPLAT_TLS_RECORD_OVERHEAD Overhead;
     CxPlatTlsGetRecordOverhead(TlsContext, &Overhead);
@@ -3763,8 +3789,10 @@ CxPlatTlsEncrypt(
         InSecBuffers[1].cbBuffer +
         InSecBuffers[2].cbBuffer;
     return TRUE;
+#endif
 }
 
+#ifndef _KERNEL_MODE
 static
 BOOLEAN 
 CopyInputToInternalBuffer(
@@ -3928,6 +3956,7 @@ CopyOutputToInternalBuffer(
     TlsContext->OutputBufferLength += OutputLength;
     return TRUE;
 }
+#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
@@ -3941,6 +3970,19 @@ CxPlatTlsDecrypt(
     _Inout_ uint32_t* OutputBufferLength
     )
 {
+#ifdef _KERNEL_MODE
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(InputBuffer);
+    UNREFERENCED_PARAMETER(InputBufferLength);
+    UNREFERENCED_PARAMETER(OutputBuffer);
+    UNREFERENCED_PARAMETER(OutputBufferLength);
+    QuicTraceEvent(
+        TlsError,
+        "[ tls][%p] ERROR, %s.",
+        TlsContext->Connection,
+        "Decrypt not supported in kernel mode");
+    return CXPLAT_TLS_RESULT_ERROR;
+#else
     CXPLAT_TLS_RESULT_FLAGS Result = 0;
     uint32_t OutputBufferCapacity = *OutputBufferLength;
     SecBuffer* InSecBuffers = TlsContext->Workspace.InSecBuffers;
@@ -4066,6 +4108,7 @@ CxPlatTlsDecrypt(
         *OutputBufferLength = 0;
     }
     return Result;
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
