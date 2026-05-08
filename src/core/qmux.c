@@ -16,7 +16,7 @@ Abstract:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicQMuxProcessHandshakeData(
+QuicQMuxProcessHandshake(
     _In_ QUIC_QMUX* QMux,
     _In_reads_bytes_(*BufferLength)
         const uint8_t* Buffer,
@@ -145,7 +145,7 @@ QuicQMuxInitializeTls(
     // Crypto->ResumptionTicketLength = 0;
     if (QuicConnIsClient(Connection)) {
         uint32_t BufferLength = 0;
-        Status = QuicQMuxProcessHandshakeData(QMux, NULL, &BufferLength);
+        Status = QuicQMuxProcessHandshake(QMux, NULL, &BufferLength);
     }
 
 Error:
@@ -155,7 +155,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicQMuxProcessHandshakeData(
+QuicQMuxProcessHandshake(
     _In_ QUIC_QMUX* QMux,
     _In_reads_bytes_(*BufferLength)
         const uint8_t* Buffer,
@@ -962,9 +962,8 @@ QuicQMuxRecvData(
         uint32_t RecvDataLength = RecvData->BufferLength;
         uint32_t ConsumedRecvDataLength = RecvDataLength;
         uint32_t RecvDataOffset = 0;
-        CXPLAT_DBG_ASSERT(RecvData != NULL);
         if (!QMux->TlsState.HandshakeComplete) {
-            Status = QuicQMuxProcessHandshakeData(QMux, RecvData->Buffer, &ConsumedRecvDataLength);
+            Status = QuicQMuxProcessHandshake(QMux, RecvData->Buffer, &ConsumedRecvDataLength);
             if (QUIC_FAILED(Status)) {
                 QuicTraceEvent(
                     ConnErrorStatus,
@@ -998,7 +997,6 @@ QuicQMuxRecvData(
                     "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
                     Event.CONNECTED.SessionResumed);
                 (void)QuicConnIndicateEvent(Connection, &Event);
-
             }
         }
 
@@ -1016,7 +1014,7 @@ QuicQMuxRecvData(
                 if (QMux->ResultFlags & CXPLAT_TLS_RESULT_RENEGOTIATE) {
                     ConsumedRecvDataLength = RecvDataLength - RecvDataOffset;
                     Status =
-                        QuicQMuxProcessHandshakeData(
+                        QuicQMuxProcessHandshake(
                             QMux,
                             RecvData->Buffer + RecvDataOffset,
                             &ConsumedRecvDataLength);
