@@ -989,8 +989,8 @@ QuicQMuxRecvData(
 
                 QUIC_CONNECTION_EVENT Event = { 0 };
                 Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
-                // Event.CONNECTED.NegotiatedAlpnLength = QMux->TlsState.NegotiatedAlpn[0];
-                // Event.CONNECTED.NegotiatedAlpn = QMux->TlsState.NegotiatedAlpn + 1;
+                Event.CONNECTED.NegotiatedAlpnLength = QMux->TlsState.NegotiatedAlpn[0];
+                Event.CONNECTED.NegotiatedAlpn = QMux->TlsState.NegotiatedAlpn + 1;
 
                 QuicTraceLogConnVerbose(
                     IndicateConnected,

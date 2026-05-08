@@ -68,12 +68,12 @@ const QUIC_REGISTRATION_CONFIG RegConfig = { "quicsample", QUIC_EXECUTION_PROFIL
 //
 // The protocol name used in the Application Layer Protocol Negotiation (ALPN).
 //
-const QUIC_BUFFER Alpn = { sizeof("h3qx-01") - 1, (uint8_t*)"h3qx-01" };
+const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
 
 //
 // The UDP port used by the server side of the protocol.
 //
-const uint16_t UdpPort = 4433;
+const uint16_t UdpPort = 4567;
 
 //
 // The default idle timeout period (1 second) used for the protocol.
@@ -434,7 +434,11 @@ ServerConnectionCallback(
         //
         // The handshake has completed for the connection.
         //
-        printf("[conn][%p] Connected\n", Connection);
+        if (Event->CONNECTED.NegotiatedAlpnLength > 0) {
+            printf("[conn][%p] Connected, ALPN=%.*s\n", Connection, (int)Event->CONNECTED.NegotiatedAlpnLength, Event->CONNECTED.NegotiatedAlpn);
+        } else {
+            printf("[conn][%p] Connected\n", Connection);
+        }
         QUIC_STATUS Status = MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL);
         printf("[conn][%p] ConnectionSendResumptionTicket returned 0x%x\n", Connection, Status);
         break;
@@ -828,7 +832,11 @@ ClientConnectionCallback(
         //
         // The handshake has completed for the connection.
         //
-        printf("[conn][%p] Connected\n", Connection);
+        if (Event->CONNECTED.NegotiatedAlpnLength > 0) {
+            printf("[conn][%p] Connected, ALPN=%.*s\n", Connection, (int)Event->CONNECTED.NegotiatedAlpnLength, Event->CONNECTED.NegotiatedAlpn);
+        } else {
+            printf("[conn][%p] Connected\n", Connection);
+        }
         ClientSend(Connection);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:

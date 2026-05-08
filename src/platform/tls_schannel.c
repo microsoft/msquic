@@ -3188,50 +3188,48 @@ CxPlatTlsHandshake(
         //
 
         if (!State->HandshakeComplete) {
-            if (!TlsContext->IsServer) {
-                SecPkgContext_ApplicationProtocol NegotiatedAlpn;
-                SecStatus =
-                    QueryContextAttributesW(
-                        &TlsContext->SchannelContext,
-                        SECPKG_ATTR_APPLICATION_PROTOCOL,
-                        &NegotiatedAlpn);
-                if (SecStatus != SEC_E_OK) {
-                    QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "query negotiated ALPN");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    break;
-                }
-                if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
-                    QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        NegotiatedAlpn.ProtoNegoStatus,
-                        "ALPN negotiation status");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    break;
-                }
-                const SEC_APPLICATION_PROTOCOL_LIST* AlpnList =
-                    &TlsContext->ApplicationProtocols->ProtocolLists[0];
-                State->NegotiatedAlpn =
-                    CxPlatTlsAlpnFindInList(
-                        AlpnList->ProtocolListSize,
-                        AlpnList->ProtocolList,
-                        NegotiatedAlpn.ProtocolIdSize,
-                        NegotiatedAlpn.ProtocolId);
-                if (State->NegotiatedAlpn == NULL) {
-                    QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "ALPN Mismatch");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    break;
-                }
+            SecPkgContext_ApplicationProtocol NegotiatedAlpn;
+            SecStatus =
+                QueryContextAttributesW(
+                    &TlsContext->SchannelContext,
+                    SECPKG_ATTR_APPLICATION_PROTOCOL,
+                    &NegotiatedAlpn);
+            if (SecStatus != SEC_E_OK) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    SecStatus,
+                    "query negotiated ALPN");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                break;
+            }
+            if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    NegotiatedAlpn.ProtoNegoStatus,
+                    "ALPN negotiation status");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                break;
+            }
+            const SEC_APPLICATION_PROTOCOL_LIST* AlpnList =
+                &TlsContext->ApplicationProtocols->ProtocolLists[0];
+            State->NegotiatedAlpn =
+                CxPlatTlsAlpnFindInList(
+                    AlpnList->ProtocolListSize,
+                    AlpnList->ProtocolList,
+                    NegotiatedAlpn.ProtocolIdSize,
+                    NegotiatedAlpn.ProtocolId);
+            if (State->NegotiatedAlpn == NULL) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "ALPN Mismatch");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                break;
             }
             SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
 
