@@ -3298,6 +3298,7 @@ CxPlatTlsProcessData(
     RECORD_ENTRY *entry;
     CXPLAT_LIST_ENTRY* lentry;
     size_t Consumed = 0;
+    CXPLAT_DBG_ASSERT(!TlsContext->IsQMux);
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     TlsContext->State = State;
@@ -3357,22 +3358,17 @@ CxPlatTlsProcessData(
     }
 
     if (Buffer != NULL) {
-        if (!TlsContext->IsQMux) {
-            Consumed = *BufferLength;
-            MRet = ProcessNewMessage(TlsContext->Ssl, Buffer,
-                                    *BufferLength, &Consumed);
-            if (MRet == 0) {
-                //
-                // There was an allocation failure
-                // Indicate we consumed nothing
-                //
-                Consumed = 0;
-            }
-            *BufferLength = *BufferLength - (uint32_t)Consumed;
-        } else {
-            BIO_write(TlsContext->rbio, Buffer, (int)*BufferLength);
-            *BufferLength = 0;
+        Consumed = *BufferLength;
+        MRet = ProcessNewMessage(TlsContext->Ssl, Buffer,
+                                 *BufferLength, &Consumed);
+        if (MRet == 0) {
+            //
+            // There was an allocation failure
+            // Indicate we consumed nothing
+            //
+            Consumed = 0;
         }
+        *BufferLength = *BufferLength - (uint32_t)Consumed;
     }
 
     if (!State->HandshakeComplete) {
@@ -3410,25 +3406,22 @@ more_handshake:
                 goto Exit;
             }
         } else {
-            if (!TlsContext->IsQMux) {
-                lentry = AData->RecordList.Flink;
-                if (lentry != &AData->RecordList) {
-                    entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
-                    //
-                    // If the first entry on the list is
-                    // not incomplete, try to move the handshake
-                    // forward, otherwise we're done here
-                    //
-                    if (entry->Incomplete != 1) {
-                        goto more_handshake;
-                    }
+            lentry = AData->RecordList.Flink;
+            if (lentry != &AData->RecordList) {
+                entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
+                //
+                // If the first entry on the list is
+                // not incomplete, try to move the handshake
+                // forward, otherwise we're done here
+                //
+                if (entry->Incomplete != 1) {
+                    goto more_handshake;
                 }
             }
         }
 
-        if ((!TlsContext->IsQMux && TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT
-            && AData->SecretSet[QUIC_PACKET_KEY_1_RTT][DIR_READ].Secret != NULL) ||
-            (TlsContext->IsQMux && SSL_is_init_finished(TlsContext->Ssl))) {
+        if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT
+            && AData->SecretSet[QUIC_PACKET_KEY_1_RTT][DIR_READ].Secret != NULL) {
             QuicTraceLogConnInfo(
                 OpenSslHandshakeComplete,
                 TlsContext->Connection,
@@ -3520,35 +3513,33 @@ more_handshake:
                 }
             }
         }
-    } else if (!TlsContext->IsQMux) {
+    } else {
         SSL_read(TlsContext->Ssl, NULL, 0);
     }
 
 Exit:
 
-    if (!TlsContext->IsQMux) {
-        //
-        // Always set buffer offsets if keys have been installed to preserve code invariants.
-        // On error, the connection will be torn down anyway.
-        //
-        if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
-            State->BufferOffsetHandshake == 0) {
-            State->BufferOffsetHandshake = State->BufferTotalLength;
-            QuicTraceLogConnInfo(
-                OpenSslHandshakeDataStart,
-                TlsContext->Connection,
-                "Writing Handshake data starts at %u",
-                State->BufferOffsetHandshake);
-        }
-        if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
-            State->BufferOffset1Rtt == 0) {
-            State->BufferOffset1Rtt = State->BufferTotalLength;
-            QuicTraceLogConnInfo(
-                OpenSsl1RttDataStart,
-                TlsContext->Connection,
-                "Writing 1-RTT data starts at %u",
-                State->BufferOffset1Rtt);
-        }
+    //
+    // Always set buffer offsets if keys have been installed to preserve code invariants.
+    // On error, the connection will be torn down anyway.
+    //
+    if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
+        State->BufferOffsetHandshake == 0) {
+        State->BufferOffsetHandshake = State->BufferTotalLength;
+        QuicTraceLogConnInfo(
+            OpenSslHandshakeDataStart,
+            TlsContext->Connection,
+            "Writing Handshake data starts at %u",
+            State->BufferOffsetHandshake);
+    }
+    if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
+        State->BufferOffset1Rtt == 0) {
+        State->BufferOffset1Rtt = State->BufferTotalLength;
+        QuicTraceLogConnInfo(
+            OpenSsl1RttDataStart,
+            TlsContext->Connection,
+            "Writing 1-RTT data starts at %u",
+            State->BufferOffset1Rtt);
     }
 
     return TlsContext->ResultFlags;
