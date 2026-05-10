@@ -2952,7 +2952,7 @@ CxPlatTlsHandshake(
             SchannelIgnoringTicket,
             TlsContext->Connection,
             "Ignoring %u ticket bytes",
-            *BufferLength);
+            *InputBufferLength);
         return CXPLAT_TLS_RESULT_ERROR;
     }
 
