@@ -3616,7 +3616,11 @@ CxPlatTlsHandshake(
             goto Exit;
         }
 
-        goto Exit;
+        goto Send;
+    }
+
+    if (InputBuffer == NULL && *InputBufferLength == 0) {
+        goto Handshake;
     }
 
     if (InputBuffer != NULL && *InputBufferLength > 0) {
@@ -3633,14 +3637,146 @@ CxPlatTlsHandshake(
         *InputBufferLength = Ret;
     }
 
+    // After feeding incoming TLS records into OpenSSL via BIO_write(rbio),
+    // do NOT immediately advance the handshake.
+    //
+    // Instead, prioritize reading TLS 1.3 early data and repeatedly call
+    // SSL_read_early_data() until one of the following conditions is reached:
+    //
+    // (1) SSL_READ_EARLY_DATA_FINISH is returned:
+    //     -> No early data is present (or early data is already complete).
+    //
+    // (2) SSL_READ_EARLY_DATA_SUCCESS is returned at least once, and then
+    //     SSL_read_early_data() returns SSL_ERROR_WANT_READ:
+    //     -> All available early data has been fully consumed.
+    //
+    // (3) SSL_read_early_data() returns SSL_ERROR_WANT_WRITE:
+    //     -> OpenSSL requires the server handshake flight (e.g. ServerHello)
+    //        to be sent in order to make further progress.
+    //
+    // Handling:
+    //   - In case (1), exit the early data phase and transition to the normal
+    //     handshake phase by calling SSL_do_handshake() and draining wbio.
+    //
+    //   - In cases (2) and (3), advance the handshake by exactly one step
+    //     (SSL_do_handshake() + BIO_read(wbio)) to satisfy OpenSSL's state
+    //     requirements, but do not complete the handshake.
+    //     When additional TLS records are received, resume calling
+    //     SSL_read_early_data() with priority.
+    //
+    // This ensures that early data is never skipped or lost, while preventing
+    // the TLS handshake from completing prematurely.
+
+    if (State->ReadEarlyData) {
+        CXPLAT_DBG_ASSERT(TlsContext->IsServer);
+        CXPLAT_DBG_ASSERT(State->EarlyDataBuffer != NULL && State->EarlyDataBufferAllocLength > 0);
+        size_t ReadLength;
+        do {
+            if (State->EarlyDataBufferLength >= State->EarlyDataBufferAllocLength) {
+                uint32_t NewEarlyDataBufferAllocLength = State->EarlyDataBufferAllocLength * 2;
+                uint8_t* NewEarlyDataBuffer =
+                    CXPLAT_ALLOC_NONPAGED(
+                        NewEarlyDataBufferAllocLength,
+                        QUIC_POOL_TLS_EARLY_DATA_BUFFER);
+                if (NewEarlyDataBuffer == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "TLS early data buffer",
+                        NewEarlyDataBufferAllocLength);
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    goto Exit;
+                }
+                memcpy(NewEarlyDataBuffer, State->EarlyDataBuffer, State->EarlyDataBufferLength);
+                CXPLAT_FREE(State->EarlyDataBuffer, QUIC_POOL_TLS_EARLY_DATA_BUFFER);
+                State->EarlyDataBuffer = NewEarlyDataBuffer;
+                State->EarlyDataBufferAllocLength = NewEarlyDataBufferAllocLength;
+            }
+            ReadLength = 0;
+            Ret =
+                SSL_read_early_data(
+                    TlsContext->Ssl,
+                    State->EarlyDataBuffer + State->EarlyDataBufferLength,
+                    State->EarlyDataBufferAllocLength - State->EarlyDataBufferLength,
+                    &ReadLength);
+            CXPLAT_DBG_ASSERT(ReadLength <= State->EarlyDataBufferAllocLength - State->EarlyDataBufferLength);
+            State->EarlyDataBufferLength += (uint32_t)ReadLength;
+            switch (Ret) {
+            case SSL_READ_EARLY_DATA_FINISH:
+                // No more early data is available, or early data is already complete.
+                State->ReadEarlyData = FALSE;
+                goto Handshake;
+            case SSL_READ_EARLY_DATA_SUCCESS:
+                // Successfully read some early data.
+                // Stay in this state until SSL_read_early_data() indicates completion.
+                State->ReadEarlyDataSuccess = TRUE;
+                break;
+            case SSL_READ_EARLY_DATA_ERROR: {
+                int Err = SSL_get_error(TlsContext->Ssl, Ret);
+                switch (Err) {
+                case SSL_ERROR_WANT_READ:
+                    if (State->ReadEarlyDataSuccess) {
+                        // All available early data has been consumed,
+                        // so execute the handshake to move past the early data phase.
+                        goto Handshake;
+                    }
+                    goto Exit;
+
+                case SSL_ERROR_WANT_WRITE:
+                    // OpenSSL requires the server handshake flight to be sent before
+                    // more early data can be processed.
+                    goto Handshake;
+
+                case SSL_ERROR_SSL: {
+                    char buf[256];
+                    const char* file;
+                    int line;
+                    ERR_error_string_n(ERR_get_error_all(&file, &line, NULL, NULL, NULL), buf, sizeof(buf));
+                    QuicTraceLogConnError(
+                        OpenSslHandshakeErrorStr,
+                        TlsContext->Connection,
+                        "SSL_read_early_data error: %s, file:%s:%d",
+                        buf,
+                        (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                        line);
+                    State->ReadEarlyData = FALSE;
+                    goto Handshake;
+                }
+
+                default:
+                    QuicTraceLogConnError(
+                        OpenSslHandshakeError,
+                        TlsContext->Connection,
+                        "SSL_read_early_data error: %d",
+                        Err);
+                    State->ReadEarlyData = FALSE;
+                    goto Handshake;
+                }
+            }
+            default:
+                QuicTraceLogConnError(
+                    OpenSslHandshakeError,
+                    TlsContext->Connection,
+                    "Unexpected SSL_read_early_data return value: %d",
+                    Ret);
+                State->ReadEarlyData = FALSE;
+                goto Handshake;
+            }
+        } while (Ret == SSL_READ_EARLY_DATA_SUCCESS && ReadLength > 0);
+    }
+
+Handshake:
     if (!State->HandshakeComplete) {
         Ret = SSL_do_handshake(TlsContext->Ssl);
         if (Ret <= 0) {
             int Err = SSL_get_error(TlsContext->Ssl, Ret);
             switch (Err) {
             case SSL_ERROR_WANT_READ:
+                break;
+
             case SSL_ERROR_WANT_WRITE:
                 break;
+
             case SSL_ERROR_SSL: {
                 char buf[256];
                 const char* file;
@@ -3693,7 +3829,6 @@ CxPlatTlsHandshake(
                 }
             }
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
-
 
             if (!TlsContext->IsServer) {
                 const uint8_t* NegotiatedAlpn;
@@ -3757,6 +3892,7 @@ CxPlatTlsHandshake(
         }
     }
 
+Send:
     uint32_t OutputBufferCount = 0;
     QUIC_BUFFER *OutputBuffer = &OutputBuffers[OutputBufferCount];
     size_t OutputBufferOffset = 0;
@@ -3764,21 +3900,38 @@ CxPlatTlsHandshake(
         if (OutputBufferOffset == OutputBuffer->Length) {
             OutputBufferCount++;
             if (OutputBufferCount == OutputBuffersCount) {
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL;
                 break;
             }
             OutputBuffer = &OutputBuffers[OutputBufferCount];
             OutputBufferOffset = 0;
         }
-        Ret = BIO_read(TlsContext->wbio,
-            OutputBuffer->Buffer + OutputBufferOffset,
-            (int)(OutputBuffer->Length - OutputBufferOffset));
+        Ret =
+            BIO_read(
+                TlsContext->wbio,
+                OutputBuffer->Buffer + OutputBufferOffset,
+                (int)(OutputBuffer->Length - OutputBufferOffset));
         if (Ret < 0) {
             int Err = SSL_get_error(TlsContext->Ssl, Ret);
-            QuicTraceLogConnError(
-                OpenSslBIOWriteError,
-                TlsContext->Connection,
-                "BIO_write failed, error: %d",
-                Err);
+            if (Err == SSL_ERROR_SSL) {
+                char buf[256];
+                const char* file;
+                int line;
+                ERR_error_string_n(ERR_get_error_all(&file, &line, NULL, NULL, NULL), buf, sizeof(buf));
+                QuicTraceLogConnError(
+                    OpenSslHandshakeErrorStr,
+                    TlsContext->Connection,
+                    "BIO_read error: %s, file:%s:%d",
+                    buf,
+                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                    line);
+            } else {
+                QuicTraceLogConnError(
+                    OpenSslBIOReadError,
+                    TlsContext->Connection,
+                    "BIO_read failed, error: %d",
+                    Err);
+            }
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             break;
         } else {
@@ -3795,6 +3948,26 @@ CxPlatTlsHandshake(
 Exit:
 
     return TlsContext->ResultFlags;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatTlsWriteEarlyData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(*InputBufferLength)
+        const uint8_t * InputBuffer,
+    _Inout_ size_t * InputBufferLength
+    )
+{
+    CXPLAT_DBG_ASSERT(InputBuffer != NULL && *InputBufferLength > 0);
+    CXPLAT_DBG_ASSERT(TlsContext->IsQMux);
+    int Ret =
+        SSL_write_early_data(
+            TlsContext->Ssl,
+            InputBuffer,
+            *InputBufferLength,
+            InputBufferLength);
+     return Ret == 1;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -3826,22 +3999,34 @@ CxPlatTlsEncrypt(
         TlsContext->Ssl,
         Plaintext,
         (int)PlaintextLength);
-    if (Ret < 0) {
+    if (Ret <= 0) {
         int Err = SSL_get_error(TlsContext->Ssl, Ret);
-        QuicTraceLogConnError(
-            OpenSslSSLWriteError,
-            TlsContext->Connection,
-            "SSL_write failed, error: %d",
-            Err);
-        return FALSE;
-    } else if (Ret == 0) {
+        if (Err == SSL_ERROR_SSL) {
+            char buf[256];
+            const char* file;
+            int line;
+            ERR_error_string_n(ERR_get_error_all(&file, &line, NULL, NULL, NULL), buf, sizeof(buf));
+            QuicTraceLogConnError(
+                OpenSslHandshakeErrorStr,
+                TlsContext->Connection,
+                "TLS handshake error: %s, file:%s:%d",
+                buf,
+                (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                line);
+        } else {
+            QuicTraceLogConnError(
+                OpenSslSSLWriteError,
+                TlsContext->Connection,
+                "SSL_write failed, error: %d",
+                Err);
+        }
         return FALSE;
     }
 
     size_t Offset = 0;
     Buffer->DataLength = 0;
     while (BIO_pending(TlsContext->wbio) > 0) {
-        CXPLAT_DBG_ASSERT(Offset < Buffer->Capacity);
+        CXPLAT_DBG_ASSERT(Offset <= Buffer->Capacity);
         Ret = BIO_read(TlsContext->wbio, Buffer->Base + Offset, (int)(Buffer->Capacity - Offset));
         if (Ret < 0) {
             int Err = SSL_get_error(TlsContext->Ssl, Ret);

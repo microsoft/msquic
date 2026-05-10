@@ -1614,7 +1614,9 @@ QuicConnOnShutdownComplete(
     QuicSendUninitialize(&Connection->Send);
     QuicDatagramSendShutdown(&Connection->Datagram);
     if (QuicConnIsQMux(Connection)) {
-        CxPlatSocketDelete(QuicConnGetQMux(Connection)->Socket);
+        if (QuicConnGetQMux(Connection)->Socket != NULL) {
+            CxPlatSocketDelete(QuicConnGetQMux(Connection)->Socket);
+        }
     }
 
     if (Connection->State.ExternalOwner) {
@@ -2308,7 +2310,9 @@ QuicConnSendResumptionTicket(
     QUIC_STATUS Status;
     uint8_t* TicketBuffer = NULL;
     uint32_t TicketLength = 0;
-    uint8_t AlpnLength = Connection->Crypto.TlsState.NegotiatedAlpn[0];
+    uint8_t AlpnLength = !QuicConnIsQMux(Connection) ?
+        Connection->Crypto.TlsState.NegotiatedAlpn[0] :
+        QuicConnGetQMux(Connection)->TlsState.NegotiatedAlpn[0];
 
     if (Connection->HandshakeTP == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -2324,14 +2328,30 @@ QuicConnSendResumptionTicket(
             Connection->HandshakeTP,
             NULL,    // No Careful Resumption data
             AlpnLength,
-            Connection->Crypto.TlsState.NegotiatedAlpn + 1,
+            !QuicConnIsQMux(Connection) ?
+                Connection->Crypto.TlsState.NegotiatedAlpn + 1 :
+                QuicConnGetQMux(Connection)->TlsState.NegotiatedAlpn + 1,
             &TicketBuffer,
             &TicketLength);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    Status = QuicCryptoProcessAppData(&Connection->Crypto, TicketLength, TicketBuffer);
+    if (!QuicConnIsQMux(Connection)) {
+        Status = QuicCryptoProcessAppData(&Connection->Crypto, TicketLength, TicketBuffer);
+    } else {
+        uint32_t TicketLengthConsumed = TicketLength;
+        uint32_t TicketOffset = 0;
+        do {
+            Status =
+                QuicQMuxProcessHandshake(
+                    QuicConnGetQMux(Connection),
+                    CXPLAT_TLS_TICKET_DATA,
+                    TicketBuffer + TicketOffset,
+                    &TicketLengthConsumed);
+            TicketOffset += TicketLengthConsumed;
+        } while (TicketOffset < TicketLength && QUIC_SUCCEEDED(Status));
+    }
 
 Error:
     if (TicketBuffer != NULL) {
@@ -2358,17 +2378,32 @@ QuicConnRecvResumptionTicket(
     QUIC_TRANSPORT_PARAMETERS ResumedTP = {0};
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
-        if (Connection->Crypto.TicketValidationRejecting) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Resumption Ticket rejected by server app asynchronously");
-            Connection->Crypto.TicketValidationRejecting = FALSE;
-            Connection->Crypto.TicketValidationPending = FALSE;
-            goto Error;
+        if (!QuicConnIsQMux(Connection)) {
+            if (Connection->Crypto.TicketValidationRejecting) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Resumption Ticket rejected by server app asynchronously");
+                Connection->Crypto.TicketValidationRejecting = FALSE;
+                Connection->Crypto.TicketValidationPending = FALSE;
+                goto Error;
+            }
+            Connection->Crypto.TicketValidationPending = TRUE;
+        } else {
+            if (QuicConnGetQMux(Connection)->TicketValidationRejecting) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Resumption Ticket rejected by server app asynchronously");
+                QuicConnGetQMux(Connection)->TicketValidationRejecting = FALSE;
+                QuicConnGetQMux(Connection)->TicketValidationPending = FALSE;
+                goto Error;
+            }
+            QuicConnGetQMux(Connection)->TicketValidationPending = TRUE;
+
         }
-        Connection->Crypto.TicketValidationPending = TRUE;
 
         if (TicketLength > UINT16_MAX) {
             QuicTraceEvent(
@@ -2434,7 +2469,11 @@ QuicConnRecvResumptionTicket(
                 "[conn][%p] Server app accepted resumption ticket",
                 Connection);
             ResumptionAccepted = TRUE;
-            Connection->Crypto.TicketValidationPending = FALSE;
+            if (!QuicConnIsQMux(Connection)) {
+                Connection->Crypto.TicketValidationPending = FALSE;
+            } else {
+                QuicConnGetQMux(Connection)->TicketValidationPending = FALSE;
+            }
         } else if (Status == QUIC_STATUS_PENDING) {
             QuicTraceEvent(
                 ConnServerResumeTicket,
@@ -2448,50 +2487,41 @@ QuicConnRecvResumptionTicket(
                 Connection,
                 "Resumption Ticket rejected by server app");
             ResumptionAccepted = FALSE;
-            Connection->Crypto.TicketValidationPending = FALSE;
+            if (!QuicConnIsQMux(Connection)) {
+                Connection->Crypto.TicketValidationPending = FALSE;
+            } else {
+                QuicConnGetQMux(Connection)->TicketValidationPending = FALSE;
+            }
         }
 
     } else {
 
-        if (!QuicConnIsQMux(Connection)) {
-            const uint8_t* ClientTicket = NULL;
-            uint32_t ClientTicketLength = 0;
+        const uint8_t* ClientTicket = NULL;
+        uint32_t ClientTicketLength = 0;
 
-            CXPLAT_DBG_ASSERT(Connection->State.PeerTransportParameterValid);
+        CXPLAT_DBG_ASSERT(Connection->State.PeerTransportParameterValid);
 
-            if (QUIC_SUCCEEDED(
-                QuicCryptoEncodeClientTicket(
-                    Connection,
-                    TicketLength,
-                    Ticket,
-                    &Connection->PeerTransportParams,
-                    Connection->Stats.QuicVersion,
-                    &ClientTicket,
-                    &ClientTicketLength))) {
+        if (QUIC_SUCCEEDED(
+            QuicCryptoEncodeClientTicket(
+                Connection,
+                TicketLength,
+                Ticket,
+                &Connection->PeerTransportParams,
+                Connection->Stats.QuicVersion,
+                &ClientTicket,
+                &ClientTicketLength))) {
 
-                QUIC_CONNECTION_EVENT Event;
-                Event.Type = QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED;
-                Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength = ClientTicketLength;
-                Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicket = ClientTicket;
-                QuicTraceLogConnVerbose(
-                    IndicateResumptionTicketReceived,
-                    Connection,
-                    "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
-                (void)QuicConnIndicateEvent(Connection, &Event);
-
-                CXPLAT_FREE(ClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
-                ResumptionAccepted = TRUE;
-            }
-        } else {
             QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED;
-            Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength = TicketLength;
-            Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicket = Ticket;
+            Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength = ClientTicketLength;
+            Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicket = ClientTicket;
             QuicTraceLogConnVerbose(
                 IndicateResumptionTicketReceived,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
             (void)QuicConnIndicateEvent(Connection, &Event);
+
+            CXPLAT_FREE(ClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
             ResumptionAccepted = TRUE;
         }
     }
@@ -2843,20 +2873,18 @@ QuicConnSetConfiguration(
         Connection->Crypto.TlsState.ClientAlpnListLength = 0;
     }
 
-    if (!QuicConnIsQMux(Connection)) {
-        Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
-        if (QUIC_FAILED(Status)) {
-            goto Cleanup;
-        }
+    Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
+    if (QUIC_FAILED(Status)) {
+        goto Cleanup;
+    }
 
-        //
-        // Persist the transport parameters used during handshake for resumption.
-        // (if resumption is enabled)
-        //
-        if (QuicConnIsServer(Connection) && Connection->HandshakeTP != NULL) {
-            CXPLAT_DBG_ASSERT(Connection->State.ResumptionEnabled);
-            QuicCryptoTlsCopyTransportParameters(&LocalTP, Connection->HandshakeTP);
-        }
+    //
+    // Persist the transport parameters used during handshake for resumption.
+    // (if resumption is enabled)
+    //
+    if (QuicConnIsServer(Connection) && Connection->HandshakeTP != NULL) {
+        CXPLAT_DBG_ASSERT(Connection->State.ResumptionEnabled);
+        QuicCryptoTlsCopyTransportParameters(&LocalTP, Connection->HandshakeTP);
     }
 
     Connection->State.Started = TRUE;
@@ -2881,9 +2909,7 @@ QuicConnSetConfiguration(
 
 Cleanup:
 
-    if (!QuicConnIsQMux(Connection)) {
-        QuicCryptoTlsCleanupTransportParameters(&LocalTP);
-    }
+    QuicCryptoTlsCleanupTransportParameters(&LocalTP);
 
 Error:
 
@@ -6911,8 +6937,12 @@ QuicConnParamSet(
                 (uint16_t)BufferLength,
                 Buffer,
                 &Connection->PeerTransportParams,
-                &Connection->Crypto.ResumptionTicket,
-                &Connection->Crypto.ResumptionTicketLength,
+                !QuicConnIsQMux(Connection) ?
+                    &Connection->Crypto.ResumptionTicket :
+                    &QuicConnGetQMux(Connection)->ResumptionTicket,
+                !QuicConnIsQMux(Connection) ?
+                    &Connection->Crypto.ResumptionTicketLength :
+                    &QuicConnGetQMux(Connection)->ResumptionTicketLength,
                 &Connection->Stats.QuicVersion);
         if (QUIC_FAILED(Status)) {
             break;
@@ -6921,6 +6951,9 @@ QuicConnParamSet(
         QuicConnOnQuicVersionSet(Connection);
         Status = QuicConnProcessPeerTransportParameters(Connection, TRUE);
         CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        if (QuicConnIsQMux(Connection)) {
+            QuicConnGetQMux(Connection)->PermitEarlyData = TRUE;
+        }
 
         break;
     }

@@ -736,7 +736,8 @@ MsQuicConnectionSendResumptionTicket(
 
     if (!Connection->State.ResumptionEnabled ||
         !Connection->State.Connected ||
-        !Connection->Crypto.TlsState.HandshakeComplete) {
+        (!QuicConnIsQMux(Connection) && !Connection->Crypto.TlsState.HandshakeComplete) ||
+        (QuicConnIsQMux(Connection) && !QuicConnGetQMux(Connection)->TlsState.HandshakeComplete)) {
         Status = QUIC_STATUS_INVALID_STATE; // TODO - Support queueing up the ticket to send once connected.
         goto Error;
     }

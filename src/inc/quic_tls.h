@@ -335,6 +335,27 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     //
     const uint8_t* ClientAlpnList;
     uint16_t ClientAlpnListLength;
+    
+    BOOLEAN ReadEarlyData;
+    BOOLEAN ReadEarlyDataSuccess;
+
+    //
+    // Total written length in Buffer.
+    //
+    uint32_t EarlyDataBufferLength;
+
+    //
+    // Total allocation length of Buffer.
+    //
+    uint32_t EarlyDataBufferAllocLength;
+
+    //
+    // Holds the early data. Use CXPLAT_ALLOC_NONPAGED and CXPLAT_FREE
+    // to allocate and free the memory.
+    //
+    uint8_t* EarlyDataBuffer;
+
+    uint8_t Count;
 
 } CXPLAT_TLS_PROCESS_STATE;
 
@@ -472,6 +493,14 @@ CxPlatTlsHandshake(
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatTlsWriteEarlyData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(*InputBufferLength)
+        const uint8_t * InputBuffer,
+    _Inout_ size_t * InputBufferLength
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN

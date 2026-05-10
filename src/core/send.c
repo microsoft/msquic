@@ -306,7 +306,7 @@ QuicSendSetSendFlag(
 
     const BOOLEAN CanSetFlag =
         (!QuicConnIsQMux(Connection) && (!QuicConnIsClosed(Connection) || (!Connection->State.ClosedSilently && IsCloseFrame))) ||
-        (QuicConnIsQMux(Connection) && QuicConnGetQMux(Connection)->TlsState.HandshakeComplete);
+        (QuicConnIsQMux(Connection) && (QuicConnGetQMux(Connection)->TlsState.HandshakeComplete || QuicConnGetQMux(Connection)->PermitEarlyData));
 
     if (SendFlags & QUIC_CONN_SEND_FLAG_ACK && Send->DelayedAckTimerActive) {
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
@@ -557,6 +557,7 @@ QuicSendWriteFrames(
                 CXPLAT_FREE(Frame.TP, QUIC_POOL_TLS_TRANSPARAMS);
                 return TRUE;
             }
+            Connection->State.LocalTPSent = TRUE;
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_QX_TRANSPORT_PARAMETERS;
         } else {
             RanOutOfRoom = TRUE;
@@ -1317,6 +1318,12 @@ QuicSendFlush(
     }
 
     if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
+        return TRUE;
+    }
+
+    if (QuicConnIsQMux(Connection) &&
+        !QuicConnGetQMux(Connection)->TlsState.HandshakeComplete &&
+        !QuicConnGetQMux(Connection)->PermitEarlyData) {
         return TRUE;
     }
 

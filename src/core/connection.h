@@ -32,6 +32,8 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN Allocated       : 1;    // Allocated. Used for Debugging.
         BOOLEAN IsQMux          : 1;    // Connection created by QMux.
         BOOLEAN TcpConnected    : 1;    // TCP connection established (QMux).
+        BOOLEAN PeerTPReceived  : 1;    // Peer transport parameters received (QMux).
+        BOOLEAN LocalTPSent     : 1;    // Local transport parameters sent (QMux).
         BOOLEAN Initialized     : 1;    // Initialized successfully. Used for Debugging.
         BOOLEAN Started         : 1;    // Handshake started.
         BOOLEAN Connected       : 1;    // Handshake completed.

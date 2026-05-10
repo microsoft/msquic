@@ -66,6 +66,35 @@ typedef struct QUIC_QMUX {
 
     BOOLEAN RecvPing;
 
+    BOOLEAN PermitEarlyData;
+    BOOLEAN ReadEarlyData;
+
+    //
+    // Buffer for early data.
+    //
+    uint8_t* EarlyDataBuffer;
+    uint32_t EarlyDataBufferAllocLength;
+    uint32_t EarlyDataBufferLength;
+
+    //
+    // Outstanding packets.
+    //
+    QUIC_SENT_PACKET_METADATA* SentEarlyDataPackets;
+    QUIC_SENT_PACKET_METADATA** SentEarlyDataPacketsTail;
+
+    //
+    // Indicates Resumption ticket validation is under validation asynchronously
+    //
+    BOOLEAN TicketValidationPending : 1;
+    BOOLEAN TicketValidationRejecting : 1;
+    uint32_t PendingValidationBufferLength;
+
+    //
+    // Resumption ticket to send to server.
+    //
+    uint8_t* ResumptionTicket;
+    uint32_t ResumptionTicketLength;
+
 } QUIC_QMUX;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -89,9 +118,26 @@ QuicQMuxInitializeTls(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicQMuxProcessHandshake(
+    _In_ QUIC_QMUX* QMux,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
+    _In_reads_bytes_(*BufferLength)
+        const uint8_t* Buffer,
+    _Inout_ uint32_t* BufferLength
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicQMuxFlushRecv(
     _In_ QUIC_QMUX* QMux
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicQMuxOnPacketAcknowledged(
+    _In_ QUIC_QMUX* QMux,
+    _In_ QUIC_SENT_PACKET_METADATA* Packet
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

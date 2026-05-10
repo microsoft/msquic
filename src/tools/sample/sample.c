@@ -388,7 +388,7 @@ ServerStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received %" PRIu64 " bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        printf("[strm][%p] Data received %" PRIu64 " bytes, flags=0x%x\n", Stream, Event->RECEIVE.TotalBufferLength, Event->RECEIVE.Flags);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         //
@@ -721,7 +721,7 @@ ClientStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received %" PRIu64 " bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        printf("[strm][%p] Data received %" PRIu64 " bytes, flags=0x%x\n", Stream, Event->RECEIVE.TotalBufferLength, Event->RECEIVE.Flags);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         //
@@ -815,6 +815,7 @@ Error:
     }
 }
 
+BOOLEAN TicketRecvd = FALSE;
 //
 // The clients's callback for connection events from MsQuic.
 //
@@ -883,10 +884,13 @@ ClientConnectionCallback(
         // received from the server.
         //
         printf("[conn][%p] Resumption ticket received (%u bytes):\n", Connection, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
-        for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
-            printf("%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
+        if (!TicketRecvd) {
+            for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
+                fprintf(stderr, "%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
+            }
+            fprintf(stderr, "\n");
         }
-        printf("\n");
+        TicketRecvd = TRUE;
         break;
     case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
         printf(
@@ -1012,6 +1016,40 @@ RunClient(
         }
     }
 
+    if (ResumptionTicketString != NULL) {
+        HQUIC Stream = NULL;
+        uint8_t* SendBufferRaw;
+        QUIC_BUFFER* SendBuffer;
+
+        if (QUIC_FAILED(Status = MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_0_RTT, ClientStreamCallback, NULL, &Stream))) {
+            printf("StreamOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
+
+        printf("[strm][%p] Starting...\n", Stream);
+
+
+        //
+        // Allocates and builds the buffer to send over the stream.
+        //
+        SendBufferRaw = (uint8_t*)malloc(sizeof(QUIC_BUFFER) + SendBufferLength);
+        if (SendBufferRaw == NULL) {
+            printf("SendBuffer allocation failed!\n");
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+        SendBuffer = (QUIC_BUFFER*)SendBufferRaw;
+        SendBuffer->Buffer = SendBufferRaw + sizeof(QUIC_BUFFER);
+        SendBuffer->Length = SendBufferLength;
+
+        printf("[strm][%p] Sending data...\n", Stream);
+
+        if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_ALLOW_0_RTT | QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN, SendBuffer))) {
+            printf("StreamSend failed, 0x%x!\n", Status);
+            free(SendBufferRaw);
+            goto Error;
+        }
+    }
     //
     // Get the target / server name or IP from the command line.
     //

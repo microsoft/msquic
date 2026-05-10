@@ -142,13 +142,16 @@ QuicPacketBuilderInitialize(
     } else {
         TimeSinceLastSend = 0;
     }
-    Builder->SendAllowance =
-        QuicCongestionControlGetSendAllowance(
-            &Connection->CongestionControl,
-            TimeSinceLastSend,
-            Connection->Send.LastFlushTimeValid);
-    if (Builder->SendAllowance > Path->Allowance) {
-        Builder->SendAllowance = Path->Allowance;
+
+    if (!QuicConnIsQMux(Connection)) {
+        Builder->SendAllowance =
+            QuicCongestionControlGetSendAllowance(
+                &Connection->CongestionControl,
+                TimeSinceLastSend,
+                Connection->Send.LastFlushTimeValid);
+        if (Builder->SendAllowance > Path->Allowance) {
+            Builder->SendAllowance = Path->Allowance;
+        }
     }
     Connection->Send.LastFlushTime = TimeNow;
     Connection->Send.LastFlushTimeValid = TRUE;
@@ -537,7 +540,16 @@ QuicPacketBuilderQMuxPrepare(
         // current QUIC packet up so we can create another.
         //
         CXPLAT_DBG_ASSERT(Builder->SendData != NULL);
-        QuicPacketBuilderQMuxFinalize(Builder, FALSE);
+        if (QMux->PermitEarlyData) {
+            // Early data cannot exceed the size of a single datagram,
+            // so if we're here, it means the current datagram is already
+            // full of early data and needs to be flushed.
+            QuicPacketBuilderQMuxFinalize(Builder, TRUE);
+            QMux->PermitEarlyData = FALSE;
+            return FALSE;
+        } else {
+            QuicPacketBuilderFinalize(Builder, FALSE);
+        }
         NewQuicPacket = TRUE;
 
     } else if (Builder->Datagram == NULL) {
@@ -1309,76 +1321,132 @@ QuicPacketBuilderQMuxFinalize(
             Builder->HeaderLength);
     }
 
-    //
-    // Encrypt the data.
-    //
-
-    QuicTraceEvent(
-        PacketEncrypt,
-        "[pack][%llu] Encrypting",
-        Builder->Metadata->PacketId);
-
-    CXPLAT_TLS_ENCRYPT_BUFFER EncryptBuffer = {
-        Builder->Datagram->Buffer,
-        Builder->Datagram->Length,
-        5,
-        PayloadLength + QMuxRecordLength
-    };
-    if (!CxPlatTlsEncrypt(
-            QMux->TLS,
-            &EncryptBuffer)) {
-        QuicConnFatalError(Connection, QUIC_STATUS_ABORTED, "Encryption failure");
-        goto Exit;
-    }
-    Builder->Datagram->Length = (uint32_t)EncryptBuffer.DataLength;
-    Builder->DatagramLength = (uint16_t)Builder->Datagram->Length;
-
-    //
-    // Track the sent packet.
-    //
-    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
-
-    Builder->Metadata->SentTime = CxPlatTimeUs64();
-    Builder->Metadata->PacketLength = (uint16_t)Builder->Datagram->Length;
-    Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
-
-    for (uint8_t i = 0; i < Builder->Metadata->FrameCount; ++i) {
-        switch (Builder->Metadata->Frames[i].Type) {
-        case QUIC_FRAME_RESET_STREAM:
-            QuicStreamOnResetAck(Builder->Metadata->Frames[i].RESET_STREAM.Stream);
-            break;
-        case QUIC_FRAME_RELIABLE_RESET_STREAM:
-            QuicStreamOnResetReliableAck(
-                Builder->Metadata->Frames[i].RELIABLE_RESET_STREAM.Stream);
-            break;
-        case QUIC_FRAME_STREAM:
-        case QUIC_FRAME_STREAM_1:
-        case QUIC_FRAME_STREAM_2:
-        case QUIC_FRAME_STREAM_3:
-        case QUIC_FRAME_STREAM_4:
-        case QUIC_FRAME_STREAM_5:
-        case QUIC_FRAME_STREAM_6:
-        case QUIC_FRAME_STREAM_7: {
-            QUIC_SEND_PACKET_FLAGS DummyFlags = { 0 };
-            QuicStreamOnAck(
-                Builder->Metadata->Frames[i].STREAM.Stream,
-                DummyFlags,
-                &Builder->Metadata->Frames[i]);
-            break;
+    if (QMux->PermitEarlyData) {
+        uint32_t RequiredLength = QMux->EarlyDataBufferLength + PayloadLength + QMuxRecordLength;
+        uint32_t NewEarlyDataBufferAllocLength = QMux->EarlyDataBufferAllocLength;
+        if (RequiredLength > NewEarlyDataBufferAllocLength) {
+            while (RequiredLength > NewEarlyDataBufferAllocLength) {
+                if (NewEarlyDataBufferAllocLength > UINT32_MAX / 2) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        " early data exceeds maximum buffer size");
+                    QuicConnCloseLocally(
+                        Connection,
+                        QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                        (uint64_t)QUIC_STATUS_OUT_OF_MEMORY,
+                        NULL);
+                    goto Exit;
+                }
+                if (NewEarlyDataBufferAllocLength == 0) {
+                    NewEarlyDataBufferAllocLength = 4096; // Start with 4KB buffer.
+                } else {
+                    NewEarlyDataBufferAllocLength *= 2;
+                }
+            }
+            uint8_t* NewEarlyDataBuffer = CXPLAT_ALLOC_NONPAGED(NewEarlyDataBufferAllocLength, QUIC_POOL_QMUX_EARLY_DATA_BUFFER);
+            if (NewEarlyDataBuffer == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "QMux early data buffer",
+                    NewEarlyDataBufferAllocLength);
+                QuicConnCloseLocally(
+                    Connection,
+                    QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                    (uint64_t)QUIC_STATUS_OUT_OF_MEMORY,
+                    NULL);
+                goto Exit;
+            }
+            if (QMux->EarlyDataBuffer != NULL) {
+                CXPLAT_DBG_ASSERT(QMux->EarlyDataBufferLength <= NewEarlyDataBufferAllocLength);
+                CxPlatCopyMemory(NewEarlyDataBuffer, QMux->EarlyDataBuffer, QMux->EarlyDataBufferLength);
+                CXPLAT_FREE(QMux->EarlyDataBuffer, QUIC_POOL_QMUX_EARLY_DATA_BUFFER);
+            }
+            QMux->EarlyDataBuffer = NewEarlyDataBuffer;
         }
-        case QUIC_FRAME_DATAGRAM:
-        case QUIC_FRAME_DATAGRAM_1:
-            QuicDatagramIndicateSendStateChange(
+        CXPLAT_DBG_ASSERT(QMux->EarlyDataBuffer != NULL);
+        CxPlatCopyMemory(
+            QMux->EarlyDataBuffer + QMux->EarlyDataBufferLength,
+            Header + 5,
+            PayloadLength + QMuxRecordLength);
+        QMux->EarlyDataBufferLength += PayloadLength + QMuxRecordLength;
+
+        //
+        // Allocate a copy of the packet metadata.
+        //
+        QUIC_SENT_PACKET_METADATA* SentPacket =
+            QuicSentPacketPoolGetPacketMetadata(
+                &Connection->Partition->SentPacketPool,
+                Builder->Metadata->FrameCount);
+        if (SentPacket == NULL) {
+            //
+            // We can't allocate the memory to permanently track this packet so just
+            // go ahead and immediately clean up and mark the data in it as lost.
+            //
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Sent packet metadata",
+                SIZEOF_QUIC_SENT_PACKET_METADATA(Builder->Metadata->FrameCount));
+            QuicConnCloseLocally(
                 Connection,
-                &Builder->Metadata->Frames[i].DATAGRAM.ClientContext,
-                QUIC_DATAGRAM_SEND_ACKNOWLEDGED);
-            Builder->Metadata->Frames[i].DATAGRAM.ClientContext = NULL;
-            break;
-        default:
-            break;
+                QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                (uint64_t)QUIC_STATUS_OUT_OF_MEMORY,
+                NULL);
+            goto Exit;
         }
+        CxPlatCopyMemory(
+            SentPacket,
+            Builder->Metadata,
+            sizeof(QUIC_SENT_PACKET_METADATA) +
+            sizeof(QUIC_SENT_FRAME_METADATA) * Builder->Metadata->FrameCount);
+
+        //
+        // Add to the outstanding-packet queue.
+        //
+        SentPacket->Next = NULL;
+        *QMux->SentEarlyDataPacketsTail = SentPacket;
+        QMux->SentEarlyDataPacketsTail = &SentPacket->Next;
+        CanKeepSending = FALSE;
+    } else {
+        //
+        // Encrypt the data.
+        //
+
+        QuicTraceEvent(
+            PacketEncrypt,
+            "[pack][%llu] Encrypting",
+            Builder->Metadata->PacketId);
+
+        CXPLAT_TLS_ENCRYPT_BUFFER EncryptBuffer = {
+            Builder->Datagram->Buffer,
+            Builder->Datagram->Length,
+            5,
+            PayloadLength + QMuxRecordLength
+        };
+        if (!CxPlatTlsEncrypt(
+                QMux->TLS,
+                &EncryptBuffer)) {
+            QuicConnFatalError(Connection, QUIC_STATUS_ABORTED, "Encryption failure");
+            goto Exit;
+        }
+        Builder->Datagram->Length = (uint32_t)EncryptBuffer.DataLength;
+        Builder->DatagramLength = (uint16_t)Builder->Datagram->Length;
+
+        //
+        // Track the sent packet.
+        //
+        CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
+
+        Builder->Metadata->SentTime = CxPlatTimeUs64();
+        Builder->Metadata->PacketLength = (uint16_t)Builder->Datagram->Length;
+        Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
+
+        QuicQMuxOnPacketAcknowledged(QMux, Builder->Metadata);
+        QuicSentPacketMetadataReleaseFrames(Builder->Metadata, Connection);
     }
-    QuicSentPacketMetadataReleaseFrames(Builder->Metadata, Connection);
 
     Builder->Metadata->FrameCount = 0;
 
@@ -1463,6 +1531,14 @@ QuicPacketBuilderQMuxSendBatch(
     QUIC_CONNECTION* Connection = Builder->Connection;
     QUIC_QMUX* QMux = QuicConnGetQMux(Connection);
 
+    if (QMux->PermitEarlyData) {
+        if (Builder->SendData != NULL) {
+            CxPlatSendDataFree(Builder->SendData);
+            Builder->SendData = NULL;
+        }
+        QMux->PermitEarlyData = FALSE;
+        return;
+    }
     QuicTraceLogConnVerbose(
         PacketBuilderQMuxSendBatch,
         Builder->Connection,
