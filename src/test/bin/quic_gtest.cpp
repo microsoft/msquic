@@ -2710,10 +2710,13 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 TEST(Misc, StreamMultiReceive) {
     TestLogger Logger("StreamMultiReceive");
     if (TestingKernelMode) {
-        // TODO: Why?? This should be enabled.
-        GTEST_SKIP();
+        fprintf(stderr, "StreamMultiReceive: kernel mode\n");
+        fflush(stderr);
+        TestLogger Logger("StreamMultiReceive Kernel");
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamMultiReceive)));
     } else {
+        fprintf(stderr, "StreamMultiReceive: user mode\n");
+        fflush(stderr);
         QuicTestStreamMultiReceive();
     }
 }
