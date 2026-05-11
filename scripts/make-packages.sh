@@ -15,7 +15,6 @@ NAME=libmsquic
 TLS=quictls
 TLSVERSION=3
 TIME64DISTRO="False"
-XDP="False"
 CONFLICTS=
 DESCRIPTION="Microsoft implementation of the IETF QUIC protocol"
 VENDOR="Microsoft"
@@ -87,10 +86,6 @@ while :; do
             shift
             OUTPUT=$1
             ;;
-        -x|-xdp|--xdp)
-            shift
-            XDP=$1
-            ;;
         -time64|--time64)
             shift
             TIME64DISTRO=$1
@@ -149,51 +144,26 @@ if [ "$OS" == "linux" ]; then
     BITS='64bit'
   fi
   # XDP is only validated on Ubuntu 24.04 and x64
-  if [ "$XDP" == "True" ] && [[ "$ARCH" == x* ]]; then
-    echo "Building rpm package (XDP)"
-    fpm \
-      --force \
-      --input-type dir \
-      --output-type rpm \
-      --architecture ${PKGARCH} \
-      --name ${NAME} \
-      --provides ${NAME} \
-      --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
-      --depends "libnuma.so.1()(${BITS})" \
-      --depends "libxdp >= 1.4.0" \
-      --depends "libnl3 >= 3.0" \
-      --conflicts ${CONFLICTS} \
-      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-      --description "${DESCRIPTION}" \
-      --vendor "${VENDOR}" \
-      --maintainer "${MAINTAINER}" \
-      --package "${OUTPUT}" \
-      --license MIT \
-      --url https://github.com/microsoft/msquic \
-      --log error \
-      ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
-  else
-    echo "Building rpm package"
-    fpm \
-      --force \
-      --input-type dir \
-      --output-type rpm \
-      --architecture ${PKGARCH} \
-      --name ${NAME} \
-      --provides ${NAME} \
-      --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
-      --depends "libnuma.so.1()(${BITS})" \
-      --conflicts ${CONFLICTS} \
-      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-      --description "${DESCRIPTION}" \
-      --vendor "${VENDOR}" \
-      --maintainer "${MAINTAINER}" \
-      --package "${OUTPUT}" \
-      --license MIT \
-      --url https://github.com/microsoft/msquic \
-      --log error \
-      ${FILES}
-  fi
+  echo "Building rpm package"
+  fpm \
+    --force \
+    --input-type dir \
+    --output-type rpm \
+    --architecture ${PKGARCH} \
+    --name ${NAME} \
+    --provides ${NAME} \
+    --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
+    --depends "libnuma.so.1()(${BITS})" \
+    --conflicts ${CONFLICTS} \
+    --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+    --description "${DESCRIPTION}" \
+    --vendor "${VENDOR}" \
+    --maintainer "${MAINTAINER}" \
+    --package "${OUTPUT}" \
+    --license MIT \
+    --url https://github.com/microsoft/msquic \
+    --log error \
+    ${FILES}
 
   # Debian/Ubuntu
   if [ "$ARCH" == 'x64' ]; then
@@ -217,51 +187,26 @@ if [ "$OS" == "linux" ]; then
       BITS='t64'
   fi
 
-  if [ "$XDP" == "True" ] && [[ "$ARCH" == x* ]]; then
-    echo "Building deb package (XDP)"
-    fpm \
-      --force \
-      --input-type dir \
-      --output-type deb \
-      --architecture ${PKGARCH} \
-      --name ${NAME} \
-      --provides ${NAME} \
-      --conflicts ${CONFLICTS} \
-      --depends "libssl${TLSVERSION}${BITS}" \
-      --depends "libnuma1" \
-      --depends "libxdp1" \
-      --depends "libnl-route-3-200" \
-      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-      --description "${DESCRIPTION}" \
-      --vendor "${VENDOR}" \
-      --maintainer "${MAINTAINER}" \
-      --package "${OUTPUT}" \
-      --license MIT \
-      --url https://github.com/microsoft/msquic \
-      --log error \
-      ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
-  else
-    echo "Building deb package"
-    fpm \
-      --force \
-      --input-type dir \
-      --output-type deb \
-      --architecture ${PKGARCH} \
-      --name ${NAME} \
-      --provides ${NAME} \
-      --conflicts ${CONFLICTS} \
-      --depends "libssl${TLSVERSION}${BITS}" \
-      --depends "libnuma1" \
-      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-      --description "${DESCRIPTION}" \
-      --vendor "${VENDOR}" \
-      --maintainer "${MAINTAINER}" \
-      --package "${OUTPUT}" \
-      --license MIT \
-      --url https://github.com/microsoft/msquic \
-      --log error \
-      ${FILES}
-  fi
+  echo "Building deb package"
+  fpm \
+    --force \
+    --input-type dir \
+    --output-type deb \
+    --architecture ${PKGARCH} \
+    --name ${NAME} \
+    --provides ${NAME} \
+    --conflicts ${CONFLICTS} \
+    --depends "libssl${TLSVERSION}${BITS}" \
+    --depends "libnuma1" \
+    --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+    --description "${DESCRIPTION}" \
+    --vendor "${VENDOR}" \
+    --maintainer "${MAINTAINER}" \
+    --package "${OUTPUT}" \
+    --license MIT \
+    --url https://github.com/microsoft/msquic \
+    --log error \
+    ${FILES}
 fi
 
 # macOS

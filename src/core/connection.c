@@ -5960,8 +5960,9 @@ QuicConnFlushRecv(
         ReceiveQueueByteCount = 0;
         while (++ReceiveQueueCount < QUIC_MAX_RECEIVE_FLUSH_COUNT) {
             ReceiveQueueByteCount += Tail->BufferLength;
-            Tail = Connection->ReceiveQueue;
+            Tail = (QUIC_RX_PACKET*)Tail->Next;
         }
+        ReceiveQueueByteCount += Tail->BufferLength;
         Connection->ReceiveQueueByteCount -= ReceiveQueueByteCount;
         Connection->ReceiveQueue = (QUIC_RX_PACKET*)Tail->Next;
         Tail->Next = NULL;
@@ -6721,11 +6722,14 @@ QuicConnParamSet(
         memcpy(Connection->CibirId + 1, Buffer, BufferLength);
 
         QuicTraceLogConnInfo(
-            CibirIdSet,
+            CibirIdSetInfo,
             Connection,
-            "CIBIR ID set (len %hhu, offset %hhu)",
+            "CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Connection->CibirId[0],
-            Connection->CibirId[1]);
+            Connection->CibirId[1],
+            (unsigned long long)QuicCibirIdToUint64(
+                Connection->CibirId + 2,
+                Connection->CibirId[0]));
 
         return QUIC_STATUS_SUCCESS;
     }

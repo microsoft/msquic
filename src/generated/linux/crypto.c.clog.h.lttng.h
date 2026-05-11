@@ -105,9 +105,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, HandshakeConfirmedServer,
 // [conn][%p] Custom cert validation succeeded
 // QuicTraceLogConnInfo(
             CustomCertValidationSuccess,
-            QuicCryptoGetConnection(Crypto),
+            Connection,
             "Custom cert validation succeeded");
-// arg1 = arg1 = QuicCryptoGetConnection(Crypto) = arg1
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, CustomCertValidationSuccess,
     TP_ARGS(

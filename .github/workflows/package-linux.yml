@@ -32,7 +32,7 @@ jobs:
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
           { config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", time64: "-Time64Distro" },
           { config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", time64: "-Time64Distro" },
-          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", xdp: "-UseXdp", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", time64: "-Time64Distro" },
         ]
     uses: ./.github/workflows/package-reuse-linux.yml
     with:
@@ -40,7 +40,6 @@ jobs:
       os: ${{ matrix.vec.os }}
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
-      xdp: ${{ matrix.vec.xdp }}
       time64: ${{ matrix.vec.time64 }}
 
   test-packages:
@@ -51,19 +50,19 @@ jobs:
       matrix:
         vec: [
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
-          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", xdp: "-UseXdp" },
+          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
     - name: Download Package
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       with:
-        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
+        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
         path: artifacts
     - name: Download Build Artifacts
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       with:
-        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
+        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
         path: artifacts
     - name: Install Package
       run: |
@@ -89,7 +88,7 @@ jobs:
           { friendlyName: "Ubuntu 22.04 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "quictls", image: "ubuntu:22.04" },
           { friendlyName: "Ubuntu 22.04 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "ubuntu:22.04" },
           # Ubuntu 24.04 - DEB
-          { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "ubuntu:24.04", xdp: "-UseXdp" },
+          { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "ubuntu:24.04" },
           { friendlyName: "Ubuntu 24.04 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", image: "ubuntu:24.04" },
           { friendlyName: "Ubuntu 24.04 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", image: "ubuntu:24.04" },
           # Debian 12 - DEB
@@ -101,7 +100,7 @@ jobs:
           { friendlyName: "Debian 13 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", image: "debian:trixie" },
           { friendlyName: "Debian 13 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "debian:trixie" },
           # Azure Linux 3.0 - RPM (no arm32)
-          { friendlyName: "Azure Linux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "mcr.microsoft.com/azurelinux/base/core:3.0", xdp: "-UseXdp" },
+          { friendlyName: "Azure Linux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "mcr.microsoft.com/azurelinux/base/core:3.0" },
           { friendlyName: "Azure Linux 3.0 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", image: "mcr.microsoft.com/azurelinux/base/core:3.0" },
           # CentOS Stream 9 - RPM (no arm32)
           { friendlyName: "CentOS Stream 9 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "quay.io/centos/centos:stream9" },
@@ -141,12 +140,12 @@ jobs:
     - name: Download Package
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       with:
-        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
+        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
         path: artifacts
     - name: Download Build Artifacts
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       with:
-        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
+        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
         path: artifacts
     - name: Set up QEMU
       uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a

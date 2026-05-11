@@ -129,11 +129,10 @@ jobs:
         static: ['', '-Static']
         clang: ['', '-Clang']
         codecheck: ['', '-CodeCheck']
-        xdp: ['', '-UseXdp']
         iouring: ['', '-UseIoUring']
 
         exclude:
-        # Android doesn't support x86, XDP, Clang, CodeCheck or SystemCrypto
+        # Android doesn't support x86, Clang, CodeCheck or SystemCrypto
         - plat: android
           arch: x86
         - plat: android
@@ -154,9 +153,6 @@ jobs:
         - os: 'ubuntu-24.04'
           tls: 'openssl'
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # linux xdp is for ubuntu24.04 only for now
-        - plat: android
-          xdp: "-UseXdp"
         - plat: android
           clang: '-Clang'
         - plat: android
@@ -181,19 +177,11 @@ jobs:
           systemcrypto: '-UseSystemOpenSSLCrypto'
         - os: 'ubuntu-24.04'
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # Linux xdp is for x64 ubuntu24.04 only for now
-        - xdp: "-UseXdp"
-          os: 'ubuntu-22.04'
-        - xdp: "-UseXdp"
-          arch: x86
         # Linux io_uring is for x64 ubuntu24.04 only for now
         - iouring: "-UseIoUring"
           os: 'ubuntu-22.04'
         - iouring: "-UseIoUring"
           arch: x86
-        # Linux io_uring is incompatible with XDP for now
-        - iouring: "-UseIoUring"
-          xdp: "-UseXdp"
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
       config: ${{ matrix.config }}
@@ -205,7 +193,6 @@ jobs:
       static: ${{ matrix.static }}
       clang: ${{ matrix.clang }}
       codecheck: ${{ matrix.codecheck }}
-      xdp: ${{ matrix.xdp }}
       iouring: ${{ matrix.iouring }}
       repo: ${{ github.repository }}
 
@@ -267,7 +254,7 @@ jobs:
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg
