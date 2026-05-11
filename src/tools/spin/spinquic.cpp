@@ -259,9 +259,7 @@ struct SpinQuicGlobals {
                         ((CxPlatEvent*)Context)->Set();
                     },
                     &CloseComplete);
-                if (!CloseComplete.WaitTimeout(30000)) {
-                    ASSERT_ON_FAILURE(QUIC_STATUS_INTERNAL_ERROR);   // or CXPLAT_FRE_ASSERTMSG
-                }
+                CloseComplete.WaitForever();
             } else {
                 MsQuic->RegistrationClose(Registration);
             }
