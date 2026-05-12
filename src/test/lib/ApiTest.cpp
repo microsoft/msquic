@@ -3024,7 +3024,7 @@ void QuicTestGlobalParam()
         //
         {
             TestScopeLogger LogScope1("SetParam bad length");
-            QUIC_XDP_MAP_CONFIG Config = { 1, 8, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 };
+            QUIC_XDP_MAP_CONFIG Config = { 1, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 };
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
                 MsQuic->SetParam(
@@ -3035,26 +3035,11 @@ void QuicTestGlobalParam()
         }
 
         //
-        // Set with QueueCount == 0 should fail validation.
-        //
-        {
-            TestScopeLogger LogScope1("SetParam QueueCount 0");
-            QUIC_XDP_MAP_CONFIG Config = { 1, 0, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 };
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
-                    sizeof(QUIC_XDP_MAP_CONFIG),
-                    &Config));
-        }
-
-        //
         // Set with NULL MapHandle should fail validation.
         //
         {
             TestScopeLogger LogScope1("SetParam NULL MapHandle");
-            QUIC_XDP_MAP_CONFIG Config = { 1, 8, nullptr };
+            QUIC_XDP_MAP_CONFIG Config = { 1, nullptr };
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
                 MsQuic->SetParam(
@@ -3084,8 +3069,8 @@ void QuicTestGlobalParam()
         {
             TestScopeLogger LogScope1("SetParam valid");
             QUIC_XDP_MAP_CONFIG Configs[2] = {
-                { 3, 8, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 },
-                { 7, 4, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x5678 }
+                { 3, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 },
+                { 7, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x5678 }
             };
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
@@ -3110,9 +3095,7 @@ void QuicTestGlobalParam()
                     OutConfigs));
             TEST_EQUAL(OutLength, (uint32_t)sizeof(OutConfigs));
             TEST_EQUAL(OutConfigs[0].InterfaceIndex, 3u);
-            TEST_EQUAL(OutConfigs[0].QueueCount, 8u);
             TEST_EQUAL(OutConfigs[1].InterfaceIndex, 7u);
-            TEST_EQUAL(OutConfigs[1].QueueCount, 4u);
         }
 
         //
@@ -3136,7 +3119,7 @@ void QuicTestGlobalParam()
         //
         {
             TestScopeLogger LogScope1("SetParam twice fails");
-            QUIC_XDP_MAP_CONFIG Config = { 1, 8, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 };
+            QUIC_XDP_MAP_CONFIG Config = { 1, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 };
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_STATE,
                 MsQuic->SetParam(

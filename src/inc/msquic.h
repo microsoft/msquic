@@ -368,7 +368,6 @@ typedef void* QUIC_XDP_MAP_HANDLE;
 
 typedef struct QUIC_XDP_MAP_CONFIG {
     uint32_t InterfaceIndex;        // Network interface this map applies to.
-    uint32_t QueueCount;            // Number of RSS queues for this interface.
     QUIC_XDP_MAP_HANDLE MapHandle;  // XDP map handle.
 } QUIC_XDP_MAP_CONFIG;
 

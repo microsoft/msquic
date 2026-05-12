@@ -1453,7 +1453,7 @@ QuicLibrarySetGlobalParam(
         //
         for (uint32_t i = 0; i < Count; i++) {
 #pragma warning(suppress: 6385) // False positive: Count derived from BufferLength / sizeof guarantees bounds.
-            if (Configs[i].QueueCount == 0 || Configs[i].MapHandle == NULL) {
+            if (Configs[i].MapHandle == NULL) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
         }
