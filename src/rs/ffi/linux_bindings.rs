@@ -175,6 +175,7 @@ pub const QUIC_PARAM_GLOBAL_TLS_PROVIDER: u32 = 16777226;
 pub const QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY: u32 = 16777227;
 pub const QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES: u32 = 16777228;
 pub const QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: u32 = 16777229;
+pub const QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG: u32 = 16777230;
 pub const QUIC_PARAM_CONFIGURATION_SETTINGS: u32 = 50331648;
 pub const QUIC_PARAM_CONFIGURATION_TICKET_KEYS: u32 = 50331649;
 pub const QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS: u32 = 50331650;
@@ -500,6 +501,25 @@ pub type QUIC_EXECUTION_DELETE_FN =
     ::std::option::Option<unsafe extern "C" fn(Count: u32, Executions: *mut *mut QUIC_EXECUTION)>;
 pub type QUIC_EXECUTION_POLL_FN =
     ::std::option::Option<unsafe extern "C" fn(Execution: *mut QUIC_EXECUTION) -> u32>;
+pub type QUIC_XDP_MAP_HANDLE = *mut ::std::os::raw::c_void;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_XDP_MAP_CONFIG {
+    pub InterfaceIndex: u32,
+    pub QueueCount: u32,
+    pub MapHandle: QUIC_XDP_MAP_HANDLE,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_XDP_MAP_CONFIG"][::std::mem::size_of::<QUIC_XDP_MAP_CONFIG>() - 16usize];
+    ["Alignment of QUIC_XDP_MAP_CONFIG"][::std::mem::align_of::<QUIC_XDP_MAP_CONFIG>() - 8usize];
+    ["Offset of field: QUIC_XDP_MAP_CONFIG::InterfaceIndex"]
+        [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, InterfaceIndex) - 0usize];
+    ["Offset of field: QUIC_XDP_MAP_CONFIG::QueueCount"]
+        [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, QueueCount) - 4usize];
+    ["Offset of field: QUIC_XDP_MAP_CONFIG::MapHandle"]
+        [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, MapHandle) - 8usize];
+};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_REGISTRATION_CONFIG {

@@ -2983,6 +2983,171 @@ void QuicTestGlobalParam()
         TEST_TRUE(Length >= sizeof(Expected));
     }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG");
+
+        //
+        // Get when nothing is set should return length 0.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam empty");
+            uint32_t OutLength = sizeof(QUIC_XDP_MAP_CONFIG);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, 0u);
+        }
+
+        //
+        // Set with NULL buffer and non-zero length should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam NULL buffer");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(QUIC_XDP_MAP_CONFIG),
+                    nullptr));
+        }
+
+        //
+        // Set with buffer length not a multiple of struct size should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam bad length");
+            QUIC_XDP_MAP_CONFIG Config = { 1, 8, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(QUIC_XDP_MAP_CONFIG) - 1,
+                    &Config));
+        }
+
+        //
+        // Set with QueueCount == 0 should fail validation.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam QueueCount 0");
+            QUIC_XDP_MAP_CONFIG Config = { 1, 0, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(QUIC_XDP_MAP_CONFIG),
+                    &Config));
+        }
+
+        //
+        // Set with NULL MapHandle should fail validation.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam NULL MapHandle");
+            QUIC_XDP_MAP_CONFIG Config = { 1, 8, nullptr };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(QUIC_XDP_MAP_CONFIG),
+                    &Config));
+        }
+
+        //
+        // Set with zero-length should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam zero length");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    0,
+                    nullptr));
+        }
+
+        //
+        // Set with valid config should succeed.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam valid");
+            QUIC_XDP_MAP_CONFIG Configs[2] = {
+                { 3, 8, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 },
+                { 7, 4, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x5678 }
+            };
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Configs),
+                    Configs));
+        }
+
+        //
+        // Get should return the config we set.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam round-trip");
+            QUIC_XDP_MAP_CONFIG OutConfigs[2] = {};
+            uint32_t OutLength = sizeof(OutConfigs);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    OutConfigs));
+            TEST_EQUAL(OutLength, (uint32_t)sizeof(OutConfigs));
+            TEST_EQUAL(OutConfigs[0].InterfaceIndex, 3u);
+            TEST_EQUAL(OutConfigs[0].QueueCount, 8u);
+            TEST_EQUAL(OutConfigs[1].InterfaceIndex, 7u);
+            TEST_EQUAL(OutConfigs[1].QueueCount, 4u);
+        }
+
+        //
+        // Get with too-small buffer should return BUFFER_TOO_SMALL.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam buffer too small");
+            uint32_t OutLength = 1;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, (uint32_t)(2 * sizeof(QUIC_XDP_MAP_CONFIG)));
+        }
+
+        //
+        // Setting again should fail (set-once).
+        //
+        {
+            TestScopeLogger LogScope1("SetParam twice fails");
+            QUIC_XDP_MAP_CONFIG Config = { 1, 8, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+        }
+    }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
     QuicTestStatefulGlobalSetParam();
 }
 
