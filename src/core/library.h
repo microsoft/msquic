@@ -203,6 +203,15 @@ typedef struct QUIC_LIBRARY {
     //
     QUIC_GLOBAL_EXECUTION_CONFIG* ExecutionConfig;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // Optional XDP map configurations (deep-copied from SetParam).
+    // Set once via QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG before any registration.
+    //
+    const QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
+    uint32_t XdpMapConfigCount;
+#endif
+
     //
     // Datapath instance for the library.
     //
