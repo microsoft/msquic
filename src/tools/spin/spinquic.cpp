@@ -589,6 +589,15 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
                 Event->NEW_CONNECTION.Connection,
                 ServerConfiguration);
         if (QUIC_FAILED(Status)) {
+            //
+            // Sync failure — no op queued, MsQuic will reject the
+            // connection. Null Connection so ~SpinQuicConnection's
+            // ConnectionClose becomes a no-op (we mustn't both close
+            // and reject — see listener.c "App MUST not close and
+            // reject" assert), then free ctx so it doesn't leak.
+            //
+            ctx->Connection = nullptr;
+            delete ctx;
             return Status;
         }
         {
