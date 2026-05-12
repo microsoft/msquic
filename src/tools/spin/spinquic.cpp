@@ -600,9 +600,27 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
             delete ctx;
             return Status;
         }
+        bool pushed = false;
         {
             std::lock_guard<std::mutex> Lock(Connections);
-            Connections.push_back(Event->NEW_CONNECTION.Connection);
+            try {
+                Connections.push_back(Event->NEW_CONNECTION.Connection);
+                pushed = true;
+            } catch (...) {
+                // vector growth failed under alloc-fault injection.
+            }
+        }
+        if (!pushed) {
+            //
+            // The async SetConfiguration op is already queued (we passed
+            // the FAILED check above). We must not return failure here
+            // (would re-trigger the leak path we're trying to avoid).
+            // Accept the connection and immediately close it so the
+            // standard close flow drains the queued op's refs properly.
+            //
+            MsQuicTable.ConnectionClose(Event->NEW_CONNECTION.Connection);
+            ctx->Connection = nullptr;
+            delete ctx;
         }
         break;
     }
@@ -1278,11 +1296,28 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 if (QUIC_SUCCEEDED(Status)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
                         auto ctx = new(std::nothrow) SpinQuicConnection(PoolConnections[i], ThreadID);
-                        if (ctx != nullptr) {
-                            std::lock_guard<std::mutex> Lock(Connections);
-                            Connections.push_back(PoolConnections[i]);
-                        } else {
+                        if (ctx == nullptr) {
                             MsQuicTable.ConnectionClose(PoolConnections[i]);
+                            continue;
+                        }
+                        bool pushed = false;
+                        {
+                            std::lock_guard<std::mutex> Lock(Connections);
+                            try {
+                                Connections.push_back(PoolConnections[i]);
+                                pushed = true;
+                            } catch (...) {
+                                // vector growth failed under alloc-fault injection
+                            }
+                        }
+                        if (!pushed) {
+                            //
+                            // Connection was created and configured by the pool;
+                            // close it so its CONF_REF_CONNECTION is released.
+                            //
+                            MsQuicTable.ConnectionClose(PoolConnections[i]);
+                            ctx->Connection = nullptr;
+                            delete ctx;
                         }
                     }
                 } else if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
