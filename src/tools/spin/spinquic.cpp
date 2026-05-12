@@ -573,54 +573,21 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
         if (!GetRandom(20, ThreadID)) {
             return QUIC_STATUS_CONNECTION_REFUSED;
         }
-        //
-        // Allocate before queueing the async ConnectionSetConfiguration op.
-        // Returning failure after that op is queued races the listener
-        // rejection path against the worker processing the op and leaks a
-        // QUIC_CONF_REF_CONNECTION that permanently blocks RegistrationClose.
-        //
-        auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection, ThreadID);
-        if (ctx == nullptr) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
-        MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, ctx);
+        MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, &((ListenerContext*)Context)->ThreadID);
         QUIC_STATUS Status =
             MsQuicTable.ConnectionSetConfiguration(
                 Event->NEW_CONNECTION.Connection,
                 ServerConfiguration);
         if (QUIC_FAILED(Status)) {
-            //
-            // Sync failure — no op queued, MsQuic will reject the
-            // connection. Null Connection so ~SpinQuicConnection's
-            // ConnectionClose becomes a no-op (we mustn't both close
-            // and reject — see listener.c "App MUST not close and
-            // reject" assert), then free ctx so it doesn't leak.
-            //
-            ctx->Connection = nullptr;
-            delete ctx;
             return Status;
         }
-        bool pushed = false;
+        auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection, ThreadID);
+        if (ctx == nullptr) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
         {
             std::lock_guard<std::mutex> Lock(Connections);
-            try {
-                Connections.push_back(Event->NEW_CONNECTION.Connection);
-                pushed = true;
-            } catch (...) {
-                // vector growth failed under alloc-fault injection.
-            }
-        }
-        if (!pushed) {
-            //
-            // The async SetConfiguration op is already queued (we passed
-            // the FAILED check above). We must not return failure here
-            // (would re-trigger the leak path we're trying to avoid).
-            // Accept the connection and immediately close it so the
-            // standard close flow drains the queued op's refs properly.
-            //
-            MsQuicTable.ConnectionClose(Event->NEW_CONNECTION.Connection);
-            ctx->Connection = nullptr;
-            delete ctx;
+            Connections.push_back(Event->NEW_CONNECTION.Connection);
         }
         break;
     }
@@ -1296,28 +1263,11 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 if (QUIC_SUCCEEDED(Status)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
                         auto ctx = new(std::nothrow) SpinQuicConnection(PoolConnections[i], ThreadID);
-                        if (ctx == nullptr) {
-                            MsQuicTable.ConnectionClose(PoolConnections[i]);
-                            continue;
-                        }
-                        bool pushed = false;
-                        {
+                        if (ctx != nullptr) {
                             std::lock_guard<std::mutex> Lock(Connections);
-                            try {
-                                Connections.push_back(PoolConnections[i]);
-                                pushed = true;
-                            } catch (...) {
-                                // vector growth failed under alloc-fault injection
-                            }
-                        }
-                        if (!pushed) {
-                            //
-                            // Connection was created and configured by the pool;
-                            // close it so its CONF_REF_CONNECTION is released.
-                            //
+                            Connections.push_back(PoolConnections[i]);
+                        } else {
                             MsQuicTable.ConnectionClose(PoolConnections[i]);
-                            ctx->Connection = nullptr;
-                            delete ctx;
                         }
                     }
                 } else if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
