@@ -504,7 +504,6 @@ pub type QUIC_XDP_MAP_HANDLE = HANDLE;
 #[repr(C)]
 pub struct QUIC_XDP_MAP_CONFIG {
     pub InterfaceIndex: u32,
-    pub QueueCount: u32,
     pub MapHandle: QUIC_XDP_MAP_HANDLE,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -513,8 +512,6 @@ const _: () = {
     ["Alignment of QUIC_XDP_MAP_CONFIG"][::std::mem::align_of::<QUIC_XDP_MAP_CONFIG>() - 8usize];
     ["Offset of field: QUIC_XDP_MAP_CONFIG::InterfaceIndex"]
         [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, InterfaceIndex) - 0usize];
-    ["Offset of field: QUIC_XDP_MAP_CONFIG::QueueCount"]
-        [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, QueueCount) - 4usize];
     ["Offset of field: QUIC_XDP_MAP_CONFIG::MapHandle"]
         [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, MapHandle) - 8usize];
 };
