@@ -1516,8 +1516,12 @@ QuicTestCustomTicketValidationAfterShutdown(
 
     //
     // Shut down the client (and wait for server to see it) while ticket
-    // validation is still pending on the server.
+    // validation is still pending on the server. Because the connection has
+    // not yet reached 1-RTT, the client's application CONNECTION_CLOSE is
+    // mapped to a transport-level CONNECTION_CLOSE with APPLICATION_ERROR,
+    // which surfaces on the server as QUIC_STATUS_USER_CANCELED.
     //
+    Server->SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
     Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
     if (!Server->WaitForShutdownComplete()) {
         return;

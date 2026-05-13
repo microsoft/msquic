@@ -1352,6 +1352,9 @@ struct WithAcceptTicket :
 
 TEST_P(WithAcceptTicket, CustomTicketValidationAfterShutdown) {
     TestLogger Logger("QuicTestCustomTicketValidationAfterShutdown");
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomTicketValidationAfterShutdown), GetParam()));
     } else {
