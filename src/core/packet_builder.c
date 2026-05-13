@@ -352,30 +352,19 @@ QuicPacketBuilderPrepare(
     }
 
     if (NewQuicPacket) {
+        //
+        // Per RFC 9001 s4.9.1, a client MUST discard Initial keys when it first
+        // sends a Handshake packet. It must be done on ANY Handshake packet, to
+        // ensure the congestion control state is cleared and Initial bytes in flight
+        // are not limiting Handshake packets.
+        //
+        if (QuicConnIsClient(Connection) && NewPacketKeyType == QUIC_PACKET_KEY_HANDSHAKE) {
 
-        //
-        // Per RFC 9001 s4.9.1, a client MUST discard Initial keys when it
-        // first sends a Handshake packet. It must be done on ANY Handshake
-        // packet, to ensure the congestion control state is cleared and
-        // Initial bytes in flight are not limiting Handshake packets.
-        //
-        // Discard here, at the moment we commit to building a new Handshake
-        // packet (after any prior packet has been finalized, before the new
-        // Builder->Key is selected). Doing it earlier than in
-        // QuicPacketBuilderFinalize ensures the Initial encryption level is
-        // fully cleaned up - including resetting RecoveryNextOffset past the
-        // Initial buffer range - before the next send-loop iteration can call
-        // QuicPacketBuilderGetPacketTypeAndKeyForControlFrames again. That
-        // closes a race where the previous location (inside Finalize) could
-        // run between the key check in
-        // QuicPacketBuilderGetPacketTypeAndKeyForControlFrames and the
-        // Builder->Key = WriteKeys[NewPacketKeyType] assignment below,
-        // leaving NewPacketKeyType == QUIC_PACKET_KEY_INITIAL with a NULL
-        // key.
-        //
-        if (QuicConnIsClient(Connection) &&
-            NewPacketKeyType == QUIC_PACKET_KEY_HANDSHAKE) {
             QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
+            //
+            // Ensure we don't keep a dangling pointer to the freed INITIAL keys.
+            //
+            Builder->Key = NULL;
         }
 
         //
