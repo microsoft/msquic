@@ -92,6 +92,7 @@ class TestConnection
     CXPLAT_EVENT EventShutdownComplete{};
     CXPLAT_EVENT EventResumptionTicketReceived{};
     CXPLAT_EVENT EventPeerCertReceived{};
+    CXPLAT_EVENT EventResumed{};
     CXPLAT_EVENT* EventDeleted{};
 
     NEW_STREAM_CALLBACK_HANDLER NewStreamCallback{};
@@ -198,6 +199,8 @@ public:
     bool WaitForPeerClose();
 
     bool WaitForPeerCertReceived();
+
+    bool WaitForResumed();
 
     void SetShutdownCompleteCallback(CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER Handler) {
         LockGuard LockScope{Lock};

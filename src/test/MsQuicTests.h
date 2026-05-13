@@ -357,6 +357,11 @@ QuicTestCustomServerCertValidationAfterShutdown();
 void
 QuicTestCustomClientCertValidationAfterShutdown();
 
+void
+QuicTestCustomTicketValidationAfterShutdown(
+    bool AcceptTicket
+    );
+
 struct ClientCertificateArgs {
     int Family;
     bool UseClientCertificate;
