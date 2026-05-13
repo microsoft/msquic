@@ -501,7 +501,7 @@ pub type QUIC_EXECUTION_DELETE_FN =
     ::std::option::Option<unsafe extern "C" fn(Count: u32, Executions: *mut *mut QUIC_EXECUTION)>;
 pub type QUIC_EXECUTION_POLL_FN =
     ::std::option::Option<unsafe extern "C" fn(Execution: *mut QUIC_EXECUTION) -> u32>;
-pub type QUIC_XDP_MAP_HANDLE = *mut ::std::os::raw::c_void;
+pub type QUIC_XDP_MAP_HANDLE = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_XDP_MAP_CONFIG {
@@ -510,12 +510,12 @@ pub struct QUIC_XDP_MAP_CONFIG {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_XDP_MAP_CONFIG"][::std::mem::size_of::<QUIC_XDP_MAP_CONFIG>() - 16usize];
-    ["Alignment of QUIC_XDP_MAP_CONFIG"][::std::mem::align_of::<QUIC_XDP_MAP_CONFIG>() - 8usize];
+    ["Size of QUIC_XDP_MAP_CONFIG"][::std::mem::size_of::<QUIC_XDP_MAP_CONFIG>() - 8usize];
+    ["Alignment of QUIC_XDP_MAP_CONFIG"][::std::mem::align_of::<QUIC_XDP_MAP_CONFIG>() - 4usize];
     ["Offset of field: QUIC_XDP_MAP_CONFIG::InterfaceIndex"]
         [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, InterfaceIndex) - 0usize];
     ["Offset of field: QUIC_XDP_MAP_CONFIG::MapHandle"]
-        [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, MapHandle) - 8usize];
+        [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, MapHandle) - 4usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

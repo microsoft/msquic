@@ -454,6 +454,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestValidateApi);
     RegisterTestFunction(QuicTestValidateRegistration);
     RegisterTestFunction(QuicTestGlobalParam);
+    RegisterTestFunction(QuicTestXdpMapConfigParam);
     RegisterTestFunction(QuicTestCommonParam);
     RegisterTestFunction(QuicTestRegistrationParam);
     RegisterTestFunction(QuicTestConfigurationParam);

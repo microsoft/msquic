@@ -77,6 +77,7 @@ void QuicTestValidateConnection();
 void QuicTestValidateStream(const bool& Connect);
 void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
+void QuicTestXdpMapConfigParam();
 void QuicTestCommonParam();
 void QuicTestRegistrationParam();
 void QuicTestConfigurationParam();

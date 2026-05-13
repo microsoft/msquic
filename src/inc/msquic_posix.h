@@ -492,6 +492,8 @@ QuicAddrFromString(
 //
 // Represents an IP address and (optionally) port number as a string.
 //
+typedef int QUIC_XDP_MAP_HANDLE;
+
 typedef struct QUIC_ADDR_STR {
     char Address[64];
 } QUIC_ADDR_STR;

@@ -289,6 +289,15 @@ TEST(ParameterValidation, ValidateGlobalParam) {
     }
 }
 
+TEST(ParameterValidation, ValidateXdpMapConfigParam) {
+    TestLogger Logger("QuicTestValidateXdpMapConfigParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestXdpMapConfigParam)));
+    } else {
+        QuicTestXdpMapConfigParam();
+    }
+}
+
 TEST(ParameterValidation, ValidateCommonParam) {
     TestLogger Logger("QuicTestValidateCommonParam");
     if (TestingKernelMode) {

@@ -359,12 +359,9 @@ uint32_t
 // XDP Maps configured for external XDP programs.
 // Passed via SetParam (QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG) after
 // MsQuicOpenVersion but before opening any registrations.
+// QUIC_XDP_MAP_HANDLE is defined per-platform in msquic_winuser.h,
+// msquic_winkernel.h, and msquic_posix.h.
 //
-#ifdef _WIN32
-typedef HANDLE QUIC_XDP_MAP_HANDLE;
-#else
-typedef void* QUIC_XDP_MAP_HANDLE;
-#endif
 
 typedef struct QUIC_XDP_MAP_CONFIG {
     uint32_t InterfaceIndex;        // Network interface this map applies to.
@@ -994,7 +991,7 @@ void
 #define QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES           0x0100000C  // uint32_t[] - Array of sizes for each QUIC_STATISTICS_V2 version. Get-only. Pass a buffer of uint32_t, output count is variable. See documentation for details.
 #define QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG        0x0100000D  // QUIC_STATELESS_RETRY_CONFIG
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#define QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG               0x0100000E  // QUIC_XDP_MAP_CONFIG[]
+#define QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG                0x0100000E  // QUIC_XDP_MAP_CONFIG[]
 #endif
 
 //
