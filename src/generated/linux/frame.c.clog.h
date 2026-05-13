@@ -1322,6 +1322,98 @@ tracepoint(CLOG_FRAME_C, FrameLogReliableResetStream , arg2, arg3, arg4, arg5, a
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FrameLogQxTransportParametersInvalid
+// [%c][%cX][%llu]   QX TRANSPORT_PARAMETERS [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogQxTransportParametersInvalid,
+                "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogQxTransportParametersInvalid
+#define _clog_5_ARGS_TRACE_FrameLogQxTransportParametersInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogQxTransportParametersInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogQxTransportParameters
+// [%c][%cX][%llu]   QX TRANSPORT_PARAMETERS
+// QuicTraceLogVerbose(
+            FrameLogQxTransportParameters,
+            "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogQxTransportParameters
+#define _clog_5_ARGS_TRACE_FrameLogQxTransportParameters(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogQxTransportParameters , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogQxPingInvalid
+// [%c][%cX][%llu]   QX PING [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogQxPingInvalid,
+                "[%c][%cX][%llu]   QX PING [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogQxPingInvalid
+#define _clog_5_ARGS_TRACE_FrameLogQxPingInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogQxPingInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogQxPing
+// [%c][%cX][%llu]   QX PING %hu %llu
+// QuicTraceLogVerbose(
+            FrameLogQxPing,
+            "[%c][%cX][%llu]   QX PING %hu %llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.IsResponse,
+            Frame.SequenceNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.IsResponse = arg5
+// arg6 = arg6 = Frame.SequenceNumber = arg6
+----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_FrameLogQxPing
+#define _clog_7_ARGS_TRACE_FrameLogQxPing(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
+tracepoint(CLOG_FRAME_C, FrameLogQxPing , arg2, arg3, arg4, arg5, arg6);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(

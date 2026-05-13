@@ -24,9 +24,9 @@ pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
 pub use types::{
-    BufferRef, ConnectionEvent, ConnectionShutdownFlags, DatagramSendState, ListenerEvent,
-    NewConnectionInfo, ReceiveFlags, SendFlags, StreamEvent, StreamOpenFlags, StreamShutdownFlags,
-    StreamStartFlags, TlsProvider,
+    BufferRef, ConnectionEvent, ConnectionSendResumptionFlags, ConnectionShutdownFlags,
+    DatagramSendState, ListenerEvent, NewConnectionInfo, ReceiveFlags, SendFlags, StreamEvent,
+    StreamOpenFlags, StreamShutdownFlags, StreamStartFlags, TlsProvider,
 };
 mod settings;
 pub use settings::{ServerResumptionLevel, Settings};
@@ -900,17 +900,44 @@ impl Connection {
     where
         F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
     {
+        Self::open_common(registration, handler, false)
+    }
+
+    pub fn open_qmux<F>(registration: &Registration, handler: F) -> Result<Self, Status>
+    where
+        F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
+    {
+        Self::open_common(registration, handler, true)
+    }
+
+    fn open_common<F>(
+        registration: &Registration,
+        handler: F,
+        is_qmux: bool,
+    ) -> Result<Self, Status>
+    where
+        F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
+    {
         let mut handle: HQUIC = ptr::null_mut();
         // double boxing to allow Box dyn fat pointer
         let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
         let status = unsafe {
-            Api::ffi_ref().ConnectionOpen.unwrap()(
-                registration.handle,
-                Some(raw_conn_callback),
-                ctx as *mut c_void,
-                std::ptr::addr_of_mut!(handle),
-            )
+            if !is_qmux {
+                Api::ffi_ref().ConnectionOpen.unwrap()(
+                    registration.handle,
+                    Some(raw_conn_callback),
+                    ctx as *mut c_void,
+                    std::ptr::addr_of_mut!(handle),
+                )
+            } else {
+                Api::ffi_ref().ConnectionQmuxOpen.unwrap()(
+                    registration.handle,
+                    Some(raw_conn_callback),
+                    ctx as *mut c_void,
+                    std::ptr::addr_of_mut!(handle),
+                )
+            }
         };
         Status::ok_from_raw(status).inspect_err(|_| {
             // attach memory back on failure
@@ -1015,6 +1042,26 @@ impl Connection {
         Status::ok_from_raw(status)
     }
 
+    pub fn send_resumption_ticket(
+        &self,
+        flags: ConnectionSendResumptionFlags,
+        resumption_app_data: Option<&[u8]>,
+    ) -> Result<(), Status> {
+        let status = unsafe {
+            Api::ffi_ref().ConnectionSendResumptionTicket.unwrap()(
+                self.handle,
+                flags.bits(),
+                resumption_app_data
+                    .map(|data| data.len() as u16)
+                    .unwrap_or(0),
+                resumption_app_data
+                    .map(|data| data.as_ptr() as *const u8)
+                    .unwrap_or(std::ptr::null()),
+            )
+        };
+        Status::ok_from_raw(status)
+    }
+
     pub fn resumption_ticket_validation_complete(&self, result: BOOLEAN) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref()
@@ -1076,17 +1123,44 @@ impl Listener {
     where
         F: Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static,
     {
+        Self::open_common(registration, handler, false)
+    }
+
+    pub fn open_qmux<F>(registration: &Registration, handler: F) -> Result<Self, Status>
+    where
+        F: Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static,
+    {
+        Self::open_common(registration, handler, true)
+    }
+
+    fn open_common<F>(
+        registration: &Registration,
+        handler: F,
+        is_qmux: bool,
+    ) -> Result<Self, Status>
+    where
+        F: Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static,
+    {
         let mut handle: HQUIC = std::ptr::null_mut();
         // double boxing to allow Box dyn fat pointer
         let b: Box<Box<ListenerCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
         let status = unsafe {
-            Api::ffi_ref().ListenerOpen.unwrap()(
-                registration.handle,
-                Some(raw_listener_callback),
-                ctx as *mut c_void,
-                std::ptr::addr_of_mut!(handle),
-            )
+            if !is_qmux {
+                Api::ffi_ref().ListenerOpen.unwrap()(
+                    registration.handle,
+                    Some(raw_listener_callback),
+                    ctx as *mut c_void,
+                    std::ptr::addr_of_mut!(handle),
+                )
+            } else {
+                Api::ffi_ref().ListenerQmuxOpen.unwrap()(
+                    registration.handle,
+                    Some(raw_listener_callback),
+                    ctx as *mut c_void,
+                    std::ptr::addr_of_mut!(handle),
+                )
+            }
         };
         Status::ok_from_raw(status).inspect_err(|_| {
             let _ = unsafe { Box::from_raw(ctx) };

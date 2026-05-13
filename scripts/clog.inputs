@@ -73,6 +73,7 @@
 ../src/core/configuration.c
 ../src/core/partition.c
 ../src/core/library.c
+../src/core/qmux.c
 ../src/bin/winuser_fuzz/dllmain.c
 ../src/bin/linux/init.c
 ../src/bin/winuser/dllmain.c

@@ -33,9 +33,9 @@ extern "C" {
 // Decoder Ring for NoSrcCidAvailable
 // [conn][%p] No src CID to send with
 // QuicTraceLogConnWarning(
-            NoSrcCidAvailable,
-            Connection,
-            "No src CID to send with");
+                NoSrcCidAvailable,
+                Connection,
+                "No src CID to send with");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_NoSrcCidAvailable
@@ -101,6 +101,28 @@ tracepoint(CLOG_PACKET_BUILDER_C, GetPacketTypeFailure , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_PacketBuilderSendBatch
 #define _clog_4_ARGS_TRACE_PacketBuilderSendBatch(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketBuilderQMuxSendBatch
+// [conn][%p] Sending batch. %hu datagrams %u bytes
+// QuicTraceLogConnVerbose(
+        PacketBuilderQMuxSendBatch,
+        Builder->Connection,
+        "Sending batch. %hu datagrams %u bytes",
+        (uint16_t)Builder->TotalCountDatagrams,
+        Builder->TotalDatagramsLength);
+// arg1 = arg1 = Builder->Connection = arg1
+// arg3 = arg3 = (uint16_t)Builder->TotalCountDatagrams = arg3
+// arg4 = arg4 = Builder->TotalDatagramsLength = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PacketBuilderQMuxSendBatch
+#define _clog_5_ARGS_TRACE_PacketBuilderQMuxSendBatch(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketBuilderQMuxSendBatch , arg1, arg3, arg4);\
 
 #endif
 

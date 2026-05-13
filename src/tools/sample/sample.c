@@ -50,6 +50,7 @@ Abstract:
 #include <share.h>
 #endif
 #include "msquic.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -82,7 +83,7 @@ const uint64_t IdleTimeoutMs = 1000;
 //
 // The length of buffer sent over the streams in the protocol.
 //
-const uint32_t SendBufferLength = 100;
+const uint32_t SendBufferLength = 100000;
 
 //
 // The QUIC API/function table returned from MsQuicOpen2. It contains all the
@@ -126,11 +127,14 @@ void PrintUsage()
         "Usage:\n"
         "\n"
         "  quicsample.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>]\n"
+        "  quicsample.exe -client -qmux -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>]\n"
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         "  quicsample.exe -multiclient -count:<N> -unsecure -target:{IPAddress|Hostname}\n"
 #endif
         "  quicsample.exe -server -cert_hash:<...>\n"
         "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>]\n"
+        "  quicsample.exe -server -qmux -cert_hash:<...>\n"
+        "  quicsample.exe -server -qmux -cert_file:<...> -key_file:<...> [-password:<...>]\n"
         );
 }
 
@@ -384,7 +388,7 @@ ServerStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received\n", Stream);
+        printf("[strm][%p] Data received %" PRIu64 " bytes, flags=0x%x\n", Stream, Event->RECEIVE.TotalBufferLength, Event->RECEIVE.Flags);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         //
@@ -433,8 +437,13 @@ ServerConnectionCallback(
         //
         // The handshake has completed for the connection.
         //
-        printf("[conn][%p] Connected\n", Connection);
-        MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL);
+        if (Event->CONNECTED.NegotiatedAlpnLength > 0) {
+            printf("[conn][%p] Connected, ALPN=%.*s\n", Connection, (int)Event->CONNECTED.NegotiatedAlpnLength, Event->CONNECTED.NegotiatedAlpn);
+        } else {
+            printf("[conn][%p] Connected\n", Connection);
+        }
+        QUIC_STATUS Status = MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL);
+        printf("[conn][%p] ConnectionSendResumptionTicket returned 0x%x\n", Connection, Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //
@@ -652,9 +661,16 @@ RunServer(
     //
     // Create/allocate a new listener object.
     //
-    if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
-        printf("ListenerOpen failed, 0x%x!\n", Status);
-        goto Error;
+    if (!GetFlag(argc, argv, "qmux")) {
+        if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
+            printf("ListenerOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
+    } else {
+        if (QUIC_FAILED(Status = MsQuic->ListenerQmuxOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
+            printf("ListenerQmuxOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
     }
 
     //
@@ -705,7 +721,7 @@ ClientStreamCallback(
         //
         // Data was received from the peer on the stream.
         //
-        printf("[strm][%p] Data received\n", Stream);
+        printf("[strm][%p] Data received %" PRIu64 " bytes, flags=0x%x\n", Stream, Event->RECEIVE.TotalBufferLength, Event->RECEIVE.Flags);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         //
@@ -799,6 +815,7 @@ Error:
     }
 }
 
+BOOLEAN TicketRecvd = FALSE;
 //
 // The clients's callback for connection events from MsQuic.
 //
@@ -826,7 +843,11 @@ ClientConnectionCallback(
         //
         // The handshake has completed for the connection.
         //
-        printf("[conn][%p] Connected\n", Connection);
+        if (Event->CONNECTED.NegotiatedAlpnLength > 0) {
+            printf("[conn][%p] Connected, ALPN=%.*s\n", Connection, (int)Event->CONNECTED.NegotiatedAlpnLength, Event->CONNECTED.NegotiatedAlpn);
+        } else {
+            printf("[conn][%p] Connected\n", Connection);
+        }
         ClientSend(Connection);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
@@ -863,10 +884,13 @@ ClientConnectionCallback(
         // received from the server.
         //
         printf("[conn][%p] Resumption ticket received (%u bytes):\n", Connection, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
-        for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
-            printf("%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
+        if (!TicketRecvd) {
+            for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
+                fprintf(stderr, "%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
+            }
+            fprintf(stderr, "\n");
         }
-        printf("\n");
+        TicketRecvd = TRUE;
         break;
     case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
         printf(
@@ -895,6 +919,12 @@ ClientLoadConfiguration(
     //
     Settings.IdleTimeoutMs = IdleTimeoutMs;
     Settings.IsSet.IdleTimeoutMs = TRUE;
+    // Settings.KeepAliveIntervalMs = 1000;
+    // Settings.IsSet.KeepAliveIntervalMs = TRUE;
+    Settings.PeerBidiStreamCount = 100;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+    Settings.PeerUnidiStreamCount = 100;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
 
     //
     // Configures a default client configuration, optionally disabling
@@ -954,9 +984,16 @@ RunClient(
     //
     // Allocate a new connection object.
     //
-    if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
-        printf("ConnectionOpen failed, 0x%x!\n", Status);
-        goto Error;
+    if (!GetFlag(argc, argv, "qmux")) {
+        if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
+            printf("ConnectionOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
+    } else {
+        if (QUIC_FAILED(Status = MsQuic->ConnectionQmuxOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
+            printf("ConnectionQmuxOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
     }
 
     if ((ResumptionTicketString = GetValue(argc, argv, "ticket")) != NULL) {
@@ -979,6 +1016,40 @@ RunClient(
         }
     }
 
+    if (ResumptionTicketString != NULL) {
+        HQUIC Stream = NULL;
+        uint8_t* SendBufferRaw;
+        QUIC_BUFFER* SendBuffer;
+
+        if (QUIC_FAILED(Status = MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_0_RTT, ClientStreamCallback, NULL, &Stream))) {
+            printf("StreamOpen failed, 0x%x!\n", Status);
+            goto Error;
+        }
+
+        printf("[strm][%p] Starting...\n", Stream);
+
+
+        //
+        // Allocates and builds the buffer to send over the stream.
+        //
+        SendBufferRaw = (uint8_t*)malloc(sizeof(QUIC_BUFFER) + SendBufferLength);
+        if (SendBufferRaw == NULL) {
+            printf("SendBuffer allocation failed!\n");
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+        SendBuffer = (QUIC_BUFFER*)SendBufferRaw;
+        SendBuffer->Buffer = SendBufferRaw + sizeof(QUIC_BUFFER);
+        SendBuffer->Length = SendBufferLength;
+
+        printf("[strm][%p] Sending data...\n", Stream);
+
+        if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_ALLOW_0_RTT | QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN, SendBuffer))) {
+            printf("StreamSend failed, 0x%x!\n", Status);
+            free(SendBufferRaw);
+            goto Error;
+        }
+    }
     //
     // Get the target / server name or IP from the command line.
     //
