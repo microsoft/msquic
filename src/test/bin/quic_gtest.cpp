@@ -296,6 +296,7 @@ TEST(ParameterValidation, ValidateXdpMapConfigParam) {
     // library's lazy initialization. In kernel mode the test driver shares one
     // MsQuicLib across all tests in the run, so earlier tests have already
     // triggered lazy init and this test cannot exercise the success paths.
+    // This is a current test harness limitation today.
     //
     if (TestingKernelMode) {
         GTEST_SKIP() << "QuicTestXdpMapConfigParam is user-mode only.";
@@ -1362,7 +1363,7 @@ INSTANTIATE_TEST_SUITE_P(
     WithCustomCertificateValidationArgs,
     testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
 
-struct WithClientCertificateArgs : 
+struct WithClientCertificateArgs :
     public testing::TestWithParam<ClientCertificateArgs> {
 
     static ::std::vector<ClientCertificateArgs> Generate() {
