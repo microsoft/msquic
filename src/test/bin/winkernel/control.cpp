@@ -454,9 +454,6 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestValidateApi);
     RegisterTestFunction(QuicTestValidateRegistration);
     RegisterTestFunction(QuicTestGlobalParam);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    RegisterTestFunction(QuicTestXdpMapConfigParam);
-#endif
     RegisterTestFunction(QuicTestCommonParam);
     RegisterTestFunction(QuicTestRegistrationParam);
     RegisterTestFunction(QuicTestConfigurationParam);

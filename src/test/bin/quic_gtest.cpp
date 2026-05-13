@@ -291,12 +291,17 @@ TEST(ParameterValidation, ValidateGlobalParam) {
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateXdpMapConfigParam) {
-    TestLogger Logger("QuicTestValidateXdpMapConfigParam");
+    //
+    // User-mode only: QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG is set-once before the
+    // library's lazy initialization. In kernel mode the test driver shares one
+    // MsQuicLib across all tests in the run, so earlier tests have already
+    // triggered lazy init and this test cannot exercise the success paths.
+    //
     if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestXdpMapConfigParam)));
-    } else {
-        QuicTestXdpMapConfigParam();
+        GTEST_SKIP() << "QuicTestXdpMapConfigParam is user-mode only.";
     }
+    TestLogger Logger("QuicTestValidateXdpMapConfigParam");
+    QuicTestXdpMapConfigParam();
 }
 #endif
 
