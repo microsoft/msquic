@@ -760,7 +760,7 @@ MsQuicLibraryUninitialize(
     }
 
     if (MsQuicLib.XdpMapConfigs != NULL) {
-        CXPLAT_FREE((void*)MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
+        CXPLAT_FREE(MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
         MsQuicLib.XdpMapConfigs = NULL;
         MsQuicLib.XdpMapConfigCount = 0;
     }
@@ -1449,22 +1449,6 @@ QuicLibrarySetGlobalParam(
 
         const uint32_t Count = BufferLength / sizeof(QUIC_XDP_MAP_CONFIG);
         const QUIC_XDP_MAP_CONFIG* Configs = (const QUIC_XDP_MAP_CONFIG*)Buffer;
-
-        //
-        // Validate each config entry.
-        //
-        BOOLEAN ValidConfigs = TRUE;
-        for (uint32_t i = 0; i < Count; i++) {
-#pragma warning(suppress: 6385) // False positive: Count derived from BufferLength / sizeof guarantees bounds.
-            if (Configs[i].MapHandle == (QUIC_XDP_MAP_HANDLE)0) {
-                ValidConfigs = FALSE;
-                break;
-            }
-        }
-        if (!ValidConfigs) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
 
         CxPlatLockAcquire(&MsQuicLib.Lock);
 

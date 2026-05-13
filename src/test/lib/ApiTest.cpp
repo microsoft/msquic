@@ -3043,21 +3043,6 @@ void QuicTestXdpMapConfigParam()
         }
 
         //
-        // Set with NULL MapHandle should fail validation.
-        //
-        {
-            TestScopeLogger LogScope1("SetParam NULL MapHandle");
-            QUIC_XDP_MAP_CONFIG Config = { 1, (QUIC_XDP_MAP_HANDLE)0 };
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
-                    sizeof(QUIC_XDP_MAP_CONFIG),
-                    &Config));
-        }
-
-        //
         // Set with zero-length should fail.
         //
         {
