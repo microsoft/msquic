@@ -146,7 +146,7 @@ TestStream::StartPing(
 
         auto SendBuffer = new(std::nothrow) QuicSendBuffer(MaxSendBuffers, SendBufferLength);
         if (SendBuffer == nullptr) {
-            InterlockedAdd64(&BytesToSend, SendBufferLength); // give the claim back
+            InterlockedExchangeAdd64(&BytesToSend, (int64_t)SendBufferLength); // give the claim back
             TEST_FAILURE("Failed to alloc QuicSendBuffer");
             return false;
         }
