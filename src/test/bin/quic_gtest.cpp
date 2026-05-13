@@ -289,6 +289,7 @@ TEST(ParameterValidation, ValidateGlobalParam) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateXdpMapConfigParam) {
     TestLogger Logger("QuicTestValidateXdpMapConfigParam");
     if (TestingKernelMode) {
@@ -297,6 +298,7 @@ TEST(ParameterValidation, ValidateXdpMapConfigParam) {
         QuicTestXdpMapConfigParam();
     }
 }
+#endif
 
 TEST(ParameterValidation, ValidateCommonParam) {
     TestLogger Logger("QuicTestValidateCommonParam");

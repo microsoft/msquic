@@ -2986,6 +2986,7 @@ void QuicTestGlobalParam()
     QuicTestStatefulGlobalSetParam();
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void QuicTestXdpMapConfigParam()
 {
     const QUIC_XDP_MAP_HANDLE FakeHandle1 = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234;
@@ -3175,6 +3176,7 @@ void QuicTestXdpMapConfigParam()
         }
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void QuicTestCommonParam()
 {
