@@ -3058,8 +3058,8 @@ void QuicTestXdpMapConfigParam()
 
         //
         // N.B. The following SetParam call modifies global library state.
-        // XDP map config is set-once, so all subsequent tests in this function
-        // run against a library that has XDP maps configured.
+        // XDP map config can be updated multiple times before the first
+        // registration, so subsequent tests see this configured state.
         //
         {
             TestScopeLogger LogScope1("SetParam valid");
@@ -3129,18 +3129,29 @@ void QuicTestXdpMapConfigParam()
         }
 
         //
-        // Setting again should fail (set-once).
+        // Setting again should succeed (replaces previous config).
         //
         {
-            TestScopeLogger LogScope1("SetParam twice fails");
+            TestScopeLogger LogScope1("SetParam twice succeeds");
             QUIC_XDP_MAP_CONFIG Config = { 1, FakeHandle1 };
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_STATE,
+            TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
                     sizeof(Config),
                     &Config));
+
+            // Verify it was replaced.
+            QUIC_XDP_MAP_CONFIG OutConfig = {};
+            uint32_t OutLength = sizeof(OutConfig);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    &OutConfig));
+            TEST_EQUAL(OutLength, (uint32_t)sizeof(QUIC_XDP_MAP_CONFIG));
+            TEST_EQUAL(OutConfig.InterfaceIndex, 1u);
         }
 
         //

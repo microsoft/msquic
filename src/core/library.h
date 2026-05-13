@@ -205,9 +205,10 @@ typedef struct QUIC_LIBRARY {
 
     //
     // Optional XDP map configurations.
-    // Set once via QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG before any registration.
+    // Set via QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG before any registration.
+    // May be updated multiple times before the first registration is opened.
     //
-    const QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
+    QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
     uint32_t XdpMapConfigCount;
 
     //

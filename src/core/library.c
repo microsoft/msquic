@@ -1453,10 +1453,9 @@ QuicLibrarySetGlobalParam(
         CxPlatLockAcquire(&MsQuicLib.Lock);
 
         //
-        // Only allowed once, and only before the datapath is initialized.
+        // Only allowed before the datapath is initialized.
         //
-        if (MsQuicLib.XdpMapConfigs != NULL ||
-            MsQuicLib.LazyInitComplete) {
+        if (MsQuicLib.LazyInitComplete) {
             CxPlatLockRelease(&MsQuicLib.Lock);
             Status = QUIC_STATUS_INVALID_STATE;
             break;
@@ -1473,6 +1472,10 @@ QuicLibrarySetGlobalParam(
                 BufferLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             break;
+        }
+
+        if (MsQuicLib.XdpMapConfigs != NULL) {
+            CXPLAT_FREE(MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
         }
 
         CxPlatCopyMemory(NewConfigs, Configs, BufferLength);
