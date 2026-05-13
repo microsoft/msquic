@@ -1099,9 +1099,9 @@ tracepoint(CLOG_CONNECTION_C, IndicateResumed , arg1);\
 // Decoder Ring for IndicateResumptionTicketReceived
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED
 // QuicTraceLogConnVerbose(
-                    IndicateResumptionTicketReceived,
-                    Connection,
-                    "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
+                IndicateResumptionTicketReceived,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived

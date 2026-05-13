@@ -4116,13 +4116,14 @@ CxPlatTlsDecrypt(
             Result |= CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL;
             return Result;
         }
-        memcpy(OutputBuffer, OutputDataBuffer->pvBuffer, OutputDataBuffer->cbBuffer);
+        CxPlatCopyMemory(OutputBuffer, OutputDataBuffer->pvBuffer, OutputDataBuffer->cbBuffer);
         *OutputBufferLength = OutputDataBuffer->cbBuffer;
         TlsContext->InputBufferLength = 0; // Clear the recv buffer since we've consumed it all
     }
 
     if (SecStatus == SEC_E_OK && ExtraBuffer != NULL && ExtraBuffer->cbBuffer > 0) {
-        CxPlatMoveMemory((uint8_t*)InputBuffer + (*InputBufferLength - ExtraBuffer->cbBuffer),
+        CxPlatMoveMemory(
+            (uint8_t*)InputBuffer + (*InputBufferLength - ExtraBuffer->cbBuffer),
             ExtraBuffer->pvBuffer,
             ExtraBuffer->cbBuffer);
         *InputBufferLength -= ExtraBuffer->cbBuffer;

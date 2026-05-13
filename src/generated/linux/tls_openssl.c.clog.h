@@ -174,19 +174,19 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslBIOWriteError , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OpenSslSSLWriteError
-// [conn][%p] SSL_write failed, error: %d
+// Decoder Ring for OpenSslBIOReadError
+// [conn][%p] BIO_read failed, error: %d
 // QuicTraceLogConnError(
-            OpenSslSSLWriteError,
-            TlsContext->Connection,
-            "SSL_write failed, error: %d",
-            Err);
+                    OpenSslBIOReadError,
+                    TlsContext->Connection,
+                    "BIO_read failed, error: %d",
+                    Err);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_OpenSslSSLWriteError
-#define _clog_4_ARGS_TRACE_OpenSslSSLWriteError(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslSSLWriteError , arg1, arg3);\
+#ifndef _clog_4_ARGS_TRACE_OpenSslBIOReadError
+#define _clog_4_ARGS_TRACE_OpenSslBIOReadError(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_TLS_OPENSSL_C, OpenSslBIOReadError , arg1, arg3);\
 
 #endif
 
@@ -194,19 +194,19 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslSSLWriteError , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OpenSslBIOReadError
-// [conn][%p] BIO_read failed, error: %d
+// Decoder Ring for OpenSslSSLWriteError
+// [conn][%p] SSL_write failed, error: %d
 // QuicTraceLogConnError(
-                OpenSslBIOReadError,
+                OpenSslSSLWriteError,
                 TlsContext->Connection,
-                "BIO_read failed, error: %d",
+                "SSL_write failed, error: %d",
                 Err);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_OpenSslBIOReadError
-#define _clog_4_ARGS_TRACE_OpenSslBIOReadError(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslBIOReadError , arg1, arg3);\
+#ifndef _clog_4_ARGS_TRACE_OpenSslSSLWriteError
+#define _clog_4_ARGS_TRACE_OpenSslSSLWriteError(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_TLS_OPENSSL_C, OpenSslSSLWriteError , arg1, arg3);\
 
 #endif
 

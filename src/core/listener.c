@@ -346,10 +346,17 @@ MsQuicListenerStart(
 
     if (LocalAddress != NULL) {
         CxPlatCopyMemory(&Listener->LocalAddress, LocalAddress, sizeof(QUIC_ADDR));
+        if (Listener->IsQmux && QuicAddrGetFamily(LocalAddress) == QUIC_ADDRESS_FAMILY_UNSPEC) {
+            // QMUX listeners must use an IPv6 family address for unspecified family.
+            QuicAddrSetFamily(&Listener->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+        }
         Listener->WildCard = QuicAddrIsWildCard(LocalAddress);
         PortUnspecified = QuicAddrGetPort(LocalAddress) == 0;
     } else {
         CxPlatZeroMemory(&Listener->LocalAddress, sizeof(Listener->LocalAddress));
+        if (Listener->IsQmux) {
+            QuicAddrSetFamily(&Listener->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+        }
         Listener->WildCard = TRUE;
         PortUnspecified = TRUE;
     }
@@ -422,7 +429,7 @@ MsQuicListenerStart(
         Status =
             CxPlatSocketCreateTcpListener(
                 MsQuicLib.Datapath,
-                &BindingLocalAddress,
+                &Listener->LocalAddress,
                 Listener,
                 &Listener->Socket);
         if (QUIC_FAILED(Status)) {

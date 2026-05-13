@@ -164,6 +164,29 @@ TRACEPOINT_EVENT(CLOG_QMUX_C, QueueDatagrams,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateConnected
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)
+// QuicTraceLogConnVerbose(
+                    IndicateConnected,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
+                    Event.CONNECTED.SessionResumed);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.CONNECTED.SessionResumed = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_QMUX_C, IndicateConnected,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PeerConnFCBlocked
 // [conn][%p] Peer Connection FC blocked (%llu)
 // QuicTraceLogConnVerbose(
@@ -232,29 +255,6 @@ TRACEPOINT_EVENT(CLOG_QMUX_C, IndicatePeerNeedStreamsV2,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for IndicateConnected
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)
-// QuicTraceLogConnVerbose(
-                    IndicateConnected,
-                    Connection,
-                    "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
-                    Event.CONNECTED.SessionResumed);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Event.CONNECTED.SessionResumed = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_QMUX_C, IndicateConnected,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned char, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-        ctf_integer(unsigned char, arg3, arg3)
     )
 )
 
@@ -416,6 +416,29 @@ TRACEPOINT_EVENT(CLOG_QMUX_C, ConnRecvPacket,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnEarlyDataStatus
+// [conn][%p] Early data %s
+// QuicTraceEvent(
+                ConnEarlyDataStatus,
+                "[conn][%p] Early data %s",
+                Connection,
+                "accepted");
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "accepted" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_QMUX_C, ConnEarlyDataStatus,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
     )
 )
 

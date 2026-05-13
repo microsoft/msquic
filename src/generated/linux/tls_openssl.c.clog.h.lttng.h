@@ -163,17 +163,17 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslBIOWriteError,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OpenSslSSLWriteError
-// [conn][%p] SSL_write failed, error: %d
+// Decoder Ring for OpenSslBIOReadError
+// [conn][%p] BIO_read failed, error: %d
 // QuicTraceLogConnError(
-            OpenSslSSLWriteError,
-            TlsContext->Connection,
-            "SSL_write failed, error: %d",
-            Err);
+                    OpenSslBIOReadError,
+                    TlsContext->Connection,
+                    "BIO_read failed, error: %d",
+                    Err);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSSLWriteError,
+TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslBIOReadError,
     TP_ARGS(
         const void *, arg1,
         int, arg3), 
@@ -186,17 +186,17 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSSLWriteError,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OpenSslBIOReadError
-// [conn][%p] BIO_read failed, error: %d
+// Decoder Ring for OpenSslSSLWriteError
+// [conn][%p] SSL_write failed, error: %d
 // QuicTraceLogConnError(
-                OpenSslBIOReadError,
+                OpenSslSSLWriteError,
                 TlsContext->Connection,
-                "BIO_read failed, error: %d",
+                "SSL_write failed, error: %d",
                 Err);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslBIOReadError,
+TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSSLWriteError,
     TP_ARGS(
         const void *, arg1,
         int, arg3), 

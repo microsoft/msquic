@@ -546,6 +546,7 @@ QuicSendWriteFrames(
             (uint32_t *)&Frame.Length);
         if (Frame.TP == NULL) {
             // XXX - This is a failure case that we should handle better.
+            QuicCryptoTlsCleanupTransportParameters(&LocalTP);
             goto Exit;
         }
         if (QxTransportParametersFrameEncode(
@@ -555,6 +556,7 @@ QuicSendWriteFrames(
                 Builder->Datagram->Buffer)) {
             if (QuicPacketBuilderAddFrame(Builder, QX_FRAME_TRANSPORT_PARAMETERS, FALSE)) {
                 CXPLAT_FREE(Frame.TP, QUIC_POOL_TLS_TRANSPARAMS);
+                QuicCryptoTlsCleanupTransportParameters(&LocalTP);
                 return TRUE;
             }
             Connection->State.LocalTPSent = TRUE;
@@ -563,6 +565,7 @@ QuicSendWriteFrames(
             RanOutOfRoom = TRUE;
         }
         CXPLAT_FREE(Frame.TP, QUIC_POOL_TLS_TRANSPARAMS);
+        QuicCryptoTlsCleanupTransportParameters(&LocalTP);
     }
 
     if (QuicConnIsQMux(Connection) &&

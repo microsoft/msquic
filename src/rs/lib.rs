@@ -24,9 +24,9 @@ pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
 pub use types::{
-    BufferRef, ConnectionEvent, ConnectionShutdownFlags, DatagramSendState, ListenerEvent,
-    NewConnectionInfo, ReceiveFlags, SendFlags, StreamEvent, StreamOpenFlags, StreamShutdownFlags,
-    StreamStartFlags, TlsProvider,
+    BufferRef, ConnectionEvent, ConnectionSendResumptionFlags, ConnectionShutdownFlags,
+    DatagramSendState, ListenerEvent, NewConnectionInfo, ReceiveFlags, SendFlags, StreamEvent,
+    StreamOpenFlags, StreamShutdownFlags, StreamStartFlags, TlsProvider,
 };
 mod settings;
 pub use settings::{ServerResumptionLevel, Settings};
@@ -1039,6 +1039,26 @@ impl Connection {
                 buffers.len() as u32,
                 flags.bits(),
                 client_send_context as *mut c_void,
+            )
+        };
+        Status::ok_from_raw(status)
+    }
+
+    pub fn send_resumption_ticket(
+        &self,
+        flags: ConnectionSendResumptionFlags,
+        resumption_app_data: Option<&[u8]>,
+    ) -> Result<(), Status> {
+        let status = unsafe {
+            Api::ffi_ref().ConnectionSendResumptionTicket.unwrap()(
+                self.handle,
+                flags.bits(),
+                resumption_app_data
+                    .map(|data| data.len() as u16)
+                    .unwrap_or(0),
+                resumption_app_data
+                    .map(|data| data.as_ptr() as *const u8)
+                    .unwrap_or(std::ptr::null()),
             )
         };
         Status::ok_from_raw(status)

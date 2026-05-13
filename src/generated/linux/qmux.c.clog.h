@@ -179,6 +179,26 @@ tracepoint(CLOG_QMUX_C, QueueDatagrams , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateConnected
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)
+// QuicTraceLogConnVerbose(
+                    IndicateConnected,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
+                    Event.CONNECTED.SessionResumed);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.CONNECTED.SessionResumed = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateConnected
+#define _clog_4_ARGS_TRACE_IndicateConnected(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_QMUX_C, IndicateConnected , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PeerConnFCBlocked
 // [conn][%p] Peer Connection FC blocked (%llu)
 // QuicTraceLogConnVerbose(
@@ -235,26 +255,6 @@ tracepoint(CLOG_QMUX_C, PeerStreamFCBlocked , arg1, arg3, arg4);\
 #ifndef _clog_4_ARGS_TRACE_IndicatePeerNeedStreamsV2
 #define _clog_4_ARGS_TRACE_IndicatePeerNeedStreamsV2(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_QMUX_C, IndicatePeerNeedStreamsV2 , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for IndicateConnected
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)
-// QuicTraceLogConnVerbose(
-                    IndicateConnected,
-                    Connection,
-                    "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
-                    Event.CONNECTED.SessionResumed);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Event.CONNECTED.SessionResumed = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_IndicateConnected
-#define _clog_4_ARGS_TRACE_IndicateConnected(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_QMUX_C, IndicateConnected , arg1, arg3);\
 
 #endif
 
@@ -395,6 +395,26 @@ tracepoint(CLOG_QMUX_C, ConnHandshakeComplete , arg2);\
 #ifndef _clog_4_ARGS_TRACE_ConnRecvPacket
 #define _clog_4_ARGS_TRACE_ConnRecvPacket(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_QMUX_C, ConnRecvPacket , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnEarlyDataStatus
+// [conn][%p] Early data %s
+// QuicTraceEvent(
+                ConnEarlyDataStatus,
+                "[conn][%p] Early data %s",
+                Connection,
+                "accepted");
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "accepted" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnEarlyDataStatus
+#define _clog_4_ARGS_TRACE_ConnEarlyDataStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_QMUX_C, ConnEarlyDataStatus , arg2, arg3);\
 
 #endif
 

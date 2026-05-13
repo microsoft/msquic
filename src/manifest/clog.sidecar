@@ -1243,6 +1243,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "ConnEarlyDataStatus": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Early data %s",
+      "UniqueId": "ConnEarlyDataStatus",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnEcnCapable": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Ecn: IsCapable=%hu",
@@ -13869,6 +13885,11 @@
         "UniquenessHash": "c753358e-985b-ee38-30e0-cc6cebbe5526",
         "TraceID": "ConnDscpSet",
         "EncodingString": "[conn][%p] Connection DSCP set to %hhu"
+      },
+      {
+        "UniquenessHash": "0959bf3b-ad7a-f052-5927-05956c7c200f",
+        "TraceID": "ConnEarlyDataStatus",
+        "EncodingString": "[conn][%p] Early data %s"
       },
       {
         "UniquenessHash": "9c10f710-84bf-766d-0da5-9e31796cf450",

@@ -480,6 +480,16 @@ bitflags::bitflags! {
 }
 
 bitflags::bitflags! {
+    /// Controls send resumption ticket behavior.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct ConnectionSendResumptionFlags: crate::ffi::QUIC_SEND_RESUMPTION_FLAGS {
+        const NONE = crate::ffi::QUIC_SEND_RESUMPTION_FLAGS_QUIC_SEND_RESUMPTION_FLAG_NONE;
+        /// This is the final resumption ticket.
+        const FINAL = crate::ffi::QUIC_SEND_RESUMPTION_FLAGS_QUIC_SEND_RESUMPTION_FLAG_FINAL;
+    }
+}
+
+bitflags::bitflags! {
     /// Controls stream open behavior.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct StreamOpenFlags: crate::ffi::QUIC_STREAM_OPEN_FLAGS {

@@ -3699,7 +3699,6 @@ CxPlatTlsHandshake(
                     State->EarlyDataBuffer + State->EarlyDataBufferLength,
                     State->EarlyDataBufferAllocLength - State->EarlyDataBufferLength,
                     &ReadLength);
-            CXPLAT_DBG_ASSERT(ReadLength <= State->EarlyDataBufferAllocLength - State->EarlyDataBufferLength);
             State->EarlyDataBufferLength += (uint32_t)ReadLength;
             switch (Ret) {
             case SSL_READ_EARLY_DATA_FINISH:
@@ -3979,8 +3978,10 @@ CxPlatTlsEncrypt(
 {
     int Ret;
     CXPLAT_DBG_ASSERT(TlsContext->IsQMux);
+    CXPLAT_TLS_RECORD_OVERHEAD Overhead;
+    CxPlatTlsGetRecordOverhead(TlsContext, &Overhead);
 
-    if (Buffer->Capacity < 5 + Buffer->DataLength + 512) {
+    if (Buffer->Capacity < Overhead.MaxHeader + Buffer->DataLength + Overhead.MaxTrailer) {
         // Not enough room for encryption overhead, which can be up to 5 bytes for the TLS record
         // header and up to 512 bytes for the trailer.
         return FALSE;
@@ -4079,12 +4080,12 @@ CxPlatTlsDecrypt(
         *InputBufferLength = Ret;
     }
 
-    size_t Offset = 0;
+    size_t OutputBufferOffset = 0;
     do {
         Ret =
             SSL_read(TlsContext->Ssl,
-                OutputBuffer + Offset,
-                (int)*OutputBufferLength - (int)Offset);
+                OutputBuffer + OutputBufferOffset,
+                (int)*OutputBufferLength - (int)OutputBufferOffset);
         if (Ret < 0) {
             int Err = SSL_get_error(TlsContext->Ssl, Ret);
 
@@ -4102,9 +4103,9 @@ CxPlatTlsDecrypt(
                 return Result;
             }
         }
-        Offset += (size_t)Ret;
-    } while (Ret > 0 && Offset < *OutputBufferLength);
-    *OutputBufferLength = (uint32_t)Offset;
+        OutputBufferOffset += (size_t)Ret;
+    } while (Ret > 0 && OutputBufferOffset < *OutputBufferLength);
+    *OutputBufferLength = (uint32_t)OutputBufferOffset;
 
     return Result;
 }

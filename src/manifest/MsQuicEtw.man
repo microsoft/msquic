@@ -3487,6 +3487,15 @@
               template="tid_CONN_COUNT"
               value="5197"
               />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Informational"
+              message="$(string.Etw.ConnEarlyDataStatus)"
+              opcode="Connection"
+              symbol="QuicConnEarlyDataStatus"
+              template="tid_CONN_MESSAGE"
+              value="5198"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume ut:RPS"
@@ -4212,6 +4221,10 @@
         <string
             id="Etw.ConnRecvPacket"
             value="[conn][%p][RX] %hu bytes"
+            />
+        <string
+            id="Etw.ConnEarlyDataStatus"
+            value="[conn][%p] Early data %s"
             />
         <string
             id="Etw.StreamCreated"
