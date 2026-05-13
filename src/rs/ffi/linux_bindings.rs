@@ -224,6 +224,7 @@ pub const QUIC_API_VERSION_1: u32 = 1;
 pub const QUIC_API_VERSION_2: u32 = 2;
 pub type BOOLEAN = ::std::os::raw::c_uchar;
 pub type QUIC_ADDRESS_FAMILY = sa_family_t;
+pub type QUIC_XDP_MAP_HANDLE = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_ADDR_STR {
@@ -501,7 +502,6 @@ pub type QUIC_EXECUTION_DELETE_FN =
     ::std::option::Option<unsafe extern "C" fn(Count: u32, Executions: *mut *mut QUIC_EXECUTION)>;
 pub type QUIC_EXECUTION_POLL_FN =
     ::std::option::Option<unsafe extern "C" fn(Execution: *mut QUIC_EXECUTION) -> u32>;
-pub type QUIC_XDP_MAP_HANDLE = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_XDP_MAP_CONFIG {
