@@ -127,35 +127,61 @@ TestStream::StartPing(
 {
     BytesToSend = PayloadLength / MaxSendBuffers;
 
-    do {
-        // Atomically claim a chunk of BytesToSend so this thread and the
-        // connection worker (running HandleStreamSendComplete) cannot
-        // double-claim the same trailing bytes. Desired == 0 after the CAS
-        // is the definitive "I got the last chunk" signal used for FIN.
-        int64_t Current;
-        int64_t Desired;
-        uint32_t SendBufferLength;
-        do {
-            Current = BytesToSend;
-            if (Current <= 0) {
-                return true; // Worker drained the rest; nothing to do.
-            }
-            SendBufferLength = (uint32_t)CXPLAT_MIN(Current, (int64_t)MaxSendLength);
-            Desired = Current - SendBufferLength;
-        } while (InterlockedCompareExchange64(&BytesToSend, Desired, Current) != Current);
+    //
+    // Pre-compute the priming schedule (number of sends and the final
+    // chunk's size) so each iteration knows up front whether it is the
+    // last one. With the schedule fixed, the do/while loop is bounded by
+    // TotalSends and the race against HandleStreamSendComplete on the
+    // worker thread cannot drive iter counts past it. The remaining race
+    // is just on the InterlockedSubtract result: if it goes negative we
+    // know the worker beat us to the tail, so we roll back and stop.
+    //
+    long TotalSends;
+    uint32_t FinalSendBufferLength;
+    if (BytesToSend == 0) {
+        TotalSends = 1;
+        FinalSendBufferLength = 0;
+    } else {
+        TotalSends =
+            (long)(((uint64_t)BytesToSend + MaxSendLength - 1) / MaxSendLength);
+        FinalSendBufferLength =
+            (uint32_t)((uint64_t)BytesToSend - (uint64_t)(TotalSends - 1) * MaxSendLength);
+    }
+
+    for (long i = 0; i < TotalSends; ++i) {
+        if (OutstandingSendRequestCount >= (long)MaxSendRequestQueue) {
+            break;
+        }
+
+        const bool IsLast = (i == TotalSends - 1);
+        const uint32_t SendBufferLength =
+            IsLast ? FinalSendBufferLength : (uint32_t)MaxSendLength;
 
         auto SendBuffer = new(std::nothrow) QuicSendBuffer(MaxSendBuffers, SendBufferLength);
         if (SendBuffer == nullptr) {
-            InterlockedExchangeAdd64(&BytesToSend, (int64_t)SendBufferLength); // give the claim back
             TEST_FAILURE("Failed to alloc QuicSendBuffer");
             return false;
+        }
+
+        const int64_t resultingBytesLeft =
+            InterlockedSubtract64(&BytesToSend, SendBufferLength);
+        if (resultingBytesLeft < 0) {
+            //
+            // HandleStreamSendComplete on the worker thread already
+            // claimed the tail. Put the bytes back so BytesToSend can't
+            // stay negative (which would otherwise drive a bogus
+            // SendBufferLength on the next chained send) and stop here.
+            //
+            InterlockedExchangeAdd64(&BytesToSend, (int64_t)SendBufferLength);
+            delete SendBuffer;
+            return true;
         }
 
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_ALLOW_0_RTT;
         if (PayloadLength == 0) {
             Flags |= QUIC_SEND_FLAG_START;
         }
-        if (SendFin && Desired == 0) {
+        if (SendFin && resultingBytesLeft == 0) {
             Flags |= QUIC_SEND_FLAG_FIN;
         }
 
@@ -179,14 +205,15 @@ TestStream::StartPing(
             TEST_FAILURE("MsQuic->StreamSend failed, 0x%x.", Status);
             return false;
         }
-        if (Desired == 0) {
+        if (resultingBytesLeft == 0) {
+            //
             // On the finish packet if it succeeds, the instance
             // we are executing in will be deleted. Return
-            // so we don't execute the while on a deleted instance.
+            // so we don't execute the loop on a deleted instance.
+            //
             return true;
         }
-
-    } while (OutstandingSendRequestCount < (int64_t)MaxSendRequestQueue);
+    }
 
     return true;
 }
@@ -300,56 +327,38 @@ TestStream::HandleStreamSendComplete(
     _In_ QuicSendBuffer* SendBuffer
     )
 {
-    if (!IsPingSource) {
-        delete SendBuffer;
-        return;
-    }
-
-    if (Canceled) {
-        InterlockedDecrement(&OutstandingSendRequestCount);
-        delete SendBuffer;
-        return;
-    }
-
-    // Same atomic-claim pattern as StartPing: read the remaining bytes,
-    // pick a chunk size, and commit the subtraction with a CAS. If
-    // BytesToSend is already drained (<= 0), there's nothing to chain.
-    int64_t Current;
-    int64_t Desired;
-    uint32_t SendBufferLength;
-    do {
-        Current = BytesToSend;
-        if (Current <= 0) {
+    if (IsPingSource) {
+        if (BytesToSend == 0 || Canceled) {
             InterlockedDecrement(&OutstandingSendRequestCount);
             delete SendBuffer;
-            return;
+        } else {
+            QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
+            auto SendBufferLength = (uint32_t)CXPLAT_MIN(BytesToSend, (int64_t)MaxSendLength);
+            for (uint32_t i = 0; i < SendBuffer->BufferCount; ++i) {
+                SendBuffer->Buffers[i].Length = SendBufferLength;
+            }
+            if (InterlockedSubtract64(&BytesToSend, SendBufferLength) == 0) {
+                Flags |= QUIC_SEND_FLAG_FIN;
+            }
+#ifdef CXPLAT_RAISE_IRQL
+            CXPLAT_RAISE_IRQL();
+#endif
+            QUIC_STATUS Status =
+                MsQuic->StreamSend(
+                    QuicStream,
+                    SendBuffer->Buffers,
+                    SendBuffer->BufferCount,
+                    Flags,
+                    SendBuffer);
+#ifdef CXPLAT_RAISE_IRQL
+            CXPLAT_LOWER_IRQL();
+#endif
+            if (QUIC_FAILED(Status)) {
+                InterlockedDecrement(&OutstandingSendRequestCount);
+                delete SendBuffer;
+            }
         }
-        SendBufferLength = (uint32_t)CXPLAT_MIN(Current, (int64_t)MaxSendLength);
-        Desired = Current - SendBufferLength;
-    } while (InterlockedCompareExchange64(&BytesToSend, Desired, Current) != Current);
-
-    QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
-    for (uint32_t i = 0; i < SendBuffer->BufferCount; ++i) {
-        SendBuffer->Buffers[i].Length = SendBufferLength;
-    }
-    if (Desired == 0) {
-        Flags |= QUIC_SEND_FLAG_FIN;
-    }
-#ifdef CXPLAT_RAISE_IRQL
-    CXPLAT_RAISE_IRQL();
-#endif
-    QUIC_STATUS Status =
-        MsQuic->StreamSend(
-            QuicStream,
-            SendBuffer->Buffers,
-            SendBuffer->BufferCount,
-            Flags,
-            SendBuffer);
-#ifdef CXPLAT_RAISE_IRQL
-    CXPLAT_LOWER_IRQL();
-#endif
-    if (QUIC_FAILED(Status)) {
-        InterlockedDecrement(&OutstandingSendRequestCount);
+    } else {
         delete SendBuffer;
     }
 }

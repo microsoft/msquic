@@ -225,9 +225,10 @@ public:
     QUIC_UINT62 GetConnectionErrorCode() const { return ConnectionErrorCode; }
     QUIC_STATUS GetConnectionCloseStatus() const { return ConnectionCloseStatus; }
 
-    uint64_t GetBytesToSend() const { return (uint64_t)BytesToSend; }
     uint32_t GetOutstandingSendRequestCount() const { return OutstandingSendRequestCount; };
     uint64_t GetBytesReceived() const{ return BytesReceived; }
+
+    uint64_t GetBytesToSend() const { return (uint64_t)BytesToSend; }
 
     //
     // Parameters
