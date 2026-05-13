@@ -122,6 +122,9 @@ The `check-dotnet.yml` CI workflow validates the generated .NET interop files ar
 - Platform layer abstracts: TLS (`tls_schannel.c`, `tls_openssl.c`, `tls_quictls.c`), UDP sockets/datapath (`datapath_win.c`, `datapath_epoll.c`, `datapath_kqueue.c`), crypto (`crypt_bcrypt.c`, `crypt_openssl.c`).
 - Public API is in `src/inc/msquic.h`. C++ wrapper in `src/inc/msquic.hpp`.
 - Test infrastructure uses GoogleTest. Test cases in `src/test/lib/`, runner in `src/test/bin/`.
+
+## Coding Conventions
+
 - **`QUIC_API_ENABLE_PREVIEW_FEATURES`**: Always defined to `1` in `src/core/precomp.h`. Do **not** use `#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES` guards in `src/core/` or `src/platform/` code — the guard is only needed in `src/inc/msquic.h` to identify preview API surface and make it easy to avoid using preview features by mistake.
 
 ## Pull Requests
