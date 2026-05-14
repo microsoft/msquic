@@ -129,26 +129,30 @@ TestStream::StartPing(
 
     //
     // Pre-compute the priming schedule (number of sends and the final
-    // chunk's size) so each iteration knows up front whether it is the
-    // last one. With the schedule fixed, the do/while loop is bounded by
-    // TotalSends and the race against HandleStreamSendComplete on the
-    // worker thread cannot drive iter counts past it. The remaining race
-    // is just on the InterlockedSubtract result: if it goes negative we
-    // know the worker beat us to the tail, so we roll back and stop.
+    // chunk's size) up front. With the iteration count fixed, the loop
+    // is bounded by TotalSends and the race against
+    // HandleStreamSendComplete on the worker thread cannot drive the
+    // priming past the final chunk. The remaining race is on the
+    // InterlockedSubtract result: if it goes negative we know the worker
+    // beat us to the tail and we roll back and stop.
     //
-    long TotalSends;
+    // TotalSends is int64_t so callers passing UINT64_MAX-style
+    // "stream forever" payload lengths (ServerDisconnect,
+    // StatelessResetKey) don't truncate to a 32-bit value.
+    //
+    int64_t TotalSends;
     uint32_t FinalSendBufferLength;
     if (BytesToSend == 0) {
         TotalSends = 1;
         FinalSendBufferLength = 0;
     } else {
         TotalSends =
-            (long)(((uint64_t)BytesToSend + MaxSendLength - 1) / MaxSendLength);
+            (int64_t)(((uint64_t)BytesToSend + MaxSendLength - 1) / MaxSendLength);
         FinalSendBufferLength =
             (uint32_t)((uint64_t)BytesToSend - (uint64_t)(TotalSends - 1) * MaxSendLength);
     }
 
-    for (long i = 0; i < TotalSends; ++i) {
+    for (int64_t i = 0; i < TotalSends; ++i) {
         if (OutstandingSendRequestCount >= (long)MaxSendRequestQueue) {
             break;
         }
