@@ -125,41 +125,59 @@ TestStream::StartPing(
     _In_ bool SendFin
     )
 {
-    BytesToSend = PayloadLength / MaxSendBuffers;
-
     //
-    // Pre-compute the priming schedule (number of sends and the final
-    // chunk's size) up front. With the iteration count fixed, the loop
-    // is bounded by TotalSends and the race against
-    // HandleStreamSendComplete on the worker thread cannot drive the
-    // priming past the final chunk. The remaining race is on the
-    // InterlockedSubtract result: if it goes negative we know the worker
-    // beat us to the tail and we roll back and stop.
+    // Pre-compute the full schedule so each priming iteration knows up
+    // front whether it is the final send (only the last one shrinks to
+    // LastSendBufferLength and carries FIN). 
     //
-    // TotalSends is int64_t so callers passing UINT64_MAX-style
-    // "stream forever" payload lengths (ServerDisconnect,
-    // StatelessResetKey) don't truncate to a 32-bit value.
-    //
-    int64_t TotalSends;
-    uint32_t FinalSendBufferLength;
-    if (BytesToSend == 0) {
+    const uint64_t BytesPerBuffer = PayloadLength / MaxSendBuffers;
+    int64_t TotalSends{};
+    uint32_t LastSendBufferLength{};
+    if (BytesPerBuffer == 0) {
+        //
+        // Zero-payload (or sub-MaxSendBuffers) sends still issue exactly
+        // one zero-byte StreamSend so START and FIN reach the peer.
+        //
         TotalSends = 1;
-        FinalSendBufferLength = 0;
+        LastSendBufferLength = 0;
     } else {
         TotalSends =
-            (int64_t)(((uint64_t)BytesToSend + MaxSendLength - 1) / MaxSendLength);
-        FinalSendBufferLength =
-            (uint32_t)((uint64_t)BytesToSend - (uint64_t)(TotalSends - 1) * MaxSendLength);
+            (int64_t)((BytesPerBuffer + MaxSendLength - 1) / MaxSendLength);
+        LastSendBufferLength =
+            (uint32_t)(BytesPerBuffer - (uint64_t)(TotalSends - 1) * MaxSendLength);
     }
 
-    for (int64_t i = 0; i < TotalSends; ++i) {
-        if (OutstandingSendRequestCount >= (long)MaxSendRequestQueue) {
-            break;
-        }
+    const int64_t PrimingCount = CXPLAT_MIN(TotalSends, (int64_t)MaxSendRequestQueue);
 
+    //
+    // Initialize BytesToSend to the bytes-per-buffer total that
+    // HandleStreamSendComplete still needs to chain through after this
+    // function's priming work is done. From this assignment onward
+    // StartPing does NOT touch BytesToSend; the callback is the sole
+    // mutator, and SEND_COMPLETE events for a single stream are
+    // serialized on the connection worker, so there is no concurrent
+    // writer of BytesToSend.
+    //
+    // - PrimingCount == TotalSends: StartPing primes every send,
+    //   including the FIN one. Set BytesToSend = 0 so the callback
+    //   short-circuits on `BytesToSend == 0` for each completion.
+    // - PrimingCount  < TotalSends: StartPing primes PrimingCount
+    //   full-size sends; what's left for the callback is exactly
+    //   BytesPerBuffer - PrimingCount * MaxSendLength bytes (per
+    //   buffer), and the callback's existing MIN/subtract loop draws
+    //   that down to zero, applying FIN on the final decrement.
+    //
+    if (PrimingCount == TotalSends) {
+        BytesToSend = 0;
+    } else {
+        BytesToSend =
+            (int64_t)BytesPerBuffer - PrimingCount * (int64_t)MaxSendLength;
+    }
+
+    for (int64_t i = 0; i < PrimingCount; ++i) {
         const bool IsLast = (i == TotalSends - 1);
         const uint32_t SendBufferLength =
-            IsLast ? FinalSendBufferLength : (uint32_t)MaxSendLength;
+            IsLast ? LastSendBufferLength : (uint32_t)MaxSendLength;
 
         auto SendBuffer = new(std::nothrow) QuicSendBuffer(MaxSendBuffers, SendBufferLength);
         if (SendBuffer == nullptr) {
@@ -167,25 +185,11 @@ TestStream::StartPing(
             return false;
         }
 
-        const int64_t resultingBytesLeft =
-            InterlockedSubtract64(&BytesToSend, SendBufferLength);
-        if (resultingBytesLeft < 0) {
-            //
-            // HandleStreamSendComplete on the worker thread already
-            // claimed the tail. Put the bytes back so BytesToSend can't
-            // stay negative (which would otherwise drive a bogus
-            // SendBufferLength on the next chained send) and stop here.
-            //
-            InterlockedExchangeAdd64(&BytesToSend, (int64_t)SendBufferLength);
-            delete SendBuffer;
-            return true;
-        }
-
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_ALLOW_0_RTT;
         if (PayloadLength == 0) {
             Flags |= QUIC_SEND_FLAG_START;
         }
-        if (SendFin && resultingBytesLeft == 0) {
+        if (SendFin && IsLast) {
             Flags |= QUIC_SEND_FLAG_FIN;
         }
 
@@ -209,7 +213,7 @@ TestStream::StartPing(
             TEST_FAILURE("MsQuic->StreamSend failed, 0x%x.", Status);
             return false;
         }
-        if (resultingBytesLeft == 0) {
+        if (IsLast) {
             //
             // On the finish packet if it succeeds, the instance
             // we are executing in will be deleted. Return
