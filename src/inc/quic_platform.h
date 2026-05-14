@@ -161,6 +161,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_DATAPATH_RSS_CONFIG       'F4cQ' // Qc4F - QUIC Datapath RSS configuration
 #define QUIC_POOL_TLS_AUX_DATA              '05cQ' // Qc50 - QUIC TLS Backing Aux data
 #define QUIC_POOL_TLS_RECORD_ENTRY          '15cQ' // Qc51 - QUIC TLS Backing Record storage
+#define QUIC_POOL_XDP_MAP_CONFIG            '25cQ' // Qc52 - QUIC XDP Map Config
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
