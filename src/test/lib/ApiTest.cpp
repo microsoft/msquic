@@ -2991,6 +2991,8 @@ void QuicTestXdpMapConfigParam()
 {
     const QUIC_XDP_MAP_HANDLE FakeHandle1 = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234;
     const QUIC_XDP_MAP_HANDLE FakeHandle2 = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x5678;
+    const uint32_t FakeIfIndex1 = 3;
+    const uint32_t FakeIfIndex2 = 7;
 
     //
     // QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG
@@ -3032,7 +3034,7 @@ void QuicTestXdpMapConfigParam()
         //
         {
             TestScopeLogger LogScope1("SetParam bad length");
-            QUIC_XDP_MAP_CONFIG Config = { 1, FakeHandle1 };
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
                 MsQuic->SetParam(
@@ -3043,17 +3045,36 @@ void QuicTestXdpMapConfigParam()
         }
 
         //
-        // Set with zero-length should fail.
+        // Set with zero-length should clear the config.
+        // (First set something, then clear, then verify empty.)
         //
         {
-            TestScopeLogger LogScope1("SetParam zero length");
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
+            TestScopeLogger LogScope1("SetParam clear");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+
+            // Clear by setting zero length.
+            TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
                     0,
                     nullptr));
+
+            // Verify cleared.
+            uint32_t OutLength = sizeof(QUIC_XDP_MAP_CONFIG);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, 0u);
         }
 
         //
@@ -3064,8 +3085,8 @@ void QuicTestXdpMapConfigParam()
         {
             TestScopeLogger LogScope1("SetParam valid");
             QUIC_XDP_MAP_CONFIG Configs[2] = {
-                { 3, FakeHandle1 },
-                { 7, FakeHandle2 }
+                { FakeIfIndex1, FakeHandle1 },
+                { FakeIfIndex2, FakeHandle2 }
             };
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
@@ -3089,8 +3110,8 @@ void QuicTestXdpMapConfigParam()
                     &OutLength,
                     OutConfigs));
             TEST_EQUAL(OutLength, (uint32_t)sizeof(OutConfigs));
-            TEST_EQUAL(OutConfigs[0].InterfaceIndex, 3u);
-            TEST_EQUAL(OutConfigs[1].InterfaceIndex, 7u);
+            TEST_EQUAL(OutConfigs[0].InterfaceIndex, FakeIfIndex1);
+            TEST_EQUAL(OutConfigs[1].InterfaceIndex, FakeIfIndex2);
         }
 
         //
@@ -3124,8 +3145,8 @@ void QuicTestXdpMapConfigParam()
                     &OutLength,
                     OutConfigs));
             TEST_EQUAL(OutLength, (uint32_t)(2 * sizeof(QUIC_XDP_MAP_CONFIG)));
-            TEST_EQUAL(OutConfigs[0].InterfaceIndex, 3u);
-            TEST_EQUAL(OutConfigs[1].InterfaceIndex, 7u);
+            TEST_EQUAL(OutConfigs[0].InterfaceIndex, FakeIfIndex1);
+            TEST_EQUAL(OutConfigs[1].InterfaceIndex, FakeIfIndex2);
         }
 
         //
@@ -3133,7 +3154,7 @@ void QuicTestXdpMapConfigParam()
         //
         {
             TestScopeLogger LogScope1("SetParam twice succeeds");
-            QUIC_XDP_MAP_CONFIG Config = { 1, FakeHandle1 };
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
@@ -3151,7 +3172,7 @@ void QuicTestXdpMapConfigParam()
                     &OutLength,
                     &OutConfig));
             TEST_EQUAL(OutLength, (uint32_t)sizeof(QUIC_XDP_MAP_CONFIG));
-            TEST_EQUAL(OutConfig.InterfaceIndex, 1u);
+            TEST_EQUAL(OutConfig.InterfaceIndex, FakeIfIndex1);
         }
 
         //
@@ -3161,7 +3182,23 @@ void QuicTestXdpMapConfigParam()
             TestScopeLogger LogScope1("SetParam after registration fails");
             MsQuicRegistration Registration(true);
             TEST_TRUE(Registration.IsValid());
-            QUIC_XDP_MAP_CONFIG Config = { 1, FakeHandle1 };
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+        }
+
+        //
+        // Setting after a registration is closed should still fail
+        // (datapath was already initialized).
+        //
+        {
+            TestScopeLogger LogScope1("SetParam after registration closed fails");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_STATE,
                 MsQuic->SetParam(
