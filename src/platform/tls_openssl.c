@@ -150,6 +150,35 @@ typedef struct CXPLAT_TLS {
 
 } CXPLAT_TLS;
 
+static
+BOOLEAN
+CxPlatTlsServerNameIsIpLiteral(
+    _In_z_ const char* ServerName,
+    _In_ uint16_t ServerNameLength
+    )
+{
+    QUIC_ADDR Addr = {0};
+    if (QuicAddrFromString(ServerName, 0, &Addr)) {
+        return TRUE;
+    }
+
+    if (ServerNameLength >= 2 &&
+        ServerName[0] == '[' &&
+        ServerName[ServerNameLength - 1] == ']') {
+        char UnbracketedName[64];
+        size_t UnbracketedNameLength = ServerNameLength - 2;
+        if (UnbracketedNameLength >= sizeof(UnbracketedName)) {
+            return FALSE;
+        }
+
+        memcpy(UnbracketedName, ServerName + 1, UnbracketedNameLength);
+        UnbracketedName[UnbracketedNameLength] = '\0';
+        return QuicAddrFromString(UnbracketedName, 0, &Addr);
+    }
+
+    return FALSE;
+}
+
 //
 // @struct RECORD_ENTRY
 // @brief Represents a buffered SSL record in a linked list.
@@ -2523,18 +2552,20 @@ CxPlatTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
-            if (TlsContext->SNI == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "SNI",
-                    ServerNameLength + 1);
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                goto Exit;
-            }
+            if (!CxPlatTlsServerNameIsIpLiteral(Config->ServerName, ServerNameLength)) {
+                TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
+                if (TlsContext->SNI == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "SNI",
+                        ServerNameLength + 1);
+                    Status = QUIC_STATUS_OUT_OF_MEMORY;
+                    goto Exit;
+                }
 
-            memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
+                memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
+            }
         }
     }
 

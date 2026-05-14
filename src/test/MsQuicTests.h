@@ -461,6 +461,11 @@ QuicTestConnectBadSni(
     );
 
 void
+QuicTestConnectIpSni(
+    const FamilyArgs& Params
+    );
+
+void
 QuicTestConnectServerRejected(
     const FamilyArgs& Params
     );

@@ -567,6 +567,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnectInvalidAddress);
     RegisterTestFunction(QuicTestConnectBadAlpn);
     RegisterTestFunction(QuicTestConnectBadSni);
+    RegisterTestFunction(QuicTestConnectIpSni);
     RegisterTestFunction(QuicTestConnectServerRejected);
     RegisterTestFunction(QuicTestClientBlockedSourcePort);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
