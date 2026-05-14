@@ -333,6 +333,22 @@ jobs:
         path: artifacts
         merge-multiple: false
 
+    - name: Download Stress Failures
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      continue-on-error: true
+      with:
+        pattern: stress-*
+        path: artifacts
+        merge-multiple: false
+
+    - name: Download RecvFuzz Failures
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      continue-on-error: true
+      with:
+        pattern: recvfuzz-*
+        path: artifacts
+        merge-multiple: false
+
     - name: Create or Update Issue
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
       with:
@@ -376,9 +392,13 @@ jobs:
           find_issues('', 'msquictest');
           find_issues('', 'msquicplatformtest');
           find_issues('', 'msquiccoretest');
+          find_issues('', 'spinquic');
+          find_issues('', 'recvfuzz');
           find_issues('', 'msquictest.exe');
           find_issues('', 'msquicplatformtest.exe');
           find_issues('', 'msquiccoretest.exe');
+          find_issues('', 'spinquic.exe');
+          find_issues('', 'recvfuzz.exe');
 
           for (const env of fs.readdirSync(root)) {
               // If env is not a directory, skip it.
@@ -389,9 +409,13 @@ jobs:
               find_issues(env, 'msquictest');
               find_issues(env, 'msquicplatformtest');
               find_issues(env, 'msquiccoretest');
+              find_issues(env, 'spinquic');
+              find_issues(env, 'recvfuzz');
               find_issues(env, 'msquictest.exe');
               find_issues(env, 'msquicplatformtest.exe');
               find_issues(env, 'msquiccoretest.exe');
+              find_issues(env, 'spinquic.exe');
+              find_issues(env, 'recvfuzz.exe');
           }
           for (let Issue of potential_issues) {
               console.log(Issue.title);
