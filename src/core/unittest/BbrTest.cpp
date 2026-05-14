@@ -35,29 +35,7 @@ enum RECOVERY_STATE {
     RECOVERY_STATE_GROWTH       = 2
 };
 
-//
-// Tracks the most recent NETWORK_STATISTICS event delivered by the callback.
-//
-static bool NetStatsCallbackInvoked = false;
-static QUIC_NETWORK_STATISTICS LastNetStats = {};
 
-static
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CONNECTION_CALLBACK)
-QUIC_STATUS
-QUIC_API
-DummyConnectionCallback(
-    _In_ HQUIC /* Connection */,
-    _In_opt_ void* /* Context */,
-    _Inout_ QUIC_CONNECTION_EVENT* Event
-    )
-{
-    if (Event->Type == QUIC_CONNECTION_EVENT_NETWORK_STATISTICS) {
-        NetStatsCallbackInvoked = true;
-        LastNetStats = Event->NETWORK_STATISTICS;
-    }
-    return QUIC_STATUS_SUCCESS;
-}
 
 //
 // Reuse helpers matching CubicTest.cpp conventions.
@@ -152,14 +130,34 @@ static QUIC_MAX_SENT_PACKET_METADATA MakeBbrPacket(
 //
 // GoogleTest fixture for BBR congestion control tests.
 //
-class BbrTest : public ::testing::Test {
+class BbrTest_DeepTest : public ::testing::Test {
 protected:
-    static constexpr uint16_t kIPv6UdpOverhead = 48;
+    bool NetStatsCallbackInvoked = false;
+    QUIC_NETWORK_STATISTICS LastNetStats = {};
 
     QUIC_CONNECTION Connection{};
     QUIC_SETTINGS_INTERNAL Settings{};
     QUIC_CONGESTION_CONTROL_BBR* Bbr;
     QUIC_CONGESTION_CONTROL* CC;
+
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_CONNECTION_CALLBACK)
+    QUIC_STATUS
+    QUIC_API
+    DummyConnectionCallback(
+        _In_ HQUIC /* Connection */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
+        auto* Self = static_cast<BbrTest_DeepTest*>(Context);
+        if (Event->Type == QUIC_CONNECTION_EVENT_NETWORK_STATISTICS) {
+            Self->NetStatsCallbackInvoked = true;
+            Self->LastNetStats = Event->NETWORK_STATISTICS;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
 
     void InitializeWithDefaults(
         uint32_t WindowPackets = 10,
@@ -173,6 +171,7 @@ protected:
         Connection.Settings.NetStatsEventEnabled = NetStatsEnabled ? TRUE : FALSE;
         if (NetStatsEnabled) {
             Connection.ClientCallbackHandler = DummyConnectionCallback;
+            Connection._.ClientContext = this;
             NetStatsCallbackInvoked = false;
             LastNetStats = {};
         }
@@ -324,7 +323,7 @@ protected:
 // Scenario: Sends 5000 bytes via OnDataSent, then triggers a loss event of 1200 bytes
 // with LargestPacketNumberLost=5 and LargestSentPacketNumber=10. BBR should enter
 // CONSERVATIVE recovery on the first loss event.
-TEST_F(BbrTest, OnDataLost_EnterRecovery)
+TEST_F(BbrTest_DeepTest, OnDataLost_EnterRecovery)
 {
     InitializeWithDefaults();
 
@@ -345,7 +344,7 @@ TEST_F(BbrTest, OnDataLost_EnterRecovery)
 // PersistentCongestion=TRUE. When persistent congestion is detected, BBR should reset
 // RecoveryWindow to the minimum congestion window (4 * DatagramPayloadLength = 4928).
 //
-TEST_F(BbrTest, OnDataLost_PersistentCongestion)
+TEST_F(BbrTest_DeepTest, OnDataLost_PersistentCongestion)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
@@ -365,10 +364,10 @@ TEST_F(BbrTest, OnDataLost_PersistentCongestion)
 //
 // Test: OnDataLost - Non-Persistent Loss Reduces RecoveryWindow
 // Scenario: Sends 10000 bytes via OnDataSent, then triggers a non-persistent loss of
-// 1200 bytes. The RecoveryWindow is max(BytesInFlight - 1200, MinCW) =
-// max(8800 - 1200, 4928) = max(7600, 4928) = 7600.
+// 1200 bytes. After loss, BytesInFlight=8800, RecoveryWindow = max(BIF=8800, MinCW=4928)
+// - 1200 = 7600.
 //
-TEST_F(BbrTest, OnDataLost_NonPersistent)
+TEST_F(BbrTest_DeepTest, OnDataLost_NonPersistent)
 {
     InitializeWithDefaults();
 
@@ -378,7 +377,6 @@ TEST_F(BbrTest, OnDataLost_NonPersistent)
     QUIC_LOSS_EVENT Loss = MakeBbrLossEvent(1200, 5, 10, FALSE);
     CC->QuicCongestionControlOnDataLost(CC, &Loss);
 
-    // RecoveryWindow = max(BIF=8800, MinCW=4928) - 1200 = 7600
     ASSERT_EQ(Bbr->RecoveryWindow, 7600u);
     ASSERT_EQ(Connection.Stats.Send.CongestionCount, 1u);
 }
@@ -389,7 +387,7 @@ TEST_F(BbrTest, OnDataLost_NonPersistent)
 // recovery, then triggers a second loss of 600 bytes while still in recovery. BBR should
 // not re-enter recovery but should adjust the RecoveryWindow.
 //
-TEST_F(BbrTest, OnDataLost_AlreadyInRecovery)
+TEST_F(BbrTest_DeepTest, OnDataLost_AlreadyInRecovery)
 {
     InitializeWithDefaults();
 
@@ -415,7 +413,7 @@ TEST_F(BbrTest, OnDataLost_AlreadyInRecovery)
 // MinRtt=30000us and MinRttValid=TRUE. BBR should update its MinRtt to the new
 // sample.
 //
-TEST_F(BbrTest, OnDataAcknowledged_MinRttUpdate)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_MinRttUpdate)
 {
     InitializeWithDefaults();
 
@@ -434,7 +432,7 @@ TEST_F(BbrTest, OnDataAcknowledged_MinRttUpdate)
 // (past kBbrMinRttExpirationInMicroSecs=10s) with MinRtt=50000us. Since the old MinRtt
 // has expired, BBR accepts the new (larger) value.
 //
-TEST_F(BbrTest, OnDataAcknowledged_MinRttExpired)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_MinRttExpired)
 {
     InitializeWithDefaults();
 
@@ -459,7 +457,7 @@ TEST_F(BbrTest, OnDataAcknowledged_MinRttExpired)
 // Scenario: Sends 5000 bytes, then acknowledges with MinRttValid=FALSE. When the RTT
 // sample is marked invalid, BBR should not update MinRtt.
 //
-TEST_F(BbrTest, OnDataAcknowledged_MinRttNotValid)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_MinRttNotValid)
 {
     InitializeWithDefaults();
 
@@ -478,7 +476,7 @@ TEST_F(BbrTest, OnDataAcknowledged_MinRttNotValid)
 // window with MinRtt=40000us. Since the new sample (40000) is larger than the
 // existing MinRtt (30000) and the timer has not expired, BBR keeps the old value.
 //
-TEST_F(BbrTest, OnDataAcknowledged_MinRttNoUpdate)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_MinRttNoUpdate)
 {
     InitializeWithDefaults();
 
@@ -502,7 +500,7 @@ TEST_F(BbrTest, OnDataAcknowledged_MinRttNoUpdate)
 // Scenario: Sends 5000 bytes via OnDataSent, then acknowledges 1200 bytes with
 // LargestAck=5. Since this is the first ACK, it triggers a new round trip.
 //
-TEST_F(BbrTest, OnDataAcknowledged_NewRoundTrip)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_NewRoundTrip)
 {
     InitializeWithDefaults();
 
@@ -523,7 +521,7 @@ TEST_F(BbrTest, OnDataAcknowledged_NewRoundTrip)
 // (triggering a new round trip while still in recovery). The new round trip causes
 // RecoveryState to transition from CONSERVATIVE to GROWTH.
 //
-TEST_F(BbrTest, OnDataAcknowledged_RecoveryConservativeToGrowth)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_RecoveryConservativeToGrowth)
 {
     InitializeWithDefaults();
 
@@ -552,7 +550,7 @@ TEST_F(BbrTest, OnDataAcknowledged_RecoveryConservativeToGrowth)
 // HasLoss=FALSE and LargestAck=15 (exceeding EndOfRecovery). With no ongoing loss
 // and the ACK past the recovery point, BBR should exit recovery.
 //
-TEST_F(BbrTest, OnDataAcknowledged_RecoveryExit)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_RecoveryExit)
 {
     InitializeWithDefaults();
 
@@ -582,7 +580,7 @@ TEST_F(BbrTest, OnDataAcknowledged_RecoveryExit)
 // Since loss is still present and the ACK hasn't passed the recovery point, BBR stays
 // in recovery and updates the RecoveryWindow.
 //
-TEST_F(BbrTest, OnDataAcknowledged_RecoveryStayUpdateWindow)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_RecoveryStayUpdateWindow)
 {
     InitializeWithDefaults();
 
@@ -608,7 +606,7 @@ TEST_F(BbrTest, OnDataAcknowledged_RecoveryStayUpdateWindow)
 // Second ACK arrives 11 seconds later (past the 10s expiration). With
 // ExitingQuiescence=FALSE, the expired MinRtt triggers a transition to BBR_STATE_PROBE_RTT.
 //
-TEST_F(BbrTest, OnDataAcknowledged_TransitToProbeRtt)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_TransitToProbeRtt)
 {
     InitializeWithDefaults();
 
@@ -635,7 +633,7 @@ TEST_F(BbrTest, OnDataAcknowledged_TransitToProbeRtt)
 // AppLimited). An ACK 11 seconds later with expired MinRtt would normally trigger
 // PROBE_RTT, but ExitingQuiescence suppresses the transition and is then cleared.
 //
-TEST_F(BbrTest, OnDataAcknowledged_ExitingQuiescenceSuppressesProbeRtt)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_ExitingQuiescenceSuppressesProbeRtt)
 {
     InitializeWithDefaults();
 
@@ -670,7 +668,7 @@ TEST_F(BbrTest, OnDataAcknowledged_ExitingQuiescenceSuppressesProbeRtt)
 // rounds of stagnant bandwidth (below the 1.25x growth target). After enough consecutive
 // non-growing rounds, BBR detects that bottleneck bandwidth has been found.
 //
-TEST_F(BbrTest, OnDataAcknowledged_BtlbwFoundDetection)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_BtlbwFoundDetection)
 {
     InitializeWithDefaults();
     DriveToBtlbwFound();
@@ -684,7 +682,7 @@ TEST_F(BbrTest, OnDataAcknowledged_BtlbwFoundDetection)
 // 100000 before the final round, so BytesInFlight > TargetCwnd and the DRAIN→PROBE_BW
 // transition does NOT fire immediately. BBR should be in DRAIN after BtlbwFound.
 //
-TEST_F(BbrTest, OnDataAcknowledged_StartupToDrain)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_StartupToDrain)
 {
     InitializeWithDefaults();
     uint64_t TimeNow = 1000000;
@@ -751,7 +749,7 @@ TEST_F(BbrTest, OnDataAcknowledged_StartupToDrain)
 // Because BytesInFlight is near zero after the helper completes, the DRAIN → PROBE_BW
 // transition fires immediately upon entering DRAIN.
 //
-TEST_F(BbrTest, OnDataAcknowledged_DrainToProbeBw)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_DrainToProbeBw)
 {
     InitializeWithDefaults();
 
@@ -768,7 +766,7 @@ TEST_F(BbrTest, OnDataAcknowledged_DrainToProbeBw)
 // ACKs to trigger the probe RTT timer start (BytesInFlight falls below the probe
 // threshold of 4*DatagramPayloadLength).
 //
-TEST_F(BbrTest, HandleAckInProbeRtt_StartTimer)
+TEST_F(BbrTest_DeepTest, HandleAckInProbeRtt_StartTimer)
 {
     InitializeWithDefaults();
 
@@ -797,7 +795,7 @@ TEST_F(BbrTest, HandleAckInProbeRtt_StartTimer)
 // and BBR exits. With BtlbwFound=FALSE (never detected bottleneck bandwidth), BBR
 // transitions back to STARTUP.
 //
-TEST_F(BbrTest, HandleAckInProbeRtt_ExitToStartup)
+TEST_F(BbrTest_DeepTest, HandleAckInProbeRtt_ExitToStartup)
 {
     InitializeWithDefaults();
 
@@ -834,7 +832,7 @@ TEST_F(BbrTest, HandleAckInProbeRtt_ExitToStartup)
 // pairs over 30 iterations until the ProbeRtt timer expires. With BtlbwFound=TRUE, BBR
 // transitions to PROBE_BW instead of STARTUP.
 //
-TEST_F(BbrTest, HandleAckInProbeRtt_ExitToProbeBw)
+TEST_F(BbrTest_DeepTest, HandleAckInProbeRtt_ExitToProbeBw)
 {
     InitializeWithDefaults();
 
@@ -877,7 +875,7 @@ TEST_F(BbrTest, HandleAckInProbeRtt_ExitToProbeBw)
 // AckElapsed=100000us). Pumps it through OnDataAcknowledged to update the bandwidth
 // filter.
 //
-TEST_F(BbrTest, BandwidthFilter_WithLastAckedInfo)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_WithLastAckedInfo)
 {
     InitializeWithDefaults();
 
@@ -904,7 +902,7 @@ TEST_F(BbrTest, BandwidthFilter_WithLastAckedInfo)
 // When no last-acked info is available, BBR computes bandwidth using TimeNow - SentTime
 // as the interval. With 1200 bytes over 150000us, rate = 1200*8*1000000/150000 = 64000.
 //
-TEST_F(BbrTest, BandwidthFilter_NoLastAckedInfo)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_NoLastAckedInfo)
 {
     InitializeWithDefaults();
 
@@ -927,7 +925,7 @@ TEST_F(BbrTest, BandwidthFilter_NoLastAckedInfo)
 // uses AckElapsed to compute the delivery rate. With AckElapsed=100000us and 4000
 // bytes delivered (NumTotalAcked=12000 - LastTotalBytesAcked=8000), AckRate=320000.
 //
-TEST_F(BbrTest, BandwidthFilter_ZeroSendElapsed)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_ZeroSendElapsed)
 {
     InitializeWithDefaults();
 
@@ -956,7 +954,7 @@ TEST_F(BbrTest, BandwidthFilter_ZeroSendElapsed)
 // AckTime - LastAckTime instead. With SendElapsed=100000us yielding SendRate=400000
 // and AckElapsed=150000us yielding AckRate=213333, the min is used.
 //
-TEST_F(BbrTest, BandwidthFilter_AckElapsedSecondBranch)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_AckElapsedSecondBranch)
 {
     InitializeWithDefaults();
 
@@ -986,7 +984,7 @@ TEST_F(BbrTest, BandwidthFilter_AckElapsedSecondBranch)
 // (TotalBytesSent=15000 - LastTotalBytesSent=10000), SendRate=400000.
 // min(400000, UINT64_MAX) = 400000.
 //
-TEST_F(BbrTest, BandwidthFilter_ZeroAckElapsed)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_ZeroAckElapsed)
 {
     InitializeWithDefaults();
 
@@ -1015,7 +1013,7 @@ TEST_F(BbrTest, BandwidthFilter_ZeroAckElapsed)
 // skips zero-length packets without updating the bandwidth filter. Sends 1200 bytes
 // via OnDataSent and acknowledges with the zero-length packet metadata.
 //
-TEST_F(BbrTest, BandwidthFilter_ZeroLengthSkipped)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_ZeroLengthSkipped)
 {
     InitializeWithDefaults();
 
@@ -1037,7 +1035,7 @@ TEST_F(BbrTest, BandwidthFilter_ZeroLengthSkipped)
 // delivery rate computation produce UINT64_MAX for both SendRate and AckRate. When
 // both rates are UINT64_MAX, the bandwidth filter update is skipped.
 //
-TEST_F(BbrTest, BandwidthFilter_BothRatesMaxSkip)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_BothRatesMaxSkip)
 {
     InitializeWithDefaults();
 
@@ -1061,7 +1059,7 @@ TEST_F(BbrTest, BandwidthFilter_BothRatesMaxSkip)
 // NextPacketNumber at SetAppLimited time). When LargestAck exceeds the exit target,
 // AppLimited is cleared.
 //
-TEST_F(BbrTest, BandwidthFilter_AppLimitedExit)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_AppLimitedExit)
 {
     InitializeWithDefaults();
 
@@ -1088,7 +1086,7 @@ TEST_F(BbrTest, BandwidthFilter_AppLimitedExit)
 // and IsAppLimited=TRUE, both conditions of the update guard are FALSE,
 // so the filter is NOT updated.
 //
-TEST_F(BbrTest, BandwidthFilter_AppLimitedNoUpdate)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_AppLimitedNoUpdate)
 {
     InitializeWithDefaults();
 
@@ -1116,10 +1114,10 @@ TEST_F(BbrTest, BandwidthFilter_AppLimitedNoUpdate)
 // Test: BandwidthFilter - Multiple Packets in Single ACK
 // Scenario: Creates two chained packets (Packet1.Next = &Packet2) with different
 // timing data and acknowledges them together. Packet1 has SendRate=400000/AckRate=480000
-// (DeliveryRate=min=400000) and Packet2 has a higher rate. BbrBandwidthFilterOnPacketAckedprocesses both packets
+// (DeliveryRate=min=400000) and Packet2 has a higher rate. BbrBandwidthFilterOnPacketAcked processes both packets
 // and the filter retains the maximum.
 //
-TEST_F(BbrTest, BandwidthFilter_MultiplePackets)
+TEST_F(BbrTest_DeepTest, BandwidthFilter_MultiplePackets)
 {
     InitializeWithDefaults();
 
@@ -1155,7 +1153,7 @@ TEST_F(BbrTest, BandwidthFilter_MultiplePackets)
 // 500000). Since each round's bandwidth exceeds the 1.25x growth target relative to the
 // previous round, the SlowStartupRoundCounter resets and BtlbwFound never triggers.
 //
-TEST_F(BbrTest, BtlbwFound_BandwidthGrowingResetsCounter)
+TEST_F(BbrTest_DeepTest, BtlbwFound_BandwidthGrowingResetsCounter)
 {
     InitializeWithDefaults();
 
@@ -1182,7 +1180,7 @@ TEST_F(BbrTest, BtlbwFound_BandwidthGrowingResetsCounter)
 // (new round trip triggers CONSERVATIVE → GROWTH). In GROWTH state, RecoveryWindow
 // increases by BytesAcked: max(RecoveryWindow + BytesAcked, BytesInFlight + BytesAcked).
 //
-TEST_F(BbrTest, RecoveryWindow_GrowthAddsBytes)
+TEST_F(BbrTest_DeepTest, RecoveryWindow_GrowthAddsBytes)
 {
     InitializeWithDefaults();
 
@@ -1212,7 +1210,7 @@ TEST_F(BbrTest, RecoveryWindow_GrowthAddsBytes)
 // pairs (1200 bytes each, 50000us apart) while already in PROBE_BW. Verifies that BBR
 // enters PROBE_BW and the state machine is stable under repeated send/ack cycles.
 //
-TEST_F(BbrTest, ProbeBw_HighGainNoAdvance)
+TEST_F(BbrTest_DeepTest, ProbeBw_HighGainNoAdvance)
 {
     InitializeWithDefaults();
 
@@ -1237,7 +1235,7 @@ TEST_F(BbrTest, ProbeBw_HighGainNoAdvance)
 // reaches 1 (drain gain = 192 < GAIN_UNIT = 256). Once in drain gain phase, sends an
 // ACK with low BytesInFlight (below TargetCwnd), which forces ShouldAdvancePacingGainCycle = TRUE.
 //
-TEST_F(BbrTest, ProbeBw_DrainGainAdvancesCycle)
+TEST_F(BbrTest_DeepTest, ProbeBw_DrainGainAdvancesCycle)
 {
     InitializeWithDefaults();
 
@@ -1287,7 +1285,7 @@ TEST_F(BbrTest, ProbeBw_DrainGainAdvancesCycle)
 // would normally be TRUE), but HasLoss=FALSE and BytesInFlight < TargetCwnd. This overrides ShouldAdvancePacingGainCycle
 // to FALSE, preventing the cycle from advancing.
 //
-TEST_F(BbrTest, ProbeBw_HighGainSuppressesCycleAdvance)
+TEST_F(BbrTest_DeepTest, ProbeBw_HighGainSuppressesCycleAdvance)
 {
     InitializeWithDefaults();
 
@@ -1342,7 +1340,7 @@ TEST_F(BbrTest, ProbeBw_HighGainSuppressesCycleAdvance)
 // Scenario: Initializes BBR with defaults (BytesInFlight=0). With no data in flight,
 // BytesInFlight < CongestionWindow so sending is allowed.
 //
-TEST_F(BbrTest, CanSend_BelowCW)
+TEST_F(BbrTest_DeepTest, CanSend_BelowCW)
 {
     InitializeWithDefaults();
     ASSERT_TRUE(CC->QuicCongestionControlCanSend(CC));
@@ -1354,7 +1352,7 @@ TEST_F(BbrTest, CanSend_BelowCW)
 // congestion window. Even though BytesInFlight == CW, the remaining exemptions bypass
 // the congestion blocked check.
 //
-TEST_F(BbrTest, CanSend_WithExemptions)
+TEST_F(BbrTest_DeepTest, CanSend_WithExemptions)
 {
     InitializeWithDefaults();
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
@@ -1373,7 +1371,7 @@ TEST_F(BbrTest, CanSend_WithExemptions)
 // set. With BytesInFlight >= CW and Exemptions == 0, the connection is congestion
 // blocked.
 //
-TEST_F(BbrTest, CanSend_Blocked)
+TEST_F(BbrTest_DeepTest, CanSend_Blocked)
 {
     InitializeWithDefaults();
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
@@ -1389,7 +1387,7 @@ TEST_F(BbrTest, CanSend_Blocked)
 // GetSendAllowance with TimeSinceLastSend=1000 and SlowStartup=TRUE. When the
 // connection is congestion blocked (BytesInFlight >= CW), the allowance is 0.
 //
-TEST_F(BbrTest, GetSendAllowance_CcBlocked)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_CcBlocked)
 {
     InitializeWithDefaults();
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
@@ -1406,7 +1404,7 @@ TEST_F(BbrTest, GetSendAllowance_CcBlocked)
 // TimeSinceLastSend=0 and SlowStartup=FALSE. Without pacing, the allowance is simply
 // CW - BytesInFlight regardless of timing.
 //
-TEST_F(BbrTest, GetSendAllowance_NoPacing_TimeSinceLastSendInvalid)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_NoPacing_TimeSinceLastSendInvalid)
 {
     InitializeWithDefaults();
     CC->QuicCongestionControlOnDataSent(CC, 1000);
@@ -1422,7 +1420,7 @@ TEST_F(BbrTest, GetSendAllowance_NoPacing_TimeSinceLastSendInvalid)
 // GetSendAllowance with TimeSinceLastSend=50000 and SlowStartup=TRUE. With pacing
 // disabled, allowance equals CW - BytesInFlight.
 //
-TEST_F(BbrTest, GetSendAllowance_PacingDisabled)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_PacingDisabled)
 {
     InitializeWithDefaults(10, 1280, false); // PacingEnabled = FALSE
     CC->QuicCongestionControlOnDataSent(CC, 1000);
@@ -1441,7 +1439,7 @@ TEST_F(BbrTest, GetSendAllowance_PacingDisabled)
 // is 0; the second is large (12320*739/256 - 1000 = 34564). This is capped first to
 // CW-BIF=11320, then to CW>>2=3080.
 //
-TEST_F(BbrTest, GetSendAllowance_MinRttMax)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_MinRttMax)
 {
     InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
     CC->QuicCongestionControlOnDataSent(CC, 1000);
@@ -1460,7 +1458,7 @@ TEST_F(BbrTest, GetSendAllowance_MinRttMax)
 // via ACK (below QUIC_SEND_PACING_INTERVAL=1000us). When MinRtt is below the pacing
 // interval, pacing is skipped and allowance falls back to CW - BytesInFlight.
 //
-TEST_F(BbrTest, GetSendAllowance_MinRttBelowPacingInterval)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_MinRttBelowPacingInterval)
 {
     InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
 
@@ -1483,7 +1481,7 @@ TEST_F(BbrTest, GetSendAllowance_MinRttBelowPacingInterval)
 // the allowance uses kHighGain (739/256) as PacingGain. Calls GetSendAllowance with
 // TimeSinceLastSend=10000.
 //
-TEST_F(BbrTest, GetSendAllowance_StartupPacing)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_StartupPacing)
 {
     InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
 
@@ -1506,7 +1504,7 @@ TEST_F(BbrTest, GetSendAllowance_StartupPacing)
 // ACK, then calls GetSendAllowance with a very large TimeSinceLastSend=10000000 to
 // produce a pacing allowance exceeding CW >> 2. The allowance is capped at CW >> 2.
 //
-TEST_F(BbrTest, GetSendAllowance_CappedByQuarter)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_CappedByQuarter)
 {
     InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
 
@@ -1527,7 +1525,7 @@ TEST_F(BbrTest, GetSendAllowance_CappedByQuarter)
 // In PROBE_BW, the pacing gain uses the cycle gain values instead of kHighGain. Calls
 // GetSendAllowance with TimeSinceLastSend=10000.
 //
-TEST_F(BbrTest, GetSendAllowance_NonStartupPacing)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_NonStartupPacing)
 {
     InitializeWithDefaults(10, 1280, true);
 
@@ -1555,7 +1553,7 @@ TEST_F(BbrTest, GetSendAllowance_NonStartupPacing)
 // Scenario: Initializes BBR with defaults in STARTUP state. GetCongestionWindow should
 // return the full CongestionWindow (no recovery or PROBE_RTT reduction).
 //
-TEST_F(BbrTest, GetCongestionWindow_Normal)
+TEST_F(BbrTest_DeepTest, GetCongestionWindow_Normal)
 {
     InitializeWithDefaults();
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
@@ -1568,7 +1566,7 @@ TEST_F(BbrTest, GetCongestionWindow_Normal)
 // In recovery, GetCongestionWindow returns min(CongestionWindow, RecoveryWindow).
 // The RecoveryWindow after loss is 4928 (MinCW).
 //
-TEST_F(BbrTest, GetCongestionWindow_InRecovery)
+TEST_F(BbrTest_DeepTest, GetCongestionWindow_InRecovery)
 {
     InitializeWithDefaults();
     EnterRecovery();
@@ -1583,7 +1581,7 @@ TEST_F(BbrTest, GetCongestionWindow_InRecovery)
 // ACK 11 seconds later to expire the MinRtt timer. In PROBE_RTT, GetCongestionWindow
 // returns the minimum congestion window (4 * DatagramPayloadLength).
 //
-TEST_F(BbrTest, GetCongestionWindow_ProbeRtt)
+TEST_F(BbrTest_DeepTest, GetCongestionWindow_ProbeRtt)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
@@ -1611,7 +1609,7 @@ TEST_F(BbrTest, GetCongestionWindow_ProbeRtt)
 // Scenario: Sends 5000 bytes via OnDataSent, then calls GetNetworkStatistics. The
 // returned QUIC_NETWORK_STATISTICS should reflect current state.
 //
-TEST_F(BbrTest, GetNetworkStatistics)
+TEST_F(BbrTest_DeepTest, GetNetworkStatistics)
 {
     InitializeWithDefaults();
 
@@ -1629,7 +1627,7 @@ TEST_F(BbrTest, GetNetworkStatistics)
 // Scenario: Calls OnSpuriousCongestionEvent on a freshly initialized BBR instance.
 // BBR does not implement spurious congestion event handling and always returns FALSE.
 //
-TEST_F(BbrTest, SpuriousCongestionEvent_ReturnsFalse)
+TEST_F(BbrTest_DeepTest, SpuriousCongestionEvent_ReturnsFalse)
 {
     InitializeWithDefaults();
     BOOLEAN Result = CC->QuicCongestionControlOnSpuriousCongestionEvent(CC);
@@ -1641,7 +1639,7 @@ TEST_F(BbrTest, SpuriousCongestionEvent_ReturnsFalse)
 // Scenario: Calls LogOutFlowStatus on a freshly initialized BBR instance to verify
 // the logging path executes without crashing or corrupting state.
 //
-TEST_F(BbrTest, LogOutFlowStatus_NoCrash)
+TEST_F(BbrTest_DeepTest, LogOutFlowStatus_NoCrash)
 {
     InitializeWithDefaults();
     CC->QuicCongestionControlLogOutFlowStatus(CC);
@@ -1655,7 +1653,7 @@ TEST_F(BbrTest, LogOutFlowStatus_NoCrash)
 // exactly CW bytes to fill the congestion window. After the send, BytesInFlight >= CW
 // and the connection becomes congestion blocked.
 //
-TEST_F(BbrTest, UpdateBlockedState_BecameBlocked)
+TEST_F(BbrTest_DeepTest, UpdateBlockedState_BecameBlocked)
 {
     InitializeWithDefaults();
     ASSERT_TRUE(CC->QuicCongestionControlCanSend(CC));
@@ -1671,7 +1669,7 @@ TEST_F(BbrTest, UpdateBlockedState_BecameBlocked)
 // Scenario: Sends CW bytes to block the connection (CanSend=FALSE), then acknowledges
 // CW/2 bytes. The ACK reduces BytesInFlight below CW, unblocking the connection.
 //
-TEST_F(BbrTest, UpdateBlockedState_BecameUnblocked)
+TEST_F(BbrTest_DeepTest, UpdateBlockedState_BecameUnblocked)
 {
     InitializeWithDefaults();
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
@@ -1691,7 +1689,7 @@ TEST_F(BbrTest, UpdateBlockedState_BecameUnblocked)
 // By default, AppLimited is FALSE since no application-limited condition has been
 // signaled.
 //
-TEST_F(BbrTest, IsAppLimited_NotLimited)
+TEST_F(BbrTest_DeepTest, IsAppLimited_NotLimited)
 {
     InitializeWithDefaults();
     ASSERT_FALSE(CC->QuicCongestionControlIsAppLimited(CC));
@@ -1703,7 +1701,7 @@ TEST_F(BbrTest, IsAppLimited_NotLimited)
 // BytesInFlight is at or below CW, the AppLimited flag is set and AppLimitedExitTarget
 // is recorded.
 //
-TEST_F(BbrTest, SetAppLimited_BelowCW)
+TEST_F(BbrTest_DeepTest, SetAppLimited_BelowCW)
 {
     InitializeWithDefaults();
     CC->QuicCongestionControlSetAppLimited(CC);
@@ -1716,7 +1714,7 @@ TEST_F(BbrTest, SetAppLimited_BelowCW)
 // window via exemptions). Then calls SetAppLimited. When BytesInFlight > CW, the
 // AppLimited flag is not set.
 //
-TEST_F(BbrTest, SetAppLimited_AboveCW)
+TEST_F(BbrTest_DeepTest, SetAppLimited_AboveCW)
 {
     InitializeWithDefaults();
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
@@ -1734,7 +1732,7 @@ TEST_F(BbrTest, SetAppLimited_AboveCW)
 // Scenario: Verifies the exemption count starts at 0, then sets it to 5 via
 // SetExemption.
 //
-TEST_F(BbrTest, SetExemption_GetExemptions)
+TEST_F(BbrTest_DeepTest, SetExemption_GetExemptions)
 {
     InitializeWithDefaults();
     ASSERT_EQ(CC->QuicCongestionControlGetExemptions(CC), 0u);
@@ -1749,7 +1747,7 @@ TEST_F(BbrTest, SetExemption_GetExemptions)
 // OnDataSent (exceeding the initial max). GetBytesInFlightMax should return the
 // new high-water mark.
 //
-TEST_F(BbrTest, GetBytesInFlightMax)
+TEST_F(BbrTest_DeepTest, GetBytesInFlightMax)
 {
     InitializeWithDefaults();
     CC->QuicCongestionControlOnDataSent(CC, 20000);
@@ -1767,15 +1765,7 @@ TEST_F(BbrTest, GetBytesInFlightMax)
 //
 //====================================================================
 
-//
-// Test: Initialize - Verifies Correct Default State
-// Scenario: Initializes BBR with default settings (10 window packets, MTU=1280) and
-// inspects all internal fields. Verifies Name=="BBR", BbrState==STARTUP,
-// RecoveryState==NOT_RECOVERY, CongestionWindow==10*DatagramPayloadLength,
-// BytesInFlight==0, Exemptions==0, RoundTripCounter==0, all validity flags are
-// correctly initialized, MinRtt==UINT64_MAX, and BandwidthFilter.AppLimited==FALSE.
-//
-TEST_F(BbrTest, Initialize_DefaultState)
+TEST_F(BbrTest_DeepTest, Initialize_DefaultState)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
@@ -1808,7 +1798,7 @@ TEST_F(BbrTest, Initialize_DefaultState)
 // FullReset=TRUE. Full reset should zero BytesInFlight and reinitialize all BBR state.
 // MinRtt==UINT64_MAX.
 //
-TEST_F(BbrTest, Reset_FullReset)
+TEST_F(BbrTest_DeepTest, Reset_FullReset)
 {
     InitializeWithDefaults();
 
@@ -1829,7 +1819,7 @@ TEST_F(BbrTest, Reset_FullReset)
 // FullReset=FALSE. Partial reset preserves BytesInFlight but reinitializes other
 // BBR state.
 //
-TEST_F(BbrTest, Reset_PartialReset)
+TEST_F(BbrTest_DeepTest, Reset_PartialReset)
 {
     InitializeWithDefaults();
 
@@ -1848,7 +1838,7 @@ TEST_F(BbrTest, Reset_PartialReset)
 // Scenario: On a freshly initialized BBR instance, the bandwidth filter is empty
 // (no samples). BbrCongestionControlGetBandwidth returns 0.
 //
-TEST_F(BbrTest, GetBandwidth_Empty)
+TEST_F(BbrTest_DeepTest, GetBandwidth_Empty)
 {
     InitializeWithDefaults();
     ASSERT_EQ(BbrCongestionControlGetBandwidth(CC), (uint64_t)0);
@@ -1860,7 +1850,7 @@ TEST_F(BbrTest, GetBandwidth_Empty)
 // Scenario: Checks RecoveryState on a freshly initialized BBR instance. By default,
 // no recovery is active.
 //
-TEST_F(BbrTest, InRecovery_NotInRecovery)
+TEST_F(BbrTest_DeepTest, InRecovery_NotInRecovery)
 {
     InitializeWithDefaults();
     ASSERT_EQ(Bbr->RecoveryState, (uint32_t)RECOVERY_STATE_NOT_RECOVERY);
@@ -1871,7 +1861,7 @@ TEST_F(BbrTest, InRecovery_NotInRecovery)
 // Scenario: Verifies BytesInFlight starts at 0, then sends 1200 bytes via
 // OnDataSent. The sent bytes should be added to BytesInFlight.
 //
-TEST_F(BbrTest, OnDataSent_Basic)
+TEST_F(BbrTest_DeepTest, OnDataSent_Basic)
 {
     InitializeWithDefaults();
     ASSERT_EQ(Bbr->BytesInFlight, 0u);
@@ -1886,7 +1876,7 @@ TEST_F(BbrTest, OnDataSent_Basic)
 // BytesInFlight is 0 and AppLimited is TRUE at the time of OnDataSent, the
 // ExitingQuiescence flag is set.
 //
-TEST_F(BbrTest, OnDataSent_QuiescenceExit)
+TEST_F(BbrTest_DeepTest, OnDataSent_QuiescenceExit)
 {
     InitializeWithDefaults();
     CC->QuicCongestionControlSetAppLimited(CC);
@@ -1896,26 +1886,11 @@ TEST_F(BbrTest, OnDataSent_QuiescenceExit)
 }
 
 //
-// Test: OnDataSent - Updates BytesInFlightMax High-Water Mark
-// Scenario: Records the initial BytesInFlightMax, then sends InitialMax + 1000 bytes.
-// OnDataSent should update BytesInFlightMax when BytesInFlight exceeds the previous
-// maximum.
-//
-TEST_F(BbrTest, OnDataSent_UpdateBytesInFlightMax)
-{
-    InitializeWithDefaults();
-    uint32_t InitialMax = Bbr->BytesInFlightMax;
-
-    CC->QuicCongestionControlOnDataSent(CC, InitialMax + 1000);
-    ASSERT_EQ(Bbr->BytesInFlightMax, InitialMax + 1000u);
-}
-
-//
 // Test: OnDataSent - Decrements Exemptions on Each Send
 // Scenario: Sets 3 exemptions via SetExemption, then calls OnDataSent twice (1200
 // bytes each). Each send should decrement the exemption counter by 1.
 //
-TEST_F(BbrTest, OnDataSent_DecrementExemptions)
+TEST_F(BbrTest_DeepTest, OnDataSent_DecrementExemptions)
 {
     InitializeWithDefaults();
     CC->QuicCongestionControlSetExemption(CC, 3);
@@ -1933,7 +1908,7 @@ TEST_F(BbrTest, OnDataSent_DecrementExemptions)
 // Scenario: Verifies Exemptions starts at 0, then sends 1200 bytes via OnDataSent.
 // When Exemptions is already 0, OnDataSent should not underflow the counter.
 //
-TEST_F(BbrTest, OnDataSent_NoExemptionDecrement)
+TEST_F(BbrTest_DeepTest, OnDataSent_NoExemptionDecrement)
 {
     InitializeWithDefaults();
     ASSERT_EQ(CC->QuicCongestionControlGetExemptions(CC), 0u);
@@ -1947,7 +1922,7 @@ TEST_F(BbrTest, OnDataSent_NoExemptionDecrement)
 // Scenario: Sends 5000 bytes via OnDataSent, then invalidates 2000 bytes via
 // OnDataInvalidated. The invalidated bytes should be subtracted from BytesInFlight.
 //
-TEST_F(BbrTest, OnDataInvalidated_Basic)
+TEST_F(BbrTest_DeepTest, OnDataInvalidated_Basic)
 {
     InitializeWithDefaults();
 
@@ -1964,7 +1939,7 @@ TEST_F(BbrTest, OnDataInvalidated_Basic)
 // CW/2 bytes. The invalidation reduces BytesInFlight below CW, unblocking the
 // connection.
 //
-TEST_F(BbrTest, OnDataInvalidated_BecomesUnblocked)
+TEST_F(BbrTest_DeepTest, OnDataInvalidated_BecomesUnblocked)
 {
     InitializeWithDefaults();
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
@@ -1983,7 +1958,7 @@ TEST_F(BbrTest, OnDataInvalidated_BecomesUnblocked)
 // implicit path calls UpdateCongestionWindow (growing CW by BytesAcked) but does NOT
 // decrement BytesInFlight.
 //
-TEST_F(BbrTest, OnDataAcknowledged_Implicit)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_Implicit)
 {
     InitializeWithDefaults();
 
@@ -2007,7 +1982,7 @@ TEST_F(BbrTest, OnDataAcknowledged_Implicit)
 // the NetStats callback with current congestion state. BytesInFlight stays at 5000
 // (implicit ACKs don't decrement it) and CongestionWindow grows by 1200.
 //
-TEST_F(BbrTest, OnDataAcknowledged_ImplicitWithNetStats)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_ImplicitWithNetStats)
 {
     InitializeWithDefaults(10, 1280, false, true);
 
@@ -2029,7 +2004,7 @@ TEST_F(BbrTest, OnDataAcknowledged_ImplicitWithNetStats)
 // 5000 bytes, then acknowledges 1200 with IsImplicit=FALSE. The non-implicit path
 // decrements BytesInFlight and triggers the NetStats callback with updated state.
 //
-TEST_F(BbrTest, OnDataAcknowledged_WithNetStats)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_WithNetStats)
 {
     InitializeWithDefaults(10, 1280, false, true);
 
@@ -2052,7 +2027,7 @@ TEST_F(BbrTest, OnDataAcknowledged_WithNetStats)
 // resolves LastAckedPacketAppLimited to FALSE regardless of the flag.
 // BytesInFlight is decremented normally.
 //
-TEST_F(BbrTest, OnDataAcknowledged_AppLimitedPacket)
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_AppLimitedPacket)
 {
     InitializeWithDefaults();
 
@@ -2072,7 +2047,7 @@ TEST_F(BbrTest, OnDataAcknowledged_AppLimitedPacket)
 // Scenario: Records InitialCW, sends 5000 bytes, then acknowledges 1200. In STARTUP
 // with BtlbwFound=FALSE, UpdateCongestionWindow grows CW by the number of acked bytes.
 //
-TEST_F(BbrTest, UpdateCongestionWindow_StartupGrowth)
+TEST_F(BbrTest_DeepTest, UpdateCongestionWindow_StartupGrowth)
 {
     InitializeWithDefaults();
     uint32_t InitialCW = Bbr->CongestionWindow;
@@ -2091,7 +2066,7 @@ TEST_F(BbrTest, UpdateCongestionWindow_StartupGrowth)
 // then sends and acknowledges 100 bytes with IsImplicit=FALSE. In PROBE_RTT state,
 // UpdateCongestionWindow should not modify CongestionWindow.
 //
-TEST_F(BbrTest, UpdateCongestionWindow_ProbeRttNoUpdate)
+TEST_F(BbrTest_DeepTest, UpdateCongestionWindow_ProbeRttNoUpdate)
 {
     InitializeWithDefaults();
 
@@ -2123,7 +2098,7 @@ TEST_F(BbrTest, UpdateCongestionWindow_ProbeRttNoUpdate)
 // > ExpectedAckBytes). The excess (6080) is added to TargetCwnd via MaxAckHeightFilter.
 // CW = min(TargetCwnd=20576, prevCW+AckedBytes=19496) = 19496.
 //
-TEST_F(BbrTest, UpdateCongestionWindow_AckHeightFilterEntry)
+TEST_F(BbrTest_DeepTest, UpdateCongestionWindow_AckHeightFilterEntry)
 {
     InitializeWithDefaults();
 
@@ -2162,7 +2137,7 @@ TEST_F(BbrTest, UpdateCongestionWindow_AckHeightFilterEntry)
 // bytes and acknowledges 1200. The first call to UpdateAckAggregation initializes the
 // aggregation tracking.
 //
-TEST_F(BbrTest, UpdateAckAggregation_FirstCall)
+TEST_F(BbrTest_DeepTest, UpdateAckAggregation_FirstCall)
 {
     InitializeWithDefaults();
     ASSERT_FALSE(Bbr->AckAggregationStartTimeValid);
@@ -2183,7 +2158,7 @@ TEST_F(BbrTest, UpdateAckAggregation_FirstCall)
 // falls in the medium range (kLow*8=9,600,000 <= rate < kHigh*8=192,000,000), so
 // SendQuantum is set to DatagramPayloadLength * 2.
 //
-TEST_F(BbrTest, SetSendQuantum_MediumPacingRate)
+TEST_F(BbrTest_DeepTest, SetSendQuantum_MediumPacingRate)
 {
     InitializeWithDefaults();
 
@@ -2225,7 +2200,7 @@ TEST_F(BbrTest, SetSendQuantum_MediumPacingRate)
 // PacingRate=288,671,875. This exceeds kHigh*8=192,000,000, so SendQuantum is set to
 // min(PacingRate*1000/8, 65536) = 65536.
 //
-TEST_F(BbrTest, SetSendQuantum_HighPacingRate)
+TEST_F(BbrTest_DeepTest, SetSendQuantum_HighPacingRate)
 {
     InitializeWithDefaults();
 
