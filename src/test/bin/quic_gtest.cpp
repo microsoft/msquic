@@ -2710,8 +2710,6 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 TEST(Misc, StreamMultiReceive) {
     TestLogger Logger("StreamMultiReceive");
     if (TestingKernelMode) {
-        // TODO: Why?? This should be enabled.
-        GTEST_SKIP();
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamMultiReceive)));
     } else {
         QuicTestStreamMultiReceive();
