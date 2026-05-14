@@ -3,6 +3,7 @@
 
 set(SOURCES
     main.cpp
+    CubicTest.cpp
     FrameTest.cpp
     PacketNumberTest.cpp
     PartitionTest.cpp
@@ -27,10 +28,14 @@ set_property(TARGET msquiccoretest APPEND PROPERTY BUILD_RPATH "$ORIGIN")
 target_link_libraries(msquiccoretest msquic)
 
 if (BUILD_SHARED_LIBS)
-    target_link_libraries(msquiccoretest core platform)
+    target_link_libraries(msquiccoretest core msquic_platform)
 endif()
 
 target_link_libraries(msquiccoretest inc gtest warnings logging base_link)
+
+if (WIN32)
+    target_link_libraries(msquiccoretest oldnames)
+endif()
 
 add_test(NAME msquiccoretest
          COMMAND msquiccoretest

@@ -21,7 +21,7 @@ typedef struct QUIC_SUBRANGE {
 
 } QUIC_SUBRANGE;
 
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(sizeof(QUIC_SUBRANGE)), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(sizeof(QUIC_SUBRANGE)), "Must be power of two");
 
 typedef struct QUIC_RANGE_SEARCH_KEY {
 
@@ -33,7 +33,7 @@ typedef struct QUIC_RANGE_SEARCH_KEY {
 //
 // Returns the largest value in a subrange.
 //
-inline
+QUIC_INLINE
 uint64_t
 QuicRangeGetHigh(
     _In_ const QUIC_SUBRANGE* const Sub
@@ -77,7 +77,7 @@ typedef struct QUIC_RANGE {
 //
 // Returns the number of subranges in the range.
 //
-inline
+QUIC_INLINE
 uint32_t
 QuicRangeSize(
     _In_ const QUIC_RANGE * const Range
@@ -89,7 +89,7 @@ QuicRangeSize(
 //
 // Accessor function for a subrange at a given index.
 //
-inline
+QUIC_INLINE
 QUIC_SUBRANGE*
 QuicRangeGet(
     _In_ const QUIC_RANGE * const Range,
@@ -103,7 +103,7 @@ QuicRangeGet(
 // Accessor function for a subrange at a given index. Validates 'Index' is in
 // the valid range, otherwise returns NULL.
 //
-inline
+QUIC_INLINE
 QUIC_SUBRANGE*
 QuicRangeGetSafe(
     _In_ const QUIC_RANGE * const Range,
@@ -118,7 +118,7 @@ QuicRangeGetSafe(
 // Returns -1 if the Key is less than the subrange.
 // Returns 1 if the Key is greater than the subrange.
 //
-inline
+QUIC_INLINE
 int
 QuicRangeCompare(
     const QUIC_RANGE_SEARCH_KEY* Key,
@@ -154,7 +154,7 @@ QuicRangeCompare(
 // into the function. There is no guarentee which subrange is returned if
 // multiple overlap the search.
 //
-inline
+QUIC_INLINE
 int
 QuicRangeSearch(
     _In_ const QUIC_RANGE* Range,
@@ -206,7 +206,7 @@ QuicRangeSearch(
 // Does a reverse linear search to find the largest subrange that overlaps the
 // search key passed into the function.
 //
-inline
+QUIC_INLINE
 int
 QuicRangeSearch(
     _In_ const QUIC_RANGE* Range,
@@ -308,19 +308,6 @@ QuicRangeRemoveSubranges(
     _Inout_ QUIC_RANGE* Range,
     _In_ uint32_t Index,
     _In_ uint32_t Count
-    );
-
-//
-// O(n) Removes a range of values from the range object. Returns TRUE if
-// successful or FALSE on an allocation failure.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != FALSE)
-BOOLEAN
-QuicRangeRemoveRange(
-    _Inout_ QUIC_RANGE* Range,
-    _In_ uint64_t LowValue,
-    _In_ uint64_t Count
     );
 
 //

@@ -104,6 +104,12 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_MIN_ACK_SEND_NUMBER                2
 
 //
+// The value for Reordering threshold when no ACK_FREQUENCY frame is received.
+// This means that the receiver will immediately acknowledge any out-of-order packets.
+//
+#define QUIC_MIN_REORDERING_THRESHOLD           1
+
+//
 // The size of the stateless reset token.
 //
 #define QUIC_STATELESS_RESET_TOKEN_LENGTH       16
@@ -240,10 +246,10 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_MAX_RANGE_ACK_PACKETS              0x800       // 2048
 #define QUIC_MAX_RANGE_DECODE_ACKS              0x1000      // 4096
 
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ALLOC_SIZE), L"Must be power of two");
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DUPLICATE_PACKETS), L"Must be power of two");
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), L"Must be power of two");
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ALLOC_SIZE), "Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DUPLICATE_PACKETS), "Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), "Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), "Must be power of two");
 
 //
 // Minimum MTU allowed to be configured. Must be able to fit a
@@ -300,7 +306,7 @@ CXPLAT_STATIC_ASSERT(QUIC_INITIAL_PACKET_LENGTH >= QUIC_MIN_INITIAL_PACKET_LENGT
 
 CXPLAT_STATIC_ASSERT(
     QUIC_DEFAULT_DISCONNECT_TIMEOUT <= QUIC_MAX_DISCONNECT_TIMEOUT,
-    L"Default disconnect timeout should always be less than max");
+    "Default disconnect timeout should always be less than max");
 
 //
 // The default connection idle timeout (in milliseconds).
@@ -311,6 +317,12 @@ CXPLAT_STATIC_ASSERT(
 // The default connection idle timeout during the handshake (in milliseconds).
 //
 #define QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT     10000
+
+//
+// Minimum interval (in microseconds) between CONNECTION_CLOSE responses in
+// closing state.
+//
+#define QUIC_CLOSING_RESPONSE_MIN_INTERVAL      5000
 
 //
 // The default value for keep alives being enabled or not.
@@ -438,11 +450,22 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL    QUIC_SERVER_NO_RESUME
 
+
 //
-// Version of the wire-format for resumption tickets.
-// This needs to be incremented for each change in order or count of fields.
+// Valid Resumption Ticket Versions - these must be contiguous
 //
-#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION      1
+#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V1    1
+#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2    2
+
+//
+// Min version of the wire-format for resumption tickets.
+//
+#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION       CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V1
+
+//
+// Max version of the wire-format for resumption tickets.
+//
+#define CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION   CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2
 
 //
 // Version of the blob for client resumption tickets.
@@ -516,6 +539,16 @@ CXPLAT_STATIC_ASSERT(
 // The default settings for allowing Reliable Reset support.
 //
 #define QUIC_DEFAULT_RELIABLE_RESET_ENABLED          FALSE
+
+//
+// The default settings for allowing XDP support
+//
+#define QUIC_DEFAULT_XDP_ENABLED                     FALSE
+
+//
+// The default settings for allowing QTIP support
+//
+#define QUIC_DEFAULT_QTIP_ENABLED                    FALSE
 
 //
 // The default settings for allowing One-Way Delay support.
@@ -636,6 +669,8 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_HYSTART_ENABLED                "HyStartEnabled"
 #define QUIC_SETTING_ENCRYPTION_OFFLOAD_ALLOWED     "EncryptionOffloadAllowed"
 #define QUIC_SETTING_RELIABLE_RESET_ENABLED         "ReliableResetEnabled"
+#define QUIC_SETTING_XDP_ENABLED                    "XdpEnabled"
+#define QUIC_SETTING_QTIP_ENABLED                   "QTIPEnabled"
 #define QUIC_SETTING_ONE_WAY_DELAY_ENABLED          "OneWayDelayEnabled"
 #define QUIC_SETTING_NET_STATS_EVENT_ENABLED        "NetStatsEventEnabled"
 #define QUIC_SETTING_STREAM_MULTI_RECEIVE_ENABLED   "StreamMultiReceiveEnabled"
@@ -676,3 +711,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"
 
 #define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"
+
+#define QUIC_SETTING_RETRY_KEY_ALGORITHM            "RetryKeyAlgorithm"
+#define QUIC_SETTING_RETRY_KEY_SECRET               "RetrySecret"
+#define QUIC_SETTING_RETRY_KEY_ROTATION_MS          "RetryKeyRotationMs"

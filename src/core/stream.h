@@ -112,6 +112,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Initialized             : 1;    // Initialized successfully. Used for Debugging.
         BOOLEAN Started                 : 1;    // The app has started the stream.
         BOOLEAN StartedIndicated        : 1;    // The app received a start complete event.
+        BOOLEAN PeerStreamStartEventActive : 1; // The app is processing QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
         BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
@@ -140,9 +141,9 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN SendEnabled             : 1;    // Application is allowed to send data.
         BOOLEAN ReceiveEnabled          : 1;    // Application is ready for receive callbacks.
         BOOLEAN ReceiveMultiple         : 1;    // The app supports multiple parallel receive indications.
+        BOOLEAN UseAppOwnedRecvBuffers  : 1;    // The stream is using app provided receive buffers.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
-        BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
         BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
                                                 // if loss is detected.
@@ -156,6 +157,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
 
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
+        BOOLEAN InWaitingList           : 1;    // The stream is currently in the waiting list for stream id FC.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
     };
 } QUIC_STREAM_FLAGS;
@@ -218,7 +220,12 @@ typedef struct QUIC_STREAM {
     CXPLAT_REF_COUNT RefCount;
 
 #if DEBUG
-    short RefTypeCount[QUIC_STREAM_REF_COUNT];
+    //
+    // Detailed ref counts.
+    // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
+    // error for them to ever be zero.
+    //
+    CXPLAT_REF_COUNT RefTypeBiasedCount[QUIC_STREAM_REF_COUNT];
 #endif
 
     //
@@ -227,14 +234,23 @@ typedef struct QUIC_STREAM {
     //
     uint32_t OutstandingSentMetadata;
 
+    //
+    // Linkage in the stream set
+    //
     union {
         //
-        // The entry in the connection's hashtable of streams.
+        // Link in the hash-table when the stream is open.
         //
         CXPLAT_HASHTABLE_ENTRY TableEntry;
 
         //
-        // The entry in the connection's list of closed streams to clean up.
+        // Link in the waiting list when the stream if waiting for stream
+        // id flow control.
+        //
+        CXPLAT_LIST_ENTRY WaitingLink;
+
+        //
+        // Link in the closed list when closed and waiting for clean up.
         //
         CXPLAT_LIST_ENTRY ClosedLink;
     };
@@ -249,6 +265,11 @@ typedef struct QUIC_STREAM {
     // The list entry in the stream set's list of all allocated streams.
     //
     CXPLAT_LIST_ENTRY AllStreamsLink;
+
+    //
+    // The list entry in the global stream tracker list.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
 #endif
 
     //
@@ -389,7 +410,14 @@ typedef struct QUIC_STREAM {
     //
     uint64_t MaxAllowedRecvOffset;
 
+    //
+    // The number of bytes received since the last recv window update.
+    //
     uint64_t RecvWindowBytesDelivered;
+
+    //
+    // Timestamp of the last recv window update.
+    //
     uint64_t RecvWindowLastUpdate;
 
     //
@@ -414,7 +442,11 @@ typedef struct QUIC_STREAM {
 
     //
     // The number of received bytes the app has completed but not yet processed
-    // by MsQuic.
+    // by MsQuic. The top bit of RecvCompletionLength is used to indicate that
+    // there is an active receive to the app. The second highest bit is used to
+    // detect overflow. This structure allows us to synchronize both the receive
+    // indication flag and the number of bytes completed in a single atomic operation,
+    // for a lock-free implementation
     //
     volatile uint64_t RecvCompletionLength;
 
@@ -450,7 +482,16 @@ typedef struct QUIC_STREAM {
     } BlockedTimings;
 } QUIC_STREAM;
 
-inline
+//
+// There is an active receive to the app
+//
+#define QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG 0x8000000000000000
+//
+// The second highest bit is used to detect overflow
+//
+#define QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT               0x4000000000000000
+
+QUIC_INLINE
 QUIC_STREAM_SEND_STATE
 QuicStreamSendGetState(
     _In_ const QUIC_STREAM* Stream
@@ -479,7 +520,7 @@ QuicStreamSendGetState(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_STREAM_RECV_STATE
 QuicStreamRecvGetState(
     _In_ const QUIC_STREAM* Stream
@@ -520,7 +561,7 @@ QuicStreamAllowedByPeer(
     _In_ const QUIC_STREAM* Stream
     );
 
-inline
+QUIC_INLINE
 uint64_t
 QuicStreamGetInitialMaxDataFromTP(
     _In_ uint64_t StreamID,
@@ -665,7 +706,7 @@ QuicStreamParamGet(
 // Adds a ref to a stream.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamAddRef(
     _In_ QUIC_STREAM* Stream,
@@ -676,7 +717,7 @@ QuicStreamAddRef(
     CXPLAT_DBG_ASSERT(Stream->RefCount > 0);
 
 #if DEBUG
-    InterlockedIncrement16((volatile short*)&Stream->RefTypeCount[Ref]);
+    CxPlatRefIncrement(&Stream->RefTypeBiasedCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
@@ -690,7 +731,7 @@ QuicStreamAddRef(
 #pragma warning(push)
 #pragma warning(disable:6014) // SAL doesn't understand ref counts
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamRelease(
     _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream,
@@ -701,9 +742,7 @@ QuicStreamRelease(
     CXPLAT_TEL_ASSERT(Stream->RefCount > 0);
 
 #if DEBUG
-    CXPLAT_TEL_ASSERT(Stream->RefTypeCount[Ref] > 0);
-    uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Stream->RefTypeCount[Ref]);
-    CXPLAT_TEL_ASSERT(result != 0xFFFF);
+    CXPLAT_TEL_ASSERT(!CxPlatRefDecrement(&Stream->RefTypeBiasedCount[Ref]));
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
@@ -711,7 +750,7 @@ QuicStreamRelease(
     if (CxPlatRefDecrement(&Stream->RefCount)) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_STREAM_REF_COUNT; i++) {
-            CXPLAT_TEL_ASSERT(Stream->RefTypeCount[i] == 0);
+            CXPLAT_TEL_ASSERT(Stream->RefTypeBiasedCount[i] == 1);
         }
 #endif
         QuicStreamFree(Stream);
@@ -726,7 +765,7 @@ QuicStreamRelease(
 // No synchronization necessary as it's always called on the worker thread.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamSentMetadataIncrement(
     _In_ QUIC_STREAM* Stream
@@ -743,7 +782,7 @@ QuicStreamSentMetadataIncrement(
 // No synchronization necessary as it's always called on the worker thread.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamSentMetadataDecrement(
     _In_ QUIC_STREAM* Stream
@@ -759,7 +798,7 @@ QuicStreamSentMetadataDecrement(
 // Send Functions
 //
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamAddOutFlowBlockedReason(
     _In_ QUIC_STREAM* Stream,
@@ -791,7 +830,7 @@ QuicStreamAddOutFlowBlockedReason(
     return FALSE;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamRemoveOutFlowBlockedReason(
     _In_ QUIC_STREAM* Stream,
@@ -1004,4 +1043,37 @@ QUIC_STATUS
 QuicStreamRecvSetEnabledState(
     _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN NewRecvEnabled
+    );
+
+//
+// Convert a stream receive buffer to app-owned mode.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamSwitchToAppOwnedBuffers(
+    _In_ QUIC_STREAM *Stream
+    );
+
+//
+// Provide new chunks for the stream receive buffer.
+// Terminate the connection on failure.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicStreamProvideRecvBuffers(
+    _In_ QUIC_STREAM* Stream,
+    _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNK */ Chunks
+    );
+
+//
+// Notifies the app that the receive buffer is too small to hold the
+// incoming data.
+// The app can increase the buffer size or shutdown the stream inline
+// as a reaction. Only for app-owned buffering mode.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamNotifyReceiveBufferNeeded(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLengthNeeded
     );

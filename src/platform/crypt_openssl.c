@@ -12,9 +12,6 @@ Abstract:
 #include "platform_internal.h"
 
 #include "openssl/opensslv.h"
-#if OPENSSL_VERSION_MAJOR >= 3
-#define IS_OPENSSL_3
-#endif
 
 #ifdef _WIN32
 #pragma warning(push)
@@ -23,11 +20,7 @@ Abstract:
 #include <dlfcn.h>
 #endif
 #include "openssl/bio.h"
-#ifdef IS_OPENSSL_3
 #include "openssl/core_names.h"
-#else
-#include "openssl/hmac.h"
-#endif
 #include "openssl/err.h"
 #include "openssl/evp.h"
 #include "openssl/kdf.h"
@@ -52,7 +45,6 @@ EVP_CIPHER *CXPLAT_AES_128_ECB_ALG_HANDLE;
 EVP_CIPHER *CXPLAT_AES_256_ECB_ALG_HANDLE;
 EVP_CIPHER *CXPLAT_CHACHA20_ALG_HANDLE;
 EVP_CIPHER *CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
-#ifdef IS_OPENSSL_3
 EVP_MAC_CTX *CXPLAT_HMAC_SHA256_CTX_HANDLE;
 EVP_MAC_CTX *CXPLAT_HMAC_SHA384_CTX_HANDLE;
 EVP_MAC_CTX *CXPLAT_HMAC_SHA512_CTX_HANDLE;
@@ -128,31 +120,18 @@ CxPlatLoadHMACCTX(
     *ctx = c;
     return 1;
 }
-#endif
 
 typedef struct CXPLAT_HP_KEY {
     EVP_CIPHER_CTX* CipherCtx;
     CXPLAT_AEAD_TYPE Aead;
 } CXPLAT_HP_KEY;
 
-#if defined CXPLAT_SYSTEM_CRYPTO && !defined IS_OPENSSL_3 && !defined _WIN32
-// This is to fulfill link dependency in ssl_init.
-// If system OpenSSL has chacha support, we will redirect it to loaded handle.
-//
-const EVP_CIPHER *EVP_chacha20_poly1305(void)
-{
-    return CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
-}
-#endif
-
 QUIC_STATUS
 CxPlatCryptInitialize(
     void
     )
 {
-#ifdef IS_OPENSSL_3
     EVP_MAC *mac = NULL;
-#endif
 
     if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
         QuicTraceEvent(
@@ -162,7 +141,6 @@ CxPlatCryptInitialize(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-#ifdef IS_OPENSSL_3
     //
     // Preload ciphers
     //
@@ -203,41 +181,6 @@ Error:
     EVP_MAC_free(mac);
     CxPlatCryptUninitialize();
     return QUIC_STATUS_OUT_OF_MEMORY;
-#else // ! IS_OPENSSL_3
-    CXPLAT_AES_128_GCM_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_128_gcm();
-    CXPLAT_AES_256_GCM_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_gcm();
-    CXPLAT_AES_256_CBC_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_cbc();
-    CXPLAT_AES_128_ECB_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_128_ecb();
-    CXPLAT_AES_256_ECB_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_ecb();
-#if defined _WIN32 || !defined CXPLAT_SYSTEM_CRYPTO
-    CXPLAT_CHACHA20_ALG_HANDLE = (EVP_CIPHER *)EVP_chacha20();
-    CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (EVP_CIPHER *)EVP_chacha20_poly1305();
-#else
-    CXPLAT_CHACHA20_ALG_HANDLE = NULL;
-    CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
-
-    //
-    // Try to load ChaCha20 ciphers dynamically. They may or may not exist when using system crypto.
-    //
-    void* handle = dlopen("libcrypto.so.1.1", RTLD_LAZY | RTLD_GLOBAL);
-    EVP_CIPHER* (*func)(void) = NULL;
-    if (handle != NULL) {
-        func = dlsym(handle, "EVP_chacha20");
-        if (func != NULL) {
-            CXPLAT_CHACHA20_ALG_HANDLE = (*func)();
-
-            func = dlsym(handle, "EVP_chacha20_poly1305");
-            if (func != NULL) {
-                CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (*func)();
-                EVP_add_cipher(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
-            }
-        } else {
-            dlclose(handle);
-        }
-    }
-#endif
-    return QUIC_STATUS_SUCCESS;
-#endif
 }
 
 BOOLEAN
@@ -262,9 +205,10 @@ CxPlatCryptUninitialize(
     void
     )
 {
-#ifdef IS_OPENSSL_3
     EVP_CIPHER_free(CXPLAT_AES_128_GCM_ALG_HANDLE);
     CXPLAT_AES_128_GCM_ALG_HANDLE = NULL;
+    EVP_CIPHER_free(CXPLAT_AES_256_GCM_ALG_HANDLE);
+    CXPLAT_AES_256_GCM_ALG_HANDLE = NULL;
     EVP_CIPHER_free(CXPLAT_AES_256_CBC_ALG_HANDLE);
     CXPLAT_AES_256_CBC_ALG_HANDLE = NULL;
     EVP_CIPHER_free(CXPLAT_AES_128_ECB_ALG_HANDLE);
@@ -286,7 +230,6 @@ CxPlatCryptUninitialize(
     CXPLAT_HMAC_SHA384_CTX_HANDLE = NULL;
     EVP_MAC_CTX_free(CXPLAT_HMAC_SHA512_CTX_HANDLE);
     CXPLAT_HMAC_SHA512_CTX_HANDLE = NULL;
-#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -302,10 +245,8 @@ CxPlatKeyCreate(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const EVP_CIPHER *Aead;
-#ifdef IS_OPENSSL_3
     OSSL_PARAM AlgParam[2];
     size_t TagLength;
-#endif
 
     EVP_CIPHER_CTX* CipherCtx = EVP_CIPHER_CTX_new();
     if (CipherCtx == NULL) {
@@ -337,7 +278,6 @@ CxPlatKeyCreate(
         goto Exit;
     }
 
-#ifdef IS_OPENSSL_3
     TagLength = CXPLAT_IV_LENGTH;
     AlgParam[0] = OSSL_PARAM_construct_size_t("ivlen", &TagLength);
     AlgParam[1] = OSSL_PARAM_construct_end();
@@ -350,26 +290,6 @@ CxPlatKeyCreate(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-#else
-    if (EVP_CipherInit_ex(CipherCtx, Aead, NULL, RawKey, NULL, 1) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CipherInit_ex failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, CXPLAT_IV_LENGTH, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-#endif
 
     *NewKey = (CXPLAT_KEY*)CipherCtx;
     CipherCtx = NULL;
@@ -412,9 +332,7 @@ CxPlatEncrypt(
     int OutLen;
 
     EVP_CIPHER_CTX* CipherCtx = (EVP_CIPHER_CTX*)Key;
-#ifdef IS_OPENSSL_3
     OSSL_PARAM AlgParam[2];
-#endif
 
     if (EVP_EncryptInit_ex(CipherCtx, NULL, NULL, NULL, Iv) != 1) {
         QuicTraceEvent(
@@ -449,7 +367,6 @@ CxPlatEncrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-#ifdef IS_OPENSSL_3
     AlgParam[0] = OSSL_PARAM_construct_octet_string("tag", Tag, CXPLAT_ENCRYPTION_OVERHEAD);
     AlgParam[1] = OSSL_PARAM_construct_end();
 
@@ -460,15 +377,6 @@ CxPlatEncrypt(
             "EVP_CIPHER_CTX_get_params (GET_TAG) failed");
         return QUIC_STATUS_TLS_ERROR;
     }
-#else
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_GET_TAG, CXPLAT_ENCRYPTION_OVERHEAD, Tag) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CIPHER_CTX_ctrl (GET_TAG) failed");
-        return QUIC_STATUS_TLS_ERROR;
-    }
-#endif
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -494,9 +402,7 @@ CxPlatDecrypt(
     int OutLen;
 
     EVP_CIPHER_CTX* CipherCtx = (EVP_CIPHER_CTX*)Key;
-#ifdef IS_OPENSSL_3
     OSSL_PARAM AlgParam[2];
-#endif
 
     if (EVP_DecryptInit_ex(CipherCtx, NULL, NULL, NULL, Iv) != 1) {
         QuicTraceEvent(
@@ -526,7 +432,6 @@ CxPlatDecrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-#ifdef IS_OPENSSL_3
     AlgParam[0] = OSSL_PARAM_construct_octet_string("tag", Tag, CXPLAT_ENCRYPTION_OVERHEAD);
     AlgParam[1] = OSSL_PARAM_construct_end();
 
@@ -537,16 +442,6 @@ CxPlatDecrypt(
             "EVP_CIPHER_CTX_set_params (SET_TAG) failed");
         return QUIC_STATUS_TLS_ERROR;
     }
-#else
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, CXPLAT_ENCRYPTION_OVERHEAD, Tag) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_CIPHER_CTX_ctrl (SET_TAG) failed");
-        return QUIC_STATUS_TLS_ERROR;
-    }
-#endif
 
     if (EVP_DecryptFinal_ex(CipherCtx, Tag, &OutLen) != 1) {
         QuicTraceEvent(
@@ -692,7 +587,6 @@ CxPlatHpComputeMask(
 // Hash abstraction
 //
 
-#ifdef IS_OPENSSL_3
 //
 // OpenSSL 3.0 Hash implementation
 //
@@ -819,116 +713,62 @@ CxPlatHashCompute(
     CXPLAT_FRE_ASSERT(ActualOutputSize == OutputLength);
     return QUIC_STATUS_SUCCESS;
 }
-#else
-//
-// OpenSSL 1.1 Hash implementation
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatHashCreate(
-    _In_ CXPLAT_HASH_TYPE HashType,
-    _In_reads_(SaltLength)
-        const uint8_t* const Salt,
-    _In_ uint32_t SaltLength,
-    _Out_ CXPLAT_HASH** NewHash
+CxPlatKbKdfDerive(
+    _In_reads_(SecretLength) const uint8_t* Secret,
+    _In_ uint32_t SecretLength,
+    _In_z_ const char* Label,
+    _In_reads_opt_(ContextLength) const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _In_ uint32_t OutputLength,
+    _Out_writes_(OutputLength) uint8_t* Output
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const EVP_MD *Md;
+    EVP_KDF* Kdf;
+    EVP_KDF_CTX* KdfCtx;
+    OSSL_PARAM Params[6];
 
-    HMAC_CTX* HashContext = HMAC_CTX_new();
-    if (HashContext == NULL) {
+    Kdf = EVP_KDF_fetch(NULL, "KBKDF", NULL);
+    KdfCtx = EVP_KDF_CTX_new(Kdf);
+    EVP_KDF_free(Kdf);
+
+    Params[0] =
+        OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST,"SHA2-256", 0);
+
+    Params[1] =
+        OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_MAC,"HMAC", 0);
+
+    Params[2] =
+        OSSL_PARAM_construct_octet_string(
+            OSSL_KDF_PARAM_KEY,
+            (void*)Secret,
+            SecretLength);
+
+    Params[3] =
+        OSSL_PARAM_construct_octet_string(
+            OSSL_KDF_PARAM_SALT,
+            (void*)Label,
+            strnlen(Label, 255));
+
+    Params[4] =
+        OSSL_PARAM_construct_octet_string(
+            OSSL_KDF_PARAM_INFO,
+            (void*)Context,
+            ContextLength);
+
+    Params[5] = OSSL_PARAM_construct_end();
+
+    if (EVP_KDF_derive(KdfCtx, Output, OutputLength, Params) <= 0) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "HMAC_CTX_new failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+            "EVP_KDF_derive failed");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    switch (HashType) {
-    case CXPLAT_HASH_SHA256:
-        Md = EVP_sha256();
-        break;
-    case CXPLAT_HASH_SHA384:
-        Md = EVP_sha384();
-        break;
-    case CXPLAT_HASH_SHA512:
-        Md = EVP_sha512();
-        break;
-    default:
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Exit;
-    }
-
-    if (HMAC_Init_ex(HashContext, Salt, SaltLength, Md, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "HMAC_Init_ex failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    *NewHash = (CXPLAT_HASH*)HashContext;
-    HashContext = NULL;
-
-Exit:
-
-    CxPlatHashFree((CXPLAT_HASH*)HashContext);
-
+    EVP_KDF_CTX_free(KdfCtx);
     return Status;
 }
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatHashFree(
-    _In_opt_ CXPLAT_HASH* Hash
-    )
-{
-    HMAC_CTX_free((HMAC_CTX*)Hash);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-CxPlatHashCompute(
-    _In_ CXPLAT_HASH* Hash,
-    _In_reads_(InputLength)
-        const uint8_t* const Input,
-    _In_ uint32_t InputLength,
-    _In_ uint32_t OutputLength, // CxPlatHashLength(HashType)
-    _Out_writes_all_(OutputLength)
-        uint8_t* const Output
-    )
-{
-    HMAC_CTX* HashContext = (HMAC_CTX*)Hash;
-
-    if (!HMAC_Init_ex(HashContext, NULL, 0, NULL, NULL)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "HMAC_Init_ex(NULL) failed");
-        return QUIC_STATUS_INTERNAL_ERROR;
-    }
-
-    if (!HMAC_Update(HashContext, Input, InputLength)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "HMAC_Update failed");
-        return QUIC_STATUS_INTERNAL_ERROR;
-    }
-
-    uint32_t ActualOutputSize = OutputLength;
-    if (!HMAC_Final(HashContext, Output, &ActualOutputSize)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "HMAC_Final failed");
-        return QUIC_STATUS_INTERNAL_ERROR;
-    }
-
-    CXPLAT_FRE_ASSERT(ActualOutputSize == OutputLength);
-    return QUIC_STATUS_SUCCESS;
-}
-#endif

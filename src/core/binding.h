@@ -211,6 +211,14 @@ typedef struct QUIC_BINDING {
     BOOLEAN Connected : 1;
 
     //
+    // Indicates that the binding is constrained to a single partition. If
+    // partitioned, the binding must indicate all events within the partition,
+    // use the event queue belonging to the partition for IO, and perform its
+    // own processing within the partition's execution context.
+    //
+    BOOLEAN Partitioned : 1;
+
+    //
     // Number of (connection and listener) references to the binding.
     //
     uint32_t RefCount;
@@ -226,6 +234,11 @@ typedef struct QUIC_BINDING {
     //
     QUIC_COMPARTMENT_ID CompartmentId;
 #endif
+
+    //
+    // The partition index, if partitioned.
+    //
+    uint16_t PartitionIndex;
 
     //
     // The datapath binding.
@@ -264,6 +277,13 @@ typedef struct QUIC_BINDING {
 
     } Stats;
 
+#if DEBUG
+    //
+    // The list entry in the global binding tracker list.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
+#endif
+
 } QUIC_BINDING;
 
 //
@@ -279,7 +299,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicBindingInitialize(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Outptr_ QUIC_BINDING** NewBinding
     );
 
 //
@@ -322,6 +342,15 @@ QuicBindingGetRemoteAddress(
     );
 
 //
+// Queries the QTIP settings of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingGetQtipEnabled(
+    _In_ const QUIC_BINDING* Binding
+    );
+
+//
 // Looks up the listener based on the ALPN list. Optionally, outputs the
 // first ALPN that matches.
 //
@@ -330,7 +359,7 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     );
 
@@ -456,19 +485,31 @@ QuicBindingReleaseStatelessOperation(
 // the duration of the send operation.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_PARTITION* Partition,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
     );
 
+
+//
+// Indicates Dos mode state change for each listener
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingHandleDosModeStateChange(
+    _In_ QUIC_BINDING* Binding,
+    _In_ BOOLEAN DosModeEnabled
+    );
+
 //
 // Decrypts the retry token.
 //
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRetryTokenDecrypt(
@@ -478,6 +519,11 @@ QuicRetryTokenDecrypt(
     _Out_ QUIC_TOKEN_CONTENTS* Token
     )
 {
+#ifdef __cplusplus
+    QUIC_PARTITION* Partition = &MsQuicLib.Partitions[Packet->_.PartitionIndex];
+#else
+    QUIC_PARTITION* Partition = &MsQuicLib.Partitions[Packet->PartitionIndex];
+#endif
     //
     // Copy the token locally so as to not effect the original packet buffer,
     //
@@ -494,13 +540,13 @@ QuicRetryTokenDecrypt(
         CxPlatCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
     }
 
-    CxPlatDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+    CxPlatDispatchLockAcquire(&Partition->StatelessRetryKeysLock);
 
     CXPLAT_KEY* StatelessRetryKey =
-        QuicLibraryGetStatelessRetryKeyForTimestamp(
-            (int64_t)Token->Authenticated.Timestamp);
+        QuicPartitionGetStatelessRetryKeyForTimestamp(
+            Partition, (int64_t)Token->Authenticated.Timestamp);
     if (StatelessRetryKey == NULL) {
-        CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
         return FALSE;
     }
 
@@ -513,6 +559,6 @@ QuicRetryTokenDecrypt(
             sizeof(Token->Encrypted) + sizeof(Token->EncryptionTag),
             (uint8_t*)&Token->Encrypted);
 
-    CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+    CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
     return QUIC_SUCCEEDED(Status);
 }

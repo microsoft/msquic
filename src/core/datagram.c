@@ -119,7 +119,7 @@ QuicDatagramCancelSend(
         Connection,
         &SendRequest->ClientContext,
         QUIC_DATAGRAM_SEND_CANCELED);
-    CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+    CxPlatPoolFree(SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -135,7 +135,7 @@ QuicDatagramCompleteSend(
         Connection,
         ClientContext,
         QUIC_DATAGRAM_SEND_SENT);
-    CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+    CxPlatPoolFree(SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -359,7 +359,7 @@ QuicDatagramQueueSend(
     CxPlatDispatchLockRelease(&Datagram->ApiQueueLock);
 
     if (QUIC_FAILED(Status)) {
-        CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+        CxPlatPoolFree(SendRequest);
         goto Exit;
     }
 
@@ -371,7 +371,7 @@ QuicDatagramQueueSend(
 
     if (QueueOper) {
         QUIC_OPERATION* Oper =
-            QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+            QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -459,7 +459,10 @@ QuicDatagramSendFlush(
     }
 
     QuicDatagramValidate(Datagram);
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_SEND_BYTES, TotalBytesSent);
+    QuicPerfCounterAdd(
+        Connection->Partition,
+        QUIC_PERF_COUNTER_APP_SEND_BYTES,
+        TotalBytesSent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -584,7 +587,47 @@ QuicDatagramProcessFrame(
         (uint16_t)Frame.Length);
     (void)QuicConnIndicateEvent(Connection, &Event);
 
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, QuicBuffer.Length);
+    QuicPerfCounterAdd(
+        Connection->Partition,
+        QUIC_PERF_COUNTER_APP_RECV_BYTES,
+        QuicBuffer.Length);
 
     return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDatagramCancelBlocked(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_DATAGRAM* Datagram = &Connection->Datagram;
+    QUIC_SEND_REQUEST** SendQueue = &Datagram->SendQueue;
+
+    if (*SendQueue == NULL) {
+        return;
+    }
+
+    do {
+        if ((*SendQueue)->Flags & QUIC_SEND_FLAG_CANCEL_ON_BLOCKED) {
+            QUIC_SEND_REQUEST* SendRequest = *SendQueue;
+            if (Datagram->PrioritySendQueueTail == &SendRequest->Next) {
+                Datagram->PrioritySendQueueTail = SendQueue;
+            }
+            *SendQueue = SendRequest->Next;
+            QuicDatagramCancelSend(Connection, SendRequest);
+        } else {
+            SendQueue = &((*SendQueue)->Next);
+        }
+    } while (*SendQueue != NULL);
+
+    Datagram->SendQueueTail = SendQueue;
+
+    if (Datagram->SendQueue != NULL) {
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+    } else {
+        QuicSendClearSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+    }
+
+    QuicDatagramValidate(Datagram);
 }

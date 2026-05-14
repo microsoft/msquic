@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#pragma once
+
 #ifdef QUIC_CLOG
 #include "TestHelpers.h.clog.h"
 #endif
@@ -23,7 +25,7 @@ extern bool UseDuoNic;
 //
 // Set a QUIC_ADDR to the duonic "server" address.
 //
-inline
+QUIC_INLINE
 void
 QuicAddrSetToDuoNic(
     _Inout_ QUIC_ADDR* Addr
@@ -46,7 +48,33 @@ QuicAddrSetToDuoNic(
     }
 }
 
-inline
+//
+// Set a QUIC_ADDR to the duonic "client" address.
+//
+QUIC_INLINE
+void
+QuicAddrSetToDuoNicClient(
+    _Inout_ QUIC_ADDR* Addr
+    )
+{
+    if (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET) {
+        // 192.168.1.12
+        ((uint32_t*)&(Addr->Ipv4.sin_addr))[0] = 201435328;
+    } else {
+        CXPLAT_DBG_ASSERT(QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET6);
+        // fc00::1:12
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[0] = 252;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[1] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[2] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[3] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[4] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[5] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[6] = 256;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[7] = 4608;
+    }
+}
+
+QUIC_INLINE
 uint32_t
 QuitTestGetDatapathFeatureFlags() {
     static uint32_t Length = sizeof(uint32_t);
@@ -59,7 +87,7 @@ QuitTestGetDatapathFeatureFlags() {
     return Features;
 }
 
-inline
+QUIC_INLINE
 bool
 QuitTestIsFeatureSupported(uint32_t Feature) {
     return static_cast<bool>(QuitTestGetDatapathFeatureFlags() & Feature);
@@ -67,6 +95,71 @@ QuitTestIsFeatureSupported(uint32_t Feature) {
 
 #include "msquic.hpp"
 #include "quic_toeplitz.h"
+
+#if defined(_WIN32) && !defined(_KERNEL_MODE)
+//
+// Reserves an ephemeral UDP port by binding a socket to port 0. The socket
+// stays open to hold the reservation until Release() is called (or the object
+// is destroyed). This minimizes the TOCTOU window between discovering a free
+// port and having the listener bind to it.
+//
+struct QuicTestPortReservation {
+    uint16_t Port{0};
+
+    QuicTestPortReservation() = default;
+
+    QuicTestPortReservation(
+        _In_ QUIC_ADDRESS_FAMILY Family
+        )
+    {
+        int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
+
+        Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
+        if (Sock == INVALID_SOCKET) {
+            return;
+        }
+
+        QUIC_ADDR Addr{};
+        QuicAddrSetFamily(&Addr, Family);
+
+        int AddrSize =
+            (af == AF_INET) ?
+                (int)sizeof(struct sockaddr_in) :
+                (int)sizeof(struct sockaddr_in6);
+
+        if (bind(Sock, (struct sockaddr*)&Addr, AddrSize) == 0) {
+            int AddrLen = AddrSize;
+            if (getsockname(Sock, (struct sockaddr*)&Addr, &AddrLen) == 0) {
+                Port = QuicAddrGetPort(&Addr);
+            }
+        }
+
+        if (Port == 0) {
+            Release();
+        }
+    }
+
+    ~QuicTestPortReservation() { Release(); }
+
+    QuicTestPortReservation(const QuicTestPortReservation&) = delete;
+    QuicTestPortReservation& operator=(const QuicTestPortReservation&) = delete;
+
+    //
+    // Releases the port reservation by closing the held socket. Call this
+    // immediately before the listener binds to the same port.
+    //
+    void Release()
+    {
+        if (Sock != INVALID_SOCKET) {
+            closesocket(Sock);
+            Sock = INVALID_SOCKET;
+        }
+    }
+
+private:
+    SOCKET Sock{INVALID_SOCKET};
+};
+#endif // _WIN32 && !_KERNEL_MODE
 
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
 #define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H
@@ -151,7 +244,7 @@ struct ClearGlobalVersionListScope {
 // Simulating Connection's status to be QUIC_CONN_BAD_START_STATE
 // ConnectionStart -> ConnectionShutdown
 //
-inline
+QUIC_INLINE
 void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration& Configuration) {
     TEST_QUIC_SUCCEEDED(
         Connection.Start(
@@ -172,7 +265,7 @@ void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration
 // 2. return QUIC_STATUS_BUFFER_TOO_SMALL by filling value in BufferLength
 // 3. call again to get actual value in Buffer
 //
-inline
+QUIC_INLINE
 void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData, bool GreaterOrEqualLength = false) {
     uint32_t Length = 0;
     TEST_QUIC_STATUS(
@@ -193,6 +286,17 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
             return;
         }
     }
+
+    //
+    // Call with correct length now, but NULL buffer for added coverage.
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->GetParam(
+            Handle,
+            Param,
+            &Length,
+            nullptr));
 
     Length = (uint32_t)ExpectedLength; // Only query the expected size, which might be less.
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
@@ -265,7 +369,7 @@ struct GlobalSettingScope {
 // No 64-bit version for this existed globally. This defines an interlocked
 // helper for subtracting 64-bit numbers.
 //
-inline
+QUIC_INLINE
 int64_t
 InterlockedSubtract64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
@@ -920,7 +1024,8 @@ struct LoadBalancerHelper : public DatapathHook
     uint32_t PrivateAddressesCount;
     LoadBalancerHelper(const QUIC_ADDR& Public, const QUIC_ADDR* Private, uint32_t PrivateCount) :
         PublicAddress(Public), PrivateAddresses(Private), PrivateAddressesCount(PrivateCount) {
-        CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &Toeplitz.HashKey);
+        CxPlatRandom(CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC, &Toeplitz.HashKey);
+        Toeplitz.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
         CxPlatToeplitzHashInitialize(&Toeplitz);
         DatapathHooks::Instance->AddHook(this);
     }
@@ -1009,7 +1114,7 @@ private:
 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 WaitForMsQuicInUse() {
     int Count = 0;
@@ -1022,4 +1127,17 @@ WaitForMsQuicInUse() {
     } while(!MsQuicInUse && Count++ < 100);
 
     return MsQuicInUse && Status == QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_INLINE
+void
+DrainConnectionWorkQueue(HQUIC Connection) {
+    //
+    // Call the GetParam API: it schedules a work item on the connection and waits for its completion,
+    // ensuring all prior work items have completed.
+    //
+    QUIC_STATISTICS_V2 Stats{};
+    uint32_t StatsSize = sizeof(Stats);
+    (void)MsQuic->GetParam(Connection, QUIC_PARAM_CONN_STATISTICS_V2, &StatsSize, &Stats);
 }

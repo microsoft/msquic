@@ -44,7 +44,7 @@ typedef _In_range_(0, QUIC_VAR_INT_MAX) uint64_t QUIC_VAR_INT;
 //
 // Helper to encode a variable-length integer.
 //
-inline
+QUIC_INLINE
 _When_(Value < 0x40, _Post_equal_to_(Buffer + sizeof(uint8_t)))
 _When_(Value >= 0x40 && Value < 0x4000, _Post_equal_to_(Buffer + sizeof(uint16_t)))
 _When_(Value >= 0x4000 && Value < 0x40000000, _Post_equal_to_(Buffer + sizeof(uint32_t)))
@@ -82,7 +82,7 @@ QuicVarIntEncode(
 //
 // Writes a variable length integer into 2 bytes. Assumes the value will fit.
 //
-inline
+QUIC_INLINE
 _Post_equal_to_(Buffer + sizeof(uint16_t))
 uint8_t*
 QuicVarIntEncode2Bytes(
@@ -101,7 +101,7 @@ QuicVarIntEncode2Bytes(
 //
 // Helper to decode a variable-length integer.
 //
-inline
+QUIC_INLINE
 _Success_(return != FALSE)
 BOOLEAN
 QuicVarIntDecode(

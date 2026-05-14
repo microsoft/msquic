@@ -366,6 +366,9 @@ FodyWeavers.xsd
 # VS Code settings folder
 .vscode/
 
+# VS Code Workspace settings
+*.code-workspace/
+
 # PGO Local Test Copy
 artifacts_server/
 
@@ -380,3 +383,9 @@ Cargo.lock
 
 # docfx cache folder
 _site
+
+# packaging artifacts
+APKBUILD
+
+# Temporary package download folder by validation script
+msquic-packages/

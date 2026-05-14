@@ -34,7 +34,7 @@ struct PerfClientConnection {
     void OnStreamShutdown();
     void Shutdown();
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
-    static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+    static QUIC_STATUS QUIC_API s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
     }
     static void TcpConnectCallback(_In_ TcpConnection* Connection, bool IsConnected);
@@ -56,7 +56,7 @@ struct PerfClientStream {
     CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable (must be first)
     PerfClientStream(_In_ PerfClientConnection& Connection);
     ~PerfClientStream() { if (Handle) { MsQuic->StreamClose(Handle); } }
-    static QUIC_STATUS s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS QUIC_API s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
         return ((PerfClientStream*)Context)->QuicStreamCallback(Event);
     }
     PerfClientConnection& Connection;
@@ -95,6 +95,8 @@ struct QUIC_CACHEALIGN PerfClientWorker {
     uint64_t ConnectionsCompleted {0};
     uint64_t StreamsStarted {0};
     uint64_t StreamsCompleted {0};
+    uint64_t UploadRate {0};
+    uint64_t DownloadRate {0};
     UniquePtr<char[]> Target;
     QuicAddr LocalAddr;
     QuicAddr RemoteAddr;
@@ -139,7 +141,7 @@ struct PerfClient {
         _In_reads_(argc) _Null_terminated_ char* argv[],
         _In_z_ const char* target);
     QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
-    void Wait(_In_ int Timeout);
+    QUIC_STATUS Wait(_In_ int Timeout);
     uint32_t GetExtraDataLength();
     void GetExtraData(_Out_writes_bytes_(Length) uint8_t* Data, _In_ uint32_t Length);
 
@@ -152,6 +154,10 @@ struct PerfClient {
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
 
     UniquePtr<TcpEngine> Engine;
+    MsQuicCredentialConfig CredentialConfig {
+        QUIC_CREDENTIAL_FLAG_CLIENT |
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION};
+    TcpConfiguration TcpConfig {&CredentialConfig};
     MsQuicRegistration Registration {
         "perf-client",
         PerfDefaultExecutionProfile,
@@ -166,9 +172,7 @@ struct PerfClient {
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
             .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
-        MsQuicCredentialConfig(
-            QUIC_CREDENTIAL_FLAG_CLIENT |
-            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
+        CredentialConfig};
     // Target parameters
     UniquePtr<char[]> Target;
     QUIC_ADDRESS_FAMILY TargetFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
@@ -179,7 +183,6 @@ struct PerfClient {
     uint8_t IncrementTarget {TRUE};
     // Local execution parameters
     uint32_t WorkerCount;
-    uint8_t AffinitizeWorkers {FALSE};
     uint8_t SpecificLocalAddresses {FALSE};
 #ifdef QUIC_COMPARTMENT_ID
     uint16_t CompartmentId {UINT16_MAX};
@@ -190,6 +193,7 @@ struct PerfClient {
     uint8_t UsePacing {TRUE};
     uint8_t UseSendBuffering {FALSE};
     uint8_t PrintThroughput {FALSE};
+    uint8_t PrintConnThroughput {FALSE};
     uint8_t PrintIoRate {FALSE};
     uint8_t PrintConnections {FALSE};
     uint8_t PrintStreams {FALSE};
@@ -255,6 +259,20 @@ struct PerfClient {
             StreamsCompleted += Workers[i].StreamsCompleted;
         }
         return StreamsCompleted;
+    }
+    uint64_t GetUploadRate() const {
+        uint64_t UploadRate = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            UploadRate += Workers[i].UploadRate;
+        }
+        return UploadRate;
+    }
+    uint64_t GetDownloadRate() const {
+        uint64_t DownloadRate = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            DownloadRate += Workers[i].DownloadRate;
+        }
+        return DownloadRate;
     }
 
     void OnConnectionsComplete() { // Called when a worker has completed its set of connections

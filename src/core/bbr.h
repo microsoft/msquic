@@ -11,6 +11,10 @@
 
 #define kBbrDefaultFilterCapacity 3
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct BBR_BANDWIDTH_FILTER {
 
     //
@@ -221,3 +225,7 @@ BbrCongestionControlInitialize(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
+
+#if defined(__cplusplus)
+}
+#endif

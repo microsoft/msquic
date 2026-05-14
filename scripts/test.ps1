@@ -58,6 +58,9 @@ This script runs the MsQuic tests.
 .Parameter CodeCoverage
     Collect code coverage for this test run. Incompatible with -Kernel and -Debugger.
 
+.Parameter Clang
+    Indicates the build was done with Clang. When combined with -CodeCoverage, uses llvm-cov gcov for coverage collection.
+
 .Parameter AZP
     Runs in Azure Pipelines mode.
 
@@ -92,6 +95,8 @@ This script runs the MsQuic tests.
     test.ps1 -Filter ParameterValidation* -NumIterations 10
 #>
 
+#Requires -Version 7.2
+
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
@@ -102,7 +107,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -151,6 +156,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Clang = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
@@ -203,18 +211,17 @@ if ($Kernel -and !$IsWindows) {
 
 # Validate the code coverage switch.
 if ($CodeCoverage) {
-    if (!$IsWindows) {
-        Write-Error "-CodeCoverage switch only supported on Windows";
-    }
     if ($Kernel) {
         Write-Error "-CodeCoverage is not supported for kernel mode tests";
     }
     if ($Debugger) {
         Write-Error "-CodeCoverage switch is not supported with debugging";
     }
-    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
-        Write-Error "Code coverage tools are not installed";
-    }
+    if ($IsWindows -and !(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+            Write-Error "Code coverage tools are not installed";
+    } elseif ($IsLinux -and !(Get-Command gcovr -ErrorAction SilentlyContinue)) {
+        Write-Error "Code coverage tools for linux (gcovr) are not installed (missing 'gcovr')."
+    } 
 }
 
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
@@ -238,6 +245,7 @@ if ($CodeCoverage) {
     # Clear old coverage data
     if (Test-Path $CoverageDir) {
         Remove-Item -Path (Join-Path $CoverageDir '*.cov') -Force
+        Remove-Item -Path (Join-Path $RootDir '*.gcda') -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -365,29 +373,56 @@ for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
     }
     # Run the script.
     foreach ($TestPath in $TestPaths) {
-        if ($IsLinux -and $UseXdp) {
-            $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-            Invoke-Expression ('/usr/bin/sudo bash -c "ulimit -n $NOFILE && pwsh $RunTest -Path $TestPath $TestArguments"')
-        } else {
-            Invoke-Expression ($RunTest + " -Path $TestPath " + $TestArguments)
-        }
+        Invoke-Expression ($RunTest + " -Path $TestPath " + $TestArguments)
     }
 }
 
 if ($CodeCoverage) {
     # Merge code coverage results
-    $CoverageMergeParams = ""
+    if ($IsWindows) {
+        $CoverageMergeParams = ""
 
-    foreach ($file in $(Get-ChildItem -Path $CoverageDir -Filter '*.cov')) {
-        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir $file.Name)"
-    }
+        foreach ($file in $(Get-ChildItem -Path $CoverageDir -Filter '*.cov')) {
+            $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir $file.Name)"
+        }
 
-    if ($CoverageMergeParams -ne "") {
-        $CoverageMergeParams +=  " --export_type cobertura:$(Join-Path $CoverageDir "msquiccoverage.xml")"
+        if ($CoverageMergeParams -ne "") {
+            $CoverageMergeParams +=  " --export_type cobertura:$(Join-Path $CoverageDir "msquiccoverage.xml")"
 
-        $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
-        Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
-    } else {
-        Write-Warning "No coverage results to merge!"
+            $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
+            Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
+        } else {
+            Write-Warning "No coverage results to merge!"
+        }
+    } elseif ($IsLinux) {
+        # Use gcovr to generate coverage report from .gcda files
+        $CoverageOutput = Join-Path $CoverageDir "msquiccoverage.xml"
+        $BuildDir       = Join-Path $RootDir "build"
+
+        # Build filter and exclude expressions
+        $coreFilter     = Join-Path $RootDir 'src/core'
+        $platformFilter = Join-Path $RootDir 'src/platform'
+        $testExclude    = '(?i).*/.*test.*(/.*)?$'
+
+        $GcovrParams = ""
+
+        if ($Clang) {
+            $GcovrParams += ' --gcov-executable "llvm-cov gcov"'
+        }
+
+        $GcovrParams += " -r `"$RootDir`""
+        $GcovrParams += " --filter `"$coreFilter`""
+        $GcovrParams += " --filter `"$platformFilter`""
+        $GcovrParams += " --exclude `"$testExclude`""
+        $GcovrParams += " --cobertura `"$CoverageOutput`""
+        $GcovrParams += " `"$BuildDir`""
+
+        Invoke-Expression ("gcovr" + $GcovrParams) | Out-Null
+
+        if (Test-Path $CoverageOutput) {
+            Write-Host "Coverage report generated at $CoverageOutput"
+        } else {
+            Write-Warning "Coverage generation was not successful"
+        }
     }
 }

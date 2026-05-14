@@ -28,6 +28,8 @@ TEST(PartitionTest, RandomPartitionId)
     // converting it back to a partition index.
     //
 
+    auto OldPartitionCount = MsQuicLib.PartitionCount;
+
     for (uint32_t i = 1; i <= QUIC_MAX_PARTITION_COUNT; ++i) {
         MsQuicLib.PartitionCount = (uint16_t)i;
         MsQuicCalculatePartitionMask();
@@ -43,4 +45,6 @@ TEST(PartitionTest, RandomPartitionId)
             }
         }
     }
+
+    MsQuicLib.PartitionCount = OldPartitionCount;
 }

@@ -26,9 +26,12 @@ cibir | `-cibir:<hex_bytes>` | The well-known CIBIR identifier.
 cipher | `-cipher:<value>` | Decimal value of 1 or more `QUIC_ALLOWED_CIPHER_SUITE_FLAGS`.
 cpu | `-cpu:<cpu_indexes>` | Comma-separated list of CPUs to run on.
 ecn | `-ecn:<0,1>` | Enables sender-side ECN support.
+dscp | `-dscp:<0-63>` | Sets DSCP value used for outgoing traffic.
 exec | `-exec:<lowlat,maxtput,scavenger,realtime>` | The execution profile used for the application.
 pollidle | `-pollidle:<time_us>` | The time, in microseconds, to poll while idle before sleeping (falling back to interrupt-driven IO).
 stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
+delay | `[-delay:<value>[units]]` | Delay, with an optional unit (def unit is us), to be introduced before the server responds to a request.
+delayType | `[-delayType:<fixed,variable>]` | Optional delay type can be specified in conjunction with the 'delay' argument. 'fixed' introduces the specified delay for each request (default). 'variable' introduces a statistical variability to the specified delay (user mode only).
 
 # Client
 
@@ -79,6 +82,7 @@ tcp | `-tcp:<0,1>` | Disables/enables TCP usage (instead of QUIC).
 encrypt | `-encrypt:<0,1>` | Disables/enables encryption.
 pacing | `-pacing:<0,1>` | Disables/enables send pacing.
 sendbuf | `-sendbuf:<0,1>` | Disables/enables send buffering.
+dscp | `-dscp:<0-63>` | Sets DSCP value used for outgoing traffic.
 ptput | `-ptput:<0,1>` | Print throughput information.
 pconnection, pconn | `-pconn:<0,1>` | Print connection statistics.
 pstream | `-pstream:<0,1>` | Print stream statistics.

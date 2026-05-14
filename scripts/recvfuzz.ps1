@@ -51,7 +51,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]

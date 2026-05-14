@@ -1,7 +1,7 @@
 # Stage 1: Base image
-FROM ubuntu:24.04@sha256:e3f92abc0967a6c19d0dfa2d55838833e947b9d74edbcb0113e48535ad4be12a AS base
+FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b AS base
 
-LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
+LABEL org.opencontainers.image.source=https://github.com/microsoft/msquic
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -36,13 +36,14 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     liblttng-ust-dev \
     libssl-dev \
     libnuma-dev \
+    liburing-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
 RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3ubuntu3_amd64.deb \
     && dpkg -i ./libicu72_72.1-3ubuntu3_amd64.deb \
     && rm ./libicu72_72.1-3ubuntu3_amd64.deb \
-    && wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+    && wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
     sudo dpkg -i packages-microsoft-prod.deb && \
     sudo add-apt-repository universe && \
     sudo apt-get update -y && \
@@ -54,7 +55,6 @@ RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3
 RUN git config --global safe.directory '*'
 
 # Stage 2: dependencies for cross-build.
-#          ubuntu 24.04 can install both xdp and arm dependencies
 FROM base AS cross-build
 
 RUN apt-get update -y && apt-get install --no-install-recommends -y \
@@ -72,7 +72,7 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y \
     libbpf-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update -y && apt-get install --no-install-recommends -y \
     gcc-arm-linux-gnueabihf \
     g++-arm-linux-gnueabihf \
     binutils-arm-linux-gnueabihf \
@@ -84,15 +84,21 @@ RUN apt-get update && apt-get install -y \
 RUN dpkg --add-architecture arm64 && \
     dpkg --add-architecture armhf
 
-RUN mv /etc/apt/sources.list /etc/apt/sources.list.int && \
+# For cross-compilation, we need amd64 packages from the default Ubuntu repos and
+# ARM packages from ports.ubuntu.com. To prevent apt from trying to resolve ARM
+# packages against the default (amd64-only) repos, we restrict all default sources
+# to amd64. On 24.04, the default repos are defined in ubuntu.sources (DEB822
+# format), which doesn't exist on 22.04, so this line is only needed here.
+RUN sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources && \
+    mv /etc/apt/sources.list /etc/apt/sources.list.int && \
     cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
-    rm /etc/apt/sources.list.int && \
-    rm /etc/apt/sources.list.d/ubuntu.sources
+    rm /etc/apt/sources.list.int
 
 RUN echo $' \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble main restricted universe multiverse \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble-updates main restricted universe multiverse \n\
 deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble-backports main restricted universe multiverse \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ noble-security main restricted universe multiverse \n\
 ' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update \
@@ -103,4 +109,6 @@ RUN apt-get update \
     libssl-dev:armhf \
     libnuma-dev:arm64 \
     libnuma-dev:armhf \
+    liburing-dev:arm64 \
+    liburing-dev:armhf \
     && rm -rf /var/lib/apt/lists/*

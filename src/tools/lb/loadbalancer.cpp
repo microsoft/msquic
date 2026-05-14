@@ -32,7 +32,7 @@ struct LbInterface {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = nullptr;
         UdpConfig.RemoteAddress = nullptr;
-        UdpConfig.Flags = 0;
+        UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = this;
         if (IsPublic) {
@@ -65,7 +65,7 @@ struct LbInterface {
         Route.LocalAddress = LocalAddress;
         Route.RemoteAddress = *PeerAddress;
         CXPLAT_SEND_DATA* Send = nullptr;
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, MAX_UDP_PAYLOAD_LENGTH, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, MAX_UDP_PAYLOAD_LENGTH, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
         while (RecvDataChain) {
             if (!Send) {
                 Send = CxPlatSendDataAlloc(Socket, &SendConfig);
@@ -122,7 +122,8 @@ struct LbPublicInterface : public LbInterface {
     struct Hasher {
         CXPLAT_TOEPLITZ_HASH Toeplitz;
         Hasher() {
-            CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &Toeplitz.HashKey);
+            CxPlatRandom(CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC, &Toeplitz.HashKey);
+            Toeplitz.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
             CxPlatToeplitzHashInitialize(&Toeplitz);
         }
         size_t operator() (const std::pair<QUIC_ADDR, QUIC_ADDR> key) const {
@@ -212,16 +213,19 @@ main(int argc, char **argv)
 
     CxPlatSystemLoad();
     CxPlatInitialize();
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
 
     CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
-    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, nullptr, &Datapath);
+    CXPLAT_DATAPATH_INIT_CONFIG DataPathInitConfig = {0};
+    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, WorkerPool, &DataPathInitConfig, &Datapath);
     PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
-    getchar();
+    (void)getchar();
 
     delete PublicInterface;
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 

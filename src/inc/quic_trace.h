@@ -103,6 +103,12 @@ typedef enum QUIC_TRACE_API_TYPE {
     QUIC_TRACE_API_DATAGRAM_SEND,
     QUIC_TRACE_API_CONNECTION_COMPLETE_RESUMPTION_TICKET_VALIDATION,
     QUIC_TRACE_API_CONNECTION_COMPLETE_CERTIFICATE_VALIDATION,
+    QUIC_TRACE_API_STREAM_PROVIDE_RECEIVE_BUFFERS,
+    QUIC_TRACE_API_CONNECTION_POOL_CREATE,
+    QUIC_TRACE_API_EXECUTION_CREATE,
+    QUIC_TRACE_API_EXECUTION_DELETE,
+    QUIC_TRACE_API_EXECUTION_POLL,
+    QUIC_TRACE_API_REGISTRATION_CLOSE2,
     QUIC_TRACE_API_COUNT // Must be last
 } QUIC_TRACE_API_TYPE;
 
@@ -159,10 +165,10 @@ extern
     "C"
 #endif
 void //__attribute__((no_instrument_function, format(printf, 2, 3)))
-clog_stdout(struct clog_param * head, const char * format, ...);
+clog_stdout(struct clog_param ** head, const char * format, ...);
 #else
-inline void //__attribute__((no_instrument_function, format(printf, 2, 3)))
-clog_stdout(struct clog_param * head, const char * format, ...)
+QUIC_INLINE void //__attribute__((no_instrument_function, format(printf, 2, 3)))
+clog_stdout(struct clog_param ** head, const char * format, ...)
 {
     UNREFERENCED_PARAMETER(head);
     UNREFERENCED_PARAMETER(format);
@@ -172,7 +178,11 @@ clog_stdout(struct clog_param * head, const char * format, ...)
 #define clog(Fmt, ...)                                                         \
     do {                                                                       \
         struct clog_param * __head = 0;                                        \
-        clog_stdout(__head, (Fmt), ##__VA_ARGS__);                             \
+        /* Pass &__head (not __head) because CASTED_CLOG_BYTEARRAY in */       \
+        /* __VA_ARGS__ updates __head via the same pointer, and C does */      \
+        /* not guarantee argument evaluation order. Using the address */        \
+        /* ensures clog_stdout always sees the final linked list head. */       \
+        clog_stdout(&__head, (Fmt), ##__VA_ARGS__);                            \
     } while (0)
 
 #endif
@@ -198,7 +208,7 @@ casted_clog_bytearray(const uint8_t * const data,
                       const size_t len,
                       struct clog_param ** head);
 #else
-inline char *
+QUIC_INLINE char *
 #ifndef _WIN32
 __attribute__((no_instrument_function))
 #endif

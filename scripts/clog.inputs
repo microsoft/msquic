@@ -3,11 +3,13 @@
 ../src/platform/crypt.c
 ../src/platform/datapath_winkernel.c
 ../src/platform/datapath_epoll.c
+../src/platform/datapath_iouring.c
 ../src/platform/tls_schannel.c
 ../src/platform/selfsign_capi.c
 ../src/platform/cert_capi.c
 ../src/platform/platform_posix.c
 ../src/platform/storage_winkernel.c
+../src/platform/tls_quictls.c
 ../src/platform/tls_openssl.c
 ../src/platform/platform_winkernel.c
 ../src/platform/certificates_posix.c
@@ -16,12 +18,10 @@
 ../src/platform/datapath_linux.c
 ../src/platform/datapath_unix.c
 ../src/platform/datapath_xplat.c
-../src/platform/datapath_raw_dpdk.c
 ../src/platform/datapath_raw_socket.c
 ../src/platform/datapath_raw_socket_win.c
 ../src/platform/datapath_raw_socket_linux.c
 ../src/platform/datapath_raw_xdp_win.c
-../src/platform/datapath_raw_xdp_linux.c
 ../src/platform/datapath_raw_win.c
 ../src/platform/datapath_raw_linux.c
 ../src/platform/datapath_raw.c
@@ -32,7 +32,6 @@
 ../src/platform/storage_winuser.c
 ../src/platform/storage_posix.c
 ../src/platform/crypt_openssl.c
-../src/platform/inline.c
 ../src/platform/platform_worker.c
 ../src/perf/bin/histogram/hdr_histogram.c
 ../src/core/api.c
@@ -52,6 +51,7 @@
 ../src/core/version_neg.c
 ../src/core/lookup.c
 ../src/core/worker.c
+../src/core/connection_pool.c
 ../src/core/congestion_control.c
 ../src/core/crypto_tls.c
 ../src/core/binding.c
@@ -71,7 +71,7 @@
 ../src/core/operation.c
 ../src/core/mtu_discovery.c
 ../src/core/configuration.c
-../src/core/inline.c
+../src/core/partition.c
 ../src/core/library.c
 ../src/bin/winuser_fuzz/dllmain.c
 ../src/bin/linux/init.c
@@ -84,6 +84,7 @@
 ../src/core/stream.h
 ../src/core/connection.h
 ../src/test/lib/TestHelpers.h
+../src/test/lib/TestUtility.h
 ../src/test/lib/TestStream.cpp
 ../src/test/lib/DataTest.cpp
 ../src/test/lib/PathTest.cpp
@@ -107,6 +108,7 @@
 ../src/core/unittest/SlidingWindowExtremumTest.cpp
 ../src/core/unittest/RangeTest.cpp
 ../src/core/unittest/RecvBufferTest.cpp
+../src/core/unittest/CubicTest.cpp
 ../src/core/unittest/VarIntTest.cpp
 ../src/core/unittest/CMakeLists.txt
 ../src/core/unittest/FrameTest.cpp
@@ -120,6 +122,7 @@
 ../src/platform/unittest/PlatformTest.cpp
 ../src/platform/unittest/CryptTest.cpp
 ../src/platform/unittest/DataPathTest.cpp
+../src/platform/unittest/ToeplitzTest.cpp
 ../src/platform/unittest/StorageTest.cpp
 ../src/test/bin/quic_gtest.h
 ../src/test/bin/quic_gtest.cpp

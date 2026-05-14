@@ -1,9 +1,39 @@
 QUIC_CONNECTION_EVENT structure
 ======
 
-The payload for QUIC connection events.
+QUIC connection events and the corresponding payload
 
 # Syntax
+
+```C
+typedef enum QUIC_CONNECTION_EVENT_TYPE {
+    QUIC_CONNECTION_EVENT_CONNECTED                         = 0,
+    QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT   = 1,    // The transport started the shutdown process.
+    QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER        = 2,    // The peer application started the shutdown process.
+    QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE                 = 3,    // Ready for the handle to be closed.
+    QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED             = 4,
+    QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED              = 5,
+    QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED               = 6,
+    QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
+    QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
+    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
+    QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED            = 10,
+    QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
+    QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12,
+    QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
+    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
+    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15    // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+#endif
+
+} QUIC_CONNECTION_EVENT_TYPE;
+```
+
+The payload for QUIC connection events.
 
 ```C
 typedef struct QUIC_CONNECTION_EVENT {
@@ -73,6 +103,18 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;
             QUIC_CERTIFICATE_CHAIN* Chain;
         } PEER_CERTIFICATE_RECEIVED;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            BOOLEAN IsNegotiated;
+        } RELIABLE_RESET_NEGOTIATED;
+        struct {
+            BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
+            BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
+        } ONE_WAY_DELAY_NEGOTIATED;
+        QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
+#endif
+
     };
 } QUIC_CONNECTION_EVENT;
 ```
@@ -87,7 +129,11 @@ The `QUIC_CONNECTION_EVENT_TYPE` that indicates which type of event this is, and
 
 ## QUIC_CONNECTION_EVENT_CONNECTED
 
-This event is delivered when the handshake has completed. This means the peer has been securely authenticated. This happens after one full round trip on the client side. The server side considers the handshake complete once the client responds after this. Additional state can be found in the `CONNECTED` struct/union.
+This event is delivered when the handshake has completed. This means the peer has been securely authenticated. This happens after one full round trip on the client side. The server side considers the handshake complete once the client responds after this.
+
+### Connected
+
+Additional state can be found in the `CONNECTED` struct/union.
 
 `SessionResumed`
 
@@ -105,10 +151,14 @@ The buffer (not null terminated) that holds the ALPN that was negotiated during 
 
 This event is delivered whenever the transport (e.g. QUIC layer) determines the connection has been terminated. This can happen for a number of different reasons. Some are as follows.
 
-- The handshake fails (any number of reasons).
-- The connection is idle for long enough.
-- The connection disconnects (loses contact with peer; no acknowledgments).
-- The connection encounters a protocol violation.
+- The handshake failed (any number of reasons).
+- The connection was idle for long enough.
+- The connection disconnected (lost contact with peer; no acknowledgments).
+- The connection encountered a protocol violation.
+
+### SHUTDOWN_INITIATED_BY_TRANSPORT
+
+Additional status can be found in the `SHUTDOWN_INITIATED_BY_TRANSPORT` struct/union.
 
 `Status`
 
@@ -122,6 +172,10 @@ The wire format error code that indicates the reason for the shutdown.
 
 This event is delivered when the peer application has terminated the application, with an application's protocol specific, 62-bit error code.
 
+### SHUTDOWN_INITIATED_BY_PEER
+
+Error code is found in the `SHUTDOWN_INITIATED_BY_PEER` struct/union.
+
 `ErrorCode`
 
 The error code received from the peer for the shutdown.
@@ -129,6 +183,10 @@ The error code received from the peer for the shutdown.
 ## QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE
 
 This event is the last one delivered to the application, and indicates the connection may now be safely closed.
+
+### SHUTDOWN_COMPLETE
+
+Various state flags are contained in the `SHUTDOWN_COMPLETE` struct/union.
 
 `HandshakeCompleted`
 
@@ -146,6 +204,10 @@ A flag indicating that the application called [ConnectionClose](ConnectionClose.
 
 This event is delivered when the local address used for the primary/active path communication has changed.
 
+### LOCAL_ADDRESS_CHANGED
+
+New local address is passed in the `LOCAL_ADDRESS_CHANGED` struct/union.
+
 `Address`
 
 The new local IP address.
@@ -154,6 +216,10 @@ The new local IP address.
 
 This event is delivered when the remote address used for the primary/active path communication has changed.
 
+### PEER_ADDRESS_CHANGED
+
+New peer ip address is passed in the `PEER_ADDRESS_CHANGED` struct/union.
+
 `Address`
 
 The new peer IP address.
@@ -161,6 +227,10 @@ The new peer IP address.
 ## QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED
 
 This event is delivered when the peer has created a new stream.
+
+### PEER_STREAM_STARTED
+
+Details of the new stream are passed in the `PEER_STREAM_STARTED` struct/union.
 
 `Stream`
 
@@ -182,6 +252,10 @@ If a server wishes to use `QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES` for the ne
 
 This event indicates the number of streams the peer is willing to accept has changed.
 
+### STREAMS_AVAILABLE
+
+New stream counts are passed in the `STREAMS_AVAILABLE` struct/union.
+
 `BidirectionalCount`
 
 The number of bidirectional streams the peer is willing to accept.
@@ -198,6 +272,10 @@ This event indicates the peer is currently blocked on the number of parallel str
 
 This event indicates the processor or CPU that MsQuic has determined would be the best for processing the given connection.
 
+### IDEAL_PROCESSOR_CHANGED
+
+The new processor number is passed in the `IDEAL_PROCESSOR_CHANGED` struct/union.
+
 `IdealProcessor`
 
 The processor number that should be ideally used for processing the connection.
@@ -205,6 +283,10 @@ The processor number that should be ideally used for processing the connection.
 ## QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED
 
 This event indicates the current state for sending unreliable datagrams has changed.
+
+### DATAGRAM_STATE_CHANGED
+
+New datagram state is passed in the `DATAGRAM_STATE_CHANGED` struct/union.
 
 `SendEnabled`
 
@@ -217,6 +299,10 @@ When enabled, indicates the maximum length of a single datagram that can fit in 
 ## QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED
 
 This event indicates a received unreliable datagram from the peer.
+
+### DATAGRAM_RECEIVED
+
+Unreliable datagram buffer and metadata are passed in the `DATAGRAM_RECEIVED` struct/union.
 
 `Buffer`
 
@@ -235,6 +321,10 @@ Value | Meaning
 ## QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED
 
 This event indicates a state change for a previous unreliable datagram send via [DatagramSend](DatagramSend.md).
+
+### SEND_STATE_CHANGED
+
+Unreliable datagram send state is passed in the `SEND_STATE_CHANGED` struct/union.
 
 `ClientContext`
 
@@ -257,6 +347,10 @@ Value | Meaning
 
 This event indicates that a previous session has been successfully resumed at the TLS layer. This event is delivered for the server side only. The server app must indicate acceptance or rejection of the resumption ticket by returning a successful or failure status code from the event. If rejected by the server app, then resumption is rejected and a normal handshake will be performed.
 
+### RESUMED
+
+Connection resumption state is passed in the `Resumed` struct/union.
+
 `ResumptionStateLength`
 
 The length of the `ResumptionState` buffer.
@@ -267,7 +361,11 @@ The resumption ticket data previously sent to the client via [ConnectionSendResu
 
 ## QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED
 
-This event indicates a TLS resumption ticket has been received from the server.
+This event indicates to the client that a TLS resumption ticket has been received from the server.
+
+### RESUMPTION_TICKET_RECEIVED
+
+Resumption ticket state is passed in the `RESUMPTION_TICKET_RECEIVED` struct/union.
 
 `ResumptionTicketLength`
 
@@ -280,6 +378,10 @@ The resumption ticket data received from the server. For a client to later resum
 ## QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED
 
 This event indicates a certificate has been received from the peer.
+
+### PEER_CERTIFICATE_RECEIVED
+
+The peer certificate and related data is passed in the `PEER_CERTIFICATE_RECEIVED` struct/union.
 
 `Certificate`
 
@@ -301,6 +403,73 @@ Pointer to a platform/TLS specific certificate chain. Valid only during the call
 
 If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md), this will be a `QUIC_BUFFER` containing the PKCS #7 DER (binary) encoded certificate chain.
 
+## QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event indicates the result of reliable reset negotiation. This is only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+
+### RELIABLE_RESET_NEGOTIATED
+
+Result of reliable reset negotiation is passed in the `RELIABLE_RESET_NEGOTIATED` struct/union.
+
+`IsNegotiated`
+
+If TRUE, reliable reset has been negotiated.
+
+## QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event indicates the result of one way delay negotiation. This is only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
+
+### ONE_WAY_DELAY_NEGOTIATED
+
+Details of the one way delay negotiation are passed in the `ONE_WAY_DELAY_NEGOTIATED` struct/union.
+
+`SendNegotiated`
+
+If TRUE, sending one-way delay timestamps has been negotiated.
+
+`ReceiveNegotiated`
+
+If TRUE, receiving one-way delay timestamps has been negotiated.
+
+## QUIC_CONNECTION_EVENT_NETWORK_STATISTICS
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event is only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE. This event indicates the latest network statistics generated during the QUIC protocol handling in the MsQuic library.
+
+### NETWORK_STATISTICS
+
+Detailed networking statistics are passed in the `QUIC_NETWORK_STATISTICS` struct/union.
+
+`BytesInFlight`
+
+Bytes that were sent on the wire, but not yet acked
+
+`PostedBytes`
+
+Total bytes queued, but not yet acked. These may contain sent bytes that may have portentially lost too.
+
+`IdealBytes`
+
+Ideal number of bytes required to be available to avoid limiting throughput.
+
+`SmoothedRTT`
+
+Smoothed RTT value
+
+`CongestionWindow`
+
+Congestion Window
+
+`Bandwidth`
+
+Estimated bandwidth
+
+
 # See Also
 
 [ConnectionOpen](ConnectionOpen.md)<br>
@@ -308,3 +477,4 @@ If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_C
 [SetCallbackHandler](SetCallbackHandler.md)<br>
 [SetContext](SetContext.md)<br>
 [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md)<br>
+[Preview Features](../PreviewFeatures.md)<br>

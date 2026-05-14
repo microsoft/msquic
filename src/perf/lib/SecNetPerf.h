@@ -42,10 +42,19 @@ Abstract:
 #define PERF_MAX_THREAD_COUNT               128
 #define PERF_MAX_REQUESTS_PER_SECOND        2000000 // best guess - must increase if we can do better
 
+typedef enum TCP_EXECUTION_PROFILE {
+    TCP_EXECUTION_PROFILE_LOW_LATENCY,
+    TCP_EXECUTION_PROFILE_MAX_THROUGHPUT,
+} TCP_EXECUTION_PROFILE;
+
 extern QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile;
+extern TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile;
 extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
 extern uint8_t PerfDefaultEcnEnabled;
 extern uint8_t PerfDefaultQeoAllowed;
+extern uint8_t PerfDefaultHighPriority;
+extern uint8_t PerfDefaultAffinitizeThreads;
+extern uint8_t PerfDefaultDscpValue;
 
 extern CXPLAT_DATAPATH* Datapath;
 
@@ -59,7 +68,7 @@ QuicMainStart(
     );
 
 extern
-void
+QUIC_STATUS
 QuicMainWaitForCompletion(
     );
 
@@ -80,7 +89,7 @@ QuicMainGetExtraData(
     _In_ uint32_t Length
     );
 
-inline
+QUIC_INLINE
 const char*
 TryGetTarget(
     _In_ int argc,
@@ -102,7 +111,7 @@ constexpr int BufferLength = 40 * 1024 * 1024;
 extern char Buffer[BufferLength];
 #endif // _KERNEL_MODE
 
-inline
+QUIC_INLINE
 int
 #ifndef _WIN32
  __attribute__((__format__(__printf__, 1, 2)))
@@ -147,7 +156,7 @@ WriteOutput(
 #endif
 }
 
-inline
+QUIC_INLINE
 void
 QuicPrintConnectionStatistics(
     _In_ const QUIC_API_TABLE* ApiTable,
@@ -185,9 +194,32 @@ QuicPrintConnectionStatistics(
         (unsigned long long)Stats.RecvDroppedPackets,
         (unsigned long long)Stats.RecvDuplicatePackets,
         (unsigned long long)Stats.RecvDecryptionFailures);
+    QUIC_HANDSHAKE_INFO HandshakeInfo = {};
+    uint32_t HandshakeInfoSize = sizeof(HandshakeInfo);
+    ApiTable->GetParam(Connection, QUIC_PARAM_TLS_HANDSHAKE_INFO, &HandshakeInfoSize, &HandshakeInfo);
+    WriteOutput(
+        "Connection TLS Info:\n"
+        "  TlsProtocolVersion        0x%x\n"
+        "  CipherAlgorithm           0x%x\n"
+        "  CipherStrength            %u\n"
+        "  Hash                      0x%x\n"
+        "  HashStrength              %u\n"
+        "  KeyExchangeAlgorithm      %u\n"
+        "  KeyExchangeStrength       %u\n"
+        "  CipherSuite               0x%x\n"
+        "  TlsGroup                  %u\n",
+        HandshakeInfo.TlsProtocolVersion,
+        HandshakeInfo.CipherAlgorithm,
+        HandshakeInfo.CipherStrength,
+        HandshakeInfo.Hash,
+        HandshakeInfo.HashStrength,
+        HandshakeInfo.KeyExchangeAlgorithm,
+        HandshakeInfo.KeyExchangeStrength,
+        HandshakeInfo.CipherSuite,
+        HandshakeInfo.TlsGroup);
 }
 
-inline
+QUIC_INLINE
 void
 QuicPrintStreamStatistics(
     _In_ const QUIC_API_TABLE* ApiTable,
@@ -216,3 +248,30 @@ QuicPrintStreamStatistics(
         (unsigned long long)Stats.StreamBlockedByFlowControlUs,
         (unsigned long long)Stats.StreamBlockedByAppUs);
 }
+
+extern const char* TimeUnits[];
+extern const uint64_t TimeMult[];
+extern const char* SizeUnits[];
+extern const uint64_t SizeMult[];
+extern const char* CountUnits[];
+extern uint64_t CountMult[];
+
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char** names,
+    _Out_ T * pValue,
+    _Out_opt_ bool* isTimed = nullptr
+    );
+
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ T * pValue,
+    _Out_opt_ bool* isTimed = nullptr
+    );

@@ -18,12 +18,32 @@ namespace MsQuicTool
         {
             // This code lets us pass in an argument of where to search for the library at.
             // Very helpful for testing
-            if (args.Length > 0)
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Usage: MsQuicTool <DomainName> [PathToMsQuic]");
+                return;
+            }
+
+            string DomainName = args[0];
+
+            if (string.IsNullOrWhiteSpace(DomainName))
+            {
+                Console.WriteLine("DomainName cannot be empty.");
+                return;
+            }
+
+            if (DomainName.Length > 253)
+            {
+                Console.WriteLine("DomainName is too long.");
+                return;
+            }
+
+            if (args.Length > 1)
             {
                 NativeLibrary.SetDllImportResolver(typeof(MsQuic).Assembly, (libraryName, assembly, searchPath) =>
                 {
                     if (libraryName != "msquic") return IntPtr.Zero;
-                    if (NativeLibrary.TryLoad(args[0], out var ptr))
+                    if (NativeLibrary.TryLoad(args[1], out var ptr))
                     {
                         return ptr;
                     }
@@ -55,7 +75,7 @@ namespace MsQuicTool
                 MsQuic.ThrowIfFailure(ApiTable->ConfigurationLoadCredential(configuration, &config));
                 MsQuic.ThrowIfFailure(ApiTable->ConnectionOpen(registration, &NativeCallback, ApiTable, &connection));
                 sbyte* google = stackalloc sbyte[50];
-                int written = Encoding.UTF8.GetBytes("google.com", new Span<byte>(google, 50));
+                int written = Encoding.UTF8.GetBytes(DomainName, new Span<byte>(google, 50));
                 google[written] = 0;
                 MsQuic.ThrowIfFailure(ApiTable->ConnectionStart(connection, configuration, 0, google, 443));
                 Thread.Sleep(1000);

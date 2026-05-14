@@ -32,9 +32,31 @@ typedef struct QUIC_LISTENER {
     BOOLEAN Stopped;
 
     //
-    // Indicates the listener was closed by the app in the stop complete event.
+    // Indicates the listener needs its stop complete event.
     //
-    BOOLEAN NeedsCleanup;
+    BOOLEAN NeedsStopCompleteEvent;
+
+    //
+    // Indicates the listener opted in for DoS Mode event.
+    //
+    BOOLEAN DosModeEventsEnabled;
+
+    //
+    // Indicates a DoS Mode event indication is required; cannot share a
+    // bitfield due to atomic update.
+    //
+    BOOLEAN NeedsDosModeModeEvent;
+
+    //
+    // Tracks the most recent DoS Mode event state. Uses best-effort
+    // synchronization.
+    //
+    BOOLEAN DosModeEnabled;
+
+    //
+    // Indicates the listener is constrained to a specific partition.
+    //
+    BOOLEAN Partitioned : 1;
 
     //
     // The thread ID that the listener is actively indicating a stop compelete
@@ -57,6 +79,30 @@ typedef struct QUIC_LISTENER {
     //
     CXPLAT_LIST_ENTRY RegistrationLink;
 
+#if DEBUG
+    //
+    // Link into the global debug object tracker.
+    //
+    CXPLAT_LIST_ENTRY DbgObjectLink;
+#endif
+
+    //
+    // The listener worker.
+    //
+    QUIC_WORKER* Worker;
+
+    //
+    // Link into the worker.
+    //
+    CXPLAT_LIST_ENTRY WorkerLink;
+
+    //
+    // Indicates whether a worker is currently processing a listener.
+    // N.B. Multi-threaded access, synchronized by worker's listener lock.
+    //
+    BOOLEAN WorkerProcessing : 1;
+    BOOLEAN HasQueuedWork : 1;
+
 #ifdef QUIC_SILO
     //
     // The silo.
@@ -65,7 +111,12 @@ typedef struct QUIC_LISTENER {
 #endif
 
     //
-    // Active reference count on the listener.
+    // Active reference count on the listener preventing a stop completion.
+    //
+    CXPLAT_REF_COUNT StartRefCount;
+
+    //
+    // Internal reference count on the listener preventing cleanup.
     //
     CXPLAT_REF_COUNT RefCount;
 
@@ -110,6 +161,11 @@ typedef struct QUIC_LISTENER {
     //
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
+    //
+    // An optional app-configured partition index for the listener and its
+    // connections.
+    //
+    uint16_t PartitionIndex;
 } QUIC_LISTENER;
 
 #ifdef QUIC_SILO
@@ -139,14 +195,32 @@ QuicListenerTraceRundown(
     _In_ QUIC_LISTENER* Listener
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerStartReference(
+    _In_ QUIC_LISTENER* Listener
+    );
+
 //
 // Releases an active reference on the listener.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicListenerRelease(
+QuicListenerStartRelease(
     _In_ QUIC_LISTENER* Listener,
     _In_ BOOLEAN IndicateEvent
+    );
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerReference(
+    _In_ QUIC_LISTENER* Listener
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerRelease(
+    _In_ QUIC_LISTENER* Listener
     );
 
 //
@@ -205,4 +279,26 @@ QuicListenerParamGet(
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
+    );
+
+//
+// Indicate listener about DoS mode change.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerHandleDosModeStateChange(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN DosModeEnabled,
+    _In_ BOOLEAN OnWorker
+    );
+
+//
+// Allows the listener to drain some operations that it currently has
+// queued up. Returns TRUE if there are still work to do after the function
+// returns.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicListenerDrainOperations(
+    _In_ QUIC_LISTENER* Listener
     );

@@ -18,6 +18,10 @@
 #define _clog_MACRO_QuicTraceLogInfo  1
 #define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceLogVerbose
+#define _clog_MACRO_QuicTraceLogVerbose  1
+#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -62,19 +66,17 @@ tracepoint(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStop , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_WORKER",
-            WorkersSize);
-// arg2 = arg2 = "CXPLAT_WORKER" = arg2
-// arg3 = arg3 = WorkersSize = arg3
+// Decoder Ring for PlatformWorkerProcessPools
+// [ lib][%p] Processing pools
+// QuicTraceLogVerbose(
+        PlatformWorkerProcessPools,
+        "[ lib][%p] Processing pools",
+        Worker);
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_PLATFORM_WORKER_C, AllocFailure , arg2, arg3);\
+#ifndef _clog_3_ARGS_TRACE_PlatformWorkerProcessPools
+#define _clog_3_ARGS_TRACE_PlatformWorkerProcessPools(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PLATFORM_WORKER_C, PlatformWorkerProcessPools , arg2);\
 
 #endif
 
@@ -93,6 +95,26 @@ tracepoint(CLOG_PLATFORM_WORKER_C, AllocFailure , arg2, arg3);\
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_PLATFORM_WORKER_C, LibraryError , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_WORKER_POOL",
+            WorkerPoolSize);
+// arg2 = arg2 = "CXPLAT_WORKER_POOL" = arg2
+// arg3 = arg3 = WorkerPoolSize = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PLATFORM_WORKER_C, AllocFailure , arg2, arg3);\
 
 #endif
 

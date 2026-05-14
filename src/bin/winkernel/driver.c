@@ -95,6 +95,8 @@ Return Value:
     NTSTATUS Status;
     WDF_DRIVER_CONFIG Config;
     WDFDRIVER Driver;
+    QUIC_SILO PrevSilo = QuicSiloAttach(QuicSiloGetHostSilo());
+    CXPLAT_DBG_ASSERT(!QuicSiloIsServerSilo());
 
     //
     // We explicitly load the MsQuic library upfront (instead of letting it
@@ -143,6 +145,7 @@ Error:
         MsQuicLibraryUnload();
     }
 
+    QuicSiloDetatch(PrevSilo);
     return Status;
 }
 
@@ -168,10 +171,13 @@ Arguments:
 --*/
 {
     UNREFERENCED_PARAMETER(Driver);
+    QUIC_SILO PrevSilo = QuicSiloAttach(QuicSiloGetHostSilo());
+    CXPLAT_DBG_ASSERT(!QuicSiloIsServerSilo());
 
     PAGED_CODE();
 
     MsQuicDeregisterNmrProvider();
     MsQuicPcwCleanup();
     MsQuicLibraryUnload();
+    QuicSiloDetatch(PrevSilo);
 }

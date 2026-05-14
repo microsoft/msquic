@@ -150,10 +150,8 @@ TEST_P(WithType, EncodeDecodeVersionInfo)
             sizeof(TestVersions)), 0);
 
     CXPLAT_FREE(VersionInfo, QUIC_POOL_VERSION_INFO);
-    if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
-        MsQuicLib.Settings.VersionSettings = NULL;
-        MsQuicLib.Settings.IsSet.VersionSettings = FALSE;
-    }
+    MsQuicLib.Settings.VersionSettings = NULL;
+    MsQuicLib.Settings.IsSet.VersionSettings = FALSE;
 }
 
 TEST(VersionNegExtTest, GeneratedCompatibleVersionList)

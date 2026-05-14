@@ -91,7 +91,6 @@ RawResolveRoute(
             0, // AddressSortOptions
             &IpforwardRow,
             &LocalAddress); // BestSourceAddress
-
     if (Status != ERROR_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -99,7 +98,7 @@ RawResolveRoute(
             Socket,
             Status,
             "GetBestRoute2");
-        goto Done;
+        goto Error;
     }
 
     QuicTraceEvent(
@@ -119,11 +118,11 @@ RawResolveRoute(
             Socket,
             Status,
             "GetBestRoute2 returned different local address for the suspected route");
-        goto Done;
-    } else {
-        LocalAddress.Ipv4.sin_port = Route->LocalAddress.Ipv4.sin_port; // Preserve local port.
-        Route->LocalAddress = LocalAddress;
+        goto Error;
     }
+
+    LocalAddress.Ipv4.sin_port = Route->LocalAddress.Ipv4.sin_port; // Preserve local port.
+    Route->LocalAddress = LocalAddress;
 
     //
     // Find the interface that matches the route we just looked up.
@@ -146,7 +145,7 @@ RawResolveRoute(
             "[data][%p] ERROR, %s.",
             Socket,
             "no matching interface/queue");
-        goto Done;
+        goto Error;
     }
 
     //
@@ -194,7 +193,7 @@ RawResolveRoute(
                 "CXPLAT_DATAPATH",
                 sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION));
             Status = ERROR_NOT_ENOUGH_MEMORY;
-            goto Done;
+            goto Error;
         }
         Operation->IpnetRow = IpnetRow;
         Operation->Context = Context;
@@ -204,19 +203,15 @@ RawResolveRoute(
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
         CxPlatEventSet(Worker->Ready);
-        Status = ERROR_IO_PENDING;
-    } else {
-        CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
-    }
-
-Done:
-    if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
-        Callback(Context, NULL, PathId, FALSE);
-    }
-
-    if (Status == ERROR_IO_PENDING) {
         return QUIC_STATUS_PENDING;
-    } else {
-        return HRESULT_FROM_WIN32(Status);
     }
+
+    CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
+    return QUIC_STATUS_SUCCESS;
+
+Error:
+
+    CXPLAT_DBG_ASSERT(Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS);
+    Callback(Context, NULL, PathId, FALSE);
+    return HRESULT_FROM_WIN32(Status);
 }

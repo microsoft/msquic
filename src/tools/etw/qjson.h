@@ -14,7 +14,7 @@ typedef struct QJSON {
     BOOLEAN NeedsComma;
 } QJSON;
 
-inline BOOLEAN QjOpen(_Inout_ QJSON* Qj, _In_z_ const char* FileName)
+QUIC_INLINE BOOLEAN QjOpen(_Inout_ QJSON* Qj, _In_z_ const char* FileName)
 {
     if ((Qj->File = fopen(FileName, "w")) == NULL) {
         return FALSE;
@@ -24,14 +24,14 @@ inline BOOLEAN QjOpen(_Inout_ QJSON* Qj, _In_z_ const char* FileName)
     return TRUE;
 }
 
-inline void QjClose(_Inout_ QJSON* Qj)
+QUIC_INLINE void QjClose(_Inout_ QJSON* Qj)
 {
     fprintf(Qj->File, "}");
     fclose(Qj->File);
     Qj->File = NULL;
 }
 
-inline void QjObjectStart(_In_ QJSON* Qj, _In_z_ const char* Name)
+QUIC_INLINE void QjObjectStart(_In_ QJSON* Qj, _In_z_ const char* Name)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -40,13 +40,13 @@ inline void QjObjectStart(_In_ QJSON* Qj, _In_z_ const char* Name)
     Qj->NeedsComma = FALSE;
 }
 
-inline void QjObjectEnd(_In_ QJSON* Qj)
+QUIC_INLINE void QjObjectEnd(_In_ QJSON* Qj)
 {
     fprintf(Qj->File, "}");
     Qj->NeedsComma = TRUE;
 }
 
-inline void QjWriteString(_In_ QJSON* Qj, _In_z_ const char* Name, _In_z_ const char* Value)
+QUIC_INLINE void QjWriteString(_In_ QJSON* Qj, _In_z_ const char* Name, _In_z_ const char* Value)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -59,7 +59,7 @@ inline void QjWriteString(_In_ QJSON* Qj, _In_z_ const char* Name, _In_z_ const 
     Qj->NeedsComma = TRUE;
 }
 
-inline void QjWriteStringInt(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ UINT64 Value)
+QUIC_INLINE void QjWriteStringInt(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ UINT64 Value)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -68,7 +68,7 @@ inline void QjWriteStringInt(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ UINT6
     Qj->NeedsComma = TRUE;
 }
 
-inline void QjWriteInt(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ UINT64 Value)
+QUIC_INLINE void QjWriteInt(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ UINT64 Value)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -77,7 +77,7 @@ inline void QjWriteInt(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ UINT64 Valu
     Qj->NeedsComma = TRUE;
 }
 
-inline void QjWriteBool(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ BOOLEAN Value)
+QUIC_INLINE void QjWriteBool(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ BOOLEAN Value)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -86,7 +86,7 @@ inline void QjWriteBool(_In_ QJSON* Qj, _In_z_ const char* Name, _In_ BOOLEAN Va
     Qj->NeedsComma = TRUE;
 }
 
-inline void QjArrayStart(_In_ QJSON* Qj, _In_z_ const char* Name)
+QUIC_INLINE void QjArrayStart(_In_ QJSON* Qj, _In_z_ const char* Name)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -95,13 +95,13 @@ inline void QjArrayStart(_In_ QJSON* Qj, _In_z_ const char* Name)
     Qj->NeedsComma = FALSE;
 }
 
-inline void QjArrayEnd(_In_ QJSON* Qj)
+QUIC_INLINE void QjArrayEnd(_In_ QJSON* Qj)
 {
     fprintf(Qj->File, "]");
     Qj->NeedsComma = TRUE;
 }
 
-inline void QjArrayArrayStart(_In_ QJSON* Qj)
+QUIC_INLINE void QjArrayArrayStart(_In_ QJSON* Qj)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -110,7 +110,7 @@ inline void QjArrayArrayStart(_In_ QJSON* Qj)
     Qj->NeedsComma = FALSE;
 }
 
-inline void QjArrayObjectStart(_In_ QJSON* Qj)
+QUIC_INLINE void QjArrayObjectStart(_In_ QJSON* Qj)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -119,7 +119,7 @@ inline void QjArrayObjectStart(_In_ QJSON* Qj)
     Qj->NeedsComma = FALSE;
 }
 
-inline void QjArrayWriteString(_In_ QJSON* Qj, _In_z_ const char* Value)
+QUIC_INLINE void QjArrayWriteString(_In_ QJSON* Qj, _In_z_ const char* Value)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -132,7 +132,7 @@ inline void QjArrayWriteString(_In_ QJSON* Qj, _In_z_ const char* Value)
     Qj->NeedsComma = TRUE;
 }
 
-inline void QjArrayWriteInt(_In_ QJSON* Qj, _In_ UINT64 Value)
+QUIC_INLINE void QjArrayWriteInt(_In_ QJSON* Qj, _In_ UINT64 Value)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");
@@ -141,7 +141,7 @@ inline void QjArrayWriteInt(_In_ QJSON* Qj, _In_ UINT64 Value)
     Qj->NeedsComma = TRUE;
 }
 
-inline void QjArrayWriteBool(_In_ QJSON* Qj, _In_ BOOLEAN Value)
+QUIC_INLINE void QjArrayWriteBool(_In_ QJSON* Qj, _In_ BOOLEAN Value)
 {
     if (Qj->NeedsComma) {
         fprintf(Qj->File, ",");

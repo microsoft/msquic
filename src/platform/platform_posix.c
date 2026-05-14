@@ -56,7 +56,7 @@ uint32_t CxPlatProcessorCount;
 uint64_t CxPlatTotalMemory;
 
 #if __APPLE__ || __FreeBSD__
-long CxPlatCurrentSqe = 0x80000000;
+uintptr_t CxPlatCurrentSqe = 0x80000000;
 #endif
 
 #ifdef __clang__
@@ -245,8 +245,6 @@ CxPlatInitialize(
         return Status;
     }
 
-    CxPlatWorkersInit();
-
     CxPlatTotalMemory = CGroupGetMemoryLimit();
 
     QuicTraceLogInfo(
@@ -262,7 +260,6 @@ CxPlatUninitialize(
     void
     )
 {
-    CxPlatWorkersUninit();
     CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(
@@ -272,6 +269,24 @@ CxPlatUninitialize(
 
 void*
 CxPlatAlloc(
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
+    )
+{
+    UNREFERENCED_PARAMETER(Tag);
+#ifdef DEBUG
+    CXPLAT_DBG_ASSERT(ByteCount != 0);
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+#endif
+    return calloc(1, ByteCount);
+}
+
+void*
+CxPlatAllocUninitialized(
     _In_ size_t ByteCount,
     _In_ uint32_t Tag
     )
@@ -316,11 +331,22 @@ CxPlatRefInitializeEx(
 }
 
 void
+CxPlatRefInitializeMultiple(
+    _Out_writes_(Count) CXPLAT_REF_COUNT* RefCounts,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        CxPlatRefInitialize(&RefCounts[i]);
+    }
+}
+
+void
 CxPlatRefIncrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
     )
 {
-    if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
+    if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST) > 1) {
         return;
     }
 
@@ -441,7 +467,7 @@ CxPlatTimespecToUs(
     _In_ const struct timespec *Time
     )
 {
-    return (Time->tv_sec * CXPLAT_MICROSEC_PER_SEC) + (Time->tv_nsec / CXPLAT_NANOSEC_PER_MICROSEC);
+    return ((uint64_t)Time->tv_sec * CXPLAT_MICROSEC_PER_SEC) + ((uint64_t)Time->tv_nsec / CXPLAT_NANOSEC_PER_MICROSEC);
 }
 
 uint64_t

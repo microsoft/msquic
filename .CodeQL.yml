@@ -2,13 +2,14 @@
 # https://eng.ms/docs/cloud-ai-platform/devdiv/one-engineering-system-1es/1es-docs/codeql/troubleshooting/bugs/generated-library-code
 # (Access restricted to Microsoft employees only.)
 
-# The following paths are explicitly classified which indicates they should no
+# The following paths are explicitly classified which indicates they should not
 # be analyzed by CodeQL and generate alerts.
 path_classifiers:
   docs:
     - docs
   generated:
+    - build
     - src/cs
     - src/generated
   submodules:
-    - subodules
+    - submodules

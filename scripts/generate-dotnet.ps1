@@ -6,6 +6,8 @@
 
 #>
 
+#Requires -Version 7.2
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
@@ -46,6 +48,7 @@ $Arguments = @(
     "-e QUIC_STATISTICS_V2_SIZE_1" # Inconsistent definitions across platforms
     "-e QUIC_STATISTICS_V2_SIZE_2" # Inconsistent definitions across platforms
     "-e QUIC_STATISTICS_V2_SIZE_3" # Inconsistent definitions across platforms
+    "-e QUIC_STATISTICS_V2_SIZE_4" # Inconsistent definitions across platforms
 )
 
 $FullArgs = $Arguments -join " "
@@ -78,7 +81,7 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace "  QUIC_RECEIVE_FLAG_", "  " `
     -replace "  QUIC_SEND_FLAG_", "  " `
     -replace "  QUIC_DATAGRAM_SEND_", "  " `
-    -replace "  QUIC_EXECUTION_CONFIG_FLAG_", "  " `
+    -replace "  QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_", "  " `
     -replace "QUIC_TLS_PROTOCOL_1_3", "TLS_1_3" `
     -replace "  QUIC_TLS_PROTOCOL_", "  " `
     -replace "  QUIC_CIPHER_ALGORITHM_", "  " `

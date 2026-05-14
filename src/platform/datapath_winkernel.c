@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+
 #ifdef QUIC_CLOG
 #include "datapath_winkernel.c.clog.h"
 #endif
@@ -89,11 +90,6 @@ typedef enum {
 //
 #define URO_MAX_DATAGRAMS_PER_INDICATION    64
 
-//
-// The maximum allowed pending WSK buffers per proc before copying.
-//
-#define PENDING_BUFFER_LIMIT                0
-
 CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_BUFFER) == sizeof(WSABUF),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
@@ -110,22 +106,19 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT CXPLAT_DATAPATH_PROC_CONTEXT;
 // Internal receive allocation context.
 //
 typedef struct DATAPATH_RX_IO_BLOCK {
-
     //
     // The per proc context for this receive context.
     //
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext;
 
-    union {
-        //
-        // The start of the data buffer, or the cached data indication from wsk.
-        //
-        uint8_t* DataBufferStart;
-        PWSK_DATAGRAM_INDICATION DataIndication;
-    };
+    //
+    // The start of the data buffer, or the cached data indication from wsk.
+    //
+    uint8_t* DataBufferStart;
 
-    CXPLAT_SOCKET* Binding;
-
+    //
+    // The number of references in the batch of IOs.
+    //
     ULONG ReferenceCount;
 
     //
@@ -133,11 +126,11 @@ typedef struct DATAPATH_RX_IO_BLOCK {
     //
     CXPLAT_ROUTE Route;
 
-    int32_t DataIndicationSize;
-
-    uint8_t DatagramPoolIndex   : 1;
+    //
+    // The type of pool this block is allocated from.
+    //
     uint8_t BufferPoolIndex     : 1;
-    uint8_t IsCopiedBuffer      : 1;
+
 } DATAPATH_RX_IO_BLOCK;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) DATAPATH_RX_PACKET {
@@ -198,6 +191,7 @@ typedef struct CXPLAT_DATAPATH_SEND_BUFFER {
 // Send context.
 //
 typedef struct CXPLAT_SEND_DATA {
+    CXPLAT_SEND_DATA_COMMON;
 
     CXPLAT_SOCKET* Binding;
 
@@ -225,24 +219,9 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_DATAPATH_SEND_BUFFER* TailBuf;
 
     //
-    // The total buffer size for WsaBuffers.
-    //
-    uint32_t TotalSize;
-
-    //
-    // The type of ECN markings needed for send.
-    //
-    CXPLAT_ECN_TYPE ECN;
-
-    //
     // The number of WSK buffers allocated.
     //
     UINT8 WskBufferCount;
-
-    //
-    // The send segmentation size; zero if segmentation is not performed.
-    //
-    UINT16 SegmentSize;
 
     //
     // The QUIC_BUFFER returned to the client for segmented sends.
@@ -273,158 +252,6 @@ CxPlatDataPathSocketReceive(
     _In_opt_ PWSK_DATAGRAM_INDICATION DataIndication
     );
 
-typedef struct _WSK_DATAGRAM_SOCKET {
-    const WSK_PROVIDER_DATAGRAM_DISPATCH* Dispatch;
-} WSK_DATAGRAM_SOCKET, * PWSK_DATAGRAM_SOCKET;
-
-//
-// Per-port state.
-//
-typedef struct CXPLAT_SOCKET {
-
-    //
-    // Flag indicates the binding has a default remote destination.
-    //
-    BOOLEAN Connected : 1;
-
-    //
-    // Flag indicates the binding is being used for PCP.
-    //
-    BOOLEAN PcpBinding : 1;
-
-    //
-    // Parent datapath.
-    //
-    CXPLAT_DATAPATH* Datapath;
-
-    //
-    // UDP socket used for sending/receiving datagrams.
-    //
-    union {
-        PWSK_SOCKET Socket;
-        PWSK_DATAGRAM_SOCKET DgrmSocket;
-    };
-
-    //
-    // Event used to wait for completion of socket functions.
-    //
-    CXPLAT_EVENT WskCompletionEvent;
-
-    //
-    // The local address and UDP port.
-    //
-    SOCKADDR_INET LocalAddress;
-
-    //
-    // The remote address and UDP port.
-    //
-    SOCKADDR_INET RemoteAddress;
-
-    //
-    // The local interface's MTU.
-    //
-    UINT16 Mtu;
-
-    //
-    // Client context pointer.
-    //
-    void *ClientContext;
-
-    //
-    // IRP used for socket functions.
-    //
-    union {
-        IRP Irp;
-        UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
-    };
-
-    CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
-
-} CXPLAT_SOCKET;
-
-//
-// Represents the per-processor state of the datapath context.
-//
-typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
-
-    //
-    // Pool of send contexts to be shared by all sockets on this core.
-    //
-    CXPLAT_POOL SendDataPool;
-
-    //
-    // Pool of send buffers to be shared by all sockets on this core.
-    //
-    CXPLAT_POOL SendBufferPool;
-
-    //
-    // Pool of large segmented send buffers to be shared by all sockets on this
-    // core.
-    //
-    CXPLAT_POOL LargeSendBufferPool;
-
-    //
-    // Pool of receive datagram contexts and buffers to be shared by all sockets
-    // on this core. Index 0 is regular, Index 1 is URO.
-    //
-    //
-    CXPLAT_POOL RecvDatagramPools[2];
-
-    //
-    // Pool of receive data buffers. Index 0 is 4096, Index 1 is 65536.
-    //
-    CXPLAT_POOL RecvBufferPools[2];
-
-    int64_t OutstandingPendingBytes;
-
-} CXPLAT_DATAPATH_PROC_CONTEXT;
-
-//
-// Structure that maintains all the internal state for the
-// CxPlatDataPath interface.
-//
-typedef struct CXPLAT_DATAPATH {
-
-    //
-    // Set of supported features.
-    //
-    uint32_t Features;
-
-    //
-    // The registration with WinSock Kernel.
-    //
-    WSK_REGISTRATION WskRegistration;
-    WSK_PROVIDER_NPI WskProviderNpi;
-    WSK_CLIENT_DATAGRAM_DISPATCH WskDispatch;
-
-    //
-    // The UDP callback function pointers.
-    //
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
-
-    //
-    // The size of the buffer to allocate for client's receive context structure.
-    //
-    uint32_t ClientRecvDataLength;
-
-    //
-    // The size of each receive datagram array element, including client context,
-    // internal context, and padding.
-    //
-    uint32_t DatagramStride;
-
-    //
-    // The number of processors.
-    //
-    uint32_t ProcCount;
-
-    //
-    // Per-processor completion contexts.
-    //
-    CXPLAT_DATAPATH_PROC_CONTEXT ProcContexts[0];
-
-} CXPLAT_DATAPATH;
-
 _IRQL_requires_same_
 _Function_class_(ALLOCATE_FUNCTION_EX)
 PVOID
@@ -442,9 +269,9 @@ CxPlatSendBufferPoolAlloc(
         NULL, \
         NonPagedPoolNx, \
         0, \
-        Size, \
+        (Size) + sizeof(CXPLAT_POOL_HEADER), \
         Tag, \
-        0)
+        1024)
 
 IO_COMPLETION_ROUTINE CxPlatDataPathIoCompletion;
 
@@ -607,7 +434,8 @@ Error:
 
 VOID
 CxPlatDataPathQuerySockoptSupport(
-    _Inout_ CXPLAT_DATAPATH* Datapath
+    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig
     )
 {
     NTSTATUS Status;
@@ -636,7 +464,7 @@ CxPlatDataPathQuerySockoptSupport(
         Datapath->WskProviderNpi.Dispatch->
         WskSocket(
             Datapath->WskProviderNpi.Client,
-            AF_INET,
+            AF_INET6,
             SOCK_DGRAM,
             IPPROTO_UDP,
             WSK_FLAG_BASIC_SOCKET,
@@ -765,6 +593,64 @@ CxPlatDataPathQuerySockoptSupport(
 
     } while (FALSE);
 
+    do {
+        DWORD TypeOfService = CXPLAT_DSCP_LE << 2;
+
+        IoReuseIrp(Irp, STATUS_SUCCESS);
+        IoSetCompletionRoutine(
+            Irp,
+            CxPlatDataPathIoCompletion,
+            &CompletionEvent,
+            TRUE,
+            TRUE,
+            TRUE);
+        CxPlatEventReset(CompletionEvent);
+
+        Status =
+            Dispatch->WskControlSocket(
+                UdpSocket,
+                WskSetOption,
+                IPV6_TCLASS,
+                IPPROTO_IPV6,
+                sizeof(TypeOfService),
+                &TypeOfService,
+                0,
+                NULL,
+                &OutputSizeReturned,
+                Irp);
+        if (Status == STATUS_PENDING) {
+            CxPlatEventWaitForever(CompletionEvent);
+        } else if (QUIC_FAILED(Status)) {
+            QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailed,
+                "[data] Test setting IPV6_TCLASS failed, 0x%x",
+                Status);
+            break;
+        }
+
+        Status = Irp->IoStatus.Status;
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailedAsync,
+                "[data] Test setting IPV6_TCLASS failed (async), 0x%x",
+                Status);
+            break;
+        }
+
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
+
+    } while (FALSE);
+
+    //
+    // Some USO/URO bug blocks TTL/Recv DSCP feature support on Windows Server 2022.
+    //
+    if (CxPlatform.dwBuildNumber != 20348) {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+        if (InitConfig->EnableDscpOnRecv) {
+            Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+        }
+    }
+
 Error:
 
     if (UdpSocket != NULL) {
@@ -789,12 +675,13 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathInitialize(
+DataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
-    _Out_ CXPLAT_DATAPATH* *NewDataPath
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
+    _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
     QUIC_STATUS Status;
@@ -810,7 +697,7 @@ CxPlatDataPathInitialize(
     ULONG NoTdi = WSK_TDI_BEHAVIOR_BYPASS_TDI;
 
     UNREFERENCED_PARAMETER(TcpCallbacks);
-    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(WorkerPool);
 
     if (NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -976,7 +863,7 @@ CxPlatDataPathInitialize(
     }
 
     CxPlatDataPathQueryRssScalabilityInfo(Datapath);
-    CxPlatDataPathQuerySockoptSupport(Datapath);
+    CxPlatDataPathQuerySockoptSupport(Datapath, InitConfig);
 
     *NewDataPath = Datapath;
 
@@ -1006,7 +893,7 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUninitialize(
+DataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -1030,18 +917,18 @@ CxPlatDataPathUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUpdateConfig(
+DataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
-CxPlatDataPathGetSupportedFeatures(
+CXPLAT_DATAPATH_FEATURES
+DataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -1050,12 +937,10 @@ CxPlatDataPathGetSupportedFeatures(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatDataPathIsPaddingPreferred(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_SEND_DATA* SendData
+DataPathIsPaddingPreferred(
+    _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    UNREFERENCED_PARAMETER(SendData);
     return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
 }
 
@@ -1382,7 +1267,7 @@ CxPlatDataPathSetControlSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateUdp(
+SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewBinding
@@ -1594,42 +1479,82 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    Option = TRUE;
-    Status =
-        CxPlatDataPathSetControlSocket(
-            Binding,
-            WskSetOption,
-            IPV6_ECN,
-            IPPROTO_IPV6,
-            sizeof(Option),
-            &Option);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set IPV6_ECN");
-        goto Error;
-    }
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_DSCP) {
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_RECVTCLASS,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_RECVTCLASS");
+            goto Error;
+        }
 
-    Option = TRUE;
-    Status =
-        CxPlatDataPathSetControlSocket(
-            Binding,
-            WskSetOption,
-            IP_ECN,
-            IPPROTO_IP,
-            sizeof(Option),
-            &Option);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set IP_ECN");
-        goto Error;
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_RECVTOS,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_RECVTOS");
+            goto Error;
+        }
+    } else {
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_ECN,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_ECN");
+            goto Error;
+        }
+
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_ECN,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_ECN");
+            goto Error;
+        }
     }
 
     Option = TRUE;
@@ -1668,6 +1593,46 @@ CxPlatSocketCreateUdp(
             Status,
             "Set IP_RECVERR");
         goto Error;
+    }
+
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_TTL) {
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_HOPLIMIT,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_HOPLIMIT");
+            goto Error;
+        }
+
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_HOPLIMIT,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_HOPLIMIT");
+            goto Error;
+        }
     }
 
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
@@ -1866,7 +1831,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateTcp(
+SocketCreateTcp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
@@ -1884,7 +1849,7 @@ CxPlatSocketCreateTcp(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateTcpListener(
+SocketCreateTcpListener(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* CallbackContext,
@@ -1952,7 +1917,7 @@ CxPlatDataPathCloseSocketIoCompletion(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatSocketDelete(
+SocketDelete(
     _In_ CXPLAT_SOCKET* Binding
     )
 {
@@ -2000,21 +1965,6 @@ CxPlatSocketDelete(
     CxPlatSocketDeleteComplete(Binding);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketUpdateQeo(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_reads_(OffloadCount)
-        const CXPLAT_QEO_CONNECTION* Offloads,
-    _In_ uint32_t OffloadCount
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(Offloads);
-    UNREFERENCED_PARAMETER(OffloadCount);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatSocketSetContext(
@@ -2044,38 +1994,6 @@ CxPlatSocketGetContext(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-UINT16
-CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Binding
-    )
-{
-    CXPLAT_DBG_ASSERT(Binding != NULL);
-    return Binding->Mtu;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatSocketGetLocalAddress(
-    _In_ CXPLAT_SOCKET* Binding,
-    _Out_ QUIC_ADDR* Address
-    )
-{
-    CXPLAT_DBG_ASSERT(Binding != NULL);
-    *Address = Binding->LocalAddress;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatSocketGetRemoteAddress(
-    _In_ CXPLAT_SOCKET* Binding,
-    _Out_ QUIC_ADDR* Address
-    )
-{
-    CXPLAT_DBG_ASSERT(Binding != NULL);
-    *Address = Binding->RemoteAddress;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 DATAPATH_RX_IO_BLOCK*
 CxPlatSocketAllocRxIoBlock(
     _In_ CXPLAT_DATAPATH* Datapath,
@@ -2090,8 +2008,8 @@ CxPlatSocketAllocRxIoBlock(
     DATAPATH_RX_IO_BLOCK* IoBlock = CxPlatPoolAlloc(Pool);
 
     if (IoBlock != NULL) {
+        CxPlatZeroMemory(&IoBlock->Route, sizeof(CXPLAT_ROUTE));
         IoBlock->Route.State = RouteResolved;
-        IoBlock->DatagramPoolIndex = IsUro;
         IoBlock->ProcContext = &Datapath->ProcContexts[ProcIndex];
         IoBlock->DataBufferStart = NULL;
     }
@@ -2100,30 +2018,14 @@ CxPlatSocketAllocRxIoBlock(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Must_inspect_result_
-PWSK_DATAGRAM_INDICATION
+void
 CxPlatDataPathFreeRxIoBlock(
     _In_ __drv_freesMem(Context) DATAPATH_RX_IO_BLOCK* IoBlock
     )
 {
-    PWSK_DATAGRAM_INDICATION DataIndication = NULL;
-    if (IoBlock->DataBufferStart != NULL) {
-        if (IoBlock->IsCopiedBuffer) {
-            CxPlatPoolFree(
-                &IoBlock->ProcContext->RecvBufferPools[IoBlock->BufferPoolIndex],
-                IoBlock->DataBufferStart);
-        } else {
-            DataIndication = IoBlock->DataIndication;
-            InterlockedAdd64(
-                &IoBlock->ProcContext->OutstandingPendingBytes,
-                -IoBlock->DataIndicationSize);
-        }
-    }
-
-    CxPlatPoolFree(
-        &IoBlock->ProcContext->RecvDatagramPools[IoBlock->DatagramPoolIndex],
-        IoBlock);
-    return DataIndication;
+    CXPLAT_DBG_ASSERT(IoBlock->DataBufferStart != NULL);
+    CxPlatPoolFree(IoBlock->DataBufferStart);
+    CxPlatPoolFree(IoBlock);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2145,7 +2047,6 @@ CxPlatDataPathSocketReceive(
     }
 
     CXPLAT_DBG_ASSERT(Context != NULL);
-
     CXPLAT_SOCKET* Binding = (CXPLAT_SOCKET*)Context;
 
     const uint32_t CurProcNumber = CxPlatProcCurrentNumber();
@@ -2153,8 +2054,6 @@ CxPlatDataPathSocketReceive(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
-    PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     CXPLAT_RECV_DATA* RecvDataChain = NULL;
     CXPLAT_RECV_DATA** DatagramChainTail = &RecvDataChain;
 
@@ -2163,14 +2062,8 @@ CxPlatDataPathSocketReceive(
     //
     // Process all the data indicated by the callback.
     //
-    while (DataIndicationHead != NULL) {
-
-        PWSK_DATAGRAM_INDICATION DataIndication = DataIndicationHead;
-        DataIndicationHead = DataIndicationHead->Next;
-        DataIndication->Next = NULL;
-
-        DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
-        DATAPATH_RX_PACKET* Datagram = NULL;
+    PWSK_DATAGRAM_INDICATION DataIndication = DataIndicationHead;
+    while (DataIndication != NULL) {
 
         if (DataIndication->Buffer.Mdl == NULL ||
             DataIndication->Buffer.Length == 0) {
@@ -2181,13 +2074,16 @@ CxPlatDataPathSocketReceive(
             goto Drop;
         }
 
+        DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
+        DATAPATH_RX_PACKET* Datagram = NULL;
         BOOLEAN FoundLocalAddr = FALSE;
         BOOLEAN IsUnreachableError = FALSE;
         BOOLEAN IsCoalesced = FALSE;
         SOCKADDR_INET LocalAddr = { 0 };
         SOCKADDR_INET RemoteAddr;
         UINT16 MessageLength = 0;
-        INT ECN = 0;
+        INT TypeOfService = 0;
+        INT HopLimitTTL = 0;
 
         //
         // Parse the ancillary data for all the per datagram information that we
@@ -2216,9 +2112,16 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
+                } else if (CMsg->cmsg_type == IPV6_TCLASS) {
+                    TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(TypeOfService < UINT8_MAX);
                 } else if (CMsg->cmsg_type == IPV6_ECN) {
-                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
-                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
+                    TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(TypeOfService <= CXPLAT_ECN_CE);
+                } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
+                    HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
@@ -2235,9 +2138,16 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
+                } else if (CMsg->cmsg_type == IP_TOS) {
+                    TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(TypeOfService < UINT8_MAX);
                 } else if (CMsg->cmsg_type == IP_ECN) {
-                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
-                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
+                    TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(TypeOfService <= CXPLAT_ECN_CE);
+                } else if (CMsg->cmsg_type == IP_TTL) {
+                    HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
@@ -2340,7 +2250,7 @@ CxPlatDataPathSocketReceive(
             //
             // We require contiguous buffers.
             //
-            if ((SIZE_T)MessageLength > Mdl->ByteCount - MdlOffset) {
+            if ((SIZE_T)MessageLength > Mdl->ByteCount - MdlOffset) { // TODO: Remove this restriction since we always copy
                 QuicTraceLogWarning(
                     DatapathFragmented,
                     "[%p] Dropping datagram with fragmented MDL.",
@@ -2363,36 +2273,27 @@ CxPlatDataPathSocketReceive(
                     goto Drop;
                 }
 
-                if (IoBlock->ProcContext->OutstandingPendingBytes >= PENDING_BUFFER_LIMIT) {
-                    //
-                    // Perform a copy
-                    //
-                    IoBlock->IsCopiedBuffer = TRUE;
-                    IoBlock->BufferPoolIndex = DataLength > 4096 ? 1 : 0;
-                    IoBlock->DataBufferStart =
-                        (uint8_t*)CxPlatPoolAlloc(
-                            &IoBlock->ProcContext->RecvBufferPools[IoBlock->BufferPoolIndex]);
-                    if (IoBlock->DataBufferStart == NULL) {
-                        QuicTraceLogWarning(
-                            DatapathDropAllocRecvBufferFailure,
-                            "[%p] Couldn't allocate receive buffers.",
-                            Binding);
-                        goto Drop;
-                    }
-                    CurrentCopiedBuffer = IoBlock->DataBufferStart;
-                } else {
-                    IoBlock->IsCopiedBuffer = FALSE;
-                    IoBlock->DataIndication = DataIndication;
-                    CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
-                    IoBlock->DataIndicationSize = (int32_t)DataLength;
-                    InterlockedAdd64(
-                        &IoBlock->ProcContext->OutstandingPendingBytes,
-                        IoBlock->DataIndicationSize);
+                //
+                // Copy the data to a local buffer so we can return the MDL back
+                // to the NIC.
+                //
+                IoBlock->BufferPoolIndex = DataLength > 4096 ? 1 : 0;
+                IoBlock->DataBufferStart =
+                    (uint8_t*)CxPlatPoolAlloc(
+                        &IoBlock->ProcContext->RecvBufferPools[IoBlock->BufferPoolIndex]);
+                if (IoBlock->DataBufferStart == NULL) {
+                    QuicTraceLogWarning(
+                        DatapathDropAllocRecvBufferFailure,
+                        "[%p] Couldn't allocate receive buffers.",
+                        Binding);
+                    CxPlatPoolFree(IoBlock);
+                    IoBlock = NULL;
+                    goto Drop;
                 }
+                CurrentCopiedBuffer = IoBlock->DataBufferStart;
 
-                IoBlock->Binding = Binding;
                 IoBlock->ReferenceCount = 0;
-                IoBlock->Route.Queue =
+                IoBlock->Route.Queue = (CXPLAT_QUEUE*)
                     &Binding->Datapath->ProcContexts[CurProcNumber % Binding->Datapath->ProcCount];
                 IoBlock->Route.LocalAddress = LocalAddr;
                 IoBlock->Route.RemoteAddress = RemoteAddr;
@@ -2403,20 +2304,18 @@ CxPlatDataPathSocketReceive(
             Datagram->IoBlock = IoBlock;
             Datagram->Data.Next = NULL;
             Datagram->Data.PartitionIndex = (uint16_t)(CurProcNumber % Binding->Datapath->ProcCount);
-            Datagram->Data.TypeOfService = (uint8_t)ECN;
+            Datagram->Data.TypeOfService = (uint8_t)TypeOfService;
+            Datagram->Data.HopLimitTTL = (uint8_t)HopLimitTTL;
             Datagram->Data.Allocated = TRUE;
             Datagram->Data.QueuedOnConnection = FALSE;
 
-            if (IoBlock->IsCopiedBuffer) {
-                Datagram->Data.Buffer = CurrentCopiedBuffer;
-                CxPlatCopyMemory(Datagram->Data.Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
-                CurrentCopiedBuffer += MessageLength;
-            } else {
-                Datagram->Data.Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
-            }
+            Datagram->Data.Buffer = CurrentCopiedBuffer;
+            CxPlatCopyMemory(Datagram->Data.Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
+            CurrentCopiedBuffer += MessageLength;
 
             Datagram->Data.BufferLength = MessageLength;
             Datagram->Data.Route = &IoBlock->Route;
+            Datagram->Data.Route->DatapathType = Datagram->Data.DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
 
             //
             // Add the datagram to the end of the current chain.
@@ -2450,24 +2349,7 @@ CxPlatDataPathSocketReceive(
 
     Drop:
 
-        if (IoBlock != NULL && IoBlock->ReferenceCount == 0) {
-            //
-            // No receive buffers were generated, so clean up now and return the
-            // indication back to WSK. If the reference count is nonzero, then
-            // the indication will be returned only after the binding client has
-            // returned the buffers.
-            //
-            PWSK_DATAGRAM_INDICATION FreeIndic =
-                CxPlatDataPathFreeRxIoBlock(IoBlock);
-            CXPLAT_DBG_ASSERT(FreeIndic == DataIndication);
-            UNREFERENCED_PARAMETER(FreeIndic);
-            IoBlock = NULL;
-        }
-
-        if (IoBlock == NULL || IoBlock->IsCopiedBuffer) {
-            *ReleaseChainTail = DataIndication;
-            ReleaseChainTail = &DataIndication->Next;
-        }
+        DataIndication = DataIndication->Next;
     }
 
     if (RecvDataChain != NULL) {
@@ -2487,33 +2369,20 @@ CxPlatDataPathSocketReceive(
         }
     }
 
-    if (ReleaseChain != NULL) {
-        //
-        // Release any dropped or copied datagrams.
-        //
-        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
-    }
-
     CxPlatRundownRelease(&Binding->Rundown[CurProcNumber]);
 
-    return STATUS_PENDING;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatRecvDataReturn(
-    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
+RecvDataReturn(
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-    CXPLAT_SOCKET* Binding = NULL;
-    PWSK_DATAGRAM_INDICATION DataIndication = NULL;
-    PWSK_DATAGRAM_INDICATION DataIndications = NULL;
-    PWSK_DATAGRAM_INDICATION* DataIndicationTail = &DataIndications;
-
+    CXPLAT_RECV_DATA* Datagram;
     LONG BatchedBufferCount = 0;
     DATAPATH_RX_IO_BLOCK* BatchedIoBlock = NULL;
-
-    CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
 
         CXPLAT_DBG_ASSERT(Datagram->Allocated);
@@ -2522,9 +2391,6 @@ CxPlatRecvDataReturn(
 
         DATAPATH_RX_IO_BLOCK* IoBlock =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data)->IoBlock;
-
-        CXPLAT_DBG_ASSERT(Binding == NULL || Binding == IoBlock->Binding);
-        Binding = IoBlock->Binding;
         Datagram->Allocated = FALSE;
 
         if (BatchedIoBlock == IoBlock) {
@@ -2534,15 +2400,7 @@ CxPlatRecvDataReturn(
                 InterlockedAdd(
                     (PLONG)&BatchedIoBlock->ReferenceCount,
                     -BatchedBufferCount) == 0) {
-                //
-                // Clean up the data indication.
-                //
-                DataIndication = CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
-                if (DataIndication != NULL) {
-                    CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
-                    *DataIndicationTail = DataIndication;
-                    DataIndicationTail = &DataIndication->Next;
-                }
+                CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
             }
 
             BatchedIoBlock = IoBlock;
@@ -2554,30 +2412,14 @@ CxPlatRecvDataReturn(
         InterlockedAdd(
             (PLONG)&BatchedIoBlock->ReferenceCount,
             -BatchedBufferCount) == 0) {
-        //
-        // Clean up the data indication.
-        //
-        DataIndication = CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
-        if (DataIndication != NULL) {
-            CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
-            *DataIndicationTail = DataIndication;
-            DataIndicationTail = &DataIndication->Next;
-        }
-    }
-
-    if (DataIndications != NULL) {
-        //
-        // Return the datagram indications back to Wsk.
-        //
-        CXPLAT_DBG_ASSERT(Binding != NULL);
-        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
+        CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
-CxPlatSendDataAlloc(
+SendDataAlloc(
     _In_ CXPLAT_SOCKET* Binding,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
@@ -2585,14 +2427,16 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Binding->Datapath->ProcCount];
+        Config->Route->Queue = (CXPLAT_QUEUE*)
+            &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Binding->Datapath->ProcCount];
     }
 
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = Config->Route->Queue;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Config->Route->Queue;
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&ProcContext->SendDataPool);
     if (SendData != NULL) {
         SendData->Owner = ProcContext;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->WskBufs = NULL;
         SendData->TailBuf = NULL;
         SendData->TotalSize = 0;
@@ -2602,6 +2446,7 @@ CxPlatSendDataAlloc(
                 ? Config->MaxPacketSize : 0;
         SendData->ClientBuffer.Length = 0;
         SendData->ClientBuffer.Buffer = NULL;
+        SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
     }
 
     return SendData;
@@ -2609,16 +2454,10 @@ CxPlatSendDataAlloc(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSendDataFree(
+SendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
-
-    CXPLAT_POOL* BufferPool =
-        SendData->SegmentSize > 0 ?
-            &ProcContext->LargeSendBufferPool : &ProcContext->SendBufferPool;
-
     while (SendData->WskBufs != NULL) {
         PWSK_BUF_LIST WskBufList = SendData->WskBufs;
         SendData->WskBufs = SendData->WskBufs->Next;
@@ -2627,10 +2466,10 @@ CxPlatSendDataFree(
         CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer =
             CONTAINING_RECORD(WskBufList, CXPLAT_DATAPATH_SEND_BUFFER, Link);
 
-        CxPlatPoolFree(BufferPool, SendBuffer);
+        CxPlatPoolFree(SendBuffer);
     }
 
-    CxPlatPoolFree(&ProcContext->SendDataPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2727,18 +2566,19 @@ CxPlatSendBufferPoolAlloc(
     _Inout_ PLOOKASIDE_LIST_EX Lookaside
     )
 {
+    CXPLAT_POOL_HEADER* Header;
     CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer;
 
     UNREFERENCED_PARAMETER(Lookaside);
     UNREFERENCED_PARAMETER(PoolType);
     CXPLAT_DBG_ASSERT(PoolType == NonPagedPoolNx);
-    CXPLAT_DBG_ASSERT(NumberOfBytes > sizeof(*SendBuffer));
+    CXPLAT_DBG_ASSERT(NumberOfBytes > sizeof(*Header) + sizeof(*SendBuffer));
 
     //
     // ExAllocatePool2 requires a different set of flags, so the assert above must keep the pool sane.
     //
-    SendBuffer = ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, NumberOfBytes, Tag);
-    if (SendBuffer == NULL) {
+    Header = ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, NumberOfBytes, Tag);
+    if (Header == NULL) {
         return NULL;
     }
 
@@ -2746,15 +2586,16 @@ CxPlatSendBufferPoolAlloc(
     // Build the MDL for the entire buffer. The WSK_BUF's length will be updated
     // on each send.
     //
+    SendBuffer = (CXPLAT_DATAPATH_SEND_BUFFER*)(Header + 1);
     SendBuffer->Link.Buffer.Offset = 0;
     SendBuffer->Link.Buffer.Mdl = &SendBuffer->Mdl;
     MmInitializeMdl(
         &SendBuffer->Mdl,
         SendBuffer->RawBuffer,
-        NumberOfBytes - sizeof(*SendBuffer));
+        NumberOfBytes - sizeof(*Header) - sizeof(*SendBuffer));
     MmBuildMdlForNonPagedPool(&SendBuffer->Mdl);
 
-    return SendBuffer;
+    return Header;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2765,7 +2606,11 @@ CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_POOL* BufferPool
     )
 {
-    CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer = CxPlatPoolAlloc(BufferPool);
+    //
+    // Use the *PoolAllocUninitialized method here to preserve the MDL
+    // pre-initializations (the default *PoolAlloc method zero-inits).
+    //
+    CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer = CxPlatPoolAllocUninitialized(BufferPool);
     if (SendBuffer == NULL) {
         return NULL;
     }
@@ -2846,7 +2691,7 @@ CxPlatSendDataAllocSegmentBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-CxPlatSendDataAllocBuffer(
+SendDataAllocBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ UINT16 MaxBufferLength
     )
@@ -2873,7 +2718,6 @@ static
 void
 CxPlatSendDataFreeSendBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ CXPLAT_POOL* BufferPool,
     _In_ CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer
     )
 {
@@ -2894,18 +2738,17 @@ CxPlatSendDataFreeSendBuffer(
         SendData->TailBuf = CONTAINING_RECORD(TailBuf, CXPLAT_DATAPATH_SEND_BUFFER, Link);
     }
 
-    CxPlatPoolFree(BufferPool, SendBuffer);
+    CxPlatPoolFree(SendBuffer);
     --SendData->WskBufferCount;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSendDataFreeBuffer(
+SendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
     CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer =
         CONTAINING_RECORD(&SendData->TailBuf->Link, CXPLAT_DATAPATH_SEND_BUFFER, Link);
 
@@ -2918,10 +2761,10 @@ CxPlatSendDataFreeBuffer(
     CXPLAT_DBG_ASSERT(Buffer->Buffer == SendData->ClientBuffer.Buffer);
 
     if (SendData->SegmentSize == 0) {
-        CxPlatSendDataFreeSendBuffer(SendData, &ProcContext->SendBufferPool, SendBuffer);
+        CxPlatSendDataFreeSendBuffer(SendData, SendBuffer);
     } else {
         if (SendData->TailBuf->Link.Buffer.Length == 0) {
-            CxPlatSendDataFreeSendBuffer(SendData, &ProcContext->LargeSendBufferPool, SendBuffer);
+            CxPlatSendDataFreeSendBuffer(SendData, SendBuffer);
         }
     }
 
@@ -2931,7 +2774,7 @@ CxPlatSendDataFreeBuffer(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatSendDataIsFull(
+SendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -2964,7 +2807,7 @@ CxPlatDataPathSendComplete(
     }
 
     IoCleanupIrp(&SendData->Irp);
-    CxPlatSendDataFree(SendData);
+    SendDataFree(SendData);
 
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
@@ -2992,8 +2835,8 @@ CxPlatSocketPrepareSendData(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-CxPlatSocketSend(
+void
+SocketSend(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -3033,7 +2876,7 @@ CxPlatSocketSend(
     //
     BYTE CMsgBuffer[
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN or IP_TOS
         WSA_CMSG_SPACE(sizeof(*SegmentSize))    // UDP_SEND_MSG_SIZE
         ];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
@@ -3064,16 +2907,33 @@ CxPlatSocketSend(
         }
     }
 
-    if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
-        CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
-        CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg->cmsg_level =
-            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
-                IPPROTO_IP : IPPROTO_IPV6;
-        CMsg->cmsg_type = IP_ECN; // == IPV6_ECN
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+    if (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
+        if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+            CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+            CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+            if (Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_TOS;
+            } else {
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_TCLASS;
+            }
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
 
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+        }
+    } else {
+        if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+            CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+            CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+            CMsg->cmsg_level =
+                Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
+                    IPPROTO_IP : IPPROTO_IPV6;
+            CMsg->cmsg_type = IP_ECN; // == IPV6_ECN
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        }
     }
 
     if (SendData->SegmentSize > 0) {
@@ -3110,8 +2970,6 @@ CxPlatSocketSend(
         // Callback still gets invoked on failure to do the cleanup.
         //
     }
-
-    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -3126,55 +2984,11 @@ CxPlatSocketGetTcpStatistics(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicCopyRouteInfo(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
+DataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
     )
 {
-    *DstRoute = *SrcRoute;
-}
-
-void
-CxPlatResolveRouteComplete(
-    _In_ void* Context,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
-    )
-{
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(Route);
-    UNREFERENCED_PARAMETER(PhysicalAddress);
-    UNREFERENCED_PARAMETER(PathId);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
-    _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(PathId);
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(Callback);
-    Route->State = RouteResolved;
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatUpdateRoute(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
-    )
-{
-    UNREFERENCED_PARAMETER(DstRoute);
-    UNREFERENCED_PARAMETER(SrcRoute);
+    UNREFERENCED_PARAMETER(Cqe);
+    CXPLAT_DBG_ASSERT(FALSE);
 }

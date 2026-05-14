@@ -40,35 +40,15 @@ extern "C" {
         OpenSslAlert,
         TlsContext->Connection,
         "Send alert = %u (Level = %u)",
-        Alert,
-        (uint32_t)Level);
+        AlertCode,
+        (uint32_t)AData->Level);
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = Alert = arg3
-// arg4 = arg4 = (uint32_t)Level = arg4
+// arg3 = arg3 = AlertCode = arg3
+// arg4 = arg4 = (uint32_t)AData->Level = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_OpenSslAlert
 #define _clog_5_ARGS_TRACE_OpenSslAlert(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAlert , arg1, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for OpenSslQuicDataErrorStr
-// [conn][%p] SSL_provide_quic_data failed: %s
-// QuicTraceLogConnError(
-                OpenSslQuicDataErrorStr,
-                TlsContext->Connection,
-                "SSL_provide_quic_data failed: %s",
-                ERR_error_string(ERR_get_error(), buf));
-// arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = ERR_error_string(ERR_get_error(), buf) = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_OpenSslQuicDataErrorStr
-#define _clog_4_ARGS_TRACE_OpenSslQuicDataErrorStr(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr , arg1, arg3);\
 
 #endif
 
@@ -123,9 +103,9 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError , arg1, arg3);\
 // Decoder Ring for OpenSslAlpnNegotiationFailure
 // [conn][%p] Failed to negotiate ALPN
 // QuicTraceLogConnError(
-                    OpenSslAlpnNegotiationFailure,
-                    TlsContext->Connection,
-                    "Failed to negotiate ALPN");
+                        OpenSslAlpnNegotiationFailure,
+                        TlsContext->Connection,
+                        "Failed to negotiate ALPN");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslAlpnNegotiationFailure
@@ -141,9 +121,9 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure , arg1);\
 // Decoder Ring for OpenSslInvalidAlpnLength
 // [conn][%p] Invalid negotiated ALPN length
 // QuicTraceLogConnError(
-                    OpenSslInvalidAlpnLength,
-                    TlsContext->Connection,
-                    "Invalid negotiated ALPN length");
+                        OpenSslInvalidAlpnLength,
+                        TlsContext->Connection,
+                        "Invalid negotiated ALPN length");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslInvalidAlpnLength
@@ -159,32 +139,14 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength , arg1);\
 // Decoder Ring for OpenSslNoMatchingAlpn
 // [conn][%p] Failed to find a matching ALPN
 // QuicTraceLogConnError(
-                    OpenSslNoMatchingAlpn,
-                    TlsContext->Connection,
-                    "Failed to find a matching ALPN");
+                        OpenSslNoMatchingAlpn,
+                        TlsContext->Connection,
+                        "Failed to find a matching ALPN");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslNoMatchingAlpn
 #define _clog_3_ARGS_TRACE_OpenSslNoMatchingAlpn(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for OpenSslMissingTransportParameters
-// [conn][%p] No transport parameters received
-// QuicTraceLogConnError(
-                    OpenSslMissingTransportParameters,
-                    TlsContext->Connection,
-                    "No transport parameters received");
-// arg1 = arg1 = TlsContext->Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_OpenSslMissingTransportParameters
-#define _clog_3_ARGS_TRACE_OpenSslMissingTransportParameters(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters , arg1);\
 
 #endif
 
@@ -275,9 +237,9 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket , arg1, arg3);\
 // Decoder Ring for OpenSslHandshakeComplete
 // [conn][%p] TLS Handshake complete
 // QuicTraceLogConnInfo(
-            OpenSslHandshakeComplete,
-            TlsContext->Connection,
-            "TLS Handshake complete");
+                OpenSslHandshakeComplete,
+                TlsContext->Connection,
+                "TLS Handshake complete");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslHandshakeComplete
@@ -293,34 +255,14 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete , arg1);\
 // Decoder Ring for OpenSslHandshakeResumed
 // [conn][%p] TLS Handshake resumed
 // QuicTraceLogConnInfo(
-                OpenSslHandshakeResumed,
-                TlsContext->Connection,
-                "TLS Handshake resumed");
+                    OpenSslHandshakeResumed,
+                    TlsContext->Connection,
+                    "TLS Handshake resumed");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslHandshakeResumed
 #define _clog_3_ARGS_TRACE_OpenSslHandshakeResumed(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for OpenSslNewEncryptionSecrets
-// [conn][%p] New encryption secrets (Level = %u)
-// QuicTraceLogConnVerbose(
-        OpenSslNewEncryptionSecrets,
-        TlsContext->Connection,
-        "New encryption secrets (Level = %u)",
-        (uint32_t)Level);
-// arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = (uint32_t)Level = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_OpenSslNewEncryptionSecrets
-#define _clog_4_ARGS_TRACE_OpenSslNewEncryptionSecrets(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets , arg1, arg3);\
 
 #endif
 
@@ -334,15 +276,35 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets , arg1, arg3);\
         OpenSslAddHandshakeData,
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
-        (uint64_t)Length,
-        (uint32_t)Level);
+        (uint64_t)BufLen,
+        (uint32_t)AData->Level);
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = (uint64_t)Length = arg3
-// arg4 = arg4 = (uint32_t)Level = arg4
+// arg3 = arg3 = (uint64_t)BufLen = arg3
+// arg4 = arg4 = (uint32_t)AData->Level = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_OpenSslAddHandshakeData
 #define _clog_5_ARGS_TRACE_OpenSslAddHandshakeData(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for OpenSslNewEncryptionSecrets
+// [conn][%p] New encryption secrets (Level = %u)
+// QuicTraceLogConnVerbose(
+        OpenSslNewEncryptionSecrets,
+        TlsContext->Connection,
+        "New encryption secrets (Level = %u)",
+        ProtLevel);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = ProtLevel = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_OpenSslNewEncryptionSecrets
+#define _clog_4_ARGS_TRACE_OpenSslNewEncryptionSecrets(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets , arg1, arg3);\
 
 #endif
 
@@ -446,19 +408,19 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OpenSslProcessData
-// [conn][%p] Processing %u received bytes
-// QuicTraceLogConnVerbose(
-            OpenSslProcessData,
+// Decoder Ring for TlsError
+// [ tls][%p] ERROR, %s.
+// QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
-            "Processing %u received bytes",
-            *BufferLength);
-// arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = *BufferLength = arg3
+            "Too much handshake data");
+// arg2 = arg2 = TlsContext->Connection = arg2
+// arg3 = arg3 = "Too much handshake data" = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_OpenSslProcessData
-#define _clog_4_ARGS_TRACE_OpenSslProcessData(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslProcessData , arg1, arg3);\
+#ifndef _clog_4_ARGS_TRACE_TlsError
+#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_TLS_OPENSSL_C, TlsError , arg2, arg3);\
 
 #endif
 
@@ -466,19 +428,19 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslProcessData , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                    TlsError,
-                    "[ tls][%p] ERROR, %s.",
-                    TlsContext->Connection,
-                    "No certificate passed");
-// arg2 = arg2 = TlsContext->Connection = arg2
-// arg3 = arg3 = "No certificate passed" = arg3
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "New crypto Buffer",
+                NewBufferAllocLength);
+// arg2 = arg2 = "New crypto Buffer" = arg2
+// arg3 = arg3 = NewBufferAllocLength = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_TlsError
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, TlsError , arg2, arg3);\
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_TLS_OPENSSL_C, AllocFailure , arg2, arg3);\
 
 #endif
 
@@ -497,26 +459,6 @@ tracepoint(CLOG_TLS_OPENSSL_C, TlsError , arg2, arg3);\
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TLS_OPENSSL_C, LibraryError , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "New crypto buffer",
-                NewBufferAllocLength);
-// arg2 = arg2 = "New crypto buffer" = arg2
-// arg3 = arg3 = NewBufferAllocLength = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, AllocFailure , arg2, arg3);\
 
 #endif
 

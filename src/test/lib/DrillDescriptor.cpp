@@ -6,6 +6,9 @@
 --*/
 
 #include "precomp.h"
+#include <quic_crypt.h>
+#include <msquichelper.h>
+
 #ifdef QUIC_CLOG
 #include "DrillDescriptor.cpp.clog.h"
 #endif
@@ -152,7 +155,7 @@ DrillVNPacketDescriptor::write(
     return PacketBuffer;
 }
 
-DrillInitialPacketDescriptor::DrillInitialPacketDescriptor()
+DrillInitialPacketDescriptor::DrillInitialPacketDescriptor(uint8_t SrcCidLength)
 {
     Type = Initial;
     Header.FixedBit = 1;
@@ -161,17 +164,19 @@ DrillInitialPacketDescriptor::DrillInitialPacketDescriptor()
     const uint8_t CidValMax = 8;
     for (uint8_t CidVal = 0; CidVal <= CidValMax; CidVal++) {
         DestCid.push_back(CidVal);
-        SourceCid.push_back(CidValMax - CidVal);
+    }
+
+    for (uint8_t CidVal = 0; CidVal < SrcCidLength; CidVal++) {
+        SourceCid.push_back(SrcCidLength - CidVal);
     }
 }
 
 DrillBuffer
-DrillInitialPacketDescriptor::write(
+DrillInitialPacketDescriptor::writeEx(
+    bool EncryptPayload
     ) const
 {
     DrillBuffer PacketBuffer = DrillPacketDescriptor::write();
-
-    size_t CalculatedPacketLength = PacketBuffer.size();
 
     DrillBuffer EncodedTokenLength;
     if (TokenLen != nullptr) {
@@ -181,24 +186,20 @@ DrillInitialPacketDescriptor::write(
     }
     PacketBuffer.insert(PacketBuffer.end(), EncodedTokenLength.begin(), EncodedTokenLength.end());
 
-    CalculatedPacketLength += EncodedTokenLength.size();
-
     if (Token.size()) {
         PacketBuffer.insert(PacketBuffer.end(), Token.begin(), Token.end());
-        CalculatedPacketLength += Token.size();
     }
 
     //
-    // Note: this ignores the bits in the Header that specify how many bytes
-    // are used. The caller must ensure these are in-sync.
+    // Packet number buffer.
     //
     DrillBuffer PacketNumberBuffer;
-    if (PacketNumber < 0x100) {
+    if (Header.PacketNumLen == 0) {
         PacketNumberBuffer.push_back((uint8_t) PacketNumber);
-    } else if (PacketNumber < 0x10000) {
+    } else if (Header.PacketNumLen == 1) {
         PacketNumberBuffer.push_back((uint8_t) (PacketNumber >> 8));
         PacketNumberBuffer.push_back((uint8_t) PacketNumber);
-    } else if (PacketNumber < 0x1000000) {
+    } else if (Header.PacketNumLen == 2) {
         PacketNumberBuffer.push_back((uint8_t) (PacketNumber >> 16));
         PacketNumberBuffer.push_back((uint8_t) (PacketNumber >> 8));
         PacketNumberBuffer.push_back((uint8_t) PacketNumber);
@@ -209,9 +210,6 @@ DrillInitialPacketDescriptor::write(
         PacketNumberBuffer.push_back((uint8_t) PacketNumber);
     }
 
-    CalculatedPacketLength += PacketNumberBuffer.size();
-    CalculatedPacketLength += Payload.size();
-
     //
     // Write packet length.
     //
@@ -219,6 +217,10 @@ DrillInitialPacketDescriptor::write(
     if (PacketLength != nullptr) {
         PacketLengthBuffer = QuicDrillEncodeQuicVarInt(*PacketLength);
     } else {
+        size_t CalculatedPacketLength = PacketNumberBuffer.size() + Payload.size();
+        if (EncryptPayload) {
+            CalculatedPacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
+        }
         PacketLengthBuffer = QuicDrillEncodeQuicVarInt(CalculatedPacketLength);
     }
     PacketBuffer.insert(PacketBuffer.end(), PacketLengthBuffer.begin(), PacketLengthBuffer.end());
@@ -228,12 +230,104 @@ DrillInitialPacketDescriptor::write(
     //
     PacketBuffer.insert(PacketBuffer.end(), PacketNumberBuffer.begin(), PacketNumberBuffer.end());
 
+    auto HeaderLength = (uint16_t)PacketBuffer.size();
+
     //
     // Write payload.
     //
     if (Payload.size() > 0) {
         PacketBuffer.insert(PacketBuffer.end(), Payload.begin(), Payload.end());
     }
+
+    if (EncryptPayload) {
+        for (uint8_t i = 0; i < CXPLAT_ENCRYPTION_OVERHEAD; ++i) {
+            PacketBuffer.push_back(0);
+        }
+        encrypt(PacketBuffer, HeaderLength, (uint8_t)PacketNumberBuffer.size());
+    }
+
+    return PacketBuffer;
+}
+
+void
+DrillInitialPacketDescriptor::encrypt(
+    DrillBuffer& PacketBuffer,
+    uint16_t HeaderLength,
+    uint8_t PacketNumberLength
+    ) const
+{
+    const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
+    const StrBuffer InitialSalt("38762cf7f55934b34d179ae6a4c80cadccbb7f0a");
+
+    QUIC_PACKET_KEY* WriteKey;
+    if(QUIC_SUCCEEDED(
+        QuicPacketKeyCreateInitial(
+            FALSE,
+            &HkdfLabels,
+            InitialSalt.Data,
+            (uint8_t)DestCid.size(),
+            DestCid.data(),
+            nullptr,
+            &WriteKey))) {
+
+        uint8_t Iv[CXPLAT_IV_LENGTH];
+        uint64_t FullPacketNumber = PacketNumber;
+        QuicCryptoCombineIvAndPacketNumber(
+            WriteKey->Iv, (uint8_t*)&FullPacketNumber, Iv);
+
+        CxPlatEncrypt(
+            WriteKey->PacketKey,
+            Iv,
+            HeaderLength,
+            PacketBuffer.data(),
+            (uint16_t)PacketBuffer.size() - HeaderLength,
+            PacketBuffer.data() + HeaderLength);
+
+        uint8_t HpMask[16];
+        CxPlatHpComputeMask(
+            WriteKey->HeaderKey,
+            1,
+            PacketBuffer.data() + HeaderLength,
+            HpMask);
+
+        uint16_t PacketNumberOffset = HeaderLength - PacketNumberLength;
+        PacketBuffer[0] ^= HpMask[0] & 0x0F;
+        for (uint8_t i = 0; i < PacketNumberLength; ++i) {
+            PacketBuffer[PacketNumberOffset + i] ^= HpMask[i + 1];
+        }
+
+        QuicPacketKeyFree(WriteKey);
+    }
+}
+
+union QuicShortHeader {
+    uint8_t HeaderByte;
+    struct {
+        uint8_t PacketNumLen : 2;
+        uint8_t KeyPhase : 1;
+        uint8_t Reserved : 2;
+        uint8_t SpinBit : 1;
+        uint8_t FixedBit : 1;
+        uint8_t LongHeader : 1;
+    };
+};
+
+DrillBuffer
+Drill1RttPacketDescriptor::write(
+    ) const
+{
+    DrillBuffer PacketBuffer;
+    QuicShortHeader Header = { 0 };
+    Header.PacketNumLen = 3;
+    Header.KeyPhase = KeyPhase;
+
+    PacketBuffer.push_back(Header.HeaderByte);
+    PacketBuffer.insert(PacketBuffer.end(), DestCid.begin(), DestCid.end());
+    PacketBuffer.push_back((uint8_t) (PacketNumber >> 24));// TODO - different packet number sizes
+    PacketBuffer.push_back((uint8_t) (PacketNumber >> 16));
+    PacketBuffer.push_back((uint8_t) (PacketNumber >> 8));
+    PacketBuffer.push_back((uint8_t) PacketNumber);
+    PacketBuffer.insert(PacketBuffer.end(), Payload.begin(), Payload.end());
 
     return PacketBuffer;
 }

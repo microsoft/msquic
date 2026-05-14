@@ -10,7 +10,7 @@
             "name": "win-base",
             "description": "Base settings for all windows builds",
             "hidden": true,
-            "generator": "Ninja",
+            "generator": "Visual Studio 17 2022",
             "binaryDir": "${sourceDir}/build/windows",
             "cacheVariables": {
                 "QUIC_ENABLE_LOGGING": "on",
@@ -31,10 +31,10 @@
             "name": "lin-base",
             "description": "Base settings for all Linux builds",
             "hidden": true,
-            "generator": "Ninja",
+            "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/linux",
             "cacheVariables": {
-                "QUIC_LINUX_LOG_ENCODER": "lttng",
+                "QUIC_LOGGING_TYPE": "lttng",
                 "QUIC_ENABLE_LOGGING": "on",
                 "QUIC_BUILD_TOOLS": "on",
                 "QUIC_BUILD_TEST": "on",
@@ -59,22 +59,22 @@
             "cacheVariables": {
                 "QUIC_OUTPUT_DIR": "${sourceDir}/artifacts/bin/windows/x64_Debug_schannel",
                 "CMAKE_BUILD_TYPE": "Debug",
-                "QUIC_TLS": "schannel"
+                "QUIC_TLS_LIB": "schannel"
             }
         },
         {
-            "name": "linux-openssl-debug",
-            "displayName": "Linux OpenSSL Debug",
+            "name": "linux-quictls-debug",
+            "displayName": "Linux quictls Debug",
             "inherits": "lin-base",
-            "binaryDir": "${sourceDir}/build/linux/x64_openssl",
+            "binaryDir": "${sourceDir}/build/linux/x64_quictls",
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
             },
             "cacheVariables": {
-                "QUIC_OUTPUT_DIR": "${sourceDir}/artifacts/bin/linux/x64_Debug_openssl",
+                "QUIC_OUTPUT_DIR": "${sourceDir}/artifacts/bin/linux/x64_Debug_quictls",
                 "CMAKE_BUILD_TYPE": "Debug",
-                "QUIC_TLS": "openssl"
+                "QUIC_TLS_LIB": "quictls"
             }
         }
     ],
@@ -93,7 +93,7 @@
         {
             "name": "linux-debug",
             "displayName": "Linux Debug",
-            "configurePreset": "linux-openssl-debug"
+            "configurePreset": "linux-quictls-debug"
         }
     ]
 }

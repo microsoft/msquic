@@ -17,11 +17,17 @@ concurrency:
   group: darwin-frameworks-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-all-frameworks:
+    strategy:
+      matrix:
+        tls: ["quictls", "openssl"]
     name: Build All Darwin Frameworks (Release)
     uses: ./.github/workflows/build-reuse-darwin-framework.yml
     with:
       config: 'Release'
+      repo: ${{ github.repository }}
+      tls: ${{ matrix.tls }}

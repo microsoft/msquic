@@ -3,10 +3,12 @@
 
 set(SOURCES
     main.cpp
+    AllocTest.cpp
     CryptTest.cpp
     DataPathTest.cpp
     PlatformTest.cpp
     # StorageTest.cpp
+    ToeplitzTest.cpp
     TlsTest.cpp
 )
 
@@ -20,10 +22,14 @@ set_property(TARGET msquicplatformtest APPEND PROPERTY BUILD_RPATH "$ORIGIN")
 target_link_libraries(msquicplatformtest msquic)
 
 if (BUILD_SHARED_LIBS)
-    target_link_libraries(msquicplatformtest platform)
+    target_link_libraries(msquicplatformtest msquic_platform)
 endif()
 
 target_link_libraries(msquicplatformtest inc gtest warnings logging base_link)
+
+if (WIN32)
+    target_link_libraries(msquicplatformtest oldnames)
+endif()
 
 add_test(NAME msquicplatformtest
          COMMAND msquicplatformtest

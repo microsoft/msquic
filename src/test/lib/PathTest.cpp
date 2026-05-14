@@ -62,9 +62,10 @@ ClientCallback(
 
 void
 QuicTestLocalPathChanges(
-    _In_ int Family
+    const FamilyArgs& Params
     )
 {
+    const int Family = Params.Family;
     PathTestContext Context;
     CxPlatEvent PeerStreamsChanged;
     MsQuicRegistration Registration{true};

@@ -11,17 +11,17 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
-    target_link_libraries(msquic PRIVATE core platform inc warnings logging base_link main_binary_link_args)
+    add_library(msquic::msquic ALIAS msquic)
+    target_include_directories(msquic PUBLIC $<INSTALL_INTERFACE:include>)
+    target_link_libraries(msquic PRIVATE core msquic_platform inc warnings logging base_link main_binary_link_args)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
     if (NOT WIN32)
         set_target_properties(msquic PROPERTIES SOVERSION ${QUIC_MAJOR_VERSION} VERSION ${QUIC_FULL_VERSION})
-    else()
-        # Configure linker to only load from the system directory.
-        set_target_properties(msquic PROPERTIES LINK_FLAGS "/DEPENDENTLOADFLAG:0x800")
     endif()
 else()
     add_library(msquic_static STATIC static/empty.c)
-    target_link_libraries(msquic_static PRIVATE core platform inc logging main_binary_link_args)
+    set_target_properties(msquic_static PROPERTIES OUTPUT_NAME "${QUIC_LIBRARY_NAME}${CMAKE_DEBUG_POSTFIX}")
+    target_link_libraries(msquic_static PRIVATE core msquic_platform inc logging main_binary_link_args)
     target_compile_definitions(msquic_static PUBLIC QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
@@ -150,7 +150,7 @@ else()
             COMMAND libtool -static -o \"${QUIC_STATIC_LIBRARY}\" @${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
-            DEPENDS platform
+            DEPENDS msquic_platform
             DEPENDS msquic_static
         )
     elseif(WIN32)
@@ -181,7 +181,7 @@ else()
             COMMAND ${CMAKE_COMMAND} -E copy "${QUIC_STATIC_LIBRARY}" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
-            DEPENDS platform
+            DEPENDS msquic_platform
             DEPENDS msquic_static
         )
     else()
@@ -205,7 +205,7 @@ else()
             COMMAND ${CMAKE_AR} -M < ${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
-            DEPENDS platform
+            DEPENDS msquic_platform
             DEPENDS msquic_static
         )
     endif()
@@ -240,8 +240,21 @@ endif()
 set_property(TARGET msquic PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if(WIN32)
-    SET_TARGET_PROPERTIES(msquic
-        PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")
+    set(MSQUIC_LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")
+
+    # Indicate CET Shadow Stack support for supported architectures
+    if (${SYSTEM_PROCESSOR} STREQUAL "x64" OR
+        ${SYSTEM_PROCESSOR} STREQUAL "AMD64" OR
+        ${SYSTEM_PROCESSOR} STREQUAL "x86" OR
+        ${SYSTEM_PROCESSOR} STREQUAL "win32")
+
+        string(APPEND MSQUIC_LINK_FLAGS " /CETCOMPAT")
+    endif()
+
+    if(QUIC_CI)
+        string(APPEND MSQUIC_LINK_FLAGS " /PROFILE")
+    endif()
+    SET_TARGET_PROPERTIES(msquic PROPERTIES LINK_FLAGS "${MSQUIC_LINK_FLAGS}")
 elseif (CX_PLATFORM STREQUAL "linux")
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
@@ -250,40 +263,38 @@ elseif (CX_PLATFORM STREQUAL "darwin")
         PROPERTIES LINK_FLAGS "-exported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/darwin/exports.txt\"")
 endif()
 
-if(BUILD_SHARED_LIBS)
-    target_include_directories(msquic PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-else()
-    target_include_directories(msquic_static INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-    target_include_directories(msquic INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
+file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
+
+if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
+    list(APPEND OTHER_TARGETS OpenSSL OpenSSLQuic)
 endif()
 
-set(PUBLIC_HEADERS
-    ../inc/msquic.h
-    ../inc/msquic_winuser.h
-    ../inc/msquic_posix.h
-    ../inc/quic_sal_stub.h)
+if(WIN32)
+    list(APPEND OTHER_TARGETS MsQuicEtw_Header)
+endif()
 
 if(BUILD_SHARED_LIBS)
-  install(TARGETS msquic EXPORT msquic DESTINATION lib)
+    install(TARGETS msquic msquic_platform inc logging_inc warnings main_binary_link_args ${OTHER_TARGETS}
+        EXPORT msquic
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    )
 else()
-  install(FILES ${QUIC_STATIC_LIBRARY} DESTINATION lib)
+    install(FILES "${QUIC_STATIC_LIBRARY}"
+        DESTINATION lib
+    )
 endif()
-install(FILES ${PUBLIC_HEADERS} DESTINATION include)
+install(FILES ${PUBLIC_HEADERS} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
-configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
+configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake @ONLY)
 
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION share/msquic)
 
 if(BUILD_SHARED_LIBS)
-    install(EXPORT msquic DESTINATION share/msquic)
+    install(EXPORT msquic NAMESPACE msquic:: DESTINATION share/msquic)
 endif()
 
-if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)
+if (MSVC AND NOT QUIC_SANITIZER_ACTIVE AND BUILD_SHARED_LIBS)
     target_compile_options(msquic PRIVATE /analyze)
 endif()

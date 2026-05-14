@@ -126,13 +126,14 @@ EXT_COMMAND(
         "\tMax Offset (FC)      %I64u\n"
         "\t0-RTT Length         %I64u\n"
         "\n"
-        "\tRecv Win Size        %I64u (Alloc %I64u)\n"
+        "\tRecv Buffer Mode     %s\n"
+        "\tRecv Win Size        %I64u\n"
         "\tRecv Win Start       %I64u\n",
         Strm.RecvStateStr(),
         Strm.MaxAllowedRecvOffset(),
         Strm.RecvMax0RttLength(),
+        RecvBuf.ModeStr(),
         RecvBuf.VirtualBufferLength(),
-        RecvBuf.AllocBufferLength(),
         RecvBuf.BaseOffset());
 
     Dml("\n");

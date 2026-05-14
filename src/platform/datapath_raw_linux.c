@@ -5,7 +5,7 @@
 
 Abstract:
 
-    QUIC Raw (i.e. DPDK or XDP) Datapath Implementation (User Mode)
+    QUIC Raw (e.g., XDP) Datapath Implementation (User Mode)
 
 --*/
 
@@ -112,27 +112,27 @@ RawSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    CxPlatRundownInitialize(&NewSocket->Rundown);
+    CxPlatRundownInitialize(&NewSocket->RawRundown);
     NewSocket->RawDatapath = Raw;
     NewSocket->CibirIdLength = Config->CibirIdLength;
     NewSocket->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     NewSocket->CibirIdOffsetDst = Config->CibirIdOffsetDst;
     NewSocket->AuxSocket = INVALID_SOCKET;
-    NewSocket->UseTcp = Raw->UseTcp;
+    NewSocket->ReserveAuxTcpSockForQtip = Raw->ReserveAuxTcpSockForQtip;
     if (Config->CibirIdLength) {
         memcpy(NewSocket->CibirId, Config->CibirId, Config->CibirIdLength);
     }
 
     if (Config->RemoteAddress) {
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
-        if (NewSocket->UseTcp) {
+        if (NewSocket->ReserveAuxTcpSockForQtip) {
             NewSocket->RemoteAddress = *Config->RemoteAddress;
         }
         NewSocket->Connected = TRUE;
     }
 
     if (Config->LocalAddress) {
-        if (NewSocket->UseTcp) {
+        if (NewSocket->ReserveAuxTcpSockForQtip) {
             NewSocket->LocalAddress = *Config->LocalAddress;
         }
         if (QuicAddrIsWildCard(Config->LocalAddress)) {
@@ -145,7 +145,7 @@ RawSocketCreateUdp(
             goto Error;
         }
     } else {
-        if (NewSocket->UseTcp) {
+        if (NewSocket->ReserveAuxTcpSockForQtip) {
             QuicAddrSetFamily(&NewSocket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
         }
         if (!NewSocket->Connected) {
@@ -169,7 +169,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (NewSocket != NULL) {
-            CxPlatRundownUninitialize(&NewSocket->Rundown);
+            CxPlatRundownUninitialize(&NewSocket->RawRundown);
             CxPlatZeroMemory(NewSocket, sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
             NewSocket = NULL;
         }

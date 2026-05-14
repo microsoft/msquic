@@ -25,6 +25,9 @@ The valid handle to an open configuration object.
 
 This function releases the configuration object.
 
+`ConfigurationClose` is equivalent to `free` and **MUST** be the final call on a configuration handle.
+Any API calls using a configuration handle after `ConfigurationClose` has been called is a use-after-free error!
+
 # See Also
 
 [ConfigurationOpen](ConfigurationOpen.md)<br>

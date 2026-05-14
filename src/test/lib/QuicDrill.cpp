@@ -24,6 +24,12 @@ extern "C" {
 #include "quic_datapath.h"
 }
 
+#ifndef _KERNEL_MODE
+extern CXPLAT_WORKER_POOL* WorkerPool;
+#else
+static CXPLAT_WORKER_POOL* WorkerPool;
+#endif
+
 void
 QuicDrillTestVarIntEncoder(
     )
@@ -75,6 +81,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 QuicDrillConnectionCallbackHandler(
     _In_ TestListener* /* Listener */,
     _In_ HQUIC /* ConnectionHandle */
@@ -135,12 +142,14 @@ struct DrillSender {
             DrillUdpRecvCallback,
             DrillUdpUnreachCallback,
         };
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
         QUIC_STATUS Status =
             CxPlatDataPathInitialize(
                 0,
                 &DatapathCallbacks,
                 NULL,
-                NULL,
+                WorkerPool,
+                &InitConfig,
                 &Datapath);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Datapath init failed 0x%x", Status);
@@ -168,7 +177,7 @@ struct DrillSender {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = nullptr;
         UdpConfig.RemoteAddress = &ServerAddress;
-        UdpConfig.Flags = 0;
+        UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = this;
 #ifdef QUIC_OWNING_PROCESS
@@ -191,7 +200,6 @@ struct DrillSender {
         _In_ const DrillBuffer& PacketBuffer
         )
     {
-        QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
         CXPLAT_FRE_ASSERT(PacketBuffer.size() <= UINT16_MAX);
         const uint16_t DatagramLength = (uint16_t) PacketBuffer.size();
 
@@ -199,7 +207,7 @@ struct DrillSender {
         CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
         Route.RemoteAddress = ServerAddress;
 
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
 
         CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
 
@@ -208,8 +216,7 @@ struct DrillSender {
 
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Buffer null");
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            return Status;
+            return QUIC_STATUS_OUT_OF_MEMORY;
         }
 
         //
@@ -217,13 +224,12 @@ struct DrillSender {
         //
         memcpy(SendBuffer->Buffer, PacketBuffer.data(), DatagramLength);
 
-        Status =
-            CxPlatSocketSend(
-                Binding,
-                &Route,
-                SendData);
+        CxPlatSocketSend(
+            Binding,
+            &Route,
+            SendData);
 
-        return Status;
+        return QUIC_STATUS_SUCCESS;
     }
 };
 
@@ -346,11 +352,7 @@ QuicDrillInitialPacketFailureTest(
 
 void
 QuicDrillTestInitialCid(
-    _In_ int Family,
-    _In_ bool Source, // or Dest
-    _In_ bool ValidActualLength, // or invalid
-    _In_ bool Short, // or long
-    _In_ bool ValidLengthField // or invalid
+    const DrillInitialPacketCidArgs& Params
     )
 {
 /**
@@ -368,6 +370,11 @@ QuicDrillTestInitialCid(
 
 */
 
+    const int Family = Params.Family;
+    const bool Source = Params.SourceOrDest;
+    const bool ValidActualLength = Params.ActualCidLengthValid;
+    const bool Short = Params.ShortCidLength;
+    const bool ValidLengthField = Params.CidLengthFieldValid;
     uint8_t ActualCidLength;
     uint8_t CidLengthField;
 
@@ -445,9 +452,10 @@ QuicDrillTestInitialCid(
 
 void
 QuicDrillTestInitialToken(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     )
 {
+    const int Family = Params.Family;
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     const uint8_t GeneratedTokenLength = 20;
     uint64_t TokenLen;
@@ -497,9 +505,10 @@ QuicDrillTestInitialToken(
 
 void
 QuicDrillTestServerVNPacket(
-    _In_ int Family
+    const DrillInitialPacketTokenArgs& Params
     )
 {
+    const int Family = Params.Family;
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -535,6 +544,56 @@ QuicDrillTestServerVNPacket(
 
     TEST_QUIC_SUCCEEDED(Sender.Send(InitialPacketBuffer.write()));
     TEST_QUIC_SUCCEEDED(Sender.Send(VNPacketBuffer.write()));
+
+    CxPlatSleep(500);
+}
+
+void
+QuicDrillTestKeyUpdateDuringHandshake(
+    const DrillInitialPacketTokenArgs& Params
+    )
+{
+    const int Family = Params.Family;
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+
+    MsQuicAutoAcceptListener Listener(Registration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    DrillSender Sender;
+    TEST_QUIC_SUCCEEDED(
+        Sender.Initialize(
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+            QuicAddrFamily,
+            (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) ?
+                ServerLocalAddr.SockAddr.Ipv4.sin_port :
+                ServerLocalAddr.SockAddr.Ipv6.sin6_port));
+
+    DrillInitialPacketDescriptor InitialPacketBuffer(0);
+    InitialPacketBuffer.Header.PacketNumLen = 3;
+    InitialPacketBuffer.Payload.push_back(1); // Ping frame
+    for (uint16_t i = 0; i < 1199; ++i) { InitialPacketBuffer.Payload.push_back(0); } // Padding frames
+
+    Drill1RttPacketDescriptor OneRttPacketBuffer;
+    OneRttPacketBuffer.DestCid.insert(
+        OneRttPacketBuffer.DestCid.end(),
+        InitialPacketBuffer.DestCid.begin(),
+        InitialPacketBuffer.DestCid.end());
+    OneRttPacketBuffer.KeyPhase = 1;
+    OneRttPacketBuffer.Payload.push_back(1); // Ping frame
+    for (uint16_t i = 0; i < 80; ++i) { OneRttPacketBuffer.Payload.push_back(0); } // Padding frames
+
+    TEST_QUIC_SUCCEEDED(Sender.Send(InitialPacketBuffer.writeEx(true)));
+    TEST_QUIC_SUCCEEDED(Sender.Send(OneRttPacketBuffer.write()));
 
     CxPlatSleep(500);
 }

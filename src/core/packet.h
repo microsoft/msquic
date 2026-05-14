@@ -256,7 +256,7 @@ typedef struct QUIC_SHORT_HEADER_V1 {
 //
 // Returns TRUE for a handshake packet (non-0RTT long header).
 //
-inline
+QUIC_INLINE
 BOOLEAN
 QuicPacketIsHandshake(
     _In_ const QUIC_HEADER_INVARIANT* Packet
@@ -327,7 +327,7 @@ QuicPacketValidateShortHeaderV1(
     _In_ BOOLEAN IgnoreFixedBit
     );
 
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPktNumEncode(
@@ -343,7 +343,7 @@ QuicPktNumEncode(
     }
 }
 
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPktNumDecode(
@@ -366,7 +366,7 @@ QuicPktNumDecode(
 // closest packet number to the next expected packet number, that has the
 // given low bytes.
 //
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicPktNumDecompress(
@@ -415,7 +415,7 @@ QuicPktNumDecompress(
 //
 // Encodes the long header fields for QUIC versions 1 and 2.
 //
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
@@ -534,7 +534,7 @@ QuicPacketEncodeRetryV1(
 //
 // Encodes the short header fields.
 //
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
@@ -580,7 +580,7 @@ QuicPacketEncodeShortHeaderV1(
     return RequiredBufferLength;
 }
 
-inline
+QUIC_INLINE
 uint32_t
 QuicPacketHash(
     _In_ const QUIC_ADDR* const RemoteAddress,

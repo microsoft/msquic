@@ -19,10 +19,14 @@ This works with OpenSSL TLS Provider. It can also be used for Windows OpenSSL, h
 
 
 ## Start the server
-Locate the quicsample.exe under your `artifacts/bin` directory under repo root. Start the server providing the thumbrint obtained in the previous step.
-
-```Powershell
+Locate the executable quicsample.exe or quicsample under your `artifacts/bin` directory under repo root. Start the server providing the certificate and key obtained in the previous step.
+On Windows, certificate hash can be used to load from certficate store:
+```
 quicsample.exe -server -cert_hash:FAF9B176D64930D67C372CB456BAD38E7E5689F7
+```
+On Linux, file paths can be used to load server credential:
+```
+quicsample -server -cert_file:path/to/server.cert -key_file:path/to/server.key
 ```
 By default, the server listens on port 4567.
 
@@ -30,7 +34,7 @@ By default, the server listens on port 4567.
 Start the client providing the IP address for the server. Here 127.0.0.1 is used as an example.
 
 ```Powershell
-quicsample.exe -client -unsecure -target:{127.0.0.1}
+quicsample -client -unsecure -target:127.0.0.1
 ```
 
 ## Troubleshooting with Wireshark 

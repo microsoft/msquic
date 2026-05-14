@@ -1,19 +1,19 @@
 <h1 align="center"><img src="docs/images/readme_logo.png" width="500" alt="MsQuic logo"/></h1>
 
-[![Documentation](https://img.shields.io/static/v1?label=Documentation&message=Dashboard&color=blue)](https://microsoft.github.io/msquic/msquicdocs/docs/API.html)
-[![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://microsoft.github.io/msquic/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/build.yml?query=branch%3Amain&label=Build)](https://github.com/microsoft/msquic/actions/workflows/build.yml?query=branch%3Amain)
-[![Test Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/test.yml?query=branch%3Amain&label=Test)](https://github.com/microsoft/msquic/actions/workflows/test.yml?query=branch%3Amain)
-[![Stress Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/stress.yml?query=branch%3Amain&label=Stress)](https://github.com/microsoft/msquic/actions/workflows/stress.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/github/microsoft/msquic/branch/main/graph/badge.svg?token=xAjIMDn7wy)](https://codecov.io/github/microsoft/msquic)
-![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4846/badge)](https://bestpractices.coreinfrastructure.org/projects/4846)
 [![Discord](https://img.shields.io/discord/827744285595271168?label=Discord&logo=discord&logoColor=white&color=7289DA)](https://discord.gg/YGAtCwTSsc)
+[![Documentation](https://img.shields.io/static/v1?label=Documentation&message=API&color=yellow)](https://microsoft.github.io/msquic/msquicdocs/docs/API.html)
+[![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://microsoft.github.io/netperf/dist/)
+[![codecov](https://codecov.io/github/microsoft/msquic/branch/main/graph/badge.svg?token=xAjIMDn7wy)](https://codecov.io/github/microsoft/msquic)
 [![crates.io](https://img.shields.io/crates/v/msquic)](https://crates.io/crates/msquic)
 [![nuget](https://img.shields.io/nuget/vpre/Microsoft.Native.Quic.MsQuic.Schannel?style=plastic)](https://www.nuget.org/profiles/msquic)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4846/badge)](https://bestpractices.coreinfrastructure.org/projects/4846)
 
 MsQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
-protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library. MsQuic also has C++ API wrapper classes and exposes interop layers for both Rust and C#.
+protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library. MsQuic also has C++ API wrapper classes and exposes interop layers for both [Rust](https://docs.rs/msquic/latest/msquic/) and C#.
+
+> [!TIP]
+> You are using MsQuic? Let us know! Knowing our users lets us prioritize work and keep improving MsQuic in the best possible direction.
+> Post in the [Discussion](https://github.com/microsoft/msquic/discussions/4963) to say hello and give us a wave on [Discord](https://discord.gg/YGAtCwTSsc)!
 
 ## Protocol Features
 
@@ -51,6 +51,7 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * Asynchronous IO.
   * Receive side scaling ([RSS](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-receive-side-scaling)) support.
   * UDP send and receive coalescing support.
+  * Kernel stack bypass via [XDP](https://github.com/microsoft/xdp-for-windows?tab=readme-ov-file#xdp-for-windows).
 
 # Documentation
 
@@ -62,7 +63,7 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * For using the API, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.c).
   * For running a sample server and client app, see the [Quick Start Guide](./docs/Sample.md).
   * For deploying QUIC, see the [Deployment docs](./docs/Deployment.md).
-  * For diagnosing issues, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TSG.md).
+  * For diagnosing issues, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TroubleShootingGuide.md).
   * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
 
 # Contributing

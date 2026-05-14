@@ -120,6 +120,17 @@ CxPlatInitialize(
     CxPlatProcessorCount =
         (uint32_t)KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 
+    RTL_OSVERSIONINFOW osInfo;
+    RtlZeroMemory(&osInfo, sizeof(osInfo));
+    osInfo.dwOSVersionInfoSize = sizeof(osInfo);
+    NTSTATUS status = RtlGetVersion(&osInfo);
+    if (NT_SUCCESS(status)) {
+        DWORD BuildNumber = osInfo.dwBuildNumber;
+        CxPlatform.dwBuildNumber = BuildNumber;
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE); // TODO: Is the assert here enough or is there an appropriate QUIC_STATUS we return?
+    }
+
     QUIC_STATUS Status =
         BCryptOpenAlgorithmProvider(
             &CxPlatform.RngAlgorithm,

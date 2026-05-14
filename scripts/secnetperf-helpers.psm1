@@ -31,13 +31,8 @@ function Repo-Path {
 function Configure-DumpCollection {
     param ($Session)
     if ($isWindows) {
-        Invoke-Command -Session $Session -ScriptBlock {
-            $DumpDir = "C:/_work/quic/artifacts/crashdumps"
-            New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
-            New-Item -Path $Using:WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
-            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
-            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2 | Out-Null
-        }
+        NetperfSendCommand "Config_DumpCollection_Windows" $Session
+        NetperfWaitServerFinishExecution -Session $Session
         $DumpDir = Repo-Path "artifacts/crashdumps"
         New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
         New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
@@ -132,47 +127,43 @@ function Wait-DriverStarted {
     throw "$DriverName failed to start!"
 }
 
+function Prepare-MachineForTest {
+    param ($Session, $RemoteDir)
+    Write-Host "Running prepare-machine.ps1 -ForTest -InstallSigningCertificates"
+    .\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates
+    Write-Host "Running prepare-machine.ps1 -ForTest -InstallSigningCertificates on peer"
+
+    NetperfSendCommand "Prepare_MachineForTest" $Session
+    NetperfWaitServerFinishExecution -Session $Session
+}
+
 # Download and install XDP on both local and remote machines.
 function Install-XDP {
     param ($Session, $RemoteDir)
-    $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
-    $msiPath = Repo-Path "artifacts/xdp.msi"
-    Write-Host "Downloading XDP installer"
     whoami
-    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
     Write-Host "Installing XDP driver locally"
-    msiexec.exe /i $msiPath /quiet | Out-Null
-    $Size = Get-FileHash $msiPath
-    Write-Host "MSI file hash: $Size"
-    Wait-DriverStarted "xdp" 10000
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver
     Write-Host "Installing XDP driver on peer"
 
     if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Install_XDP;$installerUri"
+        NetperfSendCommand "Install_XDP"
         NetperfWaitServerFinishExecution
         return
     }
 
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
-    Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
-    $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
     Invoke-Command -Session $Session -ScriptBlock {
-        msiexec.exe /i $Using:remoteMsiPath /quiet | Out-Host
-        $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
-        & $WaitDriverStarted xdp 10000
+        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
     }
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
 function Uninstall-XDP {
     param ($Session, $RemoteDir)
-    $msiPath = Repo-Path "artifacts/xdp.msi"
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
     Write-Host "Uninstalling XDP driver locally"
-    try { msiexec.exe /x $msiPath /quiet | Out-Null } catch {}
+    try { .\scripts\prepare-machine.ps1 -UninstallXdp } catch {}
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { msiexec.exe /x $Using:remoteMsiPath /quiet | Out-Null } catch {}
+        try { & "$Using:RemoteDir\scripts\prepare-machine.ps1" -UninstallXdp } catch {}
     }
 }
 
@@ -307,12 +298,6 @@ function Start-RemoteServer {
     throw "Server failed to start!"
 }
 
-# Passively starts the server on the remote machine by queuing up a new script to execute.
-function Start-RemoteServerPassive {
-    param ($Command)
-    NetperfSendCommand $Command
-}
-
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
 # waits for the job to complete. Finally, it returns the console output of the
 # job.
@@ -397,7 +382,9 @@ function Wait-LocalTest {
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
             $Out = $StdOut.Result.Trim()
+            $Err = $StdError.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
+            if ($Err.Length -ne 0) { Write-Error $Err }
         } catch {}
         if ($Silent) {
             Write-Host "Silently ignoring Client timeout!"
@@ -410,7 +397,9 @@ function Wait-LocalTest {
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
             $Out = $StdOut.Result.Trim()
+            $Err = $StdError.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
+            if ($Err.Length -ne 0) { Write-Error $Err }
         } catch {}
         if ($Silent) {
             Write-Host "Silently ignoring Client exit code: $($Process.ExitCode)"
@@ -469,7 +458,7 @@ function Check-TestFilter {
 # Parses the console output of secnetperf to extract the metric value.
 function Get-TestOutput {
     param ($Output, $Metric)
-    if ($Metric -eq "latency") {
+    if ($Metric -eq "latency" -or $Metric -eq "rps") {
         $latency_percentiles = "(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+"
         $RPS_regex = "(?<=Result: )\d+"
         $percentiles = [regex]::Matches($Output, $latency_percentiles) | ForEach-Object {$_.Value}
@@ -480,7 +469,7 @@ function Get-TestOutput {
         $Output -match "(\d+) HPS" | Out-Null
         return $matches[1]
     } else { # throughput
-        $Output -match "@ (\d+) kbps" | Out-Null
+        $Output -match "(\d+) kbps" | Out-Null
         return $matches[1]
     }
 }
@@ -522,38 +511,59 @@ function Get-LatencyOutput {
     }
 }
 
+function Is-TcpSupportedByIo {
+    param ($Io)
+
+    return $Io -ne "xdp" -and $Io -ne "qtip" -and $Io -ne "wsk" -and $Io -ne "iouring"
+}
+
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter, $Environment, $RunId, $SyncerSecret)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $ServerIo, $Filter, $Environment, $RunId, $SyncerSecret)
 
     $values = @(@(), @())
     $latency = $null
     $extraOutput = $null
     $hasFailures = $false
-    if ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") {
+    if ((Is-TcpSupportedByIo $io) -and (Is-TcpSupportedByIo $ServerIo)) {
         $tcpSupported = 1
     } else {
         $tcpSupported = 0
     }
     $metric = "throughput"
-    if ($exeArgs.Contains("plat:1")) {
+    if ($Scenario.Contains("rps")) {
+        $metric = "rps"
+    } elseif ($Scenario.Contains("latency")) {
         $metric = "latency"
         $latency = @(@(), @())
         $extraOutput = Repo-Path "latency.txt"
         if (!$isWindows) {
             chmod +rw "$extraOutput"
         }
-    } elseif ($exeArgs.Contains("prate:1")) {
+    } elseif ($Scenario.Contains("hps")) {
         $metric = "hps"
     }
 
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
-    $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(" ")) # First arg is the exec mode
     $clientPath = Repo-Path $SecNetPerfPath
-    $serverArgs = "$execMode -io:$io"
-    $clientArgs = "-target:$RemoteName $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
+    $serverArgs = "-scenario:$Scenario -io:$ServerIo"
+
+    if ($env:collect_cpu_traces) {
+        $updated_runtime_for_cpu_traces = @{
+            "upload"=12 * 1000 * 1000
+            "download"=12 * 1000 * 1000
+            "hps"=6 * 1000 * 1000
+            "rps"=5 * 1000 * 1000
+            "rps-multi"=5 * 1000 * 1000
+            "latency"=5 * 1000 * 1000
+        }
+        $new_runtime = $updated_runtime_for_cpu_traces[$Scenario]
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -runtime:$new_runtime -trimout -watchdog:25000"
+    } else {
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
+    }
     if ($io -eq "xdp" -or $io -eq "qtip") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
@@ -578,13 +588,12 @@ function Invoke-Secnetperf {
         continue
     }
 
-     # Linux XDP requires sudo for now
-    $useSudo = (!$isWindows -and $io -eq "xdp")
+     $useSudo = $false
 
     if ($tcp -eq 0) {
-        $artifactName = "$TestId-quic"
+        $artifactName = "$Scenario-quic"
     } else {
-        $artifactName = "$TestId-tcp"
+        $artifactName = "$Scenario-tcp"
     }
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
@@ -608,6 +617,11 @@ function Invoke-Secnetperf {
         try { .\scripts\log.ps1 -Cancel } catch {} # Cancel any previous logging
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and ($Session -eq "NOT_SUPPORTED")) {
+        NetperfSendCommand "Start_Server_Msquic_Logging;$LogProfile"
+        NetperfWaitServerFinishExecution
+        .\scripts\log.ps1 -Start -Profile $LogProfile
+    }
 
     Write-Host "::group::> secnetperf $clientArgs"
 
@@ -621,7 +635,7 @@ function Invoke-Secnetperf {
         $StateDir = "/etc/_state"
     }
     if ($Session -eq "NOT_SUPPORTED") {
-        Start-RemoteServerPassive "$RemoteDir/$SecNetPerfPath $serverArgs"
+        NetperfSendCommand "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
     } else {
         $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
@@ -690,6 +704,14 @@ function Invoke-Secnetperf {
             catch { Write-Host "Failed to copy server logs!" }
         }
 
+        # For Azure scenarios, without remote powershell, stop logging on the client / server.
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and $Session -eq "NOT_SUPPORTED") {
+            try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
+            catch { Write-Host "Failed to stop logging on client!" }
+            NetperfSendCommand "Stop_Server_Msquic_Logging;$artifactName"
+            NetperfWaitServerFinishExecution
+        }
+
         # Grab any crash dumps that were generated.
         if ($Session -ne "NOT_SUPPORTED") {
             if (Collect-LocalDumps $artifactDir) { }
@@ -713,14 +735,14 @@ function Invoke-Secnetperf {
     }
 }
 
-function CheckRegressionResult($values, $testid, $transport, $regressionJson, $envStr) {
+function CheckRegressionResult($values, $scenario, $transport, $regressionJson, $envStr) {
 
     $sum = 0
     foreach ($item in $values) {
         $sum += $item
     }
     $avg = $sum / $values.Length
-    $Testid = "$testid-$transport"
+    $Scenario = "$scenario-$transport"
 
     $res = @{
         Baseline = "N/A"
@@ -732,14 +754,14 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
     }
 
     try {
-        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
-        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.Baseline = $regressionJson.$Scenario.$envStr.baseline
+        $res.BestResult = $regressionJson.$Scenario.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Scenario.$envStr.BestResultCommit
         $res.CumulativeResult = $avg
         $res.AggregateFunction = "AVG"
 
         if ($avg -lt $res.Baseline) {
-            Write-GHError "Regression detected in $Testid for $envStr. See summary table for details."
+            Write-GHError "Regression detected in $Scenario for $envStr. See summary table for details."
             $res.HasRegression = $true
         }
     } catch {
@@ -749,7 +771,7 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
     return $res
 }
 
-function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envStr) {
+function CheckRegressionLat($values, $regressionJson, $scenario, $transport, $envStr) {
 
     # TODO: Right now, we are not using a watermark based method for regression detection of latency percentile values because we don't know how to determine a "Best Ever" distribution.
     #       (we are just looking at P0, P50, P99 columns, and computing the baseline for each percentile as the mean - 2 * std of the last 20 runs. )
@@ -762,7 +784,7 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
     }
 
     $RpsAvg /= $NumRuns
-    $Testid = "$testid-$transport"
+    $Scenario = "$scenario-$transport"
 
     $res = @{
         Baseline = "N/A"
@@ -774,14 +796,14 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
     }
 
     try {
-        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
-        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.Baseline = $regressionJson.$Scenario.$envStr.baseline
+        $res.BestResult = $regressionJson.$Scenario.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Scenario.$envStr.BestResultCommit
         $res.CumulativeResult = $RpsAvg
         $res.AggregateFunction = "AVG"
 
         if ($RpsAvg -lt $res.Baseline) {
-            Write-GHError "RPS Regression detected in $Testid for $envStr. See summary table for details."
+            Write-GHError "RPS Regression detected in $Scenario for $envStr. See summary table for details."
             $res.HasRegression = $true
         }
     } catch {

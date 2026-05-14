@@ -38,6 +38,8 @@ Environment:
 
 #include <stdint.h>
 
+#define QUIC_INLINE inline
+
 #define SUCCESS_HRESULT_FROM_WIN32(x) \
     ((HRESULT)(((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16)))
 
@@ -99,6 +101,7 @@ Environment:
 #define QUIC_STATUS_INVALID_STATE           E_NOT_VALID_STATE                               // 0x8007139f
 #define QUIC_STATUS_NOT_SUPPORTED           E_NOINTERFACE                                   // 0x80004002
 #define QUIC_STATUS_NOT_FOUND               HRESULT_FROM_WIN32(ERROR_NOT_FOUND)             // 0x80070490
+#define QUIC_STATUS_FILE_NOT_FOUND          HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)        // 0x80070002
 #define QUIC_STATUS_BUFFER_TOO_SMALL        E_NOT_SUFFICIENT_BUFFER                         // 0x8007007a
 #define QUIC_STATUS_HANDSHAKE_FAILURE       ERROR_QUIC_HANDSHAKE_FAILURE                    // 0x80410000
 #define QUIC_STATUS_ABORTED                 E_ABORT                                         // 0x80004004
@@ -157,7 +160,7 @@ typedef SOCKADDR_INET QUIC_ADDR;
 #define QUIC_ADDRESS_FAMILY_INET AF_INET
 #define QUIC_ADDRESS_FAMILY_INET6 AF_INET6
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
@@ -169,7 +172,7 @@ QuicAddrIsValid(
         Addr->si_family == QUIC_ADDRESS_FAMILY_INET6;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
@@ -183,7 +186,7 @@ QuicAddrCompareIp(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
@@ -197,7 +200,7 @@ QuicAddrCompare(
     return QuicAddrCompareIp(Addr1, Addr2);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
@@ -214,7 +217,7 @@ QuicAddrIsWildCard(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_ADDRESS_FAMILY
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
@@ -223,7 +226,7 @@ QuicAddrGetFamily(
     return (QUIC_ADDRESS_FAMILY)Addr->si_family;
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetFamily(
     _Inout_ QUIC_ADDR* Addr,
@@ -233,7 +236,7 @@ QuicAddrSetFamily(
     Addr->si_family = (ADDRESS_FAMILY)Family;
 }
 
-inline
+QUIC_INLINE
 uint16_t // Returns in host byte order.
 QuicAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
@@ -242,7 +245,7 @@ QuicAddrGetPort(
     return QuicNetByteSwapShort(Addr->Ipv4.sin_port);
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetPort(
     _Out_ QUIC_ADDR* Addr,
@@ -252,16 +255,18 @@ QuicAddrSetPort(
     Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
     )
 {
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        Addr->Ipv4.sin_addr.s_addr = 0UL;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
     } else {
+        memset(&Addr->Ipv6.sin6_addr, 0, sizeof(Addr->Ipv6.sin6_addr));
         Addr->Ipv6.sin6_addr.u.Byte[15] = 1;
     }
 }
@@ -269,7 +274,7 @@ QuicAddrSetToLoopback(
 //
 // Test only API to increment the IP address value.
 //
-inline
+QUIC_INLINE
 void
 QuicAddrIncrement(
     _Inout_ QUIC_ADDR* Addr
@@ -282,7 +287,7 @@ QuicAddrIncrement(
     }
 }
 
-inline
+QUIC_INLINE
 uint32_t
 QuicAddrHash(
     _In_ const QUIC_ADDR* Addr
@@ -313,7 +318,7 @@ QuicAddrHash(
 //
 #if WINAPI_FAMILY != WINAPI_FAMILY_GAMES
 
-inline
+QUIC_INLINE
 _Success_(return != FALSE)
 BOOLEAN
 QuicAddrFromString(
@@ -342,7 +347,7 @@ typedef struct QUIC_ADDR_STR {
     char Address[64];
 } QUIC_ADDR_STR;
 
-inline
+QUIC_INLINE
 _Success_(return != FALSE)
 BOOLEAN
 QuicAddrToString(
@@ -372,5 +377,29 @@ QuicAddrToString(
 }
 
 #endif // WINAPI_FAMILY != WINAPI_FAMILY_GAMES
+
+//
+// Event Queue Abstraction
+//
+
+typedef HANDLE QUIC_EVENTQ;
+
+typedef OVERLAPPED_ENTRY QUIC_CQE;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_EVENT_COMPLETION)(
+    _In_ QUIC_CQE* Cqe
+    );
+typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
+
+typedef struct QUIC_SQE {
+    OVERLAPPED Overlapped;
+    QUIC_EVENT_COMPLETION_HANDLER Completion;
+#if DEBUG
+    BOOLEAN IsQueued; // Debug flag to catch double queueing.
+#endif
+} QUIC_SQE;
 
 #endif // _MSQUIC_WINUSER_

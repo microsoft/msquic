@@ -219,8 +219,8 @@ QuicPacketBuilderPrepare(
     // the current one doesn't match, finalize it and then start a new one.
     //
 
-    const uint16_t Partition = Connection->Worker->PartitionIndex;
-    const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
+    QUIC_PARTITION* Partition = Connection->Partition;
+    const uint64_t PartitionShifted = ((uint64_t)Partition->Index + 1) << 40;
 
     BOOLEAN NewQuicPacket = FALSE;
     if (Builder->PacketType != NewPacketType || IsPathMtuDiscovery ||
@@ -255,7 +255,7 @@ QuicPacketBuilderPrepare(
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
             Builder->BatchId =
-                PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->SendBatchId);
+                PartitionShifted | InterlockedIncrement64((int64_t*)&Partition->SendBatchId);
             CXPLAT_SEND_CONFIG SendConfig = {
                 &Builder->Path->Route,
                 IsPathMtuDiscovery ?
@@ -265,7 +265,8 @@ QuicPacketBuilderPrepare(
                         DatagramSize),
                 Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
                 Builder->Connection->Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT ?
-                    CXPLAT_SEND_FLAGS_MAX_THROUGHPUT : CXPLAT_SEND_FLAGS_NONE
+                    CXPLAT_SEND_FLAGS_MAX_THROUGHPUT : CXPLAT_SEND_FLAGS_NONE,
+                Connection->DSCP
             };
             Builder->SendData =
                 CxPlatSendDataAlloc(Builder->Path->Binding->Socket, &SendConfig);
@@ -371,12 +372,33 @@ QuicPacketBuilderPrepare(
         }
 
         Builder->Metadata->PacketId =
-            PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->SendPacketId);
+            PartitionShifted | InterlockedIncrement64((int64_t*)&Partition->SendPacketId);
         QuicTraceEvent(
             PacketCreated,
             "[pack][%llu] Created in batch %llu",
             Builder->Metadata->PacketId,
             Builder->BatchId);
+
+        //
+        // Occassionally skip a packet number for improved security.
+        //
+        if (Connection->Send.NextSkippedPacketNumber == Connection->Send.NextPacketNumber) {
+            Connection->Send.SkippedPacketNumber =
+                Connection->Send.NextPacketNumber++;
+            QuicTraceLogConnWarning(
+                SkipPacketNumber,
+                Connection,
+                "Skipped packet number %llu",
+                Connection->Send.SkippedPacketNumber);
+
+            //
+            // Randomly skip a packet number (from 0 to 65535).
+            //
+            uint16_t RandomSkip = 0;
+            CxPlatRandom(sizeof(RandomSkip), &RandomSkip);
+            Connection->Send.NextSkippedPacketNumber =
+                Connection->Send.NextPacketNumber + RandomSkip;
+        }
 
         Builder->Metadata->FrameCount = 0;
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
@@ -975,6 +997,17 @@ QuicPacketBuilderFinalize(
         Builder->Path,
         Builder->Metadata);
 
+    //
+    // Per RFC 9001 s4.9.1, a client MUST discard Initial keys when it first
+    // sends a Handshake packet. It must be done on ANY Handshake packet, to
+    // ensure the congestion control state is cleared and Initial bytes in flight
+    // are not limiting Handshake packets.
+    //
+    if (QuicConnIsClient(Connection) &&
+        Builder->Key->Type == QUIC_PACKET_KEY_HANDSHAKE) {
+        QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
+    }
+
     Builder->Metadata->FrameCount = 0;
 
     if (Builder->Metadata->Flags.IsAckEliciting) {
@@ -1064,6 +1097,7 @@ QuicPacketBuilderSendBatch(
 
     QuicBindingSend(
         Builder->Path->Binding,
+        Builder->Connection->Partition,
         &Builder->Path->Route,
         Builder->SendData,
         Builder->TotalDatagramsLength,

@@ -9,6 +9,10 @@ on:
         required: false
         default: ''
         type: string
+      repo:
+        required: false
+        default: microsoft/msquic
+        type: string
       config:
         required: false
         default: 'Release'
@@ -25,9 +29,8 @@ on:
       os:
         required: false
         type: string
-        default: 'windows-2019'
+        default: 'windows-2022'
         # options:
-        #   - windows-2019
         #   - windows-2022
       arch:
         required: false
@@ -42,15 +45,16 @@ on:
         default: 'schannel'
         type: string
         # options:
+        #   - quictls
         #   - openssl
-        #   - openssl3
         #   - schannel
       build:
         required: false
         default: '' # Empty string means build all
         type: string
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-windows-kernel-reuse:
@@ -58,15 +62,15 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       with:
-        repository: microsoft/msquic
+        repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -ForKernel
     - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+      uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57
     - name: Nuget Restore
       shell: pwsh
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }}
@@ -88,7 +92,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.build }}
         path: artifacts

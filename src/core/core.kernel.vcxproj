@@ -26,12 +26,14 @@
     <ClCompile Include="configuration.c" />
     <ClCompile Include="congestion_control.c" />
     <ClCompile Include="connection.c" />
+    <ClCompile Include="connection_pool.c" />
     <ClCompile Include="crypto.c" />
     <ClCompile Include="crypto_tls.c" />
     <ClCompile Include="cubic.c" />
     <ClCompile Include="datagram.c" />
     <ClCompile Include="frame.c" />
     <ClCompile Include="injection.c" />
+    <ClCompile Include="partition.c" />
     <ClCompile Include="library.c" />
     <ClCompile Include="listener.c" />
     <ClCompile Include="lookup.c" />
@@ -67,6 +69,7 @@
     <ClInclude Include="configuration.h" />
     <ClInclude Include="congestion_control.h" />
     <ClInclude Include="connection.h" />
+    <ClInclude Include="connection_pool.h" />
     <ClInclude Include="crypto.h" />
     <ClInclude Include="cubic.h" />
     <ClInclude Include="datagram.h" />

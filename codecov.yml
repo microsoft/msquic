@@ -2,8 +2,13 @@ coverage:
   status:
     project:
       default:
+        informational: true
         target: auto
         threshold: 2%
     patch:
-      target: 80%
-      threshold: 2%
+      default:
+        informational: true
+        target: 80%
+ignore:
+  - "**/*.md"
+  - "docs/**/*"

@@ -97,6 +97,98 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryRecvMaxCoalescedSizeFaile
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathOpenUdpv6SocketFailed
+// [data] UDPv6 helper socket failed to open, 0x%x
+// QuicTraceLogWarning(
+            DatapathOpenUdpv6SocketFailed,
+            "[data] UDPv6 helper socket failed to open, 0x%x",
+            WsaError);
+// arg2 = arg2 = WsaError = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathOpenUdpv6SocketFailed,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathTestSetIpv6TrafficClassFailed
+// [data] Test setting IPV6_TCLASS failed, 0x%x
+// QuicTraceLogWarning(
+            DatapathTestSetIpv6TrafficClassFailed,
+            "[data] Test setting IPV6_TCLASS failed, 0x%x",
+            WsaError);
+// arg2 = arg2 = WsaError = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathCibirWarning
+// [data][%p] CIBIR detected, %s
+// QuicTraceLogWarning(
+                DatapathCibirWarning,
+                "[data][%p] CIBIR detected, %s",
+                Socket,
+                "Skipping OS port reservation for this server socket.");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = "Skipping OS port reservation for this server socket." = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCibirWarning,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathCibirIdUsed
+// [data][%p] Using CIBIR ID (len %hhu, id 0x%llx)
+// QuicTraceLogWarning(
+            DatapathCibirIdUsed,
+            "[data][%p] Using CIBIR ID (len %hhu, id 0x%llx)",
+            Socket,
+            Config->CibirIdLength,
+            (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Config->CibirIdLength = arg3
+// arg4 = arg4 = (unsigned long long)QuicCibirIdToUint64(
+                Config->CibirId,
+                Config->CibirIdLength) = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCibirIdUsed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathRecvEmpty
 // [data][%p] Dropping datagram with empty payload.
 // QuicTraceLogWarning(
@@ -154,6 +246,44 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathUroPreallocExceeded,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WinUserDataPathReleased
+// [data][%p] Datapath Freed
+// QuicTraceLogVerbose(
+            WinUserDataPathReleased,
+            "[data][%p] Datapath Freed",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, WinUserDataPathReleased,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WinUserProcessorContextRelease
+// [data][%p] Processor Context Destroyed
+// QuicTraceLogVerbose(
+            WinUserProcessorContextRelease,
+            "[data][%p] Processor Context Destroyed",
+            DatapathProc);
+// arg2 = arg2 = DatapathProc = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, WinUserProcessorContextRelease,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathShutDownComplete
 // [data][%p] Shut down (complete)
 // QuicTraceLogVerbose(
@@ -182,6 +312,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete,
 // arg2 = arg2 = SocketProc = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WinUserSocketContextUnitialize
+// [data][%p] Socket Context queueing for destruction
+// QuicTraceLogVerbose(
+        WinUserSocketContextUnitialize,
+        "[data][%p] Socket Context queueing for destruction",
+        SocketProc);
+// arg2 = arg2 = SocketProc = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, WinUserSocketContextUnitialize,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -246,6 +395,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathResolveHostNameFailed
+// [%p] Couldn't resolve hostname '%s' to an IP address
+// QuicTraceLogError(
+        DatapathResolveHostNameFailed,
+        "[%p] Couldn't resolve hostname '%s' to an IP address",
+        Datapath,
+        HostName);
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = HostName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathResolveHostNameFailed,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -292,6 +464,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "No local unicast addresses found");
+// arg2 = arg2 = "No local unicast addresses found" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathErrorStatus
 // [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -299,10 +490,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             LastError,
-            "CxPlatSocketEnqueueSqe");
+            "CxPlatEventQEnqueueEx");
 // arg2 = arg2 = SocketProc->Parent = arg2
 // arg3 = arg3 = LastError = arg3
-// arg4 = arg4 = "CxPlatSocketEnqueueSqe" = arg4
+// arg4 = arg4 = "CxPlatEventQEnqueueEx" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus,
     TP_ARGS(

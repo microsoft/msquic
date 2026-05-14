@@ -16,12 +16,14 @@ set(SOURCES
     configuration.c
     congestion_control.c
     connection.c
+    connection_pool.c
     crypto.c
     crypto_tls.c
     cubic.c
     bbr.c
     datagram.c
     frame.c
+    partition.c
     library.c
     listener.c
     lookup.c
@@ -52,10 +54,6 @@ set(SOURCES
     sliding_window_extremum.c
 )
 
-if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    set(SOURCES ${SOURCES} inline.c)
-endif()
-
 add_library(core STATIC ${SOURCES})
 
 if(NOT QUIC_BUILD_SHARED)
@@ -68,6 +66,11 @@ target_link_libraries(core PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET core PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-if (MSVC AND NOT QUIC_ENABLE_SANITIZERS)
+if (MSVC AND NOT QUIC_SANITIZER_ACTIVE)
     target_compile_options(core PRIVATE /analyze)
 endif()
+
+# Special scoped down static lib for fuzzing dependencies
+add_library(core_fuzz STATIC frame.c range.c crypto_tls.c)
+target_link_libraries(core_fuzz PUBLIC inc)
+target_link_libraries(core_fuzz PRIVATE warnings main_binary_link_args)

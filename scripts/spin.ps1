@@ -51,7 +51,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -95,7 +95,10 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp
+    [switch]$UseXdp,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseProcDump = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -182,14 +185,12 @@ if ($AZP) {
     $Arguments += " -AZP"
 }
 
+if ($UseProcDump) {
+    $Arguments += " -UseProcDump"
+}
+
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
     $Arguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
 
-# Run the script.
-if ($IsLinux -and $UseXdp) {
-    $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-    Invoke-Expression ('/usr/bin/sudo bash -c "ulimit -n $NOFILE && pwsh $RunExecutable $Arguments"')
-} else {
     Invoke-Expression ($RunExecutable + " " + $Arguments)
-}

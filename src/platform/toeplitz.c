@@ -75,7 +75,7 @@ CxPlatToeplitzHashInitialize(
     //
     // Initialize the Toeplitz->LookupTables.
     //
-    for (uint32_t i = 0; i < CXPLAT_TOEPLITZ_LOOKUP_TABLE_COUNT; i++) {
+    for (uint32_t i = 0; i < (uint32_t)Toeplitz->InputSize * NIBBLES_PER_BYTE; i++) {
         //
         // First construct the 32-bit word that is obtained after
         // shifting the key left by i*4 bits. That goes into Word1
@@ -151,8 +151,10 @@ CxPlatToeplitzHashCompute(
     uint32_t BaseOffset = HashInputOffset * NIBBLES_PER_BYTE;
     uint32_t Result = 0;
 
+    CXPLAT_DBG_ASSERT(HashInputLength + HashInputOffset <= (uint32_t)Toeplitz->InputSize);
+
     CXPLAT_DBG_ASSERT(
-        (BaseOffset + HashInputLength * NIBBLES_PER_BYTE) <= CXPLAT_TOEPLITZ_LOOKUP_TABLE_COUNT);
+        (BaseOffset + HashInputLength * NIBBLES_PER_BYTE) <= (uint32_t)(Toeplitz->InputSize * NIBBLES_PER_BYTE));
 
     for (uint32_t i = 0; i < HashInputLength; i++) {
         Result ^= Toeplitz->LookupTableArray[BaseOffset].Table[(HashInput[i] >> 4) & 0xf];

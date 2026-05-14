@@ -176,7 +176,7 @@ typedef struct QUIC_CID_HASH_ENTRY {
 // Creates a new null/empty source connection ID, that will be used on the
 // receive path.
 //
-inline
+QUIC_INLINE
 _Success_(return != NULL)
 QUIC_CID_HASH_ENTRY*
 QuicCidNewNullSource(
@@ -199,7 +199,7 @@ QuicCidNewNullSource(
 //
 // Creates a source connection ID from a pre-existing CID buffer.
 //
-inline
+QUIC_INLINE
 _Success_(return != NULL)
 QUIC_CID_HASH_ENTRY*
 QuicCidNewSource(
@@ -232,7 +232,7 @@ QuicCidNewSource(
 // Used for the client's Initial packet (and 0-RTT), this creates a random
 // destination connection ID.
 //
-inline
+QUIC_INLINE
 _Success_(return != NULL)
 QUIC_CID_LIST_ENTRY*
 QuicCidNewRandomDestination(
@@ -258,7 +258,7 @@ QuicCidNewRandomDestination(
 //
 // Creates a destination connection ID from a pre-existing CID buffer.
 //
-inline
+QUIC_INLINE
 _Success_(return != NULL)
 QUIC_CID_LIST_ENTRY*
 QuicCidNewDestination(
@@ -294,12 +294,12 @@ typedef struct QUIC_CID_STR {
     char Buffer[2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + 1];
 } QUIC_CID_STR;
 
-inline char QuicHalfByteToStr(uint8_t b)
+QUIC_INLINE char QuicHalfByteToStr(uint8_t b)
 {
     return b < 10 ? ('0' + b) : ('a' + b - 10);
 }
 
-inline
+QUIC_INLINE
 QUIC_CID_STR
 QuicCidBufToStr(
     _In_reads_(Length)
@@ -316,7 +316,7 @@ QuicCidBufToStr(
     return CidStr;
 }
 
-inline
+QUIC_INLINE
 QUIC_CID_STR
 QuicCidToStr(
     _In_ const QUIC_CID* const CID

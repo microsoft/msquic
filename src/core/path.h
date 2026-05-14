@@ -225,7 +225,7 @@ QuicPathSetAllowance(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicPathIncrementAllowance(
     _In_ QUIC_CONNECTION* Connection,
@@ -237,7 +237,7 @@ QuicPathIncrementAllowance(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicPathDecrementAllowance(
     _In_ QUIC_CONNECTION* Connection,
@@ -254,7 +254,7 @@ QuicPathDecrementAllowance(
 //
 // Calculates the maximum size datagram payload from the path's MTU.
 //
-inline
+QUIC_INLINE
 uint16_t
 QuicPathGetDatagramPayloadSize(
     _In_ const QUIC_PATH* Path

@@ -162,6 +162,11 @@ Obtain the peer certificate using a faster in-process API call. Only available o
 `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE`
 
 Enable CA certificate file provided in the `CaCertificateFile` member.
+Only valid for OpenSSL.
+
+`QUIC_CREDENTIAL_FLAG_DISABLE_AIA`
+
+The following flag can be set to explicitly disable AIA retrievals. Only valid on Windows.
 
 `QUIC_CREDENTIAL_FLAG_SET_MULTIPLE`
 

@@ -16,14 +16,17 @@ volatile long ConnectionsActive;
 void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
     CxPlatSystemLoad();
     CxPlatInitialize();
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
     CXPLAT_DATAPATH* Datapath = nullptr;
     //QuicAddrSetFamily(&ServerAddress, AF_INET);
-    if (QUIC_FAILED(CxPlatDataPathInitialize(0,nullptr,nullptr,nullptr,&Datapath)) ||
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    if (QUIC_FAILED(CxPlatDataPathInitialize(0,nullptr,nullptr,WorkerPool,&InitConfig,&Datapath)) ||
         QUIC_FAILED(CxPlatDataPathResolveAddress(Datapath,ServerName,&ServerAddress))) {
         printf("Failed to resolve IP address!\n");
         exit(1);
     }
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 }

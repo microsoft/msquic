@@ -60,12 +60,12 @@ typedef enum QUIC_EVENT_TYPE {
     EventType_Count
 } QUIC_EVENT_TYPE;
 
-inline QUIC_EVENT_TYPE GetEventType(USHORT Id)
+QUIC_INLINE QUIC_EVENT_TYPE GetEventType(USHORT Id)
 {
     return (QUIC_EVENT_TYPE)((Id >> 10) & 0xF);
 }
 
-inline USHORT GetEventId(USHORT Id)
+QUIC_INLINE USHORT GetEventId(USHORT Id)
 {
     return Id & 0x3FF;
 }
@@ -686,7 +686,7 @@ typedef struct QUIC_EVENT_DATA_LOG {
 } QUIC_EVENT_DATA_LOG;
 #pragma pack(pop)
 
-inline void AddrToString(const SOCKADDR_INET* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])
+QUIC_INLINE void AddrToString(const SOCKADDR_INET* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])
 {
     ULONG AddrStrLen = INET6_ADDRSTRLEN;
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
@@ -704,7 +704,7 @@ inline void AddrToString(const SOCKADDR_INET* Addr, _Out_ char AddrStr[INET6_ADD
     }
 }
 
-inline const uint8_t* DecodeAddr(const uint8_t* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])
+QUIC_INLINE const uint8_t* DecodeAddr(const uint8_t* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])
 {
     uint8_t Len = Addr[0];
     AddrToString((SOCKADDR_INET*)(Addr+1), AddrStr);
@@ -713,7 +713,7 @@ inline const uint8_t* DecodeAddr(const uint8_t* Addr, _Out_ char AddrStr[INET6_A
 
 #define QUIC_CID_MAX_STR_LEN 37
 
-inline void CidToString(UINT8 CidLength, const UINT8* Cid, _Out_ char CidStr[QUIC_CID_MAX_STR_LEN])
+QUIC_INLINE void CidToString(UINT8 CidLength, const UINT8* Cid, _Out_ char CidStr[QUIC_CID_MAX_STR_LEN])
 {
     if (CidLength == 0) {
         strcpy_s(CidStr, QUIC_CID_MAX_STR_LEN, "null");
@@ -732,7 +732,7 @@ typedef enum _TRI_STATE {
     TRI_UNKNOWN,
 } TRI_STATE;
 
-inline const char* TriStateToString(TRI_STATE State)
+QUIC_INLINE const char* TriStateToString(TRI_STATE State)
 {
     switch (State) {
     case TRI_FALSE: return "FALSE";
@@ -770,7 +770,7 @@ typedef enum _SORT_TYPE {
     SORT_SHUTDOWN_TIME,
 } SORT_TYPE;
 
-inline SORT_TYPE StringToSortType(const char* str)
+QUIC_INLINE SORT_TYPE StringToSortType(const char* str)
 {
     if (!strcmp(str, "age")) {
         return SORT_AGE;
@@ -798,7 +798,7 @@ typedef enum _FILTER_TYPE {
     FILTER_DISCONNECT = 0x1,
 } FILTER_TYPE;
 
-inline FILTER_TYPE StringToFilterType(const char* str)
+QUIC_INLINE FILTER_TYPE StringToFilterType(const char* str)
 {
     // TODO - Support multiple filters in semicolon deliminated list.
     if (!strcmp(str, "disconnect")) {
@@ -822,13 +822,13 @@ typedef struct QUIC_TIME_STATS {
     ULONG64 TotalCpuTime;   // usec
 } QUIC_TIME_STATS;
 
-inline void InitCpuTime(QUIC_TIME_STATS* Stats)
+QUIC_INLINE void InitCpuTime(QUIC_TIME_STATS* Stats)
 {
     memset(Stats, 0, sizeof(*Stats));
     Stats->MinCpuTime = ULONG_MAX;
 }
 
-inline void AddCpuTime(QUIC_TIME_STATS* Stats, ULONG64 CpuTime)
+QUIC_INLINE void AddCpuTime(QUIC_TIME_STATS* Stats, ULONG64 CpuTime)
 {
     Stats->Count++;
     Stats->TotalCpuTime += CpuTime;
@@ -840,12 +840,12 @@ inline void AddCpuTime(QUIC_TIME_STATS* Stats, ULONG64 CpuTime)
     }
 }
 
-inline ULONG AvgCpuTime(const QUIC_TIME_STATS* Stats)
+QUIC_INLINE ULONG AvgCpuTime(const QUIC_TIME_STATS* Stats)
 {
     return Stats->Count == 0 ? 0 : (ULONG)(Stats->TotalCpuTime / Stats->Count);
 }
 
-inline void PrintTimeUs(ULONG64 TimeUs)
+QUIC_INLINE void PrintTimeUs(ULONG64 TimeUs)
 {
     if (TimeUs > 1000 * 1000) {
         TimeUs /= 1000;
@@ -857,7 +857,7 @@ inline void PrintTimeUs(ULONG64 TimeUs)
     }
 }
 
-inline void PrintCpuTime(QUIC_TIME_STATS* Stats)
+QUIC_INLINE void PrintCpuTime(QUIC_TIME_STATS* Stats)
 {
     if (Stats->Count == 0) {
         printf("null\n");
@@ -995,7 +995,7 @@ typedef struct _CXN {
     ULONG64 DroppedPackets;
 } CXN;
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxnWasDisconnected(
     const CXN* Cxn
@@ -1122,7 +1122,7 @@ GetWorkerFromThreadId(
 // QUIC protocol helpers
 //
 
-inline UINT8 DecodeHexChar(char c)
+QUIC_INLINE UINT8 DecodeHexChar(char c)
 {
     if (c >= '0' && c <= '9') return (UINT8)(c - '0');
     if (c >= 'A' && c <= 'F') return (UINT8)(10 + c - 'A');
@@ -1130,7 +1130,7 @@ inline UINT8 DecodeHexChar(char c)
     return 0;
 }
 
-inline void ReadCid(_In_z_ const char* Cid)
+QUIC_INLINE void ReadCid(_In_z_ const char* Cid)
 {
     Cmd.CidLength = (UINT8)strlen(Cid) / 2;
     for (UINT8 i = 0; i < Cmd.CidLength; i++) {
@@ -1158,7 +1158,7 @@ inline void ReadCid(_In_z_ const char* Cid)
 
 #define TLS_ERROR_HANDSHAKE_FAILURE             40
 
-inline
+QUIC_INLINE
 const char*
 QuicErrorToString(
     _In_ UINT64 ErrorCode

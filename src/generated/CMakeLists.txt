@@ -23,9 +23,15 @@ if(QUIC_ENABLE_LOGGING)
         target_link_libraries(logging PRIVATE inc)
 
     elseif(QUIC_LOGGING_TYPE STREQUAL "lttng")
-        target_include_directories(logging_inc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/common)
-        target_include_directories(logging_inc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/linux)
-        target_include_directories(logging_inc INTERFACE ${LTTNGUST_INCLUDE_DIRS})
+        target_include_directories(logging_inc INTERFACE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/common>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+        target_include_directories(logging_inc INTERFACE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/linux>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+        target_include_directories(logging_inc INTERFACE
+            $<BUILD_INTERFACE:${LTTNGUST_INCLUDE_DIRS}>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
         FILE(GLOB LOGGING_FILES ${CMAKE_CURRENT_SOURCE_DIR}/linux/*.c)
         add_library(logging STATIC ${LOGGING_FILES})
@@ -37,7 +43,12 @@ if(QUIC_ENABLE_LOGGING)
         target_link_libraries(msquic.lttng PRIVATE ${LTTNGUST_LIBRARIES})
         set_target_properties(msquic.lttng PROPERTIES SOVERSION ${QUIC_FULL_VERSION} VERSION ${QUIC_FULL_VERSION})
 
-        install(TARGETS msquic.lttng DESTINATION lib)
+        install(TARGETS msquic.lttng
+            EXPORT msquic
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        )
     endif()
 
 else()

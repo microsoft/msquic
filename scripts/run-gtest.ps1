@@ -195,18 +195,17 @@ if ($Kernel -ne "" -and !$IsWindows) {
 
 # Validate the code coverage switch
 if ($CodeCoverage) {
-    if (!$IsWindows) {
-        Write-Error "-CodeCoverage switch only supported on Windows";
-    }
     if ($Debugger) {
         Write-Error "-CodeCoverage switch is not supported with debugging";
     }
     if ($Kernel -ne "") {
         Write-Error "-CodeCoverage is not supported for kernel mode tests";
     }
-    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+    if ($IsWindows -and !(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
         Write-Error "Code coverage tools are not installed";
-    }
+    } elseif ($IsLinux -and !(Get-Command gcovr -ErrorAction SilentlyContinue)) {
+        Write-Error "Code coverage tools for linux (gcovr) are not installed (missing 'gcovr')."
+    } 
 }
 
 # Root directory of the project.
@@ -241,7 +240,7 @@ $FinalResultsPath = "$($LogDir)-results.xml"
 # Base XML results data.
 $XmlResults = [xml]@"
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="0" failures="0" retried="0" disabled="0" errors="0" time="0" timestamp="date" name="AllTests">
+<testsuites tests="0" failures="0" disabled="0" errors="0" time="0" timestamp="date" name="AllTests">
 </testsuites>
 "@
 $XmlResults.testsuites.timestamp = Get-Date -UFormat "%Y-%m-%dT%T"
@@ -249,7 +248,7 @@ $XmlResults.testsuites.timestamp = Get-Date -UFormat "%Y-%m-%dT%T"
 # XML for creating new (failure) result data.
 $FailXmlText = @"
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="1" failures="1" retried="0" disabled="0" errors="0" time="0" name="AllTests">
+<testsuites tests="1" failures="1" disabled="0" errors="0" time="0" name="AllTests">
   <testsuite name="TestSuiteName" tests="1" failures="1" disabled="0" errors="0" timestamp="date" time="0" >
     <testcase name="TestCaseName" status="run" result="completed" time="0" timestamp="date" classname="TestSuiteName">
       <failure message="Application Crashed" type=""><![CDATA[Application Crashed]]></failure>
@@ -287,7 +286,6 @@ function Add-XmlResults($TestCase) {
     }
 
     $IsFailure = $NewXmlResults.testsuites.failures -eq 1
-    $IsRetry = $false
     $Time = $NewXmlResults.testsuites.testsuite.testcase.time -as [Decimal]
 
     $Node = $null
@@ -296,7 +294,6 @@ function Add-XmlResults($TestCase) {
         $Node = $XmlResults.testsuites.testsuite | Where-Object { $_.Name -eq $TestSuiteName }
     }
     if ($null -ne $Node) {
-        $IsRetry = $Node.testcase | Where-Object { $_.Name -eq $TestCaseName }
         # Already has a matching test suite. Add the test case to it.
         $Node.tests = ($Node.tests -as [Int]) + 1
         if ($IsFailure) {
@@ -313,9 +310,6 @@ function Add-XmlResults($TestCase) {
 
     # Update the top level test and failure counts.
     $XmlResults.testsuites.tests = ($XmlResults.testsuites.tests -as [Int]) + 1
-    if ($IsRetry) {
-        $XmlResults.testsuites.retried = ($XmlResults.testsuites.retried -as [Int]) + 1
-    }
     if ($IsFailure) {
         $XmlResults.testsuites.failures = ($XmlResults.testsuites.failures -as [Int]) + 1
     }
@@ -345,6 +339,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
+            $pinfo.WorkingDirectory = $OutputDir
             if (Test-Administrator) {
                 # Enable WER dump collection.
                 New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
@@ -377,14 +372,18 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
 }
 
 # Asynchronously starts a single msquictest test case running.
-function Start-TestCase([String]$Name, [int]$Trial = 1) {
+function Start-TestCase([String]$Name) {
 
     # Get a string of invalid chars for filenames
     $InvalidChars = [System.IO.Path]::GetInvalidFileNameChars() -join ''
+    if (!$IsWindows) {
+        # Add characters that Azure disallows in filenames, but aren't invalid on POSIX
+        $InvalidChars = $InvalidChars,'"', ":", "<", ">", "|", "*", "?", "`r", "`n" -join ''
+    }
     # Escape those chars for use in a regex and put them inside a regex set (the square brackets)
     $InvalidCharsToReplace = "[{0}]" -f [RegEx]::Escape($InvalidChars)
     $InstanceName = $Name -replace $InvalidCharsToReplace, "_"
-    $LocalLogDir = Join-Path $LogDir ($InstanceName + "_$Trial")
+    $LocalLogDir = Join-Path $LogDir $InstanceName
     mkdir $LocalLogDir | Out-Null
 
     if ($LogProfile -ne "None") {
@@ -555,6 +554,7 @@ function PrintGdbCoreCallStack($CoreFile) {
 function Wait-TestCase($TestCase) {
     $ProcessCrashed = $false
     $AnyTestFailed = $false
+    $AnyTestSkipped = $false
     $StdOut = $null
     $StdOutTxt = $null
     $StdError = $null
@@ -585,6 +585,7 @@ function Wait-TestCase($TestCase) {
                 LogWrn "No test results generated! Treating as crash!"
                 $ProcessCrashed = $true
             }
+            $AnyTestSkipped = $StdOutTxt.Contains("[  SKIPPED ]")
         }
         $DumpFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
@@ -617,29 +618,33 @@ function Wait-TestCase($TestCase) {
         }
 
         if ($CodeCoverage) {
-            $NewCoverage = Join-Path $TestCase.LogDir $Coveragename
-            if ($IsolationMode -eq "Isolated") {
-                # Merge coverage with previous runs
-                $PreviousCoverage = Join-Path $CoverageDir $CoverageName
-                if (!(Test-Path $PreviousCoverage)) {
-                    # No previous coverage data, just copy
-                    Copy-Item $NewCoverage $CoverageDir
+            if ($IsWindows) {
+                $NewCoverage = Join-Path $TestCase.LogDir $Coveragename
+                if ($IsolationMode -eq "Isolated") {
+                    # Merge coverage with previous runs
+                    $PreviousCoverage = Join-Path $CoverageDir $CoverageName
+                    if (!(Test-Path $PreviousCoverage)) {
+                        # No previous coverage data, just copy
+                        Copy-Item $NewCoverage $CoverageDir
+                    } else {
+                        # Merge new coverage data with existing coverage data
+                        # On a developer machine, this will always merge coverage until the dev deletes old coverage.
+                        $TempMergedCoverage = Join-Path $CoverageDir "mergetemp.cov"
+                        $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
+                        $CoverageMergeParams = " --input_coverage $($PreviousCoverage) --input_coverage $($NewCoverage) --export_type binary:$($TempMergedCoverage)"
+                        Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
+                        Move-Item $TempMergedCoverage $PreviousCoverage -Force
+                    }
                 } else {
-                    # Merge new coverage data with existing coverage data
-                    # On a developer machine, this will always merge coverage until the dev deletes old coverage.
-                    $TempMergedCoverage = Join-Path $CoverageDir "mergetemp.cov"
-                    $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
-                    $CoverageMergeParams = " --input_coverage $($PreviousCoverage) --input_coverage $($NewCoverage) --export_type binary:$($TempMergedCoverage)"
-                    Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
-                    Move-Item $TempMergedCoverage $PreviousCoverage -Force
+                    # Copy the coverage to destination
+                    Copy-Item $NewCoverage $CoverageDir -Force
+                    # Copy coverage log
+                    $LogName = "LastCoverageResults-$(Split-Path $Path -LeafBase).log"
+                    Copy-Item (Join-Path $TestCase.LogDir "LastCoverageResults.log") (Join-Path $CoverageDir $LogName) -Force
                 }
-            } else {
-                # Copy the coverage to destination
-                Copy-Item $NewCoverage $CoverageDir -Force
-                # Copy coverage log
-                $LogName = "LastCoverageResults-$(Split-Path $Path -LeafBase).log"
-                Copy-Item (Join-Path $TestCase.LogDir "LastCoverageResults.log") (Join-Path $CoverageDir $LogName) -Force
             }
+            # On Linux, .gcda files are automatically written to the build directory
+            # Coverage is collected at the end via gcovr in test.ps1
         }
 
         if ($ProcessCrashed) {
@@ -655,6 +660,8 @@ function Wait-TestCase($TestCase) {
                 LogErr "$($TestCase.Name) failed (in $($Delta.TotalSeconds) sec):"
                 if ($StdOutTxt) { Write-Host $StdOutTxt }
                 if ($StdErrorTxt) { Write-Host $StdErrorTxt }
+            } elseif($AnyTestSkipped) {
+                Log "$($TestCase.Name) skipped"
             } else {
                 Log "$($TestCase.Name) succeeded (in $($Delta.TotalSeconds) sec)"
             }
@@ -847,10 +854,7 @@ try {
     } else {
         # Run the test cases individually.
         for ($i = 0; $i -lt $TestCount; $i++) {
-            $AnyTestFailed = Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i] 1)
-            if ($AnyTestFailed) {
-                Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i] 2)
-            }
+            Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i])
             if (!$NoProgress) {
                 Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
             }
@@ -904,7 +908,6 @@ try {
 
     $TestCount = $XmlResults.testsuites.tests -as [Int]
     $TestsFailed = $XmlResults.testsuites.failures -as [Int]
-    $TestsRetried = $XmlResults.testsuites.retried -as [Int]
 
     # Uninstall the kernel mode test driver and revert the msquic driver.
     if ($Kernel -ne "") {
@@ -928,17 +931,10 @@ try {
     Log "$($TestCount) test(s) run."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or ($global:CrashedProcessCount -ne 0)) {
         Log "Output can be found in $($LogDir)"
-        $ConsistentFailure = $TestsFailed - $TestsRetried
-        $PassedWithRetry = $TestsRetried - $ConsistentFailure
-        if ($ErrorsAsWarnings -or
-            (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed -eq $TestsRetried))) {
-            if ($TestsFailed -eq $TestsRetried) {
-                Write-Warning "$($TestsRetried) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
-            } else { # for $ErrorsAsWarning
-                Write-Warning "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
-            }
+        if ($ErrorsAsWarnings) {
+            Write-Warning "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
         } else {
-            Write-Error "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
+            Write-Error "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
             $LastExitCode = 1
         }
     } elseif ($AZP -and $TestCount -eq 0) {

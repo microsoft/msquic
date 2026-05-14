@@ -16,8 +16,8 @@ param (
     [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
-    [string]$Tls = "openssl",
+    [ValidateSet("schannel", "quictls", "openssl")]
+    [string]$Tls = "quictls",
 
     [Parameter(Mandatory = $false)]
     [switch]$UWP = $false,
@@ -128,7 +128,7 @@ foreach ($Header in $Headers) {
 }
 
 Copy-Item (Join-Path $RootDir LICENSE) $PackagingDir
-if ($Tls -like "openssl") {
+if ($Tls -like "quictls") {
     # Only need license, no 3rd party code
     Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $PackagingDir
 }
@@ -153,7 +153,7 @@ $DistDir = Join-Path $BaseArtifactsDir "dist"
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-$Version = "2.5.0"
+$Version = "2.6.0"
 
 $BuildId = $env:BUILD_BUILDID
 if ($null -ne $BuildId) {

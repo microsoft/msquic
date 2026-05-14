@@ -391,7 +391,7 @@ CxPlatPcpSendMapRequestInternal(
     QUIC_ADDR LocalMappedAddress;
     CxPlatConvertToMappedV6(&Route.LocalAddress, &LocalMappedAddress);
 
-    CXPLAT_SEND_CONFIG SendConfig = { &Route, PCP_MAP_REQUEST_SIZE, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { &Route, PCP_MAP_REQUEST_SIZE, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
     if (SendData == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -424,14 +424,7 @@ CxPlatPcpSendMapRequestInternal(
         Request->MAP.SuggestedExternalIpAddress,
         sizeof(Request->MAP.SuggestedExternalIpAddress));
 
-    QUIC_STATUS Status =
-        CxPlatSocketSend(
-            Socket,
-            &Route,
-            SendData);
-    if (QUIC_FAILED(Status)) {
-        return Status;
-    }
+    CxPlatSocketSend(Socket, &Route, SendData);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -490,7 +483,7 @@ CxPlatPcpSendPeerRequestInternal(
     QUIC_ADDR RemotePeerMappedAddress;
     CxPlatConvertToMappedV6(RemotePeerAddress, &RemotePeerMappedAddress);
 
-    CXPLAT_SEND_CONFIG SendConfig = { &Route, PCP_MAP_REQUEST_SIZE, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { &Route, PCP_MAP_REQUEST_SIZE, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
     if (SendData == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -528,14 +521,7 @@ CxPlatPcpSendPeerRequestInternal(
         sizeof(Request->PEER.RemotePeerIpAddress));
     Request->PEER.RemotePeerPort = RemotePeerMappedAddress.Ipv6.sin6_port;
 
-    QUIC_STATUS Status =
-        CxPlatSocketSend(
-            Socket,
-            &Route,
-            SendData);
-    if (QUIC_FAILED(Status)) {
-        return Status;
-    }
+    CxPlatSocketSend(Socket, &Route, SendData);
 
     return QUIC_STATUS_SUCCESS;
 }

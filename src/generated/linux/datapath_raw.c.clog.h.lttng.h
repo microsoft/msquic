@@ -25,6 +25,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, AllocFailure,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            PlumbStatus,
+            "CxPlatDpRawPlumbRulesOnSocket (delete)");
+// arg2 = arg2 = PlumbStatus = arg2
+// arg3 = arg3 = "CxPlatDpRawPlumbRulesOnSocket (delete)" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, LibraryErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathRecv
 // [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
 // QuicTraceEvent(
@@ -64,11 +87,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathSend
-// [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
+// Decoder Ring for RawDatapathSend
+// [data][%p] Raw send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(
-        DatapathSend,
-        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        RawDatapathSend,
+        "[data][%p] Raw send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
         SendData->Buffer.Length,
         1,
@@ -82,7 +105,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg6
 // arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg7
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathSend,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, RawDatapathSend,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,

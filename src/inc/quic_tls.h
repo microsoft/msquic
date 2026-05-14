@@ -494,7 +494,7 @@ CxPlatTlsParamGet(
 // Returns a pointer in the 'AlpnList' that starts at the length field, if the
 // ALPN is found. Otherwise, it returns NULL.
 //
-inline
+QUIC_INLINE
 const uint8_t*
 CxPlatTlsAlpnFindInList(
     _In_ uint16_t AlpnListLength,

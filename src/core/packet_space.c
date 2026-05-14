@@ -23,7 +23,8 @@ QuicPacketSpaceInitialize(
     _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
-    QUIC_PACKET_SPACE* Packets = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->PacketSpacePool);
+    QUIC_PACKET_SPACE* Packets =
+        CxPlatPoolAlloc(&Connection->Partition->PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -61,7 +62,7 @@ QuicPacketSpaceUninitialize(
     }
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);
-    CxPlatPoolFree(&QuicLibraryGetPerProc()->PacketSpacePool, Packets);
+    CxPlatPoolFree(Packets);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

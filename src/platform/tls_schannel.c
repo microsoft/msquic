@@ -118,6 +118,7 @@ typedef struct _SecPkgCred_ClientCertPolicy
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN              0x20000000
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 0x40000000
 #define CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY         0x80000000
+#define CERT_CHAIN_DISABLE_AIA                         0x00002000
 
 #define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
 
@@ -756,6 +757,9 @@ CxPlatTlsSetClientCertPolicy(
     }
     if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
         ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY;
+    }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DISABLE_AIA) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_DISABLE_AIA;
     }
 
     SecStatus =
@@ -2364,13 +2368,17 @@ CxPlatTlsWriteDataToSchannel(
                         QUIC_CERT_BLOB_CONTEXT : QUIC_CERT_BLOB_NONE;
 #endif
             }
-            if (SecStatus == SEC_E_NO_CREDENTIALS &&
+            if ((SecStatus == SEC_E_NO_CREDENTIALS || SecStatus == SEC_E_INTERNAL_ERROR) &&
                 (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
                 //
-                // Ignore this case.
+                // Certificate validation is being deferred to the application:
+                // indicate no certificate is present but let the application decide if this is a
+                // failure.
+                // SEC_E_INTERNAL_ERROR can be returned on SECPKG_ATTR_REMOTE_CERT_CONTEXT if no
+                // certificate is found, normalize to SEC_E_NO_CREDENTIALS.
                 //
                 PeerCertBlob.Type = QUIC_CERT_BLOB_NONE;
-                CertValidationResult.hrVerifyChainStatus = SecStatus;
+                CertValidationResult.hrVerifyChainStatus = SEC_E_NO_CREDENTIALS;
             } else if (SecStatus == SEC_E_OK &&
                 !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
                 (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
@@ -3114,7 +3122,7 @@ CxPlatTlsParamGet(
             break;
 
         case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
-            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+            if (*BufferLength < CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_HANDSHAKE_INFO, CipherSuite)) {
                 *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
                 Status = QUIC_STATUS_BUFFER_TOO_SMALL;
                 break;
@@ -3177,6 +3185,9 @@ CxPlatTlsParamGet(
             HandshakeInfo->KeyExchangeAlgorithm = ConnInfo.aiExch;
             HandshakeInfo->KeyExchangeStrength = ConnInfo.dwExchStrength;
             HandshakeInfo->CipherSuite = CipherInfo.dwCipherSuite;
+            if (CXPLAT_STRUCT_HAS_FIELD(QUIC_HANDSHAKE_INFO, *BufferLength, TlsGroup)) {
+                HandshakeInfo->TlsGroup = CipherInfo.dwKeyType;
+            }
             break;
         }
 

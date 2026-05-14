@@ -242,6 +242,18 @@
                 message="$(string.Enum.QUIC_API_TYPE.DATAGRAM_SEND)"
                 value="13"
                 />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION)"
+                value="14"
+                />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.CONN_COMPLETE_CERTIFICATE_VALIDATION)"
+                value="15"
+                />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.STRM_PROVIDE_RECV_BUFFERS)"
+                value="16"
+                />
           </valueMap>
           <valueMap name="map_QUIC_CONN_TIMER_TYPE">
             <map
@@ -499,6 +511,26 @@
             <map
                 message="$(string.Enum.QUIC_TRACE_API_TYPE.COMPLETE_CERTIFICATE_VALIDATION)"
                 value="27"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_PROVIDE_RECEIVE_BUFFERS)"
+                value="28"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_POOL_CREATE)"
+                value="29"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.EXECUTION_CREATE)"
+                value="30"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.EXECUTION_DELETE)"
+                value="31"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.EXECUTION_POLL)"
+                value="32"
                 />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
@@ -3790,6 +3822,15 @@
               template="tid_DATA_SEND_TCP_CONTROL"
               value="9225"
               />
+          <event
+              keywords="ut:UDP ut:DataFlow"
+              level="win:Verbose"
+              message="$(string.Etw.RawDatapathSend)"
+              opcode="Datapath"
+              symbol="QuicRawDatapathSend"
+              template="tid_DATA_SEND"
+              value="9226"
+              />
           <!-- 10240 - 11263 | Logs (not events) -->
           <event
               keywords="ut:Log"
@@ -4431,6 +4472,10 @@
             value="[data][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8"
             />
         <string
+            id="Etw.RawDatapathSend"
+            value="[data][%1] Raw send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8"
+            />
+        <string
             id="Etw.DatapathRecv"
             value="[data][%1] Recv %2 bytes (segment=%3) Src=%5 Dst=%7"
             />
@@ -4626,6 +4671,18 @@
         <string
             id="Enum.QUIC_API_TYPE.DATAGRAM_SEND"
             value="API.DATAGRAM_SEND"
+            />
+        <string
+            id="Enum.QUIC_API_TYPE.CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION"
+            value="API.CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION"
+            />
+        <string
+            id="Enum.QUIC_API_TYPE.CONN_COMPLETE_CERTIFICATE_VALIDATION"
+            value="API.CONN_COMPLETE_CERTIFICATE_VALIDATION"
+            />
+        <string
+            id="Enum.QUIC_API_TYPE.STRM_PROVIDE_RECV_BUFFERS"
+            value="API.STRM_PROVIDE_RECV_BUFFERS"
             />
         <string
             id="Enum.QUIC_CONN_TIMER_TYPE.IDLE"
@@ -4872,6 +4929,26 @@
             value="COMPLETE_CERTIFICATE_VALIDATION"
             />
         <string
+            id="Enum.QUIC_TRACE_API_TYPE.STREAM_PROVIDE_RECEIVE_BUFFERS"
+            value="STREAM_PROVIDE_RECEIVE_BUFFERS"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.CONNECTION_POOL_CREATE"
+            value="CONNECTION_POOL_CREATE"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.EXECUTION_CREATE"
+            value="EXECUTION_CREATE"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.EXECUTION_DELETE"
+            value="EXECUTION_DELETE"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.EXECUTION_POLL"
+            value="EXECUTION_POLL"
+            />
+        <string
             id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS"
             value="CONNECTION_FLAGS"
             />
@@ -4993,7 +5070,7 @@
             />
         <string
             id="Etw.ConnStatsV2"
-            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%8"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%9"
             />
         <string
             id="Etw.DatapathSendTcpControl"

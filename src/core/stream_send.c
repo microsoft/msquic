@@ -470,7 +470,7 @@ QuicStreamCompleteSendRequest(
         }
     }
 
-    CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+    CxPlatPoolFree(SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -674,7 +674,10 @@ QuicStreamSendFlush(
             FALSE);
     }
 
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_SEND_BYTES, TotalBytesSent);
+    QuicPerfCounterAdd(
+        Stream->Connection->Partition,
+        QUIC_PERF_COUNTER_APP_SEND_BYTES,
+        TotalBytesSent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

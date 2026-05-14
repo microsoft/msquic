@@ -132,5 +132,5 @@ QuicSentPacketPoolReturnPacketMetadata(
 #endif
 
     QuicSentPacketMetadataReleaseFrames(Metadata, Connection);
-    CxPlatPoolFree(Connection->Worker->SentPacketPool.Pools + Metadata->FrameCount - 1, Metadata);
+    CxPlatPoolFree(Metadata);
 }

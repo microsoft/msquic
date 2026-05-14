@@ -73,27 +73,27 @@ struct QuicPublicEndpoint {
     const char* ServerName;
 };
 
-QuicPublicEndpoint PublicEndpoints[] = {
+QuicPublicEndpoint PublicEndpoints[] = { // Some are commented out because they aren't currently available.
     { "aioquic",        "quic.aiortc.org" },
-    { "akamaiquic",     "ietf.akaquic.com" },
-    { "applequic",      "71.202.41.169" },
-    { "ats",            "quic.ogre.com" },
-    { "f5",             "f5quic.com" },
-    { "gquic",          "quic.rocks" },
+    //{ "akamaiquic",     "ietf.akaquic.com" },
+    //{ "applequic",      "71.202.41.169" },
+    //{ "ats",            "quic.ogre.com" },
+    //{ "f5",             "f5quic.com" },
+    //{ "gquic",          "quic.rocks" },
     { "haskell",        "mew.org" },
-    { "lsquic",         "http3-test.litespeedtech.com" },
-    { "mvfst",          "fb.mvfst.net" },
-    { "msquic",         "msquic.net" },
+    //{ "lsquic",         "http3-test.litespeedtech.com" },
+    //{ "mvfst",          "fb.mvfst.net" },
+    //{ "msquic",         "msquic.net" },
     { "ngtcp2",         "nghttp2.org" },
     { "ngx_quic",       "cloudflare-quic.com" },
-    { "Pandora",        "pandora.cm.in.tum.de" },
+    //{ "Pandora",        "pandora.cm.in.tum.de" },
     { "picoquic",       "test.privateoctopus.com" },
-    { "quant",          "quant.eggert.org" },
-    { "quinn",          "h3.stammw.eu" },
-    { "quic-go",        "quic.seemann.io" },
+    //{ "quant",          "quant.eggert.org" },
+    //{ "quinn",          "h3.stammw.eu" },
+    //{ "quic-go",        "quic.seemann.io" },
     { "quiche",         "quic.tech" },
-    { "quicker",        "quicker.edm.uhasselt.be" },
-    { "quicly-quic",    "quic.examp1e.net" },
+    //{ "quicker",        "quicker.edm.uhasselt.be" },
+    //{ "quicly-quic",    "quic.examp1e.net" },
     { "quicly-h20",     "h2o.examp1e.net" },
     { nullptr,          nullptr },              // Used for -custom cmd arg
 };
@@ -101,9 +101,10 @@ QuicPublicEndpoint PublicEndpoints[] = {
 const uint32_t PublicEndpointsCount = ARRAYSIZE(PublicEndpoints) - 1;
 
 struct QuicTestResults {
-    const char* Alpn;
-    uint32_t QuicVersion;
-    uint32_t Features;
+    const char* Alpn {nullptr};
+    uint32_t QuicVersion {0};
+    uint32_t Features {0};
+    ~QuicTestResults() { delete [] Alpn; }
 };
 
 QuicTestResults TestResults[ARRAYSIZE(PublicEndpoints)];
@@ -152,29 +153,22 @@ public:
 };
 
 class InteropStream {
-    HQUIC Stream;
-    CXPLAT_EVENT RequestComplete;
+    HQUIC Stream{};
+    CXPLAT_EVENT RequestComplete{};
     GetRequest SendRequest;
-    const char* RequestPath;
-    const char* FileName;
-    FILE* File;
-    uint64_t DownloadStartTime;
-    uint64_t LastReceiveTime;
-    int64_t LastReceiveDuration;
+    const char* RequestPath{};
+    const char* FileName{};
+    FILE* File{};
+    uint64_t DownloadStartTime{};
+    uint64_t LastReceiveTime{};
+    int64_t LastReceiveDuration{};
 public:
-    bool ReceivedResponse : 1;
-    bool UsedZeroRtt : 1;
+    bool ReceivedResponse{};
+    bool UsedZeroRtt{};
+
     InteropStream(HQUIC Connection, const char* Request) :
-        Stream(nullptr),
         SendRequest(Request),
-        RequestPath(Request),
-        FileName(nullptr),
-        File(nullptr),
-        DownloadStartTime(0),
-        LastReceiveTime(0),
-        LastReceiveDuration(0),
-        ReceivedResponse(false),
-        UsedZeroRtt(false)
+        RequestPath(Request)
     {
         CxPlatEventInitialize(&RequestComplete, TRUE, FALSE);
 
@@ -342,10 +336,10 @@ class InteropConnection {
     QUIC_TLS_SECRETS TlsSecrets;
     const char* SslKeyLogFile;
 public:
-    bool VersionUnsupported : 1;
-    bool Connected : 1;
-    bool Resumed : 1;
-    bool ReceivedQuackAck : 1;
+    bool VersionUnsupported{};
+    bool Connected{};
+    bool Resumed{};
+    bool ReceivedQuackAck{};
     InteropConnection(HQUIC Configuration, bool VerNeg = false, bool LargeTP = false) :
         Configuration(Configuration),
         Connection(nullptr),
@@ -372,7 +366,7 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
-            uint32_t SupportedVersions[] = { RandomReservedVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
+            uint32_t SupportedVersions[] = { RandomReservedVersion, QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H };
             QUIC_VERSION_SETTINGS Settings = { 0 };
             Settings.AcceptableVersions = SupportedVersions;
             Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
@@ -387,7 +381,7 @@ public:
                     sizeof(Settings),
                     &Settings));
         } else if (InitialVersion != 0) {
-            uint32_t SupportedVersions[] = { InitialVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
+            uint32_t SupportedVersions[] = { InitialVersion, QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H };
             QUIC_VERSION_SETTINGS Settings = { 0 };
             Settings.AcceptableVersions = SupportedVersions;
             Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
@@ -600,7 +594,9 @@ public:
     }
     bool GetNegotiatedAlpn(const char* &Alpn) {
         if (NegotiatedAlpn == nullptr) return false;
-        Alpn = strdup(NegotiatedAlpn);
+        auto NegotiatedAlpnLength = strlen(NegotiatedAlpn) + 1;
+        Alpn = new char[NegotiatedAlpnLength];
+        memcpy((char*)Alpn, NegotiatedAlpn, NegotiatedAlpnLength);
         return true;
     }
     bool GetStatistics(QUIC_STATISTICS_V2& Stats) {
@@ -677,6 +673,9 @@ private:
             }
             break;
         case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
+            if (pThis->ResumptionTicket) {
+                break; // Ignore any additional tickets
+            }
             pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
             pThis->ResumptionTicket = new uint8_t[pThis->ResumptionTicketLength];
             memcpy(
@@ -733,6 +732,8 @@ RunInteropTest(
     Settings.IsSet.SendBufferingEnabled = TRUE;
     Settings.IdleTimeoutMs = WaitTimeoutMs;
     Settings.IsSet.IdleTimeoutMs = TRUE;
+    Settings.XdpEnabled = TRUE;
+    Settings.IsSet.XdpEnabled = TRUE;
     if (Feature == KeyUpdate) {
         Settings.MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
         Settings.IsSet.MaxBytesPerKey = TRUE;
@@ -791,10 +792,12 @@ RunInteropTest(
                 &VersionSettings));
     }
 
-    VERIFY_QUIC_SUCCESS(
+    if (QUIC_FAILED(
         MsQuic->ConfigurationLoadCredential(
             Configuration,
-            &CredConfig));
+            &CredConfig))) {
+        goto Error; // Can fail if we try to use features that are unsupported (like ChaCha20).
+    }
 
     switch (Feature) {
     case VersionNegotiation: {
@@ -972,6 +975,8 @@ RunInteropTest(
     }
     }
 
+Error:
+
     MsQuic->ConfigurationClose(Configuration); // TODO - Wait on connection
 
     if (CustomUrlPath && !Success) {
@@ -1021,6 +1026,7 @@ CXPLAT_THREAD_CALLBACK(InteropTestCallback, Context)
         }
         if (TestResults[TestContext->EndpointIndex].Alpn == nullptr) {
             TestResults[TestContext->EndpointIndex].Alpn = Alpn;
+            Alpn = nullptr;
         }
         CxPlatLockRelease(&TestResultsLock);
     } else {
@@ -1037,9 +1043,7 @@ CXPLAT_THREAD_CALLBACK(InteropTestCallback, Context)
         Alpn,
         ThisTestFailed ? "false" : "true");
 
-    if (ThisTestFailed) {
-        free((void*)Alpn);
-    }
+    delete [] Alpn;
     delete TestContext;
 
     CXPLAT_THREAD_RETURN(0);

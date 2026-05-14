@@ -66,15 +66,22 @@ typedef enum CXPLAT_AEAD_TYPE {
 
 } CXPLAT_AEAD_TYPE;
 
+CXPLAT_STATIC_ASSERT(
+    (uint32_t)CXPLAT_AEAD_AES_128_GCM == (uint32_t)QUIC_AEAD_ALGORITHM_AES_128_GCM &&
+    (uint32_t)CXPLAT_AEAD_AES_256_GCM == (uint32_t)QUIC_AEAD_ALGORITHM_AES_256_GCM,
+    "CXPLAT AEAD algorithm enum values must match the QUIC API enum values.");
+
 typedef enum CXPLAT_AEAD_TYPE_SIZE {
 
     CXPLAT_AEAD_AES_128_GCM_SIZE       = 16,
     CXPLAT_AEAD_AES_256_GCM_SIZE       = 32,
-    CXPLAT_AEAD_CHACHA20_POLY1305_SIZE = 32
+    CXPLAT_AEAD_CHACHA20_POLY1305_SIZE = 32,
+
+    CXPLAT_AEAD_MAX_SIZE               = 32 // This should be the max of the above values.
 
 } CXPLAT_AEAD_TYPE_SIZE;
 
-inline
+QUIC_INLINE
 uint16_t
 CxPlatKeyLength(
     CXPLAT_AEAD_TYPE Type
@@ -111,7 +118,7 @@ typedef enum CXPLAT_HASH_TYPE_SIZE {
 
 } CXPLAT_HASH_TYPE_SIZE;
 
-inline
+QUIC_INLINE
 uint16_t
 CxPlatHashLength(
     CXPLAT_HASH_TYPE Type
@@ -251,7 +258,7 @@ CXPLAT_STATIC_ASSERT(
     sizeof(uint64_t) < CXPLAT_IV_LENGTH,
     "Packet Number Length is less than IV Length");
 
-inline
+QUIC_INLINE
 void
 QuicCryptoCombineIvAndPacketNumber(
     _In_reads_bytes_(CXPLAT_IV_LENGTH)
@@ -385,6 +392,18 @@ CxPlatHashCompute(
 BOOLEAN
 CxPlatCryptSupports(
     CXPLAT_AEAD_TYPE AeadType
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatKbKdfDerive(
+    _In_reads_(SecretLength) const uint8_t* Secret,
+    _In_ uint32_t SecretLength,
+    _In_z_ const char* Label,
+    _In_reads_opt_(ContextLength) const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _In_ uint32_t OutputLength,
+    _Out_writes_(OutputLength) uint8_t* Output
     );
 
 #if defined(__cplusplus)

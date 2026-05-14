@@ -16,7 +16,7 @@ Abstract:
 #include "quic_platform.h"
 #include <stdio.h>
 
-inline ULONG HashPtr(ULONG64 ObjPtr)
+QUIC_INLINE ULONG HashPtr(ULONG64 ObjPtr)
 {
     ULONG H = 0;
     for (ULONG i = 0; i < sizeof(ObjPtr); i++) {
@@ -45,7 +45,7 @@ typedef struct _OBJECT_SET {
     ULONG NextId;
 } OBJECT_SET;
 
-inline void ObjectSetCreate(_Inout_ OBJECT_SET* Set)
+QUIC_INLINE void ObjectSetCreate(_Inout_ OBJECT_SET* Set)
 {
     if (Set->NextId != 0) return;
     if (Set->FreeFn == NULL) {
@@ -59,7 +59,7 @@ inline void ObjectSetCreate(_Inout_ OBJECT_SET* Set)
     }
 }
 
-inline void ObjectSetDestroy(_Inout_ OBJECT_SET* Set)
+QUIC_INLINE void ObjectSetDestroy(_Inout_ OBJECT_SET* Set)
 {
     if (Set->NextId == 0) return;
 
@@ -88,13 +88,13 @@ inline void ObjectSetDestroy(_Inout_ OBJECT_SET* Set)
     ZeroMemory(Set, sizeof(*Set));
 }
 
-inline void ObjectSetReset(_Inout_ OBJECT_SET* Set)
+QUIC_INLINE void ObjectSetReset(_Inout_ OBJECT_SET* Set)
 {
     ObjectSetDestroy(Set);
     ObjectSetCreate(Set);
 }
 
-inline OBJECT* ObjectSetGetActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
+QUIC_INLINE OBJECT* ObjectSetGetActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
 {
     CXPLAT_HASHTABLE_ENTRY* Entry;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Ctx;
@@ -112,12 +112,12 @@ inline OBJECT* ObjectSetGetActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
     return Obj;
 }
 
-inline void ObjectSetAddActive(_Inout_ OBJECT_SET* Set, _In_ OBJECT* Obj)
+QUIC_INLINE void ObjectSetAddActive(_Inout_ OBJECT_SET* Set, _In_ OBJECT* Obj)
 {
     CxPlatHashtableInsert(Set->Active, &Obj->ActiveEntry, HashPtr(Obj->Ptr), NULL);
 }
 
-inline OBJECT* ObjectSetRemoveActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
+QUIC_INLINE OBJECT* ObjectSetRemoveActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
 {
     OBJECT* Obj = ObjectSetGetActive(Set, ObjPtr);
     if (Obj != NULL) {
@@ -128,7 +128,7 @@ inline OBJECT* ObjectSetRemoveActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
     return Obj;
 }
 
-inline OBJECT* ObjectSetGetId(_Inout_ OBJECT_SET* Set, ULONG Id)
+QUIC_INLINE OBJECT* ObjectSetGetId(_Inout_ OBJECT_SET* Set, ULONG Id)
 {
     CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
     CXPLAT_HASHTABLE_ENTRY* Entry;
@@ -158,7 +158,7 @@ inline OBJECT* ObjectSetGetId(_Inout_ OBJECT_SET* Set, ULONG Id)
     return NULL;
 }
 
-inline OBJECT** ObjectSetSort(_Inout_ OBJECT_SET* Set, _In_opt_ int (__cdecl * CompareFn)(const void *, const void *))
+QUIC_INLINE OBJECT** ObjectSetSort(_Inout_ OBJECT_SET* Set, _In_opt_ int (__cdecl * CompareFn)(const void *, const void *))
 {
     CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
     CXPLAT_HASHTABLE_ENTRY* Entry;

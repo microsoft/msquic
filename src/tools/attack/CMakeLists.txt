@@ -12,7 +12,7 @@ target_include_directories(quicattack PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
 target_link_libraries(quicattack)
 
 if (BUILD_SHARED_LIBS)
-    target_link_libraries(quicattack core platform)
+    target_link_libraries(quicattack core msquic_platform)
 endif()
 
 target_link_libraries(quicattack logging)

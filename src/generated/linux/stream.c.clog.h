@@ -216,6 +216,26 @@ tracepoint(CLOG_STREAM_C, IndicateStreamShutdownComplete , arg1, arg3, arg4, arg
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamNotifyInsufficientRecvBuffer
+// [strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]
+// QuicTraceLogStreamVerbose(
+        StreamNotifyInsufficientRecvBuffer,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
+        Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamNotifyInsufficientRecvBuffer
+#define _clog_4_ARGS_TRACE_StreamNotifyInsufficientRecvBuffer(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_STREAM_C, StreamNotifyInsufficientRecvBuffer , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for StreamAlloc
 // [strm][%p] Allocated, Conn=%p
 // QuicTraceEvent(

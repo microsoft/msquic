@@ -4,10 +4,11 @@
 !src
 !cmake
 !submodules/clog
+!submodules/quictls
 !submodules/openssl
 !submodules/CMakeLists.txt
-submodules/openssl/pyca-cryptography
-submodules/openssl/boringssl
+submodules/quictls/pyca-cryptography
+submodules/quictls/boringssl
 **/*.o
 **/*.a
 **/*.d

@@ -16,6 +16,11 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     CXPLAT_EXECUTION_CONTEXT ExecutionContext;
 
     //
+    // The partition this worker is affinitized to.
+    //
+    QUIC_PARTITION* Partition;
+
+    //
     // Event to signal when the execution context (i.e. worker thread) is
     // complete.
     //
@@ -32,14 +37,9 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     BOOLEAN Enabled;
 
     //
-    // TRUE if the worker is currently processing connections.
+    // TRUE if the worker is currently processing work.
     //
     BOOLEAN IsActive;
-
-    //
-    // The index into the partition array (of processors).
-    //
-    uint16_t PartitionIndex;
 
     //
     // The average queue delay connections experience, in microseconds.
@@ -57,12 +57,12 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     CXPLAT_EVENT Ready;
 
     //
-    // A thread for draining operations from queued connections.
+    // A thread for draining operations.
     //
     CXPLAT_THREAD Thread;
 
     //
-    // Serializes access to the connection and operation lists.
+    // Serializes access to the connection, listener, and operation lists.
     //
     CXPLAT_DISPATCH_LOCK Lock;
 
@@ -73,19 +73,16 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     CXPLAT_LIST_ENTRY** PriorityConnectionsTail;
 
     //
+    // Queue of listeners with operations to be processed.
+    //
+    CXPLAT_LIST_ENTRY Listeners;
+
+    //
     // Queue of stateless operations to be processed.
     //
     CXPLAT_LIST_ENTRY Operations;
     uint32_t OperationCount;
     uint64_t DroppedOperationCount;
-
-    CXPLAT_POOL StreamPool; // QUIC_STREAM
-    CXPLAT_POOL DefaultReceiveBufferPool; // QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE
-    CXPLAT_POOL SendRequestPool; // QUIC_SEND_REQUEST
-    QUIC_SENT_PACKET_POOL SentPacketPool; // QUIC_SENT_PACKET_METADATA
-    CXPLAT_POOL ApiContextPool; // QUIC_API_CONTEXT
-    CXPLAT_POOL StatelessContextPool; // QUIC_STATELESS_CONTEXT
-    CXPLAT_POOL OperPool; // QUIC_OPERATION
 
 } QUIC_WORKER;
 
@@ -117,7 +114,7 @@ typedef struct QUIC_WORKER_POOL {
 // work, if at all possible.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicWorkerIsOverloaded(
     _In_ QUIC_WORKER* Worker
@@ -196,6 +193,20 @@ QuicWorkerQueuePriorityConnection(
     _In_ QUIC_CONNECTION* Connection
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicWorkerAssignListener(
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_LISTENER* Listener
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicWorkerQueueListener(
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_LISTENER* Listener
+    );
+
 //
 // Queues the operation onto the worker, and kicks the worker thread if
 // necessary.
@@ -205,4 +216,10 @@ void
 QuicWorkerQueueOperation(
     _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Operation
+    );
+
+BOOLEAN
+QuicWorkerPoolIsInPartition(
+    _In_ QUIC_WORKER_POOL* WorkerPool,
+    _In_ uint16_t PartitionIndex
     );

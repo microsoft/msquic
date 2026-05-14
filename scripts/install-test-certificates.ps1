@@ -7,7 +7,7 @@ This script provides helpers to generate test certificate for MsQuic tests.
     Specifies the build configuration to test.
 
 .EXAMPLE
-    install-test-certificates.ps1 -OutputFile ./artifacts/bin/macos/x64_Debug_openssl/test.pfx
+    install-test-certificates.ps1 -OutputFile ./artifacts/bin/macos/x64_Debug_quictls/test.pfx
 
 #>
 

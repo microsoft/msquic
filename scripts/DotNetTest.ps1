@@ -15,11 +15,14 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $true)]
+    [string]$DomainName = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -43,4 +46,4 @@ if ($IsWindows) {
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 dotnet build (Join-Path $RootDir src cs)
-dotnet run --project (Join-Path $RootDir src cs tool) -- (Join-Path $RootArtifactDir $LibName)
+dotnet run --project (Join-Path $RootDir src cs tool) -- $DomainName (Join-Path $RootArtifactDir $LibName)

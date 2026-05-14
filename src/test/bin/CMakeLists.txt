@@ -16,10 +16,14 @@ set_property(TARGET msquictest APPEND PROPERTY BUILD_RPATH "$ORIGIN")
 target_link_libraries(msquictest msquic testlib)
 
 if (BUILD_SHARED_LIBS)
-    target_link_libraries(msquictest platform)
+    target_link_libraries(msquictest msquic_platform)
 endif()
 
 target_link_libraries(msquictest inc gtest logging base_link)
+
+if (WIN32)
+    target_link_libraries(msquictest oldnames)
+endif()
 
 # At least /W3 must be used on all windows builds to pass compliance
 if(MSVC)

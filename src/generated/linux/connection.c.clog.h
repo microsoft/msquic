@@ -42,6 +42,42 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for PacketRxVersionNegotiation
+// [C][RX][-] VN
+// QuicTraceLogVerbose(
+        PacketRxVersionNegotiation,
+        "[C][RX][-] VN");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PacketRxVersionNegotiation
+#define _clog_2_ARGS_TRACE_PacketRxVersionNegotiation(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, PacketRxVersionNegotiation );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketRxVersionNegVer
+// [C][RX][-]   Ver[%d]: 0x%x
+// QuicTraceLogVerbose(
+            PacketRxVersionNegVer,
+            "[C][RX][-]   Ver[%d]: 0x%x",
+            (int32_t)i,
+            CxPlatByteSwapUint32(ServerVersion));
+// arg2 = arg2 = (int32_t)i = arg2
+// arg3 = arg3 = CxPlatByteSwapUint32(ServerVersion) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PacketRxVersionNegVer
+#define _clog_4_ARGS_TRACE_PacketRxVersionNegVer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, PacketRxVersionNegVer , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PacketRxStatelessReset
 // [S][RX][-] SR %s
 // QuicTraceLogVerbose(
@@ -817,21 +853,47 @@ tracepoint(CLOG_CONNECTION_C, LocalInterfaceSet , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CibirIdSet
-// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// Decoder Ring for CibirIdSetInfo
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)
 // QuicTraceLogConnInfo(
-            CibirIdSet,
+            CibirIdSetInfo,
             Connection,
-            "CIBIR ID set (len %hhu, offset %hhu)",
+            "CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Connection->CibirId[0],
-            Connection->CibirId[1]);
+            Connection->CibirId[1],
+            (unsigned long long)QuicCibirIdToUint64(
+                Connection->CibirId + 2,
+                Connection->CibirId[0]));
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->CibirId[0] = arg3
 // arg4 = arg4 = Connection->CibirId[1] = arg4
+// arg5 = arg5 = (unsigned long long)QuicCibirIdToUint64(
+                Connection->CibirId + 2,
+                Connection->CibirId[0]) = arg5
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_CibirIdSet
-#define _clog_5_ARGS_TRACE_CibirIdSet(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_CONNECTION_C, CibirIdSet , arg1, arg3, arg4);\
+#ifndef _clog_6_ARGS_TRACE_CibirIdSetInfo
+#define _clog_6_ARGS_TRACE_CibirIdSetInfo(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
+tracepoint(CLOG_CONNECTION_C, CibirIdSetInfo , arg1, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnDscpSet
+// [conn][%p] Connection DSCP set to %hhu
+// QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->DSCP = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnDscpSet
+#define _clog_4_ARGS_TRACE_ConnDscpSet(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnDscpSet , arg1, arg3);\
 
 #endif
 
@@ -1180,46 +1242,6 @@ tracepoint(CLOG_CONNECTION_C, QueueDatagrams , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RecvVerNeg
-// [conn][%p] Received Version Negotation:
-// QuicTraceLogConnVerbose(
-        RecvVerNeg,
-        Connection,
-        "Received Version Negotation:");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_RecvVerNeg
-#define _clog_3_ARGS_TRACE_RecvVerNeg(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, RecvVerNeg , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for VerNegItem
-// [conn][%p]   Ver[%d]: 0x%x
-// QuicTraceLogConnVerbose(
-            VerNegItem,
-            Connection,
-            "  Ver[%d]: 0x%x",
-            (int32_t)i,
-            CxPlatByteSwapUint32(ServerVersion));
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (int32_t)i = arg3
-// arg4 = arg4 = CxPlatByteSwapUint32(ServerVersion) = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_VerNegItem
-#define _clog_5_ARGS_TRACE_VerNegItem(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_CONNECTION_C, VerNegItem , arg1, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DeferDatagram
 // [conn][%p] Deferring datagram (type=%hu)
 // QuicTraceLogConnVerbose(
@@ -1452,6 +1474,26 @@ tracepoint(CLOG_CONNECTION_C, DatagramReceiveEnableUpdated , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_Disable1RttEncrytionUpdated
 #define _clog_4_ARGS_TRACE_Disable1RttEncrytionUpdated(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CloseAsyncUpdated
+// [conn][%p] Updated CloseAsync to %hhu
+// QuicTraceLogConnVerbose(
+            CloseAsyncUpdated,
+            Connection,
+            "Updated CloseAsync to %hhu",
+            Connection->State.CloseAsync);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.CloseAsync = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_CloseAsyncUpdated
+#define _clog_4_ARGS_TRACE_CloseAsyncUpdated(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, CloseAsyncUpdated , arg1, arg3);\
 
 #endif
 
@@ -1800,10 +1842,10 @@ tracepoint(CLOG_CONNECTION_C, ConnEcnCapable , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnVersionSet
-// [conn][%p] QUIC Version: %u
+// [conn][%p] QUIC Version: 0x%x
 // QuicTraceEvent(
             ConnVersionSet,
-            "[conn][%p] QUIC Version: %u",
+            "[conn][%p] QUIC Version: 0x%x",
             Connection,
             Connection->Stats.QuicVersion);
 // arg2 = arg2 = Connection = arg2

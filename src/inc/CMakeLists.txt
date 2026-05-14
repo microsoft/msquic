@@ -9,19 +9,36 @@ target_compile_options(inc INTERFACE ${QUIC_C_FLAGS})
 target_compile_options(inc INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
 
 target_compile_definitions(inc INTERFACE ${QUIC_COMMON_DEFINES})
-target_include_directories(inc INTERFACE ${QUIC_INCLUDE_DIR})
+target_include_directories(inc INTERFACE
+    $<BUILD_INTERFACE:${QUIC_INCLUDE_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 target_compile_features(inc INTERFACE cxx_std_17)
 target_compile_features(inc INTERFACE c_std_11)
 
 add_library(base_link INTERFACE)
+add_library(msquic::base_link ALIAS base_link)
 
 if (HAS_GUARDCF)
     target_link_options(base_link INTERFACE /guard:cf /DYNAMICBASE)
 endif()
 
-if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
-    target_link_libraries(base_link INTERFACE -fsanitize=address,leak,undefined,alignment)
+if (NOT MSVC AND QUIC_SANITIZER_ACTIVE)
+    if (QUIC_ENABLE_ASAN)
+        target_link_libraries(base_link INTERFACE -fsanitize=address)
+    endif()
+
+    if (QUIC_ENABLE_LSAN)
+        target_link_libraries(base_link INTERFACE -fsanitize=leak)
+    endif()
+
+    if (QUIC_ENABLE_UBSAN)
+        target_link_libraries(base_link INTERFACE -fsanitize=undefined)
+    endif()
+
+    if (QUIC_ENABLE_EXTRA_SANITIZERS)
+        target_link_libraries(base_link INTERFACE -fsanitize=alignment)
+    endif()
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -36,14 +53,21 @@ if (NUMA)
     target_link_libraries(base_link INTERFACE ${NUMA})
 endif()
 
+if (LIBURING)
+    target_link_libraries(base_link INTERFACE ${LIBURING})
+endif()
+
 if(WIN32)
     if(QUIC_UWP_BUILD)
         target_link_libraries(base_link INTERFACE OneCore ws2_32 ntdll)
     elseif(QUIC_GAMECORE_BUILD)
-        target_link_options(inc INTERFACE ${Console_LinkOptions})
-        target_compile_options(inc INTERFACE ${Console_ArchOptions})
-        target_link_directories(inc INTERFACE ${Console_EndpointLibRoot})
-        target_link_libraries(base_link INTERFACE xgameplatform ntdll advapi32)
+        target_link_libraries(base_link INTERFACE ntdll advapi32)
+        if(NOT QUIC_EXTERNAL_TOOLCHAIN)
+            target_link_options(inc INTERFACE ${Console_LinkOptions})
+            target_compile_options(inc INTERFACE ${Console_ArchOptions})
+            target_link_directories(inc INTERFACE ${Console_EndpointLibRoot})
+            target_link_libraries(base_link INTERFACE xgameplatform)
+        endif()
     else()
         target_link_libraries(base_link INTERFACE ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
     endif()

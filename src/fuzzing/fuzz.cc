@@ -16,9 +16,9 @@ Abstract:
 #include <stdlib.h>
 #include <stdint.h>
 #include <string>
+#include "quic_platform.h"
 #include "msquic.h"
 #include "msquic.hpp"
-#include "quic_platform.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {

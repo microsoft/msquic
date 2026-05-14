@@ -177,6 +177,24 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryExecutionConfigSet,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryDscpRecvEnabledSet
+// [ lib] Setting Dscp on recv = %u
+// QuicTraceLogInfo(
+            LibraryDscpRecvEnabledSet,
+            "[ lib] Setting Dscp on recv = %u", MsQuicLib.EnableDscpOnRecv);
+// arg2 = arg2 = MsQuicLib.EnableDscpOnRecv = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryDscpRecvEnabledSet,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -203,6 +221,29 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
     TP_ARGS(
 ), 
     TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryRetryKeyUpdated
+// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u
+// QuicTraceLogInfo(
+        LibraryRetryKeyUpdated,
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
+        Config->Algorithm,
+        Config->RotationMs);
+// arg2 = arg2 = Config->Algorithm = arg2
+// arg3 = arg3 = Config->RotationMs = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryKeyUpdated,
+    TP_ARGS(
+        int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -292,15 +333,92 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretNull
+// [ lib] Invalid retry key secret: NULL.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyAlgorithmInvalid
+// [ lib] Invalid retry key algorithm: %d.
+// QuicTraceLogError(
+            LibrarySetRetryKeyAlgorithmInvalid,
+            "[ lib] Invalid retry key algorithm: %d.",
+            Config->Algorithm);
+// arg2 = arg2 = Config->Algorithm = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyAlgorithmInvalid,
+    TP_ARGS(
+        int, arg2), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyRotationInvalid
+// [ lib] Invalid retry key rotation ms: %u.
+// QuicTraceLogError(
+            LibrarySetRetryKeyRotationInvalid,
+            "[ lib] Invalid retry key rotation ms: %u.",
+            Config->RotationMs);
+// arg2 = arg2 = Config->RotationMs = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretLengthInvalid
+// [ lib] Invalid retry key secret length: %u. Expected %u.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretLengthInvalid,
+            "[ lib] Invalid retry key secret length: %u. Expected %u.",
+            Config->SecretLength,
+            AlgSecretLen);
+// arg2 = arg2 = Config->SecretLength = arg2
+// arg3 = arg3 = AlgSecretLen = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretLengthInvalid,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "connection pools",
-            PerProcSize);
-// arg2 = arg2 = "connection pools" = arg2
-// arg3 = arg3 = PerProcSize = arg3
+            "Library Partitions",
+            PartitionsSize);
+// arg2 = arg2 = "Library Partitions" = arg2
+// arg3 = arg3 = PartitionsSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
     TP_ARGS(
@@ -436,8 +554,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 // QuicTraceEvent(
             DataPathInitialized,
             "[data] Initialized, DatapathFeatures=%u",
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+            QuicLibraryGetDatapathFeatures());
+// arg2 = arg2 = QuicLibraryGetDatapathFeatures() = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,
     TP_ARGS(
@@ -532,8 +650,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundownV2,
 // QuicTraceEvent(
                 DataPathRundown,
                 "[data] Rundown, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+                QuicLibraryGetDatapathFeatures());
+// arg2 = arg2 = QuicLibraryGetDatapathFeatures() = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathRundown,
     TP_ARGS(
@@ -565,22 +683,57 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
+// Decoder Ring for ApiEnter
+// [ api] Enter %u (%p).
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Create stateless retry key");
-// arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "Create stateless retry key" = arg3
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_CREATE,
+        NULL);
+// arg2 = arg2 = QUIC_TRACE_API_EXECUTION_CREATE = arg2
+// arg3 = arg3 = NULL = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiEnter,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_string(arg3, arg3)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExitStatus
+// [ api] Exit %u
+// QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiExitStatus,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExit
+// [ api] Exit
+// QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiExit,
+    TP_ARGS(
+), 
+    TP_FIELDS(
     )
 )

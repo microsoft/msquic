@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="2.0.74" />
+    <PackageVersion Include="Microsoft.Diagnostics.Tracing.TraceEvent.SupportFiles" Version="1.0.23" />
+    <PackageVersion Include="Microsoft.Performance.SDK" Version="1.0.16" />
+    <PackageVersion Include="Microsoft.Performance.Toolkit.Engine" Version="1.0.16" />
+    <PackageVersion Include="Microsoft.Performance.Toolkit.Plugins.LTTngPlugin" Version="1.3.0" />
+    <PackageVersion Include="Microsoft.VisualStudio.Services.InteractiveClient" Version="16.170.0" />
+    <PackageVersion Include="System.Memory" Version="4.5.4" />
+    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+</Project>

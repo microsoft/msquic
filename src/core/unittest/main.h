@@ -7,6 +7,7 @@
 
 #pragma once
 
+#define CXPLAT_STORAGE_ENABLE_WRITE_SUPPORT
 #include "precomp.h"
 
 #undef min // gtest headers conflict with previous definitions of min/max.
@@ -18,7 +19,7 @@
 #define COMPARE_TP_FIELD(TpName, Field) \
     if (A->Flags & QUIC_TP_FLAG_##TpName) { ASSERT_EQ(A->Field, B->Field); }
 
-inline
+QUIC_INLINE
 std::ostream& operator << (std::ostream& o, const QUIC_FRAME_TYPE& type) {
     switch (type) {
         case QUIC_FRAME_PADDING:

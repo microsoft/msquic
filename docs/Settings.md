@@ -65,6 +65,8 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Congestion Control Algorithm       | uint16_t   | CongestionControlAlgorithm  |         0 (Cubic) | The congestion control algorithm used for the connection.                                                                     |
 | ECN                                | uint8_t    | EcnEnabled                  |         0 (FALSE) | Enable sender-side ECN support.                                                                                               |
 | Stream Multi Receive               | uint8_t    | StreamMultiReceiveEnabled   |         0 (FALSE) | Enable multi receive support                                                                                                  |
+| XDP                                | uint8_t    | XdpEnabled                  |         0 (FALSE) | Enable XDP. |
+| QTIP                               | uint8_t    | QTIPEnabled                 |         0 (FALSE) | Enable QTIP. XDP must be used. Clients will only send/recv QTIP xor UDP traffic, listeners accept both. [More info](./QTIP.md)|
 
 The types map to registry types as follows:
   - `uint64_t` is a `REG_QWORD`.
@@ -74,17 +76,39 @@ While `REG_DWORD` can hold values larger than `uint16_t`, the administrator shou
 
 The following settings are available via registry as well as via [QUIC_VERSION_SETTINGS](./Versions.md):
 
-| Setting                           | Type       | Registry Name            | Default           | Description                                                                                                                   |
-|-----------------------------------|------------|--------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| Acceptable Versions List          | uint32_t[] | AcceptableVersions       | Unset             | Sets the list of versions that a given server instance will use if a client sends a first flight using them. |
-| Offered Versions List             | uint32_t[] | OfferedVersions          | Unset             | Sets the list of versions that a given server instance will send in a Version Negotiation packet if it receives a first flight from an unknown version. This list will most often be equal to the Acceptable Versions list. |
-| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions    | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the AvailableVersions list in the Version Negotiation Extension Transport Parameter. |
+| Setting                           | Type       | Registry Name                | Default           | Description                                                                                                                   |
+|-----------------------------------|------------|------------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| Acceptable Versions List          | uint32_t[] | AcceptableVersions           | Unset             | Sets the list of versions that a given server instance will use if a client sends a first flight using them. |
+| Offered Versions List             | uint32_t[] | OfferedVersions              | Unset             | Sets the list of versions that a given server instance will send in a Version Negotiation packet if it receives a first flight from an unknown version. This list will most often be equal to the Acceptable Versions list. |
+| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions        | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the AvailableVersions list in the Version Negotiation Extension Transport Parameter. |
+| Version Negotiation Ext. Enabled  | uint32_t   | VersionNegotiationExtEnabled | 0 (FALSE)         | Enables the Version Negotiation Extension. |
 
 The `uint32_t[]` type is a `REG_BINARY` blob of the versions list, with each version in little-endian format.
 
 All restrictions and effects on the versions mentioned in [QUIC_VERSION_SETTINGS](./Versions.md) apply to the registry-set versions as well.
 
 Particularly, on server, these must be set **GLOBALLY** if you want them to take effect for servers.
+
+The following settings are available via registry as well as via [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md):
+
+| Setting | Type | Registry Name | Default | Description |
+|---------|------|---------------|---------|-------------|
+| Stateless Retry Key Rotation interval | uint32_t | RetryKeyRotationMs | 30000 | The interval stateless retry keys are rotated on. A token is valid for 2x this interval. |
+| Stateless Retry Key Algorithm | uint32_t | RetryKeyAlgorithm | QUIC_AEAD_ALGORITHM_AES_256_GCM | The algorithm used to protect the stateless retry token. |
+| Stateless Retry Key Secret | uint8_t[] | RetryKeySecret | Randomly Generated | The secret material used to generate the stateless retry keys. **MUST** be secure randomness! |
+
+The `uint8_t[]` type is a `REG_BINARY` blob of the secret material, and must be the same length (in bytes) as the algorithm's key.
+
+These settings only take effect in the global registry location.
+
+When changing the stateless retry configuration via registry, admins **MUST** delete the existing RetryKeyRotationMs, RetryKeyAlgorithm, and RetryKeySecret registry values (if present) before writing the new values. This prevents a split state from occurring while applying settings.
+
+For consistency when configuring Stateless Retry via the registry, values **MUST** be written in the following order:
+1. RetryKeyRotationMs
+2. RetryKeyAlgorithm
+3. RetryKeySecret
+
+See [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) for more information.
 
 ## QUIC_SETTINGS
 
@@ -111,9 +135,12 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS`<br> 6         | QUIC_GLOBAL_SETTINGS    | Both      | Globally change global only settings.                                                                 |
 | `QUIC_PARAM_GLOBAL_VERSION_SETTINGS`<br> 7        | QUIC_VERSIONS_SETTINGS  | Both      | Globally change version settings for all subsequent connections.                                      |
 | `QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH`<br> 8        | char[64]                | Get-only  | Git hash used to build MsQuic (null terminated string)                                                |
-| `QUIC_PARAM_GLOBAL_EXECUTION_CONFIG`<br> 9        | QUIC_EXECUTION_CONFIG   | Both      | Globally configure the execution model used for QUIC. Must be set before opening registration.        |
+| `QUIC_PARAM_GLOBAL_EXECUTION_CONFIG`<br> 9 (preview)        | QUIC_GLOBAL_EXECUTION_CONFIG   | Both      | Globally configure the execution model used for QUIC. Must be set before opening registration.        |
 | `QUIC_PARAM_GLOBAL_TLS_PROVIDER`<br> 10           | QUIC_TLS_PROVIDER       | Get-Only  | The TLS provider being used by MsQuic for the TLS handshake.                                          |
 | `QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY`<br> 11    | uint8_t[]               | Set-Only  | Globally change the stateless reset key for all subsequent connections.                               |
+| `QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES`<br> 12    | uint32_t[]               | Get-only  | Array of well-known sizes for each version of the QUIC_STATISTICS_V2 struct. The output array length is variable; pass a buffer of uint32_t and check BufferLength for the number of sizes returned. See GetParam documentation for usage details. |
+| `QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED`<br> (preview) | uint8_t (BOOLEAN) | Both | Globally enable the version negotiation extension for all client and server connections. |
+| `QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG`<br> 13    | [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) | Set-Only | Configure the stateless retry token secret, key algorithm, and key rotation interval. The secret length *must* match the AEAD algorithm key length. |
 
 ## Registration Parameters
 
@@ -132,6 +159,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1                     | QUIC_TICKET_KEY_CONFIG[]               | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
 | `QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS`<br> 2                | QUIC_VERSIONS_SETTINGS                 | Both      | Change version settings for all connections on the configuration.                                                 |
 | `QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W`<br> 3 | QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W   | Set-only  | Calls `SetCredentialsAttributesW` with the supplied attribute and buffer on the credential handle. Schannel-only. Only valid once the credential has been loaded.  |
+| `QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED`<br> (preview)     | uint8_t (BOOLEAN)                      | Both      | Enables the version negotiation extension for all client connections on the configuration. |
 
 ## Listener Parameters
 
@@ -141,7 +169,9 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
-| `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | The CIBIR well-known idenfitier.                          |
+| `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | Sets a [CIBIR](./CIBIR.md) (CID-Based Identification and Routing) well-known identifier. |
+| `QUIC_PARAM_DOS_MODE_EVENTS`<br> 2        | BOOLEAN                   | Both      | The Listener opted in for DoS Mode event.                 |
+| `QUIC_PARAM_LISTENER_PARTITION_INDEX`<br> (preview) | uint16_t           | Both      | The partition to use for listener callback events and incoming connections. |
 
 ## Connection Parameters
 
@@ -174,6 +204,9 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 22            | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 23       | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 | `QUIC_PARAM_CONN_ORIG_DEST_CID` <br> 24           | uint8_t[]                     | Get-only  | The original destination connection ID used by the client to connect to the server.       |
+| `QUIC_PARAM_CONN_SEND_DSCP` <br> 25               | uint8_t                       | Both      | The DiffServ Code Point put in the DiffServ field (formerly TypeOfService/TrafficClass) on packets sent from this connection. |
+| `QUIC_PARAM_CONN_NETWORK_STATISTICS` <br> 32      | QUIC_NETWORK_STATISTICS       | Get-only  | Returns Connection level network statistics |
+| `QUIC_PARAM_CONN_CLOSE_ASYNC` <br> 26      | uint8_t (BOOLEAN)      | Both  | The desired connection close behavior. Defaults to false (synchronous). |
 
 ### QUIC_PARAM_CONN_STATISTICS_V2
 
@@ -211,7 +244,7 @@ These parameters are access by calling [GetParam](./api/GetParam.md) or [SetPara
 | `QUIC_PARAM_STREAM_ID`<br> 0                      | QUIC_UINT62       | Get-only  | Must be called on a stream after [StreamStart](./api/StreamStart.md) is called.      |
 | `QUIC_PARAM_STREAM_0RTT_LENGTH`<br> 1             | uint64_t          | Get-only  | Length of 0-RTT data received from peer.                                              |
 | `QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE`<br> 2  | uint64_t - bytes  | Get-only  | Ideal buffer size to queue to the stream. Assumes only one stream sends steadily.     |
-| `QUIC_PARAM_STREAM_PRIORITY` <br> 3               | uint16_t          | Get/Set   | Stream priority. |
+| `QUIC_PARAM_STREAM_PRIORITY` <br> 3               | uint16_t          | Get/Set   | A value from 0x0 to 0xFFFF that indicates the Stream priority. 0xFFFF is highest priority. Data on higher priority stream get sent first. All streams start with priority 0x7FFF by default.  |
 | `QUIC_PARAM_STREAM_STATISTICS` <br> 4             | QUIC_STREAM_STATISTICS | Get-only  | Stream-level statistics. |
 | `QUIC_PARAM_STREAM_RELIABLE_OFFSET` <br> 5        | uint64_t          | Get/Set   | Part of the new Reliable Reset preview feature. Sets/Gets the number of bytes a sender must send before closing SEND path.
 

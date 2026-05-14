@@ -15,58 +15,6 @@ Abstract:
 #include "PerfClient.cpp.clog.h"
 #endif
 
-const char* TimeUnits[] = { "m", "ms", "us", "s" };
-const uint64_t TimeMult[] = { 60 * 1000 * 1000, 1000, 1, 1000 * 1000 };
-const char* SizeUnits[] = { "gb", "mb", "kb", "b" };
-const uint64_t SizeMult[] = { 1000 * 1000 * 1000, 1000 * 1000, 1000, 1 };
-
-_Success_(return != false)
-bool
-TryGetVariableUnitValue(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_z_ const char** names,
-    _Out_ uint64_t* pValue,
-    _Out_ bool* isTimed
-    )
-{
-    *isTimed = false; // Default
-
-    // Search for the first matching name.
-    char* value = nullptr;
-    while (*names && (value = (char*)GetValue(argc, argv, *names)) == nullptr) {
-        names++;
-    }
-    if (!value) { return false; }
-
-    // Search to see if the value has a time unit specified at the end.
-    for (uint32_t i = 0; i < ARRAYSIZE(TimeUnits); ++i) {
-        size_t len = strlen(TimeUnits[i]);
-        if (len < strlen(value) &&
-            _strnicmp(value + strlen(value) - len, TimeUnits[i], len) == 0) {
-            *isTimed = true;
-            value[strlen(value) - len] = '\0';
-            *pValue = (uint64_t)atoi(value) * TimeMult[i];
-            return true;
-        }
-    }
-
-    // Search to see if the value has a size unit specified at the end.
-    for (uint32_t i = 0; i < ARRAYSIZE(SizeUnits); ++i) {
-        size_t len = strlen(SizeUnits[i]);
-        if (len < strlen(value) &&
-            _strnicmp(value + strlen(value) - len, SizeUnits[i], len) == 0) {
-            value[strlen(value) - len] = '\0';
-            *pValue = (uint64_t)atoi(value) * SizeMult[i];
-            return true;
-        }
-    }
-
-    // Default to bytes if no unit is specified.
-    *pValue = (uint64_t)atoi(value);
-    return true;
-}
-
 QUIC_STATUS
 PerfClient::Init(
     _In_ int argc,
@@ -75,6 +23,54 @@ PerfClient::Init(
     ) {
     if (!Configuration.IsValid()) {
         return Configuration.GetInitStatus();
+    }
+
+    CountMult[0] = CxPlatProcCount();
+
+    //
+    // Scenario profile sets new defauls for values below, that may then be
+    // further overridden by command line arguments.
+    //
+    const char* ScenarioStr = GetValue(argc, argv, "scenario");
+    if (ScenarioStr != nullptr) {
+        if (IsValue(ScenarioStr, "upload")) {
+            Upload = S_TO_US(12); // 12 seconds
+            Timed = TRUE;
+            PrintThroughput = TRUE;
+        } else if (IsValue(ScenarioStr, "download")) {
+            Download = S_TO_US(12); // 12 seconds
+            Timed = TRUE;
+            PrintThroughput = TRUE;
+        } else if (IsValue(ScenarioStr, "hps")) {
+            ConnectionCount = 16 * CxPlatProcCount();
+            RunTime = S_TO_US(12); // 12 seconds
+            RepeatConnections = TRUE;
+            PrintIoRate = TRUE;
+        } else if (IsValue(ScenarioStr, "rps-multi")) {
+            Upload = 512;
+            Download = 4000;
+            ConnectionCount = 16 * CxPlatProcCount();
+            StreamCount = 100;
+            RunTime = S_TO_US(20); // 20 seconds
+            RepeatStreams = TRUE;
+            PrintLatency = TRUE;
+        } else if (IsValue(ScenarioStr, "rps")) {
+            Upload = 512;
+            Download = 4000;
+            StreamCount = 100;
+            RunTime = S_TO_US(20); // 20 seconds
+            RepeatStreams = TRUE;
+            PrintLatency = TRUE;
+        } else if (IsValue(ScenarioStr, "latency")) {
+            Upload = 512;
+            Download = 4000;
+            RunTime = S_TO_US(20); // 20 seconds
+            RepeatStreams = TRUE;
+            PrintLatency = TRUE;
+        } else {
+            WriteOutput("Failed to parse scenario profile[%s]!\n", ScenarioStr);
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
     }
 
     //
@@ -113,9 +109,8 @@ PerfClient::Init(
     //
 
     WorkerCount = CxPlatProcCount();
-    TryGetValue(argc, argv, "threads", &WorkerCount);
-    TryGetValue(argc, argv, "workers", &WorkerCount);
-    TryGetValue(argc, argv, "affinitize", &AffinitizeWorkers);
+    TryGetVariableUnitValue(argc, argv, "threads", &WorkerCount);
+    TryGetVariableUnitValue(argc, argv, "workers", &WorkerCount);
 
 #ifdef QUIC_COMPARTMENT_ID
     TryGetValue(argc, argv, "comp", &CompartmentId);
@@ -154,6 +149,7 @@ PerfClient::Init(
     TryGetValue(argc, argv, "pacing", &UsePacing);
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffering);
     TryGetValue(argc, argv, "ptput", &PrintThroughput);
+    TryGetValue(argc, argv, "pctput", &PrintConnThroughput);
     TryGetValue(argc, argv, "prate", &PrintIoRate);
     TryGetValue(argc, argv, "pconnection", &PrintConnections);
     TryGetValue(argc, argv, "pconn", &PrintConnections);
@@ -165,9 +161,9 @@ PerfClient::Init(
     // Scenario options
     //
 
-    TryGetValue(argc, argv, "conns", &ConnectionCount);
-    TryGetValue(argc, argv, "requests", &StreamCount);
-    TryGetValue(argc, argv, "streams", &StreamCount);
+    TryGetVariableUnitValue(argc, argv, "conns", &ConnectionCount);
+    TryGetVariableUnitValue(argc, argv, "requests", &StreamCount);
+    TryGetVariableUnitValue(argc, argv, "streams", &StreamCount);
     TryGetValue(argc, argv, "iosize", &IoSize);
     if (IoSize < 256) {
         WriteOutput("'iosize' too small'!\n");
@@ -229,19 +225,27 @@ PerfClient::Init(
                 nullptr,
                 PerfClientConnection::TcpConnectCallback,
                 PerfClientConnection::TcpReceiveCallback,
-                PerfClientConnection::TcpSendCompleteCallback));
+                PerfClientConnection::TcpSendCompleteCallback,
+                TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
     } else {
-        if (UseSendBuffering || !UsePacing) { // Update settings if non-default
-            MsQuicSettings Settings;
-            Configuration.GetSettings(Settings);
-            if (UseSendBuffering) {
-                Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
-            }
-            if (!UsePacing) {
-                Settings.SetPacingEnabled(UsePacing != 0);
-            }
-            Configuration.SetSettings(Settings);
+        MsQuicSettings Settings;
+        Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
+        Settings.SetPacingEnabled(UsePacing != 0);
+        const char* IoMode = GetValue(argc, argv, "io");
+        if (IoMode && IsValue(IoMode, "xdp")) {
+            Settings.SetXdpEnabled(true);
         }
+        if (IoMode && IsValue(IoMode, "qtip")) {
+            Settings.SetXdpEnabled(true);
+            Settings.SetQtipEnabled(true);
+        }
+#ifndef CXPLAT_USE_IO_URING
+        if (IoMode && IsValue(IoMode, "iouring")) {
+            WriteOutput("iouring is not supported on this build\n");
+            return QUIC_STATUS_NOT_SUPPORTED;
+        }
+#endif
+        Configuration.SetSettings(Settings);
     }
 
     //
@@ -293,8 +297,15 @@ PerfClient::Start(
     //
     // Configure and start all the workers.
     //
+    uint16_t ThreadFlags =
+        PerfDefaultAffinitizeThreads ?
+            (uint16_t)CXPLAT_THREAD_FLAG_SET_AFFINITIZE :
+            (uint16_t)CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+    if (PerfDefaultHighPriority) {
+        ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+    }
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        (uint16_t)(AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_SET_IDEAL_PROC),
+        ThreadFlags,
         0,
         "Perf Worker",
         PerfClientWorker::s_WorkerThread,
@@ -336,7 +347,7 @@ PerfClient::Start(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
+QUIC_STATUS
 PerfClient::Wait(
     _In_ int Timeout
     ) {
@@ -359,10 +370,10 @@ PerfClient::Wait(
 
     if (GetConnectedConnections() == 0) {
         WriteOutput("Error: No Successful Connections!\n");
-        return;
+        return QUIC_STATUS_CONNECTION_REFUSED;
     }
 
-    unsigned long long CompletedConnections = GetConnectionsCompleted();
+    unsigned long long CompletedConnections = GetConnectedConnections();
     unsigned long long CompletedStreams = GetStreamsCompleted();
 
     if (PrintIoRate) {
@@ -374,7 +385,17 @@ PerfClient::Wait(
             unsigned long long RPS = CompletedStreams * 1000 * 1000 / RunTime;
             WriteOutput("Result: %llu RPS\n", RPS);
         }
-    } else if (!PrintThroughput && !PrintLatency) {
+    } else if (PrintThroughput) {
+        unsigned long long UploadRate = GetUploadRate();
+        if (UploadRate) {
+            WriteOutput("Result: Upload %llu kbps.\n", UploadRate);
+        }
+        unsigned long long DownloadRate = GetDownloadRate();
+        if (DownloadRate) {
+            WriteOutput("Result: Download %llu kbps.\n", DownloadRate);
+        }
+
+    } else if (!PrintConnThroughput && !PrintLatency) {
         if (CompletedConnections && CompletedStreams) {
             WriteOutput(
                 "Completed %llu connections and %llu streams!\n",
@@ -387,6 +408,8 @@ PerfClient::Wait(
             WriteOutput("No connections or streams completed!\n");
         }
     }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 uint32_t
@@ -470,9 +493,8 @@ PerfClientConnection::~PerfClientConnection() {
 void
 PerfClientConnection::Initialize() {
     if (Client.UseTCP) {
-        auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
         TcpConn = // TODO: replace new/delete with pool alloc/free
-            new (std::nothrow) TcpConnection(Client.Engine.get(), &CredConfig, this);
+            new (std::nothrow) TcpConnection(Client.Engine.get(), &Client.TcpConfig, this);
         if (!TcpConn->IsInitialized()) {
             Worker.ConnectionPool.Free(this);
             return;
@@ -511,6 +533,20 @@ PerfClientConnection::Initialize() {
                     &Value);
             if (QUIC_FAILED(Status)) {
                 WriteOutput("SetDisable1RttEncryption failed, 0x%x\n", Status);
+                Worker.ConnectionPool.Free(this);
+                return;
+            }
+        }
+
+        if (PerfDefaultDscpValue != 0) {
+            Status =
+                MsQuic->SetParam(
+                    Handle,
+                    QUIC_PARAM_CONN_SEND_DSCP,
+                    sizeof(PerfDefaultDscpValue),
+                    &PerfDefaultDscpValue);
+            if (QUIC_FAILED(Status)) {
+                WriteOutput("SetSendDscp failed, 0x%x\n", Status);
                 Worker.ConnectionPool.Free(this);
                 return;
             }
@@ -604,9 +640,9 @@ void
 PerfClientConnection::OnHandshakeComplete() {
     InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
     if (!Client.StreamCount) {
-        Shutdown();
         WorkerConnComplete = true;
         Worker.OnConnectionComplete();
+        Shutdown();
     } else {
         for (uint32_t i = 0; i < Client.StreamCount; ++i) {
             StartNewStream();
@@ -944,15 +980,20 @@ PerfClientStream::OnShutdown() {
             SendSuccess = false;
         }
 
-        if (Client.PrintThroughput && SendSuccess) {
+        if (SendSuccess) {
             const auto ElapsedMicroseconds = CXPLAT_MAX(SendEndTime - StartTime, RecvEndTime - StartTime);
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
-            WriteOutput(
-                "Result: Upload %llu bytes @ %u kbps (%u.%03u ms).\n",
-                (unsigned long long)TotalBytes,
-                Rate,
-                (uint32_t)(ElapsedMicroseconds / 1000),
-                (uint32_t)(ElapsedMicroseconds % 1000));
+            if (Client.PrintConnThroughput) {
+                WriteOutput(
+                    "Result: Upload %llu bytes @ %u kbps (%u.%03u ms).\n",
+                    (unsigned long long)TotalBytes,
+                    Rate,
+                    (uint32_t)(ElapsedMicroseconds / 1000),
+                    (uint32_t)(ElapsedMicroseconds % 1000));
+            }
+            InterlockedExchangeAdd64(
+                (int64_t*)&Connection.Worker.UploadRate,
+                Rate);
         }
     }
 
@@ -963,16 +1004,21 @@ PerfClientStream::OnShutdown() {
             RecvSuccess = false;
         }
 
-        if (Client.PrintThroughput && RecvSuccess) {
+        if (RecvSuccess) {
             //const auto ElapsedMicroseconds = RecvEndTime - (RecvEndTime == RecvStartTime ? StartTime : RecvStartTime);
             const auto ElapsedMicroseconds = RecvEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
-            WriteOutput(
-                "Result: Download %llu bytes @ %u kbps (%u.%03u ms).\n",
-                (unsigned long long)TotalBytes,
-                Rate,
-                (uint32_t)(ElapsedMicroseconds / 1000),
-                (uint32_t)(ElapsedMicroseconds % 1000));
+            if (Client.PrintConnThroughput) {
+                WriteOutput(
+                    "Result: Download %llu bytes @ %u kbps (%u.%03u ms).\n",
+                    (unsigned long long)TotalBytes,
+                    Rate,
+                    (uint32_t)(ElapsedMicroseconds / 1000),
+                    (uint32_t)(ElapsedMicroseconds % 1000));
+            }
+            InterlockedExchangeAdd64(
+                (int64_t*)&Connection.Worker.DownloadRate,
+                Rate);
         }
     }
 

@@ -84,6 +84,11 @@ MsQuicConfigurationOpen(
     Configuration->ClientContext = Context;
     Configuration->Registration = Registration;
     CxPlatRefInitialize(&Configuration->RefCount);
+#if DEBUG
+    CxPlatRefInitializeMultiple(Configuration->RefTypeBiasedCount, QUIC_CONF_REF_COUNT);
+    CxPlatRefIncrement(&Configuration->RefTypeBiasedCount[QUIC_CONF_REF_HANDLE]);
+    QuicLibraryTrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONFIGURATION, &Configuration->DbgObjectLink);
+#endif
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
     AlpnList = Configuration->AlpnList;
@@ -116,7 +121,7 @@ MsQuicConfigurationOpen(
     //
 
 #ifdef QUIC_SILO
-    Configuration->Silo = QuicSiloGetCurrentServer();
+    Configuration->Silo = QuicSiloGetCurrentServerSilo();
     QuicSiloAddRef(Configuration->Silo);
     if (Configuration->Silo != NULL) {
         //
@@ -128,6 +133,7 @@ MsQuicConfigurationOpen(
                 NULL,
                 (CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
+                CXPLAT_STORAGE_OPEN_FLAG_READ,
                 &Configuration->Storage);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
@@ -156,6 +162,7 @@ MsQuicConfigurationOpen(
                 SpecificAppKey,
                 (CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
+                CXPLAT_STORAGE_OPEN_FLAG_READ,
                 &Configuration->AppSpecificStorage);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
@@ -194,7 +201,7 @@ MsQuicConfigurationOpen(
 
     QuicConfigurationSettingsChanged(Configuration);
 
-    BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
+    BOOLEAN Result = QuicRegistrationRundownAcquire(Registration, QUIC_REG_REF_CONFIGURATION);
     CXPLAT_FRE_ASSERT(Result);
 
     CxPlatLockAcquire(&Registration->ConfigLock);
@@ -206,10 +213,16 @@ MsQuicConfigurationOpen(
 Error:
 
     if (QUIC_FAILED(Status) && Configuration != NULL) {
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Configuration->RefTypeBiasedCount[QUIC_CONF_REF_HANDLE]));
+#endif
         CxPlatStorageClose(Configuration->AppSpecificStorage);
 #ifdef QUIC_SILO
         CxPlatStorageClose(Configuration->Storage);
         QuicSiloRelease(Configuration->Silo);
+#endif
+#if DEBUG
+        QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONFIGURATION, &Configuration->DbgObjectLink);
 #endif
         CXPLAT_FREE(Configuration, QUIC_POOL_CONFIG);
     }
@@ -255,7 +268,14 @@ QuicConfigurationUninitialize(
 
     QuicSettingsCleanup(&Configuration->Settings);
 
-    CxPlatRundownRelease(&Configuration->Registration->Rundown);
+    QuicRegistrationRundownRelease(Configuration->Registration, QUIC_REG_REF_CONFIGURATION);
+
+#if DEBUG
+    for (uint32_t i = 0; i < QUIC_CONF_REF_COUNT; i++) {
+        CXPLAT_DBG_ASSERT(QuicReadLongPtrNoFence(&Configuration->RefTypeBiasedCount[i]) == 1);
+    }
+    QuicLibraryUntrackDbgObject(QUIC_DBG_OBJECT_TYPE_CONFIGURATION, &Configuration->DbgObjectLink);
+#endif
 
     QuicTraceEvent(
         ConfigurationDestroyed,
@@ -280,7 +300,7 @@ MsQuicConfigurationClose(
 
     if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        QuicConfigurationRelease((QUIC_CONFIGURATION*)Handle);
+        QuicConfigurationRelease((QUIC_CONFIGURATION*)Handle, QUIC_CONF_REF_HANDLE);
     }
 
     QuicTraceEvent(
@@ -317,7 +337,7 @@ MsQuicConfigurationLoadCredentialComplete(
             (HQUIC)Configuration,
             Configuration->ClientContext,
             Status);
-        QuicConfigurationRelease(Configuration);
+        QuicConfigurationRelease(Configuration, QUIC_CONF_REF_LOAD_CRED);
     }
 }
 
@@ -349,7 +369,7 @@ MsQuicConfigurationLoadCredential(
             TlsCredFlags |= CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION;
         }
 
-        QuicConfigurationAddRef(Configuration);
+        QuicConfigurationAddRef(Configuration, QUIC_CONF_REF_LOAD_CRED);
 
         Status =
             CxPlatTlsSecConfigCreate(
@@ -363,7 +383,7 @@ MsQuicConfigurationLoadCredential(
             //
             // Release ref for synchronous calls or asynchronous failures.
             //
-            QuicConfigurationRelease(Configuration);
+            QuicConfigurationRelease(Configuration, QUIC_CONF_REF_LOAD_CRED);
         }
     }
 

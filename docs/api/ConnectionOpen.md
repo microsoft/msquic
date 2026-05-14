@@ -52,6 +52,7 @@ Once the connection has been shutdown, it must be cleaned up with a call to [Con
 
 # See Also
 
+[ConnectionOpenInPartition](ConnectionOpenInPartition.md)<br>
 [ConnectionClose](ConnectionClose.md)<br>
 [ConnectionShutdown](ConnectionShutdown.md)<br>
 [ConnectionStart](ConnectionStart.md)<br>

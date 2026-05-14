@@ -44,3 +44,4 @@ The 62-bit error code to indicate to the peer as the reason for the shutdown.
 [RegistrationOpen](RegistrationOpen.md)<br>
 [RegistrationClose](RegistrationClose.md)<br>
 [ConnectionShutdown](ConnectionShutdown.md)<br>
+(Preview) [RegistrationClose2](RegistrationClose2.md)<br>

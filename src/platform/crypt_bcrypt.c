@@ -46,12 +46,14 @@ BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA384_ALG_HANDLE;
 BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA512_ALG_HANDLE;
 BCRYPT_ALG_HANDLE CXPLAT_AES_ECB_ALG_HANDLE;
 BCRYPT_ALG_HANDLE CXPLAT_AES_GCM_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE;
 #else
 BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA256_ALG_HANDLE = BCRYPT_HMAC_SHA256_ALG_HANDLE;
 BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA384_ALG_HANDLE = BCRYPT_HMAC_SHA384_ALG_HANDLE;
 BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA512_ALG_HANDLE = BCRYPT_HMAC_SHA512_ALG_HANDLE;
 BCRYPT_ALG_HANDLE CXPLAT_AES_ECB_ALG_HANDLE = BCRYPT_AES_ECB_ALG_HANDLE;
 BCRYPT_ALG_HANDLE CXPLAT_AES_GCM_ALG_HANDLE = BCRYPT_AES_GCM_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE = BCRYPT_SP800108_CTR_HMAC_ALG_HANDLE;
 #endif
 BCRYPT_ALG_HANDLE CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
 
@@ -204,6 +206,21 @@ CxPlatCryptInitialize(
         }
     }
 
+    Status =
+        BCryptOpenAlgorithmProvider(
+            &CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE,
+            BCRYPT_SP800108_CTR_HMAC_ALGORITHM,
+            MS_PRIMITIVE_PROVIDER,
+            BCRYPT_PROV_DISPATCH);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Open SP800-108 CTR HMAC KDF algorithm");
+        goto Error;
+    }
+
 Error:
 
     if (!NT_SUCCESS(Status)) {
@@ -230,6 +247,10 @@ Error:
         if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE) {
             BCryptCloseAlgorithmProvider(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE, 0);
             CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+        }
+        if (CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE, 0);
+            CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE = NULL;
         }
     }
 
@@ -304,11 +325,13 @@ CxPlatCryptUninitialize(
     )
 {
 #ifdef _KERNEL_MODE
+    BCryptCloseAlgorithmProvider(CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE, 0);
     BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA256_ALG_HANDLE, 0);
     BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA384_ALG_HANDLE, 0);
     BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA512_ALG_HANDLE, 0);
     BCryptCloseAlgorithmProvider(CXPLAT_AES_ECB_ALG_HANDLE, 0);
     BCryptCloseAlgorithmProvider(CXPLAT_AES_GCM_ALG_HANDLE, 0);
+    CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE = NULL;
     CXPLAT_HMAC_SHA256_ALG_HANDLE = NULL;
     CXPLAT_HMAC_SHA384_ALG_HANDLE = NULL;
     CXPLAT_HMAC_SHA512_ALG_HANDLE = NULL;
@@ -761,6 +784,86 @@ CxPlatHashCompute(
     }
 
 Error:
+
+    return NtStatusToQuicStatus(Status);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatKbKdfDerive(
+    _In_reads_(SecretLength) const uint8_t* Secret,
+    _In_ uint32_t SecretLength,
+    _In_z_ const char* Label,
+    _In_reads_opt_(ContextLength) const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _In_ uint32_t OutputLength,
+    _Out_writes_(OutputLength) uint8_t* Output
+    )
+{
+    BCRYPT_KEY_HANDLE KeyHandle = NULL;
+    NTSTATUS Status =
+        BCryptGenerateSymmetricKey(
+            CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE,
+            &KeyHandle,
+            NULL, // Let BCrypt manage the memory
+            0,
+            (UCHAR*)Secret,
+            SecretLength,
+            0);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptGenerateSymmetricKey for KDF");
+        goto Error;
+    }
+
+    BCryptBuffer ParameterList[3];
+    ParameterList[0].BufferType = KDF_HASH_ALGORITHM;
+    ParameterList[0].pvBuffer = (PVOID)BCRYPT_SHA256_ALGORITHM;
+    ParameterList[0].cbBuffer = sizeof(BCRYPT_SHA256_ALGORITHM);
+
+    ParameterList[1].BufferType = KDF_LABEL;
+    ParameterList[1].pvBuffer = (PVOID)Label;
+    ParameterList[1].cbBuffer = (ULONG)strnlen_s(Label, 255);
+
+    ParameterList[2].BufferType = KDF_CONTEXT;
+    ParameterList[2].pvBuffer = (PVOID)Context;
+    ParameterList[2].cbBuffer = ContextLength;
+
+    BCryptBufferDesc Parameters;
+    Parameters.ulVersion = BCRYPTBUFFER_VERSION;
+    Parameters.cBuffers = ARRAYSIZE(ParameterList);
+    Parameters.pBuffers = ParameterList;
+
+    //
+    // Derive the key using SP800-108 CTR mode
+    //
+    ULONG DerivedKeyLength = 0;
+    Status =
+        BCryptKeyDerivation(
+            KeyHandle,
+            &Parameters,
+            Output,
+            OutputLength,
+            &DerivedKeyLength,
+            0);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptKeyDerivation SP800-108 CTR");
+        goto Error;
+    }
+
+    CXPLAT_DBG_ASSERT(DerivedKeyLength == OutputLength);
+
+Error:
+    if (KeyHandle) {
+        BCryptDestroyKey(KeyHandle);
+    }
 
     return NtStatusToQuicStatus(Status);
 }

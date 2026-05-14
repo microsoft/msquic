@@ -80,10 +80,6 @@ typedef struct QUIC_SENT_FRAME_METADATA {
 
 } QUIC_SENT_FRAME_METADATA;
 
-CXPLAT_STATIC_ASSERT(
-    QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT16_MAX,
-    "Metadata 'Type' field above assumes frames types fit in 16-bits");
-
 typedef struct QUIC_SEND_PACKET_FLAGS {
 
     uint8_t KeyType                 : 2;
@@ -174,7 +170,7 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     (sizeof(QUIC_SENT_PACKET_METADATA) + FrameCount * sizeof(QUIC_SENT_FRAME_METADATA))
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint8_t
 QuicPacketTraceType(
     _In_ const QUIC_SENT_PACKET_METADATA* Metadata

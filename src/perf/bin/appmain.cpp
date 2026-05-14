@@ -99,6 +99,7 @@ QuicUserMain(
     ) {
     CxPlatEvent StopEvent {true};
     auto SimpleOutput = GetFlag(argc, argv, "trimout");
+    auto AbortOnFailure = GetFlag(argc, argv, "abortOnFailure");
     QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -108,7 +109,10 @@ QuicUserMain(
         printf("Started!\n\n");
     }
     fflush(stdout);
-    QuicMainWaitForCompletion();
+    Status = QuicMainWaitForCompletion();
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
 
     if (const uint32_t DataLength = QuicMainGetExtraDataLength(); DataLength) {
         auto Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
@@ -121,6 +125,9 @@ Exit:
     QuicMainFree();
     if (!SimpleOutput) {
         printf("App Main returning status %d\n", Status);
+    }
+    if (!QUIC_SUCCEEDED(Status) && AbortOnFailure) {
+        CXPLAT_FRE_ASSERTMSG(FALSE, "AbortOnFailure: Non zero exit code detected. Abort to generate core dump.");
     }
     return Status;
 }
@@ -284,12 +291,23 @@ main(
     QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     uint8_t CipherSuite = 0;
 
+#ifdef QUIC_BUILD_STATIC
+    //
+    // We are statically linking to msquic. We cannot call CxPlatSystemLoad and
+    // CxPlatInitialize directly because they are touching the same set of global
+    // variables that are used inside msquic.
+    //
+    MsQuicApi MsQuic;
+    
+    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(MsQuic.GetInitStatus()));
+#else
     CxPlatSystemLoad();
     CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatInitialize()));
+#endif
 
-    const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
-     if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
+    const char* DriverName = nullptr;
+    if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
         TryGetValue(argc, argv, "driverNamePriv", &DriverName)) {
         PrivateTestLibrary = true;
     }
@@ -305,11 +323,11 @@ main(
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Exit;
         }
-    }
 
-    if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
-        SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-        SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
+        if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
+            SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+            SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
+        }
     }
 
     if (DriverName != nullptr) {
@@ -330,8 +348,10 @@ Exit:
         CxPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
+#ifndef QUIC_BUILD_STATIC
     CxPlatUninitialize();
     CxPlatSystemUnload();
+#endif
 
     return Status;
 }
