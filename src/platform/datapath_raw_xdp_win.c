@@ -48,12 +48,19 @@ typedef struct XDP_DATAPATH {
     BOOLEAN TxAlwaysPoke;
     BOOLEAN Running;        // Signal to stop partitions.
 
+    //
+    // External XDP map configurations (set via QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG).
+    //
+    const QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
+    uint32_t XdpMapConfigCount;
+
     XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
 
 typedef struct XDP_INTERFACE {
     XDP_INTERFACE_COMMON;
     HANDLE XdpHandle;
+    HANDLE XskMap;      // External XSKMAP handle (map mode). NULL = self-managed.
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
@@ -860,6 +867,20 @@ CxPlatDpRawInterfaceUpdateRules(
     _In_ XDP_INTERFACE* Interface
     )
 {
+    //
+    // Map mode: an external process owns the XDP program and XSKMAP.
+    // Skip self-managed rule plumbing.
+    // TODO Phase 3: Insert per-queue XSK sockets into the map via XdpMapInsert.
+    //
+    if (Interface->XskMap != NULL) {
+        QuicTraceLogVerbose(
+            XdpMapModeSkipRules,
+            "[ixdp][%p] Map mode: skipping self-managed XDP rules (IfIndex=%u)",
+            Interface,
+            Interface->ActualIfIndex);
+        return QUIC_STATUS_SUCCESS;
+    }
+
     static const XDP_HOOK_ID RxHook = {
         .Layer = XDP_HOOK_L2,
         .Direction = XDP_HOOK_RX,
@@ -2264,4 +2285,38 @@ CxPlatDataPathRssConfigFree(
     )
 {
     CXPLAT_FREE(RssConfig, QUIC_POOL_DATAPATH_RSS_CONFIG);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawSetXdpMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
+    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Configs,
+    _In_ uint32_t Count
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)RawDataPath;
+    Xdp->XdpMapConfigs = Configs;
+    Xdp->XdpMapConfigCount = Count;
+
+    //
+    // Walk all interfaces and set the XskMap handle for matching ones.
+    //
+    CXPLAT_LIST_ENTRY* Entry;
+    for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+        for (uint32_t i = 0; i < Count; i++) {
+            if (Configs[i].InterfaceIndex == Interface->ActualIfIndex ||
+                Configs[i].InterfaceIndex == Interface->IfIndex) {
+                Interface->XskMap = (HANDLE)Configs[i].MapHandle;
+                QuicTraceLogVerbose(
+                    XdpMapModeConfigured,
+                    "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+                    Interface,
+                    Interface->ActualIfIndex,
+                    Interface->XskMap);
+                break;
+            }
+        }
+    }
 }
