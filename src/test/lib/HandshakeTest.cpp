@@ -1428,10 +1428,6 @@ QuicTestCustomTicketValidationAfterShutdown(
     bool AcceptTicket
     )
 {
-#ifdef QUIC_DISABLE_0RTT_TESTS
-    UNREFERENCED_PARAMETER(AcceptTicket);
-    return;
-#else
     //
     // Server enables async custom ticket validation via QUIC_CONNECTION_EVENT_RESUMED.
     // The client shuts down the connection while ticket validation is still pending,
@@ -1532,7 +1528,6 @@ QuicTestCustomTicketValidationAfterShutdown(
     //
     TEST_QUIC_SUCCEEDED(
         Server->SetCustomTicketValidationResult(AcceptTicket));
-#endif // QUIC_DISABLE_0RTT_TESTS
 }
 
 void
