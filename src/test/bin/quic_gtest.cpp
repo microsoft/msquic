@@ -289,6 +289,23 @@ TEST(ParameterValidation, ValidateGlobalParam) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(ParameterValidation, ValidateXdpMapConfigParam) {
+    //
+    // User-mode only: QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG is set-once before the
+    // library's lazy initialization. In kernel mode the test driver shares one
+    // MsQuicLib across all tests in the run, so earlier tests have already
+    // triggered lazy init and this test cannot exercise the success paths.
+    // This is a test harness limitation today.
+    //
+    if (TestingKernelMode) {
+        GTEST_SKIP() << "QuicTestXdpMapConfigParam is user-mode only.";
+    }
+    TestLogger Logger("QuicTestValidateXdpMapConfigParam");
+    QuicTestXdpMapConfigParam();
+}
+#endif
+
 TEST(ParameterValidation, ValidateCommonParam) {
     TestLogger Logger("QuicTestValidateCommonParam");
     if (TestingKernelMode) {
@@ -1323,12 +1340,30 @@ TEST_P(WithCustomCertificateValidationArgs, CustomClientCertificateValidation) {
     }
 }
 
+TEST(Handshake, CustomServerCertValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomServerCertValidationAfterShutdown");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomServerCertValidationAfterShutdown)));
+    } else {
+        QuicTestCustomServerCertValidationAfterShutdown();
+    }
+}
+
+TEST(Handshake, CustomClientCertValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomClientCertValidationAfterShutdown");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomClientCertValidationAfterShutdown)));
+    } else {
+        QuicTestCustomClientCertValidationAfterShutdown();
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithCustomCertificateValidationArgs,
     testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
 
-struct WithClientCertificateArgs : 
+struct WithClientCertificateArgs :
     public testing::TestWithParam<ClientCertificateArgs> {
 
     static ::std::vector<ClientCertificateArgs> Generate() {
@@ -2692,8 +2727,6 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 TEST(Misc, StreamMultiReceive) {
     TestLogger Logger("StreamMultiReceive");
     if (TestingKernelMode) {
-        // TODO: Why?? This should be enabled.
-        GTEST_SKIP();
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamMultiReceive)));
     } else {
         QuicTestStreamMultiReceive();

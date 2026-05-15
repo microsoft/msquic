@@ -489,6 +489,8 @@ QuicAddrFromString(
         QuicAddr6FromString(AddrStr, Addr);
 }
 
+typedef int QUIC_XDP_MAP_HANDLE;
+
 //
 // Represents an IP address and (optionally) port number as a string.
 //

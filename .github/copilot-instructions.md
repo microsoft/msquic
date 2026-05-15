@@ -123,9 +123,14 @@ The `check-dotnet.yml` CI workflow validates the generated .NET interop files ar
 - Public API is in `src/inc/msquic.h`. C++ wrapper in `src/inc/msquic.hpp`.
 - Test infrastructure uses GoogleTest. Test cases in `src/test/lib/`, runner in `src/test/bin/`.
 
+## Coding Conventions
+
+- **`QUIC_API_ENABLE_PREVIEW_FEATURES`**: Always defined to `1` in `src/core/precomp.h`. Do **not** use `#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES` guards in `src/core/` or `src/platform/` code — the guard is only needed in `src/inc/msquic.h` to identify preview API surface and make it easy to avoid using preview features by mistake.
+
 ## Pull Requests
 
 When creating pull requests, always follow the PR template at `.github/pull_request_template.md`.
+If asked to fix a specific issue, mention the issue number in the PR description (e.g. "Fixes #1234").
 
 ## Update These Instructions
 

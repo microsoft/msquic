@@ -77,6 +77,9 @@ void QuicTestValidateConnection();
 void QuicTestValidateStream(const bool& Connect);
 void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestXdpMapConfigParam();
+#endif
 void QuicTestCommonParam();
 void QuicTestRegistrationParam();
 void QuicTestConfigurationParam();
@@ -350,6 +353,12 @@ void
 QuicTestCustomClientCertificateValidation(
     const CustomCertValidationArgs& Params
     );
+
+void
+QuicTestCustomServerCertValidationAfterShutdown();
+
+void
+QuicTestCustomClientCertValidationAfterShutdown();
 
 struct ClientCertificateArgs {
     int Family;
