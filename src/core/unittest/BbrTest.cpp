@@ -678,9 +678,11 @@ TEST_F(BbrTest_DeepTest, OnDataAcknowledged_ExitingQuiescenceSuppressesProbeRtt)
 
     // Now set app limited + zero BytesInFlight to trigger ExitingQuiescence on next send
     // First ack all inflight data
-    CC->QuicCongestionControlOnDataSent(CC, 3800);
-    QUIC_ACK_EVENT AckAll = MakeBbrAckEvent(1050000, 5, 6, 3800 + 5000 - 1200);
+    uint32_t Remaining = Bbr->BytesInFlight;
+    CC->QuicCongestionControlOnDataSent(CC, Remaining);
+    QUIC_ACK_EVENT AckAll = MakeBbrAckEvent(1050000, 5, 6, Remaining * 2);
     CC->QuicCongestionControlOnDataAcknowledged(CC, &AckAll);
+    ASSERT_EQ(Bbr->BytesInFlight, 0u);
 
     CC->QuicCongestionControlSetAppLimited(CC);
 
@@ -823,17 +825,7 @@ TEST_F(BbrTest_DeepTest, HandleAckInProbeRtt_ExitToStartup)
 {
     InitializeWithDefaults();
 
-    // Establish MinRtt
-    CC->QuicCongestionControlOnDataSent(CC, 2000);
-    QUIC_ACK_EVENT Ack1 = MakeBbrAckEvent(1000000, 1, 2, 2000, 50000, 30000, TRUE);
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack1);
-
-    // Trigger PROBE_RTT via expired MinRtt
-    CC->QuicCongestionControlOnDataSent(CC, 1000);
-    uint64_t ExpiredTime = 1000000 + 11000000;
-    QUIC_ACK_EVENT Ack2 = MakeBbrAckEvent(ExpiredTime, 3, 4, 1000, 50000, 35000, TRUE);
-    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack2);
-
+    uint64_t ExpiredTime = DriveToProbeRtt();
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_RTT);
 
     uint64_t T = ExpiredTime;
@@ -1062,6 +1054,7 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_MinRttMax)
 
     // MinRtt is UINT64_MAX initially. The sentinel check compares to UINT32_MAX,
     // so it falls through to pacing code.
+    // InitialCW = 10 * DatagramPayloadLength = 10 * 1232 = 12320.
     // STARTUP formula: max(BW*PacingGain*Time/GAIN_UNIT, CW*PacingGain/GAIN_UNIT - BIF)
     // = max(0, 12320*739/256 - 1000) = 34564, capped to CW-BIF=11320, then CW>>2=3080.
     uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 50000, TRUE);
@@ -1603,11 +1596,11 @@ TEST_F(BbrTest_DeepTest, OnDataAcknowledged_WithNetStats)
 }
 
 //
-// Test: OnDataAcknowledged - NULL AckedPackets With AppLimited Flag
-// Scenario: Sends 5000 bytes, then acknowledges 1200 with AckedPackets=NULL and
-// IsLargestAckedPacketAppLimited=TRUE. Since AckedPackets is NULL, the ternary
-// resolves LastAckedPacketAppLimited to FALSE regardless of the flag.
-// BytesInFlight is decremented normally.
+// Test: OnDataAcknowledged - NULL AckedPackets Does Not Clear AppLimited
+// Scenario: Sends 5000 bytes, then calls SetAppLimited (exit target =
+// Connection.LossDetection.LargestSentPacketNumber = 0). Acknowledges 1200 with
+// AckedPackets=NULL, LargestAck=0. Since AppLimitedExitTarget (0) is NOT less than
+// LargestAck (0), AppLimited remains TRUE.
 //
 TEST_F(BbrTest_DeepTest, OnDataAcknowledged_AppLimitedPacket)
 {
@@ -1615,15 +1608,21 @@ TEST_F(BbrTest_DeepTest, OnDataAcknowledged_AppLimitedPacket)
 
     CC->QuicCongestionControlOnDataSent(CC, 5000);
 
-    QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1050000, 5, 10, 1200);
+    // Set AppLimited — exit target = LargestSentPacketNumber = 0
+    CC->QuicCongestionControlSetAppLimited(CC);
+    ASSERT_TRUE(CC->QuicCongestionControlIsAppLimited(CC));
+
+    // ACK with LargestAck=0, so exit condition (ExitTarget < LargestAck) is FALSE.
+    // AckedPackets=NULL means bandwidth filter iterates nothing.
+    QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1050000, 0, 10, 1200);
     Ack.AckedPackets = NULL;
     Ack.IsLargestAckedPacketAppLimited = TRUE;
 
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
 
     ASSERT_EQ(Bbr->BytesInFlight, 5000u - 1200u);
-    // NULL AckedPackets means bandwidth filter shouldn't process anything
-    ASSERT_FALSE(CC->QuicCongestionControlIsAppLimited(CC));
+    // AppLimitedExitTarget (0) < LargestAck (0) is FALSE, so AppLimited stays TRUE.
+    ASSERT_TRUE(CC->QuicCongestionControlIsAppLimited(CC));
 }
 
 //
@@ -1721,8 +1720,9 @@ TEST_F(BbrTest_DeepTest, UpdateAckAggregation_FirstCall)
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
 
     ASSERT_TRUE(Bbr->AckAggregationStartTimeValid);
-    // First call initializes AckAggregationStartTime and returns 0;
-    // AggregatedAckBytes remains 0 on first invocation.
+    // First call initializes AckAggregationStartTime to the ACK's TimeNow
+    // and returns 0; AggregatedAckBytes remains 0 on first invocation.
+    ASSERT_EQ(Bbr->AckAggregationStartTime, 1050000u);
     ASSERT_EQ(Bbr->AggregatedAckBytes, 0u);
 }
 
