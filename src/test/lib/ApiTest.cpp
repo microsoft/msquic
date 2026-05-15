@@ -2986,6 +2986,231 @@ void QuicTestGlobalParam()
     QuicTestStatefulGlobalSetParam();
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestXdpMapConfigParam()
+{
+    const QUIC_XDP_MAP_HANDLE FakeHandle1 = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234;
+    const QUIC_XDP_MAP_HANDLE FakeHandle2 = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x5678;
+    const uint32_t FakeIfIndex1 = 3;
+    const uint32_t FakeIfIndex2 = 7;
+
+    //
+    // QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG");
+
+        //
+        // Get when nothing is set should return length 0.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam empty");
+            uint32_t OutLength = sizeof(QUIC_XDP_MAP_CONFIG);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, 0u);
+        }
+
+        //
+        // Set with NULL buffer and non-zero length should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam NULL buffer");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(QUIC_XDP_MAP_CONFIG),
+                    nullptr));
+        }
+
+        //
+        // Set with buffer length not a multiple of struct size should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam bad length");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(QUIC_XDP_MAP_CONFIG) - 1,
+                    &Config));
+        }
+
+        //
+        // Set with zero-length should clear the config.
+        // (First set something, then clear, then verify empty.)
+        //
+        {
+            TestScopeLogger LogScope1("SetParam clear");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+
+            // Clear by setting zero length.
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    0,
+                    nullptr));
+
+            // Verify cleared.
+            uint32_t OutLength = sizeof(QUIC_XDP_MAP_CONFIG);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, 0u);
+        }
+
+        //
+        // N.B. The following SetParam call modifies global library state.
+        // XDP map config can be updated multiple times before the first
+        // registration, so subsequent tests see this configured state.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam valid");
+            QUIC_XDP_MAP_CONFIG Configs[2] = {
+                { FakeIfIndex1, FakeHandle1 },
+                { FakeIfIndex2, FakeHandle2 }
+            };
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Configs),
+                    Configs));
+        }
+
+        //
+        // Get should return the config we set.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam round-trip");
+            QUIC_XDP_MAP_CONFIG OutConfigs[2] = {};
+            uint32_t OutLength = sizeof(OutConfigs);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    OutConfigs));
+            TEST_EQUAL(OutLength, (uint32_t)sizeof(OutConfigs));
+            TEST_EQUAL(OutConfigs[0].InterfaceIndex, FakeIfIndex1);
+            TEST_EQUAL(OutConfigs[1].InterfaceIndex, FakeIfIndex2);
+        }
+
+        //
+        // Get with too-small buffer should return BUFFER_TOO_SMALL.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam buffer too small");
+            uint32_t OutLength = 1;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, (uint32_t)(2 * sizeof(QUIC_XDP_MAP_CONFIG)));
+        }
+
+        //
+        // Get with buffer bigger than needed should succeed and report
+        // actual size.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam buffer bigger than needed");
+            QUIC_XDP_MAP_CONFIG OutConfigs[4] = {};
+            uint32_t OutLength = sizeof(OutConfigs);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    OutConfigs));
+            TEST_EQUAL(OutLength, (uint32_t)(2 * sizeof(QUIC_XDP_MAP_CONFIG)));
+            TEST_EQUAL(OutConfigs[0].InterfaceIndex, FakeIfIndex1);
+            TEST_EQUAL(OutConfigs[1].InterfaceIndex, FakeIfIndex2);
+        }
+
+        //
+        // Setting again should succeed (replaces previous config).
+        //
+        {
+            TestScopeLogger LogScope1("SetParam twice succeeds");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+
+            // Verify it was replaced.
+            QUIC_XDP_MAP_CONFIG OutConfig = {};
+            uint32_t OutLength = sizeof(OutConfig);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    &OutConfig));
+            TEST_EQUAL(OutLength, (uint32_t)sizeof(QUIC_XDP_MAP_CONFIG));
+            TEST_EQUAL(OutConfig.InterfaceIndex, FakeIfIndex1);
+        }
+
+        //
+        // Setting after a registration is created should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam after registration fails");
+            MsQuicRegistration Registration(true);
+            TEST_TRUE(Registration.IsValid());
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+        }
+
+        //
+        // Setting after a registration is closed should still fail
+        // (datapath was already initialized).
+        //
+        {
+            TestScopeLogger LogScope1("SetParam after registration closed fails");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+        }
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 void QuicTestCommonParam()
 {
     //
