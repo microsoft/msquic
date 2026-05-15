@@ -125,12 +125,16 @@ void PrintUsage()
         "\n"
         "Usage:\n"
         "\n"
-        "  quicsample.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>]\n"
+        "  quicsample.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>] [-cibir_id:<hex>]\n"
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         "  quicsample.exe -multiclient -count:<N> -unsecure -target:{IPAddress|Hostname}\n"
 #endif
-        "  quicsample.exe -server -cert_hash:<...>\n"
-        "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>]\n"
+        "  quicsample.exe -server -cert_hash:<...> [-xdp] [-cibir_id:<hex>]\n"
+        "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>] [-xdp] [-cibir_id:<hex>]\n"
+        "\n"
+        "  -xdp            Enable XDP datapath (server only, requires XDP driver)\n"
+        "  -cibir_id:<hex> Set CIBIR ID (hex: first byte is offset, rest is CID prefix)\n"
+        "                  Example: -cibir_id:00AABBCCDD (offset=0, CID=AABBCCDD)\n"
         );
 }
 
@@ -555,6 +559,23 @@ ServerLoadConfiguration(
     Settings.PeerBidiStreamCount = 1;
     Settings.IsSet.PeerBidiStreamCount = TRUE;
 
+    //
+    // Optionally enable XDP datapath for high-performance packet processing.
+    // XDP must be set at the global library level (MsQuicLib.Settings) because
+    // the listener socket creation checks the global setting, not per-config.
+    //
+    if (GetFlag(argc, argv, "xdp")) {
+        QUIC_SETTINGS XdpSettings = {0};
+        XdpSettings.XdpEnabled = TRUE;
+        XdpSettings.IsSet.XdpEnabled = TRUE;
+        QUIC_STATUS XdpStatus = MsQuic->SetParam(NULL, QUIC_PARAM_GLOBAL_SETTINGS, sizeof(XdpSettings), &XdpSettings);
+        if (QUIC_FAILED(XdpStatus)) {
+            printf("Failed to enable XDP globally, 0x%x!\n", XdpStatus);
+            return FALSE;
+        }
+        printf("XDP datapath enabled (global).\n");
+    }
+
     QUIC_CREDENTIAL_CONFIG_HELPER Config;
     memset(&Config, 0, sizeof(Config));
     Config.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
@@ -655,6 +676,26 @@ RunServer(
     if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
         printf("ListenerOpen failed, 0x%x!\n", Status);
         goto Error;
+    }
+
+    //
+    // Optionally set the CIBIR ID on the listener for CID-based XDP steering.
+    //
+    {
+        const char* CibirIdHex = GetValue(argc, argv, "cibir_id");
+        if (CibirIdHex != NULL) {
+            uint8_t CibirId[7]; // offset (1 byte) + max 6 bytes CID
+            uint32_t CibirIdLen = DecodeHexBuffer(CibirIdHex, sizeof(CibirId), CibirId);
+            if (CibirIdLen < 2) {
+                printf("CIBIR ID too short (need at least offset + 1 byte CID)!\n");
+                goto Error;
+            }
+            if (QUIC_FAILED(Status = MsQuic->SetParam(Listener, QUIC_PARAM_LISTENER_CIBIR_ID, CibirIdLen, CibirId))) {
+                printf("SetParam(QUIC_PARAM_LISTENER_CIBIR_ID) failed, 0x%x!\n", Status);
+                goto Error;
+            }
+            printf("CIBIR ID set on listener (offset=%u, %u bytes CID).\n", CibirId[0], CibirIdLen - 1);
+        }
     }
 
     //
@@ -957,6 +998,35 @@ RunClient(
     if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
         printf("ConnectionOpen failed, 0x%x!\n", Status);
         goto Error;
+    }
+
+    //
+    // Optionally set the CIBIR ID on the connection for CID-based steering.
+    //
+    {
+        const char* CibirIdHex = GetValue(argc, argv, "cibir_id");
+        if (CibirIdHex != NULL) {
+            //
+            // CIBIR requires shared binding (so the connection uses source CIDs).
+            //
+            BOOLEAN ShareBinding = TRUE;
+            if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_SHARE_UDP_BINDING, sizeof(ShareBinding), &ShareBinding))) {
+                printf("SetParam(QUIC_PARAM_CONN_SHARE_UDP_BINDING) failed, 0x%x!\n", Status);
+                goto Error;
+            }
+
+            uint8_t CibirId[7]; // offset (1 byte) + max 6 bytes CID
+            uint32_t CibirIdLen = DecodeHexBuffer(CibirIdHex, sizeof(CibirId), CibirId);
+            if (CibirIdLen < 2) {
+                printf("CIBIR ID too short (need at least offset + 1 byte CID)!\n");
+                goto Error;
+            }
+            if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_CIBIR_ID, CibirIdLen, CibirId))) {
+                printf("SetParam(QUIC_PARAM_CONN_CIBIR_ID) failed, 0x%x!\n", Status);
+                goto Error;
+            }
+            printf("CIBIR ID set on connection (offset=%u, %u bytes CID).\n", CibirId[0], CibirIdLen - 1);
+        }
     }
 
     if ((ResumptionTicketString = GetValue(argc, argv, "ticket")) != NULL) {
