@@ -17,11 +17,14 @@ extern "C" {
 #include "quic_datapath.h"
 }
 
-#ifndef _KERNEL_MODE
-extern CXPLAT_WORKER_POOL* WorkerPool;
-#else
-static CXPLAT_WORKER_POOL* WorkerPool;
-#endif
+//
+// Note: These tests intentionally do NOT use the global WorkerPool declared in
+// quic_gtest.cpp. Each test creates its own WorkerPool via WorkerPoolScope so
+// that CxPlatWorkerPoolDelete (in the destructor) blocks until all async IO
+// completions have fully drained. Without this, asynchronous datapath cleanup
+// leaks rundown references on the global WorkerPool, causing the test process
+// to hang during global teardown.
+//
 
 //
 // ---- Callback Helpers ----
@@ -172,6 +175,17 @@ DatapathTestTcpRecvCallbackWithContext(
 struct DatapathTestTcpAcceptRecvContext {
     CXPLAT_EVENT AcceptEvent;
     DatapathTestTcpRecvContext* RecvCtx;
+    CXPLAT_SOCKET* AcceptedSocket = nullptr;
+};
+
+//
+// Context for tracking accepted sockets so they can be properly cleaned up.
+// Without explicit deletion, accepted sockets hold IOCP refs that prevent
+// the worker pool rundown from completing.
+//
+struct TcpAcceptTrackerContext {
+    CXPLAT_EVENT* AcceptEvent = nullptr;
+    CXPLAT_SOCKET* AcceptedSocket = nullptr;
 };
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -180,13 +194,33 @@ static QUIC_STATUS
 DatapathTestTcpAcceptCallbackWithRecv(
     _In_ CXPLAT_SOCKET* /* ListenerSocket */,
     _In_ void* ListenerContext,
-    _In_ CXPLAT_SOCKET* /* AcceptSocket */,
+    _In_ CXPLAT_SOCKET* AcceptSocket,
     _Out_ void** AcceptClientContext
     )
 {
     auto Ctx = (DatapathTestTcpAcceptRecvContext*)ListenerContext;
+    Ctx->AcceptedSocket = AcceptSocket;
     *AcceptClientContext = Ctx->RecvCtx;
     CxPlatEventSet(Ctx->AcceptEvent);
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
+static QUIC_STATUS
+DatapathTestTcpAcceptCallbackTracked(
+    _In_ CXPLAT_SOCKET* /* ListenerSocket */,
+    _In_ void* ListenerContext,
+    _In_ CXPLAT_SOCKET* AcceptSocket,
+    _Out_ void** AcceptClientContext
+    )
+{
+    auto Ctx = (TcpAcceptTrackerContext*)ListenerContext;
+    Ctx->AcceptedSocket = AcceptSocket;
+    *AcceptClientContext = nullptr;
+    if (Ctx->AcceptEvent != nullptr) {
+        CxPlatEventSet(*Ctx->AcceptEvent);
+    }
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -197,6 +231,13 @@ DatapathTestTcpAcceptCallbackWithRecv(
 static const CXPLAT_UDP_DATAPATH_CALLBACKS DefaultUdpCallbacks = {
     DatapathTestUdpRecvCallbackSimple,
     DatapathTestUdpUnreachCallback,
+};
+
+static const CXPLAT_TCP_DATAPATH_CALLBACKS TrackedTcpCallbacks = {
+    DatapathTestTcpAcceptCallbackTracked,
+    DatapathTestTcpConnectCallback,
+    DatapathTestTcpRecvCallback,
+    DatapathTestTcpSendCompleteCallback,
 };
 
 static const CXPLAT_TCP_DATAPATH_CALLBACKS DefaultTcpCallbacks = {
@@ -210,6 +251,24 @@ static const CXPLAT_TCP_DATAPATH_CALLBACKS DefaultTcpCallbacks = {
 // ---- RAII Scope Helpers ----
 //
 
+struct WorkerPoolScope {
+    CXPLAT_WORKER_POOL* Pool = nullptr;
+
+    WorkerPoolScope() {
+        Pool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+        TEST_NOT_EQUAL(nullptr, Pool);
+    }
+
+    ~WorkerPoolScope() {
+        if (Pool) { CxPlatWorkerPoolDelete(Pool, CXPLAT_WORKER_POOL_REF_TOOL); }
+    }
+
+    WorkerPoolScope(const WorkerPoolScope&) = delete;
+    WorkerPoolScope& operator=(const WorkerPoolScope&) = delete;
+
+    operator CXPLAT_WORKER_POOL*() const { return Pool; }
+};
+
 struct EventScope {
     CXPLAT_EVENT Event;
     EventScope() { CxPlatEventInitialize(&Event, FALSE, FALSE); }
@@ -217,20 +276,25 @@ struct EventScope {
 };
 
 struct DatapathScope {
+    CXPLAT_WORKER_POOL* OwnedWorkerPool = nullptr;
     CXPLAT_DATAPATH* Datapath = nullptr;
 
     DatapathScope() {
+        OwnedWorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+        TEST_NOT_EQUAL(nullptr, OwnedWorkerPool);
         CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
         TEST_QUIC_SUCCEEDED(
             CxPlatDataPathInitialize(
-                0, &DefaultUdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+                0, &DefaultUdpCallbacks, nullptr, OwnedWorkerPool, &InitConfig, &Datapath));
     }
 
     explicit DatapathScope(const CXPLAT_TCP_DATAPATH_CALLBACKS& TcpCallbacks) {
+        OwnedWorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+        TEST_NOT_EQUAL(nullptr, OwnedWorkerPool);
         CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
         TEST_QUIC_SUCCEEDED(
             CxPlatDataPathInitialize(
-                0, &DefaultUdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+                0, &DefaultUdpCallbacks, &TcpCallbacks, OwnedWorkerPool, &InitConfig, &Datapath));
     }
 
     DatapathScope(
@@ -239,15 +303,21 @@ struct DatapathScope {
         const CXPLAT_DATAPATH_INIT_CONFIG& Config
         )
     {
+        OwnedWorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+        TEST_NOT_EQUAL(nullptr, OwnedWorkerPool);
         CXPLAT_DATAPATH_INIT_CONFIG InitConfig = Config;
         TEST_QUIC_SUCCEEDED(
             CxPlatDataPathInitialize(
-                ClientRecvDataLength, &DefaultUdpCallbacks, TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+                ClientRecvDataLength, &DefaultUdpCallbacks, TcpCallbacks, OwnedWorkerPool, &InitConfig, &Datapath));
     }
 
     ~DatapathScope() {
         if (Datapath) { CxPlatDataPathUninitialize(Datapath); }
+        if (OwnedWorkerPool) { CxPlatWorkerPoolDelete(OwnedWorkerPool, CXPLAT_WORKER_POOL_REF_TOOL); }
     }
+
+    DatapathScope(const DatapathScope&) = delete;
+    DatapathScope& operator=(const DatapathScope&) = delete;
 
     CXPLAT_DATAPATH* get() const { return Datapath; }
     operator CXPLAT_DATAPATH*() const { return Datapath; }
@@ -323,6 +393,7 @@ struct SendDataScope {
 //
 
 struct UdpLoopbackContext {
+    CXPLAT_WORKER_POOL* OwnedWorkerPool = nullptr;
     CXPLAT_DATAPATH* Datapath = nullptr;
     CXPLAT_SOCKET* ServerSocket = nullptr;
     CXPLAT_SOCKET* ClientSocket = nullptr;
@@ -340,6 +411,9 @@ SetupUdpLoopback(
 {
     CxPlatEventInitialize(&Ctx->RecvCtx.RecvEvent, FALSE, FALSE);
 
+    Ctx->OwnedWorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    TEST_NOT_EQUAL(nullptr, Ctx->OwnedWorkerPool);
+
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
@@ -349,7 +423,7 @@ SetupUdpLoopback(
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Ctx->Datapath));
+            0, &UdpCallbacks, nullptr, Ctx->OwnedWorkerPool, &InitConfig, &Ctx->Datapath));
 
     QUIC_ADDR ServerLocalAddr = {};
     QuicAddrFromString(LoopbackAddr, 0, &ServerLocalAddr);
@@ -387,8 +461,9 @@ TeardownUdpLoopback(
 {
     if (Ctx->ClientSocket) { CxPlatSocketDelete(Ctx->ClientSocket); }
     if (Ctx->ServerSocket) { CxPlatSocketDelete(Ctx->ServerSocket); }
-    CxPlatEventUninitialize(Ctx->RecvCtx.RecvEvent);
     if (Ctx->Datapath) { CxPlatDataPathUninitialize(Ctx->Datapath); }
+    if (Ctx->OwnedWorkerPool) { CxPlatWorkerPoolDelete(Ctx->OwnedWorkerPool, CXPLAT_WORKER_POOL_REF_TOOL); }
+    CxPlatEventUninitialize(Ctx->RecvCtx.RecvEvent);
 }
 
 static void
@@ -426,6 +501,7 @@ SendAndVerifyPayload(
 //
 
 struct ServerSendContext {
+    CXPLAT_WORKER_POOL* OwnedWorkerPool = nullptr;
     CXPLAT_DATAPATH* Datapath = nullptr;
     CXPLAT_SOCKET* SenderSocket = nullptr;
     CXPLAT_SOCKET* RecvSocket = nullptr;
@@ -441,6 +517,9 @@ SetupServerSend(
 {
     CxPlatEventInitialize(&Ctx->RecvCtx.RecvEvent, FALSE, FALSE);
 
+    Ctx->OwnedWorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    TEST_NOT_EQUAL(nullptr, Ctx->OwnedWorkerPool);
+
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
         DatapathTestUdpUnreachCallback,
@@ -449,7 +528,7 @@ SetupServerSend(
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Ctx->Datapath));
+            0, &UdpCallbacks, nullptr, Ctx->OwnedWorkerPool, &InitConfig, &Ctx->Datapath));
 
     QUIC_ADDR RecvLocalAddr = {};
     QuicAddrFromString(LoopbackAddr, 0, &RecvLocalAddr);
@@ -518,8 +597,9 @@ TeardownServerSend(
 {
     if (Ctx->SenderSocket) { CxPlatSocketDelete(Ctx->SenderSocket); }
     if (Ctx->RecvSocket) { CxPlatSocketDelete(Ctx->RecvSocket); }
-    CxPlatEventUninitialize(Ctx->RecvCtx.RecvEvent);
     if (Ctx->Datapath) { CxPlatDataPathUninitialize(Ctx->Datapath); }
+    if (Ctx->OwnedWorkerPool) { CxPlatWorkerPoolDelete(Ctx->OwnedWorkerPool, CXPLAT_WORKER_POOL_REF_TOOL); }
+    CxPlatEventUninitialize(Ctx->RecvCtx.RecvEvent);
 }
 
 //
@@ -634,6 +714,7 @@ void
 QuicTestDataPathInitNullOutput(
     )
 {
+    WorkerPoolScope Pool;
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallbackSimple,
         DatapathTestUdpUnreachCallback,
@@ -643,7 +724,7 @@ QuicTestDataPathInitNullOutput(
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, nullptr));
+            0, &UdpCallbacks, nullptr, Pool, &InitConfig, nullptr));
 }
 
 //
@@ -677,6 +758,7 @@ void
 QuicTestDataPathInitUdpMissingRecv(
     )
 {
+    WorkerPoolScope Pool;
     CXPLAT_DATAPATH* Datapath = nullptr;
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {};
     UdpCallbacks.Unreachable = DatapathTestUdpUnreachCallback;
@@ -685,7 +767,7 @@ QuicTestDataPathInitUdpMissingRecv(
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+            0, &UdpCallbacks, nullptr, Pool, &InitConfig, &Datapath));
 }
 
 //
@@ -697,6 +779,7 @@ void
 QuicTestDataPathInitUdpMissingUnreach(
     )
 {
+    WorkerPoolScope Pool;
     CXPLAT_DATAPATH* Datapath = nullptr;
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {};
     UdpCallbacks.Receive = DatapathTestUdpRecvCallbackSimple;
@@ -705,7 +788,7 @@ QuicTestDataPathInitUdpMissingUnreach(
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+            0, &UdpCallbacks, nullptr, Pool, &InitConfig, &Datapath));
 }
 
 //
@@ -717,6 +800,7 @@ void
 QuicTestDataPathInitTcpMissingAccept(
     )
 {
+    WorkerPoolScope Pool;
     CXPLAT_DATAPATH* Datapath = nullptr;
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallbackSimple,
@@ -731,7 +815,7 @@ QuicTestDataPathInitTcpMissingAccept(
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+            0, &UdpCallbacks, &TcpCallbacks, Pool, &InitConfig, &Datapath));
 }
 
 //
@@ -743,6 +827,7 @@ void
 QuicTestDataPathInitTcpMissingConnect(
     )
 {
+    WorkerPoolScope Pool;
     CXPLAT_DATAPATH* Datapath = nullptr;
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallbackSimple,
@@ -757,7 +842,7 @@ QuicTestDataPathInitTcpMissingConnect(
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+            0, &UdpCallbacks, &TcpCallbacks, Pool, &InitConfig, &Datapath));
 }
 
 //
@@ -769,6 +854,7 @@ void
 QuicTestDataPathInitTcpMissingRecv(
     )
 {
+    WorkerPoolScope Pool;
     CXPLAT_DATAPATH* Datapath = nullptr;
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallbackSimple,
@@ -783,7 +869,7 @@ QuicTestDataPathInitTcpMissingRecv(
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+            0, &UdpCallbacks, &TcpCallbacks, Pool, &InitConfig, &Datapath));
 }
 
 //
@@ -795,6 +881,7 @@ void
 QuicTestDataPathInitTcpMissingSendComplete(
     )
 {
+    WorkerPoolScope Pool;
     CXPLAT_DATAPATH* Datapath = nullptr;
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallbackSimple,
@@ -809,7 +896,7 @@ QuicTestDataPathInitTcpMissingSendComplete(
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+            0, &UdpCallbacks, &TcpCallbacks, Pool, &InitConfig, &Datapath));
 }
 
 //
@@ -1840,23 +1927,24 @@ QuicTestDataPathRecvDataReturnNull(
 
 //
 // TcpTestScope manages TCP datapath lifecycle with correct cleanup ordering.
-// CxPlatDataPathUninitialize is non-blocking — it returns immediately without
-// draining pending IO. We must sleep after socket deletion to let async IO
-// completions (especially on accepted sockets) finish before destroying
-// events that callbacks may reference.
+// Uses TrackedTcpCallbacks to track accepted sockets, ensuring they are
+// properly deleted during cleanup. Without this, accepted sockets hold IOCP
+// refs that prevent CxPlatWorkerPoolDelete from completing.
 //
-// Cleanup order: sockets → sleep(200ms) → datapath uninit → events.
+// Cleanup order: client → accepted → listener → datapath → worker pool → events.
 //
 struct TcpTestScope {
+    CXPLAT_WORKER_POOL* OwnedWorkerPool = nullptr;
     CXPLAT_DATAPATH* Datapath = nullptr;
     CXPLAT_SOCKET* Listener = nullptr;
     CXPLAT_SOCKET* ClientSocket = nullptr;
+    TcpAcceptTrackerContext AcceptTracker = {};
     CXPLAT_EVENT AcceptEvent = {};
     CXPLAT_EVENT ConnectEvent = {};
     bool HasEvents = false;
 
     //
-    // Initialize TCP datapath with default callbacks. Returns false if TCP
+    // Initialize TCP datapath with tracked callbacks. Returns false if TCP
     // is not supported or init fails (caller should return from test).
     //
     bool
@@ -1868,11 +1956,17 @@ struct TcpTestScope {
         if (HasEvents) {
             CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
             CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
+            AcceptTracker.AcceptEvent = &AcceptEvent;
+        }
+        OwnedWorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+        if (!OwnedWorkerPool) {
+            TEST_FAILURE("CxPlatWorkerPoolCreate failed");
+            return false;
         }
         CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {};
         QUIC_STATUS Status =
             CxPlatDataPathInitialize(
-                0, &DefaultUdpCallbacks, &DefaultTcpCallbacks, WorkerPool, &InitConfig, &Datapath);
+                0, &DefaultUdpCallbacks, &TrackedTcpCallbacks, OwnedWorkerPool, &InitConfig, &Datapath);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("CxPlatDataPathInitialize failed, 0x%x", Status);
             return false;
@@ -1881,8 +1975,7 @@ struct TcpTestScope {
     }
 
     //
-    // Create a TCP listener on the given loopback address. The listener's
-    // context is set to &AcceptEvent if events are enabled, nullptr otherwise.
+    // Create a TCP listener on the given loopback address.
     //
     void
     CreateListenerOnLoopback(
@@ -1891,7 +1984,7 @@ struct TcpTestScope {
     {
         uint16_t Port = 0;
         CreateTcpListenerOnLoopback(
-            Datapath, Addr, HasEvents ? &AcceptEvent : nullptr, &Listener, &Port);
+            Datapath, Addr, &AcceptTracker, &Listener, &Port);
     }
 
     //
@@ -1939,14 +2032,19 @@ struct TcpTestScope {
 
     ~TcpTestScope() {
         if (ClientSocket) { CxPlatSocketDelete(ClientSocket); ClientSocket = nullptr; }
+        if (AcceptTracker.AcceptedSocket) { CxPlatSocketDelete(AcceptTracker.AcceptedSocket); AcceptTracker.AcceptedSocket = nullptr; }
         if (Listener) { CxPlatSocketDelete(Listener); Listener = nullptr; }
-        CxPlatSleep(500);
         if (Datapath) { CxPlatDataPathUninitialize(Datapath); Datapath = nullptr; }
+        if (OwnedWorkerPool) { CxPlatWorkerPoolDelete(OwnedWorkerPool, CXPLAT_WORKER_POOL_REF_TOOL); OwnedWorkerPool = nullptr; }
         if (HasEvents) {
             CxPlatEventUninitialize(ConnectEvent);
             CxPlatEventUninitialize(AcceptEvent);
         }
     }
+
+    TcpTestScope(const TcpTestScope&) = delete;
+    TcpTestScope& operator=(const TcpTestScope&) = delete;
+    TcpTestScope() = default;
 };
 
 //
@@ -2069,6 +2167,7 @@ void
 QuicTestDataPathTcpSendRecv(
     )
 {
+    CXPLAT_WORKER_POOL* OwnedWorkerPool = nullptr;
     CXPLAT_DATAPATH* Datapath = nullptr;
 
     DatapathTestTcpRecvContext TcpRecvCtx = {};
@@ -2080,6 +2179,9 @@ QuicTestDataPathTcpSendRecv(
 
     CXPLAT_EVENT ConnectEvent;
     CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
+
+    OwnedWorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    TEST_NOT_EQUAL(nullptr, OwnedWorkerPool);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallbackSimple,
@@ -2095,10 +2197,11 @@ QuicTestDataPathTcpSendRecv(
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, &TcpCallbacks, WorkerPool, &InitConfig, &Datapath));
+            0, &UdpCallbacks, &TcpCallbacks, OwnedWorkerPool, &InitConfig, &Datapath));
 
     if (!HasFeature(Datapath, CXPLAT_DATAPATH_FEATURE_TCP)) {
         CxPlatDataPathUninitialize(Datapath);
+        CxPlatWorkerPoolDelete(OwnedWorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
         CxPlatEventUninitialize(TcpRecvCtx.RecvEvent);
         CxPlatEventUninitialize(AcceptCtx.AcceptEvent);
         CxPlatEventUninitialize(ConnectEvent);
@@ -2153,9 +2256,10 @@ QuicTestDataPathTcpSendRecv(
         CxPlatSocketDelete(ClientSocket);
     }
 
+    if (AcceptCtx.AcceptedSocket) { CxPlatSocketDelete(AcceptCtx.AcceptedSocket); }
     CxPlatSocketDelete(Listener);
-    CxPlatSleep(500);
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(OwnedWorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
     CxPlatEventUninitialize(ConnectEvent);
     CxPlatEventUninitialize(AcceptCtx.AcceptEvent);
     CxPlatEventUninitialize(TcpRecvCtx.RecvEvent);
@@ -2429,10 +2533,14 @@ void
 QuicTestDataPathUdpDualStack(
     )
 {
+    CXPLAT_WORKER_POOL* OwnedWorkerPool = nullptr;
     CXPLAT_DATAPATH* Datapath = nullptr;
 
     DatapathTestRecvContext RecvCtx = {};
     CxPlatEventInitialize(&RecvCtx.RecvEvent, FALSE, FALSE);
+
+    OwnedWorkerPool = CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    TEST_NOT_EQUAL(nullptr, OwnedWorkerPool);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         DatapathTestUdpRecvCallback,
@@ -2442,7 +2550,7 @@ QuicTestDataPathUdpDualStack(
 
     TEST_QUIC_SUCCEEDED(
         CxPlatDataPathInitialize(
-            0, &UdpCallbacks, nullptr, WorkerPool, &InitConfig, &Datapath));
+            0, &UdpCallbacks, nullptr, OwnedWorkerPool, &InitConfig, &Datapath));
 
     //
     // Server with no local address defaults to dual-stack IPv6.
@@ -2497,8 +2605,9 @@ QuicTestDataPathUdpDualStack(
 
     CxPlatSocketDelete(ClientSocket);
     CxPlatSocketDelete(ServerSocket);
-    CxPlatEventUninitialize(RecvCtx.RecvEvent);
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(OwnedWorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+    CxPlatEventUninitialize(RecvCtx.RecvEvent);
 }
 
 //
