@@ -915,6 +915,8 @@ QuicLibraryLazyInitialize(
 
     CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
     InitConfig.EnableDscpOnRecv = MsQuicLib.EnableDscpOnRecv;
+    InitConfig.XdpMapMode =
+        MsQuicLib.XdpMapConfigCount > 0 && MsQuicLib.XdpMapConfigs != NULL;
 
     Status =
         CxPlatDataPathInitialize(
