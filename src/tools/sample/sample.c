@@ -711,70 +711,76 @@ RunServer(
     }
 
     //
-    // Print the XDP rules that were plumbed (if XDP is enabled).
-    // This mirrors the rule construction in CxPlatDpRawPlumbRulesOnSocket
-    // so the user knows exactly what rules to replicate in an external
-    // map creator (quicxskmapcreator).
+    // Print XDP status info after the listener starts.
     //
 #ifdef _WIN32
     if (GetFlag(argc, argv, "xdp")) {
         const char* CibirIdHex = GetValue(argc, argv, "cibir_id");
+        BOOLEAN MapMode = (GetValue(argc, argv, "xdp_map_ifindex") != NULL);
 
         printf("\n");
-        printf("=== XDP Rules Plumbed ===\n");
-        printf("  PID:  %u\n", (unsigned)GetCurrentProcessId());
-        printf("  Port: %u\n", UdpPort);
-        printf("\n");
 
-        if (CibirIdHex != NULL) {
-            uint8_t CibirId[7];
-            uint32_t CibirIdLen = DecodeHexBuffer(CibirIdHex, sizeof(CibirId), CibirId);
-            uint8_t CidOffset = CibirId[0];
-            uint8_t CidLength = (uint8_t)(CibirIdLen - 1);
-
-            printf("  Rule 1: XDP_MATCH_QUIC_FLOW_SRC_CID\n");
-            printf("    UdpPort   = %u\n", UdpPort);
-            printf("    CidOffset = %u\n", CidOffset);
-            printf("    CidLength = %u\n", CidLength);
-            printf("    CidData   = ");
-            for (uint32_t k = 1; k < CibirIdLen; k++) {
-                printf("%02X", CibirId[k]);
-            }
-            printf("\n");
-            printf("    Action    = XDP_PROGRAM_ACTION_REDIRECT\n");
-            printf("    Target    = XDP_REDIRECT_TARGET_TYPE_XSK\n");
-            printf("\n");
-
-            printf("  Rule 2: XDP_MATCH_QUIC_FLOW_DST_CID\n");
-            printf("    UdpPort   = %u\n", UdpPort);
-            printf("    CidOffset = %u\n", CidOffset);
-            printf("    CidLength = %u\n", CidLength);
-            printf("    CidData   = ");
-            for (uint32_t k = 1; k < CibirIdLen; k++) {
-                printf("%02X", CibirId[k]);
-            }
-            printf("\n");
-            printf("    Action    = XDP_PROGRAM_ACTION_REDIRECT\n");
-            printf("    Target    = XDP_REDIRECT_TARGET_TYPE_XSK\n");
+        if (MapMode) {
+            //
+            // Map mode: rules are NOT plumbed by us. The external
+            // quicxskmapcreator process owns the XDP program.
+            //
+            printf("=== XDP Map Mode (consumer) ===\n");
+            printf("  XDP rules were NOT plumbed by this process.\n");
+            printf("  Waiting for quicxskmapcreator to attach the XDP program.\n");
+            printf("===============================\n");
         } else {
-            printf("  Rule 1: XDP_MATCH_UDP_DST\n");
-            printf("    Port   = %u\n", UdpPort);
-            printf("    Action = XDP_PROGRAM_ACTION_REDIRECT\n");
-            printf("    Target = XDP_REDIRECT_TARGET_TYPE_XSK\n");
+            //
+            // Self-managed mode: print the rules that were plumbed.
+            //
+            printf("=== XDP Rules Plumbed ===\n");
+            printf("  Port: %u\n", UdpPort);
+            printf("\n");
+
+            if (CibirIdHex != NULL) {
+                uint8_t CibirId[7];
+                uint32_t CibirIdLen = DecodeHexBuffer(CibirIdHex, sizeof(CibirId), CibirId);
+                uint8_t CidOffset = CibirId[0];
+                uint8_t CidLength = (uint8_t)(CibirIdLen - 1);
+
+                printf("  Rule 1: XDP_MATCH_QUIC_FLOW_SRC_CID\n");
+                printf("    UdpPort   = %u\n", UdpPort);
+                printf("    CidOffset = %u\n", CidOffset);
+                printf("    CidLength = %u\n", CidLength);
+                printf("    CidData   = ");
+                for (uint32_t k = 1; k < CibirIdLen; k++) {
+                    printf("%02X", CibirId[k]);
+                }
+                printf("\n");
+                printf("    Action    = XDP_PROGRAM_ACTION_REDIRECT\n");
+                printf("    Target    = XDP_REDIRECT_TARGET_TYPE_XSK\n");
+                printf("\n");
+
+                printf("  Rule 2: XDP_MATCH_QUIC_FLOW_DST_CID\n");
+                printf("    UdpPort   = %u\n", UdpPort);
+                printf("    CidOffset = %u\n", CidOffset);
+                printf("    CidLength = %u\n", CidLength);
+                printf("    CidData   = ");
+                for (uint32_t k = 1; k < CibirIdLen; k++) {
+                    printf("%02X", CibirId[k]);
+                }
+                printf("\n");
+                printf("    Action    = XDP_PROGRAM_ACTION_REDIRECT\n");
+                printf("    Target    = XDP_REDIRECT_TARGET_TYPE_XSK\n");
+            } else {
+                printf("  Rule 1: XDP_MATCH_UDP_DST\n");
+                printf("    Port   = %u\n", UdpPort);
+                printf("    Action = XDP_PROGRAM_ACTION_REDIRECT\n");
+                printf("    Target = XDP_REDIRECT_TARGET_TYPE_XSK\n");
+            }
+
+            printf("\n");
+            printf("  Hook: XDP_HOOK_L2 / XDP_HOOK_RX / XDP_HOOK_INSPECT\n");
+            printf("  Flags: per-queue (one XdpCreateProgram per RSS queue)\n");
+            printf("=========================\n");
         }
 
         printf("\n");
-        printf("  Hook: XDP_HOOK_L2 / XDP_HOOK_RX / XDP_HOOK_INSPECT\n");
-        printf("  Flags: per-queue (one XdpCreateProgram per RSS queue)\n");
-        printf("=========================\n");
-        printf("\n");
-        printf("To use with quicxskmapcreator, pass:\n");
-        printf("  quicxskmapcreator -TargetPid %u -IfIndex <N> -UdpPort %u",
-            (unsigned)GetCurrentProcessId(), UdpPort);
-        if (CibirIdHex != NULL) {
-            printf(" -CibirId %s", CibirIdHex);
-        }
-        printf("\n\n");
     }
 #endif
 
