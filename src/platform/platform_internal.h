@@ -61,6 +61,12 @@ typedef struct CXPLAT_DATAPATH_COMMON {
     CXPLAT_DATAPATH_FEATURES Features;
 
     CXPLAT_DATAPATH_RAW* RawDataPath;
+
+    //
+    // When TRUE, this struct is the entire datapath (no platform-specific
+    // fields). The raw (XDP) datapath owns all partition/IO state.
+    //
+    BOOLEAN XdpMapMode;
 } CXPLAT_DATAPATH_COMMON;
 
 typedef struct CXPLAT_SOCKET_COMMON {

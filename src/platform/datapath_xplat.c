@@ -32,29 +32,71 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    Status =
-        DataPathInitialize(
-            ClientRecvContextLength,
-            UdpCallbacks,
-            TcpCallbacks,
-            WorkerPool,
-            InitConfig,
-            NewDataPath);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceLogVerbose(
-            DatapathInitFail,
-            "[  dp] Failed to initialize datapath, status:%d", Status);
-        goto Error;
-    }
+    if (InitConfig->XdpMapMode) {
+        //
+        // XDP map mode: bypass the platform datapath (WinSock/epoll) entirely.
+        // Allocate only the common base struct for callbacks and the raw
+        // datapath pointer. The raw (XDP) datapath is required to succeed.
+        //
+        CXPLAT_DATAPATH_COMMON* Common =
+            CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH_COMMON), QUIC_POOL_DATAPATH);
+        if (Common == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "CXPLAT_DATAPATH_COMMON (map mode)",
+                sizeof(CXPLAT_DATAPATH_COMMON));
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
 
-    //
-    // Best effort try to initialize the raw datapath.
-    //
-    RawDataPathInitialize(
-        ClientRecvContextLength,
-        *NewDataPath,
-        WorkerPool,
-        &((*NewDataPath)->RawDataPath));
+        CxPlatZeroMemory(Common, sizeof(*Common));
+        if (UdpCallbacks) {
+            Common->UdpHandlers = *UdpCallbacks;
+        }
+        Common->WorkerPool = WorkerPool;
+
+        *NewDataPath = (CXPLAT_DATAPATH*)Common;
+
+        RawDataPathInitialize(
+            ClientRecvContextLength,
+            *NewDataPath,
+            WorkerPool,
+            &Common->RawDataPath);
+        if (Common->RawDataPath == NULL) {
+            QuicTraceLogVerbose(
+                DatapathRawInitFailMapMode,
+                "[  dp] XDP map mode: raw datapath required but failed to initialize");
+            CXPLAT_FREE(Common, QUIC_POOL_DATAPATH);
+            *NewDataPath = NULL;
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            goto Error;
+        }
+    } else {
+        Status =
+            DataPathInitialize(
+                ClientRecvContextLength,
+                UdpCallbacks,
+                TcpCallbacks,
+                WorkerPool,
+                InitConfig,
+                NewDataPath);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogVerbose(
+                DatapathInitFail,
+                "[  dp] Failed to initialize datapath, status:%d", Status);
+            goto Error;
+        }
+
+        //
+        // Best effort try to initialize the raw datapath.
+        //
+        RawDataPathInitialize(
+            ClientRecvContextLength,
+            *NewDataPath,
+            WorkerPool,
+            &((*NewDataPath)->RawDataPath));
+    }
 
 Error:
 
@@ -70,7 +112,15 @@ CxPlatDataPathUninitialize(
     if (Datapath->RawDataPath) {
         RawDataPathUninitialize(Datapath->RawDataPath);
     }
-    DataPathUninitialize(Datapath);
+    if (Datapath->XdpMapMode) {
+        //
+        // Map mode: this is just a CXPLAT_DATAPATH_COMMON, not a full
+        // platform datapath. Free directly without platform uninit.
+        //
+        CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+    } else {
+        DataPathUninitialize(Datapath);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
