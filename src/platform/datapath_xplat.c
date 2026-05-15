@@ -87,6 +87,19 @@ CxPlatDataPathUpdatePollingIdleTimeout(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathSetXdpMapConfigs(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Configs,
+    _In_ uint32_t Count
+    )
+{
+    if (Datapath->RawDataPath) {
+        CxPlatDpRawSetXdpMapConfigs(Datapath->RawDataPath, Configs, Count);
+    }
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_DATAPATH_FEATURES
 CxPlatDataPathGetSupportedFeatures(

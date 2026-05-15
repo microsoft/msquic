@@ -935,6 +935,15 @@ QuicLibraryLazyInitialize(
                 MsQuicLib.Datapath,
                 MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs);
         }
+        //
+        // Apply any pre-configured XDP map configs to the raw datapath.
+        //
+        if (MsQuicLib.XdpMapConfigCount > 0 && MsQuicLib.XdpMapConfigs != NULL) {
+            CxPlatDataPathSetXdpMapConfigs(
+                MsQuicLib.Datapath,
+                MsQuicLib.XdpMapConfigs,
+                MsQuicLib.XdpMapConfigCount);
+        }
     } else {
         MsQuicLibraryFreePartitions();
 #ifndef _KERNEL_MODE

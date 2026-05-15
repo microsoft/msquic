@@ -512,6 +512,23 @@ CxPlatDataPathUpdatePollingIdleTimeout(
     );
 
 //
+// Sets external XDP map configurations on the datapath. Must be called after
+// the datapath is initialized but before sockets start plumbing rules.
+// The Configs buffer must remain valid (i.e., point to QUIC_XDP_MAP_CONFIG[])
+// for the lifetime of the datapath.
+//
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+struct QUIC_XDP_MAP_CONFIG; // Forward declaration
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathSetXdpMapConfigs(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_reads_(Count) const struct QUIC_XDP_MAP_CONFIG* Configs,
+    _In_ uint32_t Count
+    );
+#endif
+
+//
 // Queries the currently supported features of the datapath for the given type
 // of socket.
 //

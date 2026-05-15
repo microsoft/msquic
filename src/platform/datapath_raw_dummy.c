@@ -85,6 +85,19 @@ RawDataPathUpdatePollingIdleTimeout(
     UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawSetXdpMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
+    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Configs,
+    _In_ uint32_t Count
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
+    UNREFERENCED_PARAMETER(Configs);
+    UNREFERENCED_PARAMETER(Count);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(

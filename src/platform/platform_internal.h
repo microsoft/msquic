@@ -1219,6 +1219,16 @@ RawDataPathUpdatePollingIdleTimeout(
     _In_ uint32_t PollingIdleTimeoutUs
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawSetXdpMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
+    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Configs,
+    _In_ uint32_t Count
+    );
+#endif
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(

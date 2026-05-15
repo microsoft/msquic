@@ -129,10 +129,14 @@ void PrintUsage()
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         "  quicsample.exe -multiclient -count:<N> -unsecure -target:{IPAddress|Hostname}\n"
 #endif
-        "  quicsample.exe -server -cert_hash:<...> [-xdp] [-cibir_id:<hex>]\n"
-        "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>] [-xdp] [-cibir_id:<hex>]\n"
+        "  quicsample.exe -server -cert_hash:<...> [-xdp] [-xdp_map_ifindex:<N>] [-cibir_id:<hex>]\n"
+        "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>] [-xdp] [-xdp_map_ifindex:<N>] [-cibir_id:<hex>]\n"
         "\n"
-        "  -xdp            Enable XDP datapath (server only, requires XDP driver)\n"
+        "  -xdp            Enable XDP datapath (server only, requires XDP driver).\n"
+        "                  When enabled, prints the exact XDP rules being plumbed.\n"
+        "  -xdp_map_ifindex:<N>\n"
+        "                  Enable XDP map mode for the given interface index. The server\n"
+        "                  waits for an XSKMAP handle from quicxskmapcreator. Requires -xdp.\n"
         "  -cibir_id:<hex> Set CIBIR ID (hex: first byte is offset, rest is CID prefix)\n"
         "                  Example: -cibir_id:00AABBCCDD (offset=0, CID=AABBCCDD)\n"
         );
@@ -707,6 +711,74 @@ RunServer(
     }
 
     //
+    // Print the XDP rules that were plumbed (if XDP is enabled).
+    // This mirrors the rule construction in CxPlatDpRawPlumbRulesOnSocket
+    // so the user knows exactly what rules to replicate in an external
+    // map creator (quicxskmapcreator).
+    //
+#ifdef _WIN32
+    if (GetFlag(argc, argv, "xdp")) {
+        const char* CibirIdHex = GetValue(argc, argv, "cibir_id");
+
+        printf("\n");
+        printf("=== XDP Rules Plumbed ===\n");
+        printf("  PID:  %u\n", (unsigned)GetCurrentProcessId());
+        printf("  Port: %u\n", UdpPort);
+        printf("\n");
+
+        if (CibirIdHex != NULL) {
+            uint8_t CibirId[7];
+            uint32_t CibirIdLen = DecodeHexBuffer(CibirIdHex, sizeof(CibirId), CibirId);
+            uint8_t CidOffset = CibirId[0];
+            uint8_t CidLength = (uint8_t)(CibirIdLen - 1);
+
+            printf("  Rule 1: XDP_MATCH_QUIC_FLOW_SRC_CID\n");
+            printf("    UdpPort   = %u\n", UdpPort);
+            printf("    CidOffset = %u\n", CidOffset);
+            printf("    CidLength = %u\n", CidLength);
+            printf("    CidData   = ");
+            for (uint32_t k = 1; k < CibirIdLen; k++) {
+                printf("%02X", CibirId[k]);
+            }
+            printf("\n");
+            printf("    Action    = XDP_PROGRAM_ACTION_REDIRECT\n");
+            printf("    Target    = XDP_REDIRECT_TARGET_TYPE_XSK\n");
+            printf("\n");
+
+            printf("  Rule 2: XDP_MATCH_QUIC_FLOW_DST_CID\n");
+            printf("    UdpPort   = %u\n", UdpPort);
+            printf("    CidOffset = %u\n", CidOffset);
+            printf("    CidLength = %u\n", CidLength);
+            printf("    CidData   = ");
+            for (uint32_t k = 1; k < CibirIdLen; k++) {
+                printf("%02X", CibirId[k]);
+            }
+            printf("\n");
+            printf("    Action    = XDP_PROGRAM_ACTION_REDIRECT\n");
+            printf("    Target    = XDP_REDIRECT_TARGET_TYPE_XSK\n");
+        } else {
+            printf("  Rule 1: XDP_MATCH_UDP_DST\n");
+            printf("    Port   = %u\n", UdpPort);
+            printf("    Action = XDP_PROGRAM_ACTION_REDIRECT\n");
+            printf("    Target = XDP_REDIRECT_TARGET_TYPE_XSK\n");
+        }
+
+        printf("\n");
+        printf("  Hook: XDP_HOOK_L2 / XDP_HOOK_RX / XDP_HOOK_INSPECT\n");
+        printf("  Flags: per-queue (one XdpCreateProgram per RSS queue)\n");
+        printf("=========================\n");
+        printf("\n");
+        printf("To use with quicxskmapcreator, pass:\n");
+        printf("  quicxskmapcreator -TargetPid %u -IfIndex <N> -UdpPort %u",
+            (unsigned)GetCurrentProcessId(), UdpPort);
+        if (CibirIdHex != NULL) {
+            printf(" -CibirId %s", CibirIdHex);
+        }
+        printf("\n\n");
+    }
+#endif
+
+    //
     // Continue listening for connections until the Enter key is pressed.
     //
     printf("Press Enter to exit.\n\n");
@@ -1180,6 +1252,62 @@ main(
         printf("MsQuicOpen2 failed, 0x%x!\n", Status);
         goto Error;
     }
+
+    //
+    // If the server will use XDP map mode, configure the map before
+    // RegistrationOpen (which triggers lazy init and creates the datapath).
+    // QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG must be set before LazyInitComplete.
+    //
+#ifdef _WIN32
+    if (GetFlag(argc, argv, "server") && GetFlag(argc, argv, "xdp")) {
+        const char* MapIfIndexStr = GetValue(argc, argv, "xdp_map_ifindex");
+        if (MapIfIndexStr != NULL) {
+            UINT32 MapIfIndex = (UINT32)atoi(MapIfIndexStr);
+            char InputBuf[64];
+            UINT_PTR HandleValue;
+
+            printf("=== XDP Map Mode ===\n");
+            printf("  PID: %u\n", (unsigned)GetCurrentProcessId());
+            printf("  IfIndex: %u\n", MapIfIndex);
+            printf("\n");
+            printf("Start quicxskmapcreator in another terminal:\n");
+            printf("  quicxskmapcreator -TargetPid %u -IfIndex %u -UdpPort %u\n",
+                (unsigned)GetCurrentProcessId(), MapIfIndex, UdpPort);
+            printf("\n");
+            printf("Paste the XSKMAP handle value here (hex): ");
+            fflush(stdout);
+
+            if (fgets(InputBuf, sizeof(InputBuf), stdin) == NULL) {
+                printf("Failed to read input!\n");
+                goto Error;
+            }
+
+            HandleValue = (UINT_PTR)_strtoui64(InputBuf, NULL, 16);
+            if (HandleValue == 0 || HandleValue == (UINT_PTR)INVALID_HANDLE_VALUE) {
+                printf("Invalid handle value: %s\n", InputBuf);
+                goto Error;
+            }
+
+            QUIC_XDP_MAP_CONFIG MapConfig;
+            MapConfig.InterfaceIndex = MapIfIndex;
+            MapConfig.MapHandle = (QUIC_XDP_MAP_HANDLE)HandleValue;
+
+            Status = MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                sizeof(MapConfig),
+                &MapConfig);
+            if (QUIC_FAILED(Status)) {
+                printf("SetParam(QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG) failed, 0x%x!\n", Status);
+                goto Error;
+            }
+
+            printf("XDP map config set (IfIndex=%u, MapHandle=0x%IX).\n",
+                MapIfIndex, HandleValue);
+            printf("====================\n\n");
+        }
+    }
+#endif
 
     //
     // Create a registration for the app's connections.
