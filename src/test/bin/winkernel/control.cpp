@@ -847,14 +847,6 @@ QuicTestCtlEvtIoDeviceControl(
         break;
     }
 
-    case IOCTL_QUIC_RUN_CERT_ALG_VALIDATION:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestConnectValidServerCertificateAlgorithms(
-                &Params->CertAlgValidationParams.CredConfig,
-                Params->CertAlgValidationParams.AllowedCertAlgs));
-        break;
-
     default:
         QuicTraceEvent(
             LibraryErrorStatus,
