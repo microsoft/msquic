@@ -35,39 +35,41 @@ CxPlatDataPathInitialize(
     if (InitConfig->XdpMapMode) {
         //
         // XDP map mode: bypass the platform datapath (WinSock/epoll) entirely.
-        // Allocate only the common base struct for callbacks and the raw
-        // datapath pointer. The raw (XDP) datapath is required to succeed.
+        // Allocate the full CXPLAT_DATAPATH struct (zero-initialized) so that
+        // any code traversing platform-specific fields sees safe defaults.
+        // Only the common base fields and the raw datapath are used.
         //
-        CXPLAT_DATAPATH_COMMON* Common =
-            CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH_COMMON), QUIC_POOL_DATAPATH);
-        if (Common == NULL) {
+        CXPLAT_DATAPATH* Datapath =
+            CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
+        if (Datapath == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH_COMMON (map mode)",
-                sizeof(CXPLAT_DATAPATH_COMMON));
+                "CXPLAT_DATAPATH (map mode)",
+                sizeof(CXPLAT_DATAPATH));
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
 
-        CxPlatZeroMemory(Common, sizeof(*Common));
+        CxPlatZeroMemory(Datapath, sizeof(CXPLAT_DATAPATH));
         if (UdpCallbacks) {
-            Common->UdpHandlers = *UdpCallbacks;
+            Datapath->UdpHandlers = *UdpCallbacks;
         }
-        Common->WorkerPool = WorkerPool;
+        Datapath->WorkerPool = WorkerPool;
+        Datapath->XdpMapMode = TRUE;
 
-        *NewDataPath = (CXPLAT_DATAPATH*)Common;
+        *NewDataPath = Datapath;
 
         RawDataPathInitialize(
             ClientRecvContextLength,
             *NewDataPath,
             WorkerPool,
-            &Common->RawDataPath);
-        if (Common->RawDataPath == NULL) {
+            &Datapath->RawDataPath);
+        if (Datapath->RawDataPath == NULL) {
             QuicTraceLogVerbose(
                 DatapathRawInitFailMapMode,
                 "[  dp] XDP map mode: raw datapath required but failed to initialize");
-            CXPLAT_FREE(Common, QUIC_POOL_DATAPATH);
+            CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
             *NewDataPath = NULL;
             Status = QUIC_STATUS_NOT_SUPPORTED;
             goto Error;
