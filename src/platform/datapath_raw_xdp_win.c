@@ -340,6 +340,14 @@ CxPlatDpRawInterfaceUninitialize(
     for (uint32_t i = 0; Interface->Queues != NULL && i < Interface->QueueCount; i++) {
         CXPLAT_QUEUE *Queue = &Interface->Queues[i];
 
+        //
+        // In map mode, remove this queue's XSK from the shared map before
+        // closing the socket handle.
+        //
+        if (Interface->XskMap != NULL && Queue->RxXsk != NULL) {
+            (void)XdpMapDelete(Interface->XskMap, &i);
+        }
+
         if (Queue->TxXsk != NULL) {
             CloseHandle(Queue->TxXsk);
         }
@@ -471,6 +479,8 @@ CxPlatDpRawInterfaceInitialize(
             "CxPlatGetRssQueueProcessors");
         goto Error;
     }
+
+    CXPLAT_DBG_ASSERT(Interface->QueueCount <= 128); // XSKMAP_MAX_SIZE
 
     if (Interface->QueueCount == 0) {
         Status = QUIC_STATUS_INVALID_STATE;
@@ -849,6 +859,34 @@ CxPlatDpRawInterfaceInitialize(
         }
     }
 
+    //
+    // Map mode: insert each queue's RX XSK into the shared XSKMAP.
+    // Done once here at init time; PlumbRules is not called in map mode.
+    //
+    if (Interface->XskMap != NULL) {
+        for (uint32_t i = 0; i < Interface->QueueCount; i++) {
+            CXPLAT_QUEUE* Queue = &Interface->Queues[i];
+            if (Queue->RxXsk == NULL) {
+                continue;
+            }
+            Status = (QUIC_STATUS)XdpMapInsert(Interface->XskMap, &i, &Queue->RxXsk);
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "XdpMapInsert");
+                goto Error;
+            }
+            QuicTraceLogVerbose(
+                XdpMapModeInserted,
+                "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)",
+                Interface,
+                i,
+                Interface->ActualIfIndex);
+        }
+    }
+
 Error:
     if (QUIC_FAILED(Status)) {
         CxPlatDpRawInterfaceUninitialize(Interface);
@@ -867,20 +905,6 @@ CxPlatDpRawInterfaceUpdateRules(
     _In_ XDP_INTERFACE* Interface
     )
 {
-    //
-    // Map mode: an external process owns the XDP program and XSKMAP.
-    // Skip self-managed rule plumbing.
-    // TODO Phase 3: Insert per-queue XSK sockets into the map via XdpMapInsert.
-    //
-    if (Interface->XskMap != NULL) {
-        QuicTraceLogVerbose(
-            XdpMapModeSkipRules,
-            "[ixdp][%p] Map mode: skipping self-managed XDP rules (IfIndex=%u)",
-            Interface,
-            Interface->ActualIfIndex);
-        return QUIC_STATUS_SUCCESS;
-    }
-
     static const XDP_HOOK_ID RxHook = {
         .Layer = XDP_HOOK_L2,
         .Direction = XDP_HOOK_RX,

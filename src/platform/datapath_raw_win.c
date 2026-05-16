@@ -170,27 +170,29 @@ RawSocketCreateUdp(
         goto Error;
     }
 
-    Status = CxPlatDpRawPlumbRulesOnSocket(Socket, TRUE);
-    if (QUIC_FAILED(Status)) {
-        //
-        // CxPlatDpRawPlumbRulesOnSocket(TRUE) stops at the first interface
-        // where rule installation fails, so some interfaces may already have
-        // partial state (rules installed or port bits set) that must be rolled
-        // back. Reuse the IsCreated=FALSE path for best-effort cleanup; it is
-        // safe to call against interfaces where nothing was installed (no-op
-        // for those). Cleanup failures are logged but do not change the
-        // returned error.
-        //
-        QUIC_STATUS CleanupStatus = CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
-        if (QUIC_FAILED(CleanupStatus)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                CleanupStatus,
-                "CxPlatDpRawPlumbRulesOnSocket cleanup");
+    if (!Raw->ParentDataPath->XdpMapMode) {
+        Status = CxPlatDpRawPlumbRulesOnSocket(Socket, TRUE);
+        if (QUIC_FAILED(Status)) {
+            //
+            // CxPlatDpRawPlumbRulesOnSocket(TRUE) stops at the first interface
+            // where rule installation fails, so some interfaces may already have
+            // partial state (rules installed or port bits set) that must be rolled
+            // back. Reuse the IsCreated=FALSE path for best-effort cleanup; it is
+            // safe to call against interfaces where nothing was installed (no-op
+            // for those). Cleanup failures are logged but do not change the
+            // returned error.
+            //
+            QUIC_STATUS CleanupStatus = CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
+            if (QUIC_FAILED(CleanupStatus)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    CleanupStatus,
+                    "CxPlatDpRawPlumbRulesOnSocket cleanup");
+            }
+            CxPlatRemoveSocket(&Raw->SocketPool, Socket);
+            goto Error;
         }
-        CxPlatRemoveSocket(&Raw->SocketPool, Socket);
-        goto Error;
     }
 
 Error:
