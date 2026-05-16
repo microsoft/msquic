@@ -86,16 +86,17 @@ RawDataPathUpdatePollingIdleTimeout(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawSetXdpMapConfigs(
+QUIC_STATUS
+CxPlatDpRawInsertXskByMapConfigs(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
-    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Configs,
-    _In_ uint32_t Count
+    _In_reads_(MapConfigCount) const QUIC_XDP_MAP_CONFIG* MapConfigs,
+    _In_ uint32_t MapConfigCount
     )
 {
     UNREFERENCED_PARAMETER(RawDataPath);
-    UNREFERENCED_PARAMETER(Configs);
-    UNREFERENCED_PARAMETER(Count);
+    UNREFERENCED_PARAMETER(MapConfigs);
+    UNREFERENCED_PARAMETER(MapConfigCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

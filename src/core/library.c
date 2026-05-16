@@ -915,8 +915,8 @@ QuicLibraryLazyInitialize(
 
     CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
     InitConfig.EnableDscpOnRecv = MsQuicLib.EnableDscpOnRecv;
-    InitConfig.XdpMapMode =
-        MsQuicLib.XdpMapConfigCount > 0 && MsQuicLib.XdpMapConfigs != NULL;
+    InitConfig.XdpMapConfigs = MsQuicLib.XdpMapConfigs;
+    InitConfig.XdpMapConfigCount = MsQuicLib.XdpMapConfigCount;
 
     Status =
         CxPlatDataPathInitialize(
@@ -936,15 +936,6 @@ QuicLibraryLazyInitialize(
             CxPlatDataPathUpdatePollingIdleTimeout(
                 MsQuicLib.Datapath,
                 MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs);
-        }
-        //
-        // Apply any pre-configured XDP map configs to the raw datapath.
-        //
-        if (MsQuicLib.XdpMapConfigCount > 0 && MsQuicLib.XdpMapConfigs != NULL) {
-            CxPlatDataPathSetXdpMapConfigs(
-                MsQuicLib.Datapath,
-                MsQuicLib.XdpMapConfigs,
-                MsQuicLib.XdpMapConfigCount);
         }
     } else {
         MsQuicLibraryFreePartitions();

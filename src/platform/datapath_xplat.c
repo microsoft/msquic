@@ -32,7 +32,7 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    if (InitConfig->XdpMapMode) {
+    if (InitConfig->XdpMapConfigCount > 0 && InitConfig->XdpMapConfigs != NULL) {
         //
         // XDP map mode: bypass the platform datapath (WinSock/epoll) entirely.
         // Allocate the full CXPLAT_DATAPATH struct (zero-initialized) so that
@@ -72,6 +72,22 @@ CxPlatDataPathInitialize(
             CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
             *NewDataPath = NULL;
             Status = QUIC_STATUS_NOT_SUPPORTED;
+            goto Error;
+        }
+
+        Status =
+            CxPlatDpRawInsertXskByMapConfigs(
+                Datapath->RawDataPath,
+                InitConfig->XdpMapConfigs,
+                InitConfig->XdpMapConfigCount);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogVerbose(
+                DatapathRawMapInsertFail,
+                "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
+                Status);
+            RawDataPathUninitialize(Datapath->RawDataPath);
+            CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+            *NewDataPath = NULL;
             goto Error;
         }
     } else {
@@ -136,19 +152,6 @@ CxPlatDataPathUpdatePollingIdleTimeout(
     if (Datapath->RawDataPath) {
         RawDataPathUpdatePollingIdleTimeout(
             Datapath->RawDataPath, PollingIdleTimeoutUs);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDataPathSetXdpMapConfigs(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Configs,
-    _In_ uint32_t Count
-    )
-{
-    if (Datapath->RawDataPath) {
-        CxPlatDpRawSetXdpMapConfigs(Datapath->RawDataPath, Configs, Count);
     }
 }
 

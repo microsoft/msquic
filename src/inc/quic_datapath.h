@@ -477,13 +477,17 @@ typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     //
     BOOLEAN EnableDscpOnRecv;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
-    // When TRUE, the datapath operates in XDP map mode: the WinSock (normal)
-    // datapath is skipped and the raw (XDP) datapath is required to succeed.
-    // An external process owns the XDP program; this process only creates XSK
-    // sockets and inserts them into a shared XSKMAP.
+    // External XDP map configurations. When non-NULL (and Count > 0), the
+    // datapath operates in XDP map mode: the WinSock (normal) datapath is
+    // skipped, the raw (XDP) datapath is required to succeed, and XSK sockets
+    // are inserted into the provided XSKMAPs at init time.
+    // The buffer must remain valid for the lifetime of the datapath.
     //
-    BOOLEAN XdpMapMode;
+    const struct QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
+    uint32_t XdpMapConfigCount;
+#endif
 } CXPLAT_DATAPATH_INIT_CONFIG;
 
 //
@@ -518,23 +522,6 @@ CxPlatDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t PollingIdleTimeoutUs
     );
-
-//
-// Sets external XDP map configurations on the datapath. Must be called after
-// the datapath is initialized but before sockets start plumbing rules.
-// The Configs buffer must remain valid (i.e., point to QUIC_XDP_MAP_CONFIG[])
-// for the lifetime of the datapath.
-//
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-struct QUIC_XDP_MAP_CONFIG; // Forward declaration
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDataPathSetXdpMapConfigs(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_reads_(Count) const struct QUIC_XDP_MAP_CONFIG* Configs,
-    _In_ uint32_t Count
-    );
-#endif
 
 //
 // Queries the currently supported features of the datapath for the given type
