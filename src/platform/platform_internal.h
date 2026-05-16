@@ -1226,12 +1226,17 @@ RawDataPathUpdatePollingIdleTimeout(
     );
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+//
+// Inserts each interface's RX XSK sockets into the matching XSKMAP from the
+// provided map configs. Uses an O(Interfaces * MapConfigCount) search to match
+// each config to its interface by IfIndex.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawSetXdpMapConfigs(
+QUIC_STATUS
+CxPlatDpRawInsertXskByMapConfigs(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
-    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Configs,
-    _In_ uint32_t Count
+    _In_reads_(MapConfigCount) const QUIC_XDP_MAP_CONFIG* MapConfigs,
+    _In_ uint32_t MapConfigCount
     );
 #endif
 
