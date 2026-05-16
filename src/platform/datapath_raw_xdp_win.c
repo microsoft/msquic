@@ -48,19 +48,12 @@ typedef struct XDP_DATAPATH {
     BOOLEAN TxAlwaysPoke;
     BOOLEAN Running;        // Signal to stop partitions.
 
-    //
-    // External XDP map configurations (set via QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG).
-    //
-    const QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
-    uint32_t XdpMapConfigCount;
-
     XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
 
 typedef struct XDP_INTERFACE {
     XDP_INTERFACE_COMMON;
     HANDLE XdpHandle;
-    HANDLE XskMap;      // External XSKMAP handle (map mode). NULL = self-managed.
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
@@ -339,14 +332,6 @@ CxPlatDpRawInterfaceUninitialize(
 
     for (uint32_t i = 0; Interface->Queues != NULL && i < Interface->QueueCount; i++) {
         CXPLAT_QUEUE *Queue = &Interface->Queues[i];
-
-        //
-        // In map mode, remove this queue's XSK from the shared map before
-        // closing the socket handle.
-        //
-        if (Interface->XskMap != NULL && Queue->RxXsk != NULL) {
-            (void)XdpMapDelete(Interface->XskMap, &i);
-        }
 
         if (Queue->TxXsk != NULL) {
             CloseHandle(Queue->TxXsk);
@@ -856,34 +841,6 @@ CxPlatDpRawInterfaceInitialize(
             XdpWorkerAddQueue(
                 &Xdp->Partitions[RoundRobinIndex++ % Xdp->PartitionCount],
                 &Interface->Queues[i]);
-        }
-    }
-
-    //
-    // Map mode: insert each queue's RX XSK into the shared XSKMAP.
-    // Done once here at init time; PlumbRules is not called in map mode.
-    //
-    if (Interface->XskMap != NULL) {
-        for (uint32_t i = 0; i < Interface->QueueCount; i++) {
-            CXPLAT_QUEUE* Queue = &Interface->Queues[i];
-            if (Queue->RxXsk == NULL) {
-                continue;
-            }
-            Status = (QUIC_STATUS)XdpMapInsert(Interface->XskMap, &i, &Queue->RxXsk);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "XdpMapInsert");
-                goto Error;
-            }
-            QuicTraceLogVerbose(
-                XdpMapModeInserted,
-                "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)",
-                Interface,
-                i,
-                Interface->ActualIfIndex);
         }
     }
 
@@ -2320,27 +2277,48 @@ CxPlatDpRawSetXdpMapConfigs(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)RawDataPath;
-    Xdp->XdpMapConfigs = Configs;
-    Xdp->XdpMapConfigCount = Count;
 
     //
-    // Walk all interfaces and set the XskMap handle for matching ones.
+    // Walk all interfaces. For each matching map config, insert every
+    // queue's RX XSK into the shared XSKMAP immediately.
     //
     CXPLAT_LIST_ENTRY* Entry;
     for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
         for (uint32_t i = 0; i < Count; i++) {
-            if (Configs[i].InterfaceIndex == Interface->ActualIfIndex ||
-                Configs[i].InterfaceIndex == Interface->IfIndex) {
-                Interface->XskMap = (HANDLE)Configs[i].MapHandle;
-                QuicTraceLogVerbose(
-                    XdpMapModeConfigured,
-                    "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
-                    Interface,
-                    Interface->ActualIfIndex,
-                    Interface->XskMap);
-                break;
+            if (Configs[i].InterfaceIndex != Interface->ActualIfIndex &&
+                Configs[i].InterfaceIndex != Interface->IfIndex) {
+                continue;
             }
+            HANDLE XskMap = (HANDLE)Configs[i].MapHandle;
+            QuicTraceLogVerbose(
+                XdpMapModeConfigured,
+                "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+                Interface,
+                Interface->ActualIfIndex,
+                XskMap);
+            for (uint32_t j = 0; j < Interface->QueueCount; j++) {
+                CXPLAT_QUEUE* Queue = &Interface->Queues[j];
+                if (Queue->RxXsk == NULL) {
+                    continue;
+                }
+                HRESULT Hr = XdpMapInsert(XskMap, &j, &Queue->RxXsk);
+                if (FAILED(Hr)) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        Hr,
+                        "XdpMapInsert");
+                } else {
+                    QuicTraceLogVerbose(
+                        XdpMapModeInserted,
+                        "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)",
+                        Interface,
+                        j,
+                        Interface->ActualIfIndex);
+                }
+            }
+            break;
         }
     }
 }
