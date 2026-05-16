@@ -1826,6 +1826,15 @@ TEST_P(WithFamilyArgs, BadSNI) {
     }
 }
 
+TEST_P(WithFamilyArgs, IpSNI) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectIpSni", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectIpSni), GetParam()));
+    } else {
+        QuicTestConnectIpSni(GetParam());
+    }
+}
+
 TEST_P(WithFamilyArgs, ServerRejected) {
     TestLoggerT<ParamType> Logger("QuicTestConnectServerRejected", GetParam());
     if (TestingKernelMode) {

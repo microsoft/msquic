@@ -331,6 +331,28 @@ QuicAddrFromString(
     return TRUE;
 }
 
+QUIC_INLINE
+BOOLEAN
+CxPlatIsIpLiteral(
+    _In_z_ const char* AddrStr
+    )
+{
+    const char* Terminator = NULL;
+    IN_ADDR Ipv4Addr = {0};
+    if (RtlIpv4StringToAddressA(AddrStr, TRUE, &Terminator, &Ipv4Addr) == STATUS_SUCCESS &&
+        *Terminator == '\0') {
+        return TRUE;
+    }
+
+    IN6_ADDR Ipv6Addr = {0};
+    if (RtlIpv6StringToAddressA(AddrStr, &Terminator, &Ipv6Addr) == STATUS_SUCCESS &&
+        *Terminator == '\0') {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 //
 // Represents an IP address and (optionally) port number as a string.
 //

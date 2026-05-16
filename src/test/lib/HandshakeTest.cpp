@@ -2814,6 +2814,74 @@ QuicTestConnectBadSni(
     }
 }
 
+void
+QuicTestConnectIpSni(
+    const FamilyArgs& Params
+    )
+{
+    const int Family = Params.Family;
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    UniquePtr<TestConnection> Server;
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    Listener.Context = &ServerAcceptCtx;
+
+    TestConnection Client(Registration);
+    TEST_TRUE(Client.IsValid());
+    Client.SetSslKeyLogFilePath();
+
+    QuicAddr RemoteAddr(QuicAddrFamily, true);
+    if (UseDuoNic) {
+        QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+    }
+    RemoteAddr.SetPort(ServerLocalAddr.GetPort());
+    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+
+    const char* IpServerName =
+        UseDuoNic ?
+            ((Family == 4) ? "192.168.1.11" : "fc00::1:11") :
+            ((Family == 4) ? "127.0.0.1" : "::1");
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QuicAddrFamily,
+            IpServerName,
+            ServerLocalAddr.GetPort()));
+
+    if (!Client.WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Client.GetIsConnected());
+
+    TEST_NOT_EQUAL(nullptr, Server);
+    if (!Server->WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Server->GetIsConnected());
+}
+
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
