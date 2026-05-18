@@ -127,51 +127,56 @@ TestStream::StartPing(
 {
     //
     // Pre-compute the full schedule so each priming iteration knows up
-    // front whether it is the final send (only the last one shrinks to
-    // LastSendBufferLength and carries FIN). 
+    // front whether it is the final send (only the last one may shrink
+    // below MaxBytesPerSend and carries FIN).
     //
-    const uint64_t BytesPerBuffer = PayloadLength / MaxSendBuffers;
+    // TotalSends is the number of StreamSend calls needed to ship
+    // PayloadLength stream bytes; LastSendBufferLength is the per-buffer
+    // size for the last call (every earlier call uses MaxSendLength per
+    // buffer, i.e. MaxBytesPerSend total).
+    //
     int64_t TotalSends{};
     uint32_t LastSendBufferLength{};
-    if (BytesPerBuffer == 0) {
+    if (PayloadLength == 0) {
         //
-        // Zero-payload (or sub-MaxSendBuffers) sends still issue exactly
-        // one zero-byte StreamSend so START and FIN reach the peer.
+        // Zero-payload sends still issue exactly one zero-byte StreamSend
+        // so START and FIN reach the peer.
         //
         TotalSends = 1;
         LastSendBufferLength = 0;
     } else {
-        TotalSends =
-            (int64_t)((BytesPerBuffer + MaxSendLength - 1) / MaxSendLength);
-        LastSendBufferLength =
-            (uint32_t)(BytesPerBuffer - (uint64_t)(TotalSends - 1) * MaxSendLength);
+        TotalSends = (int64_t)(PayloadLength / MaxBytesPerSend);
+        const uint64_t LastSendBytes = PayloadLength % MaxBytesPerSend;
+        if (LastSendBytes == 0) {
+            //
+            // PayloadLength is an exact multiple of MaxBytesPerSend; the
+            // last send is full-size like all the others.
+            //
+            LastSendBufferLength = (uint32_t)MaxSendLength;
+        } else {
+            TotalSends++;
+            LastSendBufferLength = (uint32_t)(LastSendBytes / MaxSendBuffers);
+        }
     }
 
     const int64_t PrimingCount = CXPLAT_MIN(TotalSends, (int64_t)MaxSendRequestQueue);
 
     //
-    // Initialize BytesToSend to the bytes-per-buffer total that
-    // HandleStreamSendComplete still needs to chain through after this
-    // function's priming work is done. From this assignment onward
-    // StartPing does NOT touch BytesToSend; the callback is the sole
-    // mutator, and SEND_COMPLETE events for a single stream are
-    // serialized on the connection worker, so there is no concurrent
-    // writer of BytesToSend.
+    // BytesToSend is the total stream bytes the callback still has to
+    // ship after this function's priming is done.
     //
-    // - PrimingCount == TotalSends: StartPing primes every send,
-    //   including the FIN one. Set BytesToSend = 0 so the callback
-    //   short-circuits on `BytesToSend == 0` for each completion.
-    // - PrimingCount  < TotalSends: StartPing primes PrimingCount
-    //   full-size sends; what's left for the callback is exactly
-    //   BytesPerBuffer - PrimingCount * MaxSendLength bytes (per
-    //   buffer), and the callback's existing MIN/subtract loop draws
-    //   that down to zero, applying FIN on the final decrement.
+    // For "stream forever" payloads (UINT64_MAX-style) the value
+    // wouldn't fit in int64_t verbatim; clamp at INT64_MAX. Those tests
+    // (ServerDisconnect / StatelessResetKey) end via disconnect before
+    // the callback could ever decrement that far anyway.
     //
     if (PrimingCount == TotalSends) {
         BytesToSend = 0;
     } else {
+        const uint64_t Remaining =
+            PayloadLength - (uint64_t)PrimingCount * MaxBytesPerSend;
         BytesToSend =
-            (int64_t)BytesPerBuffer - PrimingCount * (int64_t)MaxSendLength;
+            (Remaining > (uint64_t)INT64_MAX) ? INT64_MAX : (int64_t)Remaining;
     }
 
     for (int64_t i = 0; i < PrimingCount; ++i) {
@@ -212,14 +217,6 @@ TestStream::StartPing(
             delete SendBuffer;
             TEST_FAILURE("MsQuic->StreamSend failed, 0x%x.", Status);
             return false;
-        }
-        if (IsLast) {
-            //
-            // On the finish packet if it succeeds, the instance
-            // we are executing in will be deleted. Return
-            // so we don't execute the loop on a deleted instance.
-            //
-            return true;
         }
     }
 
@@ -340,12 +337,22 @@ TestStream::HandleStreamSendComplete(
             InterlockedDecrement(&OutstandingSendRequestCount);
             delete SendBuffer;
         } else {
+            //
+            // BytesToSend is the total stream bytes remaining for the
+            // callback to ship. Take up to one full send's worth and
+            // split it evenly across this SendBuffer's buffers (the
+            // per-buffer division truncates an odd byte for odd
+            // PayloadLengths).
+            //
             QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
-            auto SendBufferLength = (uint32_t)CXPLAT_MIN(BytesToSend, (int64_t)MaxSendLength);
+            const int64_t BytesThisSend =
+                CXPLAT_MIN(BytesToSend, (int64_t)MaxBytesPerSend);
+            const uint32_t SendBufferLength =
+                (uint32_t)(BytesThisSend / SendBuffer->BufferCount);
             for (uint32_t i = 0; i < SendBuffer->BufferCount; ++i) {
                 SendBuffer->Buffers[i].Length = SendBufferLength;
             }
-            if (InterlockedSubtract64(&BytesToSend, SendBufferLength) == 0) {
+            if (InterlockedSubtract64(&BytesToSend, BytesThisSend) == 0) {
                 Flags |= QUIC_SEND_FLAG_FIN;
             }
 #ifdef CXPLAT_RAISE_IRQL
