@@ -1277,8 +1277,14 @@ main(
             printf("  IfIndex: %u\n", MapIfIndex);
             printf("\n");
             printf("Start quicxskmapcreator in another terminal:\n");
-            printf("  quicxskmapcreator -TargetPid %u -IfIndex %u -UdpPort %u\n",
-                (unsigned)GetCurrentProcessId(), MapIfIndex, UdpPort);
+            const char* CibirHint = GetValue(argc, argv, "cibir_id");
+            if (CibirHint != NULL) {
+                printf("  quicxskmapcreator -TargetPid %u -IfIndex %u -UdpPort %u -CibirId %s\n",
+                    (unsigned)GetCurrentProcessId(), MapIfIndex, UdpPort, CibirHint);
+            } else {
+                printf("  quicxskmapcreator -TargetPid %u -IfIndex %u -UdpPort %u\n",
+                    (unsigned)GetCurrentProcessId(), MapIfIndex, UdpPort);
+            }
             printf("\n");
             printf("Paste the XSKMAP handle value here (hex): ");
             fflush(stdout);

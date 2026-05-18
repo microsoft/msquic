@@ -41,11 +41,17 @@ Abstract:
 #define LOGERR(...) \
     fprintf(stderr, "ERR: "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
 
+//
+// Must match QUIC_CID_PID_LENGTH in src/core/cid.h. The CIBIR data in
+// MsQuic CIDs lives at offset CidServerIdLength + QUIC_CID_PID_LENGTH.
+//
+#define QUIC_CID_PID_LENGTH 2
+
 static UINT32 TargetPid;
 static UINT32 IfIndex;
 static UINT16 UdpPort;
+static UINT8 CidServerIdLength;
 static BOOLEAN HasCibirId;
-static UINT8 CibirIdOffset;
 static UINT8 CibirIdData[6];
 static UINT8 CibirIdLength;
 
@@ -92,6 +98,10 @@ PrintUsage(void)
         "   -UdpPort <port>     QUIC server UDP port (required)\n"
         "   -CibirId <hex>      CIBIR ID (hex: first byte is offset, rest is CID prefix)\n"
         "                       Example: -CibirId 00AABBCCDD\n"
+        "   -CidServerIdLength <N>\n"
+        "                       Server ID length in MsQuic CIDs (default: 0).\n"
+        "                       Must match MsQuicLib.CidServerIdLength (non-zero when\n"
+        "                       load balancing is enabled).\n"
     );
 }
 
@@ -105,6 +115,7 @@ ParseArgs(
     TargetPid = 0;
     IfIndex = MAXUINT32;
     UdpPort = 0;
+    CidServerIdLength = 0;
     HasCibirId = FALSE;
 
     while (i < ArgC) {
@@ -126,6 +137,12 @@ ParseArgs(
                 return FALSE;
             }
             UdpPort = (UINT16)atoi(ArgV[i]);
+        } else if (!_stricmp(ArgV[i], "-CidServerIdLength")) {
+            if (++i >= ArgC) {
+                LOGERR("Missing CidServerIdLength value");
+                return FALSE;
+            }
+            CidServerIdLength = (UINT8)atoi(ArgV[i]);
         } else if (!_stricmp(ArgV[i], "-CibirId")) {
             if (++i >= ArgC) {
                 LOGERR("Missing CibirId value");
@@ -137,7 +154,6 @@ ParseArgs(
                 LOGERR("CIBIR ID too short (need at least offset + 1 byte CID)");
                 return FALSE;
             }
-            CibirIdOffset = CibirRaw[0];
             CibirIdLength = (UINT8)(CibirRawLen - 1);
             memcpy(CibirIdData, &CibirRaw[1], CibirIdLength);
             HasCibirId = TRUE;
@@ -250,12 +266,15 @@ main(
 
         if (HasCibirId) {
             //
-            // CIBIR mode: match on QUIC connection IDs.
+            // CIBIR mode: match on QUIC connection IDs. The CID offset must
+            // match MsQuic's CID layout: CidServerIdLength + QUIC_CID_PID_LENGTH.
             //
+            UINT8 CidOffset = CidServerIdLength + QUIC_CID_PID_LENGTH;
+
             Rules[RuleCount].Match = XDP_MATCH_QUIC_FLOW_SRC_CID;
             Rules[RuleCount].Pattern.QuicFlow.UdpPort = htons(UdpPort);
             Rules[RuleCount].Pattern.QuicFlow.CidLength = CibirIdLength;
-            Rules[RuleCount].Pattern.QuicFlow.CidOffset = CibirIdOffset;
+            Rules[RuleCount].Pattern.QuicFlow.CidOffset = CidOffset;
             memcpy(Rules[RuleCount].Pattern.QuicFlow.CidData, CibirIdData, CibirIdLength);
             Rules[RuleCount].Action = XDP_PROGRAM_ACTION_REDIRECT;
             Rules[RuleCount].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
@@ -265,7 +284,7 @@ main(
             Rules[RuleCount].Match = XDP_MATCH_QUIC_FLOW_DST_CID;
             Rules[RuleCount].Pattern.QuicFlow.UdpPort = htons(UdpPort);
             Rules[RuleCount].Pattern.QuicFlow.CidLength = CibirIdLength;
-            Rules[RuleCount].Pattern.QuicFlow.CidOffset = CibirIdOffset;
+            Rules[RuleCount].Pattern.QuicFlow.CidOffset = CidOffset;
             memcpy(Rules[RuleCount].Pattern.QuicFlow.CidData, CibirIdData, CibirIdLength);
             Rules[RuleCount].Action = XDP_PROGRAM_ACTION_REDIRECT;
             Rules[RuleCount].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
@@ -301,9 +320,10 @@ main(
 
     printf("[Stage 4] XDP program attached on IfIndex %u\n", IfIndex);
     if (HasCibirId) {
+        UINT8 CidOffset = CidServerIdLength + QUIC_CID_PID_LENGTH;
         printf("  Rules: XDP_MATCH_QUIC_FLOW_SRC_CID + XDP_MATCH_QUIC_FLOW_DST_CID\n");
-        printf("  UdpPort: %u, CidOffset: %u, CidLength: %u\n",
-            UdpPort, CibirIdOffset, CibirIdLength);
+        printf("  UdpPort: %u, CidOffset: %u (SidLen=%u + PidLen=%u), CidLength: %u\n",
+            UdpPort, CidOffset, CidServerIdLength, QUIC_CID_PID_LENGTH, CibirIdLength);
     } else {
         printf("  Rule: XDP_MATCH_UDP_DST, Port: %u\n", UdpPort);
     }
