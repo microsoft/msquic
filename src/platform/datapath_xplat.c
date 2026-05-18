@@ -132,8 +132,8 @@ CxPlatDataPathUninitialize(
     }
     if (Datapath->XdpMapMode) {
         //
-        // Map mode: this is just a CXPLAT_DATAPATH_COMMON, not a full
-        // platform datapath. Free directly without platform uninit.
+        // Map mode: no platform (WinSock) datapath was initialized,
+        // so free directly without platform uninit.
         //
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     } else {

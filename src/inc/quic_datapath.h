@@ -477,7 +477,6 @@ typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     //
     BOOLEAN EnableDscpOnRecv;
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // External XDP map configurations. When non-NULL (and Count > 0), the
     // datapath operates in XDP map mode: the WinSock (normal) datapath is
@@ -487,7 +486,6 @@ typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     //
     const struct QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
     uint32_t XdpMapConfigCount;
-#endif
 } CXPLAT_DATAPATH_INIT_CONFIG;
 
 //
