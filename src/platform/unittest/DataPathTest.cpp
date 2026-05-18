@@ -1408,4 +1408,274 @@ TEST_F(DataPathTest, XdpRuleAddOomCleanup)
 }
 #endif // DEBUG
 
+//
+// XDP Map Mode Tests
+//
+// These tests exercise the XDP map mode initialization path in
+// CxPlatDataPathInitialize (datapath_xplat.c). In map mode the platform
+// (WinSock/epoll) datapath is bypassed and only the raw (XDP) datapath is
+// used. Map mode is triggered when XdpMapConfigCount > 0 and
+// XdpMapConfigs != NULL in the init config.
+//
+
+TEST_F(DataPathTest, XdpMapMode_ZeroConfigUsesNormalPath)
+{
+    //
+    // XdpMapConfigCount == 0 should fall through to the normal (non-map)
+    // initialization path and succeed.
+    //
+    QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(&ExecConfig, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = TRUE;
+    InitConfig.XdpMapConfigs = nullptr;
+    InitConfig.XdpMapConfigCount = 0;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_NullConfigsUsesNormalPath)
+{
+    //
+    // XdpMapConfigCount > 0 but XdpMapConfigs == NULL should fall through
+    // to the normal path because the condition requires both to be set.
+    //
+    QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(&ExecConfig, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = TRUE;
+    InitConfig.XdpMapConfigs = nullptr;
+    InitConfig.XdpMapConfigCount = 1;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_InitFailsWithoutRawDatapath)
+{
+    //
+    // On machines without XDP/DuoNic, raw datapath initialization fails.
+    // In map mode this is a hard failure (QUIC_STATUS_NOT_SUPPORTED) unlike
+    // the normal path where raw datapath failure is tolerated. Verify that
+    // the error is propagated cleanly and the output pointer is set to NULL.
+    //
+    if (UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("DuoNic is available; raw datapath will succeed");
+        return;
+    }
+
+    const uint32_t FakeIfIndex = 0xDEAD;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234;
+    QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+
+    QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(&ExecConfig, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = TRUE;
+    InitConfig.XdpMapConfigs = &MapConfig;
+    InitConfig.XdpMapConfigCount = 1;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    ASSERT_TRUE(QUIC_FAILED(Status));
+    ASSERT_EQ(nullptr, Datapath);
+
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_InitSucceedsWithNonMatchingIfIndex)
+{
+    //
+    // On DuoNic machines, raw datapath initialization succeeds.
+    // When the provided IfIndex doesn't match any real interface,
+    // CxPlatDpRawInsertXskByMapConfigs is a no-op and returns SUCCESS.
+    // The datapath should be created in XDP map mode.
+    //
+    if (!UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
+        return;
+    }
+
+    const uint32_t FakeIfIndex = 0xDEAD;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234;
+    QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+
+    QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(&ExecConfig, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = TRUE;
+    InitConfig.XdpMapConfigs = &MapConfig;
+    InitConfig.XdpMapConfigCount = 1;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    //
+    // Uninitialize should take the map-mode cleanup path (direct free,
+    // no platform uninit) without crashing.
+    //
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_MultipleNonMatchingConfigs)
+{
+    //
+    // Multiple map configs with non-matching IfIndex values should all
+    // be silently skipped and initialization should succeed.
+    //
+    if (!UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
+        return;
+    }
+
+    QUIC_XDP_MAP_CONFIG MapConfigs[3] = {
+        { 0xDEAD, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1111 },
+        { 0xBEEF, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x2222 },
+        { 0xCAFE, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x3333 },
+    };
+
+    QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(&ExecConfig, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = TRUE;
+    InitConfig.XdpMapConfigs = MapConfigs;
+    InitConfig.XdpMapConfigCount = 3;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
+{
+    //
+    // In XDP map mode, socket creation and deletion should skip XDP rule
+    // plumbing (CxPlatDpRawPlumbRulesOnSocket). Create a connected QTIP+XDP
+    // socket in map mode and verify that create and delete succeed without
+    // the rule plumbing step.
+    //
+    if (!UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
+        return;
+    }
+
+    const uint32_t FakeIfIndex = 0xDEAD;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234;
+    QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+
+    QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(&ExecConfig, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = TRUE;
+    InitConfig.XdpMapConfigs = &MapConfig;
+    InitConfig.XdpMapConfigCount = 1;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    //
+    // Create a connected QTIP+XDP socket. QTIP skips the normal OS UDP
+    // socket creation and goes directly to RawSocketCreateUdp, which
+    // should skip rule plumbing in map mode.
+    //
+    QuicAddr RemoteAddr = GetNewLocalIPv4();
+
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.RemoteAddress = &RemoteAddr.SockAddr;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_XDP | CXPLAT_SOCKET_FLAG_QTIP;
+
+    CXPLAT_SOCKET* Socket = nullptr;
+    Status = CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Socket);
+
+    //
+    // Delete should also skip rule unplumbing in map mode.
+    //
+    CxPlatSocketDelete(Socket);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());
