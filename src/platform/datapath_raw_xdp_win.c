@@ -11,6 +11,8 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 #define XDP_API_VERSION 3
+#define XDP_MINIMUM_MAJOR_VER 1
+#define XDP_MINIMUM_MINOR_VER 1
 #define XDP_INCLUDE_WINCOMMON
 
 #include <xdp/wincommon.h>
