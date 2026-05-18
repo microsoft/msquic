@@ -337,6 +337,60 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpMapModeConfigured
+// [ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)
+// QuicTraceLogVerbose(
+                XdpMapModeConfigured,
+                "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+                Interface,
+                Interface->IfIndex,
+                XskMap);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = XskMap = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapModeConfigured,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        const void *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg4, (uint64_t)arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpMapModeInserted
+// [ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)
+// QuicTraceLogVerbose(
+                    XdpMapModeInserted,
+                    "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)",
+                    Interface,
+                    j,
+                    Interface->IfIndex);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = j = arg3
+// arg4 = arg4 = Interface->IfIndex = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapModeInserted,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(

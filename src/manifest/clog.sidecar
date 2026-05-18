@@ -2807,6 +2807,25 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DatapathRawInitFailMapMode": {
+      "ModuleProperites": {},
+      "TraceString": "[  dp] XDP map mode: raw datapath required but failed to initialize",
+      "UniqueId": "DatapathRawInitFailMapMode",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathRawMapInsertFail": {
+      "ModuleProperites": {},
+      "TraceString": "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
+      "UniqueId": "DatapathRawMapInsertFail",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "DatapathRecv": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
@@ -12331,6 +12350,46 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpMapModeConfigured": {
+      "ModuleProperites": {},
+      "TraceString": "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+      "UniqueId": "XdpMapModeConfigured",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpMapModeInserted": {
+      "ModuleProperites": {},
+      "TraceString": "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)",
+      "UniqueId": "XdpMapModeInserted",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpPartitionShutdown": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] XDP partition shutdown",
@@ -13861,6 +13920,16 @@
         "UniquenessHash": "26a5e3a8-910f-4058-923c-97ea977107b0",
         "TraceID": "DatapathQueryUdpSendMsgFailedAsync",
         "EncodingString": "[data] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x"
+      },
+      {
+        "UniquenessHash": "bc85b642-06e2-35a0-f754-716b4e5484cb",
+        "TraceID": "DatapathRawInitFailMapMode",
+        "EncodingString": "[  dp] XDP map mode: raw datapath required but failed to initialize"
+      },
+      {
+        "UniquenessHash": "38cb5c9d-e612-01a0-ec5f-6af064bb0724",
+        "TraceID": "DatapathRawMapInsertFail",
+        "EncodingString": "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d"
       },
       {
         "UniquenessHash": "3b8a506d-ede0-3c3b-7c31-83127acebfc6",
@@ -16861,6 +16930,16 @@
         "UniquenessHash": "8101710f-c411-8be4-bddb-9cffaaa1cac3",
         "TraceID": "XdpInterfaceQueues",
         "EncodingString": "[ixdp][%p] Initializing %u queues on interface"
+      },
+      {
+        "UniquenessHash": "005c527e-db63-8dde-7829-b589b84080d9",
+        "TraceID": "XdpMapModeConfigured",
+        "EncodingString": "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)"
+      },
+      {
+        "UniquenessHash": "ebd31a62-efa7-20b9-5d92-04e36ff534ba",
+        "TraceID": "XdpMapModeInserted",
+        "EncodingString": "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)"
       },
       {
         "UniquenessHash": "18009e0d-e738-467e-35c0-55ebabcbf31f",

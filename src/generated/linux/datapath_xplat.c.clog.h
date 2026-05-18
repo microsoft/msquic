@@ -26,6 +26,10 @@
 #define _clog_MACRO_QuicTraceLogError  1
 #define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceEvent
+#define _clog_MACRO_QuicTraceEvent  1
+#define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -64,11 +68,45 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibirSockets );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathRawInitFailMapMode
+// [  dp] XDP map mode: raw datapath required but failed to initialize
+// QuicTraceLogVerbose(
+                DatapathRawInitFailMapMode,
+                "[  dp] XDP map mode: raw datapath required but failed to initialize");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_DatapathRawInitFailMapMode
+#define _clog_2_ARGS_TRACE_DatapathRawInitFailMapMode(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, DatapathRawInitFailMapMode );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathRawMapInsertFail
+// [  dp] XDP map mode: failed to insert XSK sockets into map, status:%d
+// QuicTraceLogVerbose(
+                DatapathRawMapInsertFail,
+                "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
+                Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathRawMapInsertFail
+#define _clog_3_ARGS_TRACE_DatapathRawMapInsertFail(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, DatapathRawMapInsertFail , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathInitFail
 // [  dp] Failed to initialize datapath, status:%d
 // QuicTraceLogVerbose(
-            DatapathInitFail,
-            "[  dp] Failed to initialize datapath, status:%d", Status);
+                DatapathInitFail,
+                "[  dp] Failed to initialize datapath, status:%d", Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DatapathInitFail
@@ -124,6 +162,26 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, RawSockCreateFail , arg2);\
 #ifndef _clog_2_ARGS_TRACE_ErrNoXdpForQtip
 #define _clog_2_ARGS_TRACE_ErrNoXdpForQtip(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForQtip );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "CXPLAT_DATAPATH (map mode)",
+                sizeof(CXPLAT_DATAPATH));
+// arg2 = arg2 = "CXPLAT_DATAPATH (map mode)" = arg2
+// arg3 = arg3 = sizeof(CXPLAT_DATAPATH) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, AllocFailure , arg2, arg3);\
 
 #endif
 
