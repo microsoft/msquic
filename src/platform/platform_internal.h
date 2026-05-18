@@ -61,12 +61,6 @@ typedef struct CXPLAT_DATAPATH_COMMON {
     CXPLAT_DATAPATH_FEATURES Features;
 
     CXPLAT_DATAPATH_RAW* RawDataPath;
-
-    //
-    // When TRUE, this struct is the entire datapath (no platform-specific
-    // fields). The raw (XDP) datapath owns all partition/IO state.
-    //
-    BOOLEAN XdpMapMode;
 } CXPLAT_DATAPATH_COMMON;
 
 typedef struct CXPLAT_SOCKET_COMMON {
@@ -1224,21 +1218,6 @@ RawDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t PollingIdleTimeoutUs
     );
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-//
-// Inserts each interface's RX XSK sockets into the matching XSKMAP from the
-// provided map configs. Uses an O(Interfaces * MapConfigCount) search to match
-// each config to its interface by IfIndex.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatDpRawInsertXskByMapConfigs(
-    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
-    _In_reads_(MapConfigCount) const QUIC_XDP_MAP_CONFIG* MapConfigs,
-    _In_ uint32_t MapConfigCount
-    );
-#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_DATAPATH_FEATURES

@@ -476,16 +476,6 @@ typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     // the Windows fast path causing a large performance regression.
     //
     BOOLEAN EnableDscpOnRecv;
-
-    //
-    // External XDP map configurations. When non-NULL (and Count > 0), the
-    // datapath operates in XDP map mode: the WinSock (normal) datapath is
-    // skipped, the raw (XDP) datapath is required to succeed, and XSK sockets
-    // are inserted into the provided XSKMAPs at init time.
-    // The buffer must remain valid for the lifetime of the datapath.
-    //
-    const struct QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
-    uint32_t XdpMapConfigCount;
 } CXPLAT_DATAPATH_INIT_CONFIG;
 
 //

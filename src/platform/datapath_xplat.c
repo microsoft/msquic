@@ -32,89 +32,29 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    if (InitConfig->XdpMapConfigCount > 0 && InitConfig->XdpMapConfigs != NULL) {
-        //
-        // XDP map mode: bypass the platform datapath (WinSock/epoll) entirely.
-        // Allocate the full CXPLAT_DATAPATH struct (zero-initialized) so that
-        // any code traversing platform-specific fields sees safe defaults.
-        // Only the common base fields and the raw datapath are used.
-        //
-        CXPLAT_DATAPATH* Datapath =
-            CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
-        if (Datapath == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH (map mode)",
-                sizeof(CXPLAT_DATAPATH));
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Error;
-        }
-
-        CxPlatZeroMemory(Datapath, sizeof(CXPLAT_DATAPATH));
-        if (UdpCallbacks) {
-            Datapath->UdpHandlers = *UdpCallbacks;
-        }
-        Datapath->WorkerPool = WorkerPool;
-        Datapath->XdpMapMode = TRUE;
-
-        *NewDataPath = Datapath;
-
-        RawDataPathInitialize(
+    Status =
+        DataPathInitialize(
             ClientRecvContextLength,
-            *NewDataPath,
+            UdpCallbacks,
+            TcpCallbacks,
             WorkerPool,
-            &Datapath->RawDataPath);
-        if (Datapath->RawDataPath == NULL) {
-            QuicTraceLogVerbose(
-                DatapathRawInitFailMapMode,
-                "[  dp] XDP map mode: raw datapath required but failed to initialize");
-            CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-            *NewDataPath = NULL;
-            Status = QUIC_STATUS_NOT_SUPPORTED;
-            goto Error;
-        }
-
-        Status =
-            CxPlatDpRawInsertXskByMapConfigs(
-                Datapath->RawDataPath,
-                InitConfig->XdpMapConfigs,
-                InitConfig->XdpMapConfigCount);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogVerbose(
-                DatapathRawMapInsertFail,
-                "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
-                Status);
-            RawDataPathUninitialize(Datapath->RawDataPath);
-            CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-            *NewDataPath = NULL;
-            goto Error;
-        }
-    } else {
-        Status =
-            DataPathInitialize(
-                ClientRecvContextLength,
-                UdpCallbacks,
-                TcpCallbacks,
-                WorkerPool,
-                InitConfig,
-                NewDataPath);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogVerbose(
-                DatapathInitFail,
-                "[  dp] Failed to initialize datapath, status:%d", Status);
-            goto Error;
-        }
-
-        //
-        // Best effort try to initialize the raw datapath.
-        //
-        RawDataPathInitialize(
-            ClientRecvContextLength,
-            *NewDataPath,
-            WorkerPool,
-            &((*NewDataPath)->RawDataPath));
+            InitConfig,
+            NewDataPath);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceLogVerbose(
+            DatapathInitFail,
+            "[  dp] Failed to initialize datapath, status:%d", Status);
+        goto Error;
     }
+
+    //
+    // Best effort try to initialize the raw datapath.
+    //
+    RawDataPathInitialize(
+        ClientRecvContextLength,
+        *NewDataPath,
+        WorkerPool,
+        &((*NewDataPath)->RawDataPath));
 
 Error:
 
@@ -130,15 +70,7 @@ CxPlatDataPathUninitialize(
     if (Datapath->RawDataPath) {
         RawDataPathUninitialize(Datapath->RawDataPath);
     }
-    if (Datapath->XdpMapMode) {
-        //
-        // Map mode: no platform (WinSock) datapath was initialized,
-        // so free directly without platform uninit.
-        //
-        CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-    } else {
-        DataPathUninitialize(Datapath);
-    }
+    DataPathUninitialize(Datapath);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

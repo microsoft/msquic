@@ -463,8 +463,6 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    CXPLAT_DBG_ASSERT(Interface->QueueCount <= 128); // XSKMAP_MAX_SIZE
-
     if (Interface->QueueCount == 0) {
         Status = QUIC_STATUS_INVALID_STATE;
         QuicTraceEvent(
@@ -2264,65 +2262,4 @@ CxPlatDataPathRssConfigFree(
     )
 {
     CXPLAT_FREE(RssConfig, QUIC_POOL_DATAPATH_RSS_CONFIG);
-}
-
-//
-// Inserts each interface's RX XSK sockets into the matching XSKMAP from the
-// provided map configs. Uses an O(Interfaces * MapConfigCount) search to match
-// each config to its interface by IfIndex.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatDpRawInsertXskByMapConfigs(
-    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
-    _In_reads_(MapConfigCount) const QUIC_XDP_MAP_CONFIG* MapConfigs,
-    _In_ uint32_t MapConfigCount
-    )
-{
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)RawDataPath;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    CXPLAT_LIST_ENTRY* Entry;
-    for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-        for (uint32_t i = 0; i < MapConfigCount; i++) {
-            if (MapConfigs[i].InterfaceIndex != Interface->IfIndex) {
-                continue;
-            }
-            HANDLE XskMap = (HANDLE)MapConfigs[i].MapHandle;
-            QuicTraceLogVerbose(
-                XdpMapModeConfigured,
-                "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
-                Interface,
-                Interface->IfIndex,
-                XskMap);
-            for (uint32_t j = 0; j < Interface->QueueCount; j++) {
-                CXPLAT_QUEUE* Queue = &Interface->Queues[j];
-                if (Queue->RxXsk == NULL) {
-                    continue;
-                }
-                HRESULT Hr = XdpMapInsert(XskMap, &j, &Queue->RxXsk);
-                if (FAILED(Hr)) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        Hr,
-                        "XdpMapInsert");
-                    Status = (QUIC_STATUS)Hr;
-                    goto Exit;
-                }
-                QuicTraceLogVerbose(
-                    XdpMapModeInserted,
-                    "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)",
-                    Interface,
-                    j,
-                    Interface->IfIndex);
-            }
-            break;
-        }
-    }
-
-Exit:
-
-    return Status;
 }
