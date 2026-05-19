@@ -122,7 +122,7 @@ struct QuicTestPortReservation {
         //
         // Retry when the UDP ephemeral port collides with an in-use TCP port.
         //
-        for (int Attempt = 0; Attempt < 100; Attempt++) {
+        for (int Attempt = 0; Attempt < 1000; Attempt++) {
             UdpSock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
             if (UdpSock == INVALID_SOCKET) {
                 return;
