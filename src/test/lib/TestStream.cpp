@@ -176,7 +176,7 @@ TestStream::StartPing(
         const uint64_t Remaining =
             PayloadLength - (uint64_t)PrimingCount * MaxBytesPerSend;
         BytesToSend =
-            (Remaining > (uint64_t)INT64_MAX) ? INT64_MAX : (int64_t)Remaining;
+            (int64_t)CXPLAT_MIN((uint64_t)INT64_MAX, Remaining);
     }
 
     for (int64_t i = 0; i < PrimingCount; ++i) {
@@ -352,7 +352,8 @@ TestStream::HandleStreamSendComplete(
             for (uint32_t i = 0; i < SendBuffer->BufferCount; ++i) {
                 SendBuffer->Buffers[i].Length = SendBufferLength;
             }
-            if (InterlockedSubtract64(&BytesToSend, BytesThisSend) == 0) {
+            BytesToSend -= BytesThisSend;
+            if (BytesToSend == 0) {
                 Flags |= QUIC_SEND_FLAG_FIN;
             }
 #ifdef CXPLAT_RAISE_IRQL
