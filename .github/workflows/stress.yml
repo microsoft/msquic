@@ -225,7 +225,7 @@ jobs:
 
   Create-Or-Update-Issue:
     needs: [Complete]
-    if: ${{ failure() && github.event_name == 'push' }}
+    if: ${{ failure()}}
     uses: ./.github/workflows/issue-reuse.yml
     with:
       artifact-pattern: '{stress-*,recvfuzz-*}'
