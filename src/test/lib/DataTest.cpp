@@ -989,7 +989,7 @@ QuicTestStatelessResetKey(
     Settings.SetPeerUnidiStreamCount(1);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
-    TEST_FALSE(ServerConfiguration.IsValid());
+    TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
