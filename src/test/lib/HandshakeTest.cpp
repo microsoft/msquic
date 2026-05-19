@@ -16,6 +16,12 @@ Abstract:
 
 #include "MsQuicTests.h"
 
+#if defined(_KERNEL_MODE)
+static bool UseQTIP = false;
+#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+extern bool UseQTIP;
+#endif
+
 char CurrentWorkingDirectory[MAX_PATH + 1];
 
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
