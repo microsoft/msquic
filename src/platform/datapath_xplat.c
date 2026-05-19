@@ -56,7 +56,7 @@ CxPlatDataPathInitialize(
             Datapath->UdpHandlers = *UdpCallbacks;
         }
         Datapath->WorkerPool = WorkerPool;
-        Datapath->XdpMapMode = TRUE;
+        Datapath->UseExternalXdpMaps = TRUE;
 
         *NewDataPath = Datapath;
 
@@ -130,7 +130,7 @@ CxPlatDataPathUninitialize(
     if (Datapath->RawDataPath) {
         RawDataPathUninitialize(Datapath->RawDataPath);
     }
-    if (Datapath->XdpMapMode) {
+    if (Datapath->UseExternalXdpMaps) {
         //
         // Map mode: no platform (WinSock) datapath was initialized,
         // so free directly without platform uninit.

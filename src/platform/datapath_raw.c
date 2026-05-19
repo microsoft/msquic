@@ -179,15 +179,13 @@ RawSocketDelete(
     // some XDP rules may linger until the interface is reinitialized, but
     // there is nothing useful we can do at this point.
     //
-    if (!Socket->RawDatapath->ParentDataPath->XdpMapMode) {
-        QUIC_STATUS PlumbStatus = CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
-        if (QUIC_FAILED(PlumbStatus)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                PlumbStatus,
-                "CxPlatDpRawPlumbRulesOnSocket (delete)");
-        }
+    QUIC_STATUS PlumbStatus = CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
+    if (QUIC_FAILED(PlumbStatus)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            PlumbStatus,
+            "CxPlatDpRawPlumbRulesOnSocket (delete)");
     }
     CxPlatRemoveSocket(&Socket->RawDatapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->RawRundown);

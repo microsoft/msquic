@@ -61,12 +61,6 @@ typedef struct CXPLAT_DATAPATH_COMMON {
     CXPLAT_DATAPATH_FEATURES Features;
 
     CXPLAT_DATAPATH_RAW* RawDataPath;
-
-    //
-    // When TRUE, this struct is the entire datapath (no platform-specific
-    // fields). The raw (XDP) datapath owns all partition/IO state.
-    //
-    BOOLEAN XdpMapMode;
 } CXPLAT_DATAPATH_COMMON;
 
 typedef struct CXPLAT_SOCKET_COMMON {
@@ -268,6 +262,8 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
 //
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
+
+    BOOLEAN UseExternalXdpMaps;
 
     //
     // The registration with WinSock Kernel.
@@ -478,6 +474,8 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 //
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
+
+    BOOLEAN UseExternalXdpMaps;
 
     //
     // Function pointer to AcceptEx.
@@ -996,6 +994,8 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PARTITION {
 
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
+
+    BOOLEAN UseExternalXdpMaps;
 
     //
     // Synchronization mechanism for cleanup.
