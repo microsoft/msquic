@@ -4232,7 +4232,7 @@ QuicTestCibirExtension(
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
 #if defined(_WIN32) && !defined(_KERNEL_MODE)
-    QuicTestPortReservation PortReservation(QuicAddrFamily);
+    QuicTestPortReservation PortReservation(QuicAddrFamily, UseQTIP);
     if (UseDuoNic && (Mode & 1)) {
         //
         // CIBIR + XDP requires an explicit local port. Reserve an ephemeral port
@@ -4803,7 +4803,7 @@ QuicTestConnectionPoolCreate(
     }
 
 #if defined(_WIN32) && !defined(_KERNEL_MODE)
-    QuicTestPortReservation PortReservation(QuicAddrFamily);
+    QuicTestPortReservation PortReservation(QuicAddrFamily, UseQTIP);
     if (UseDuoNic && TestCibirSupport) {
         //
         // If Cibir+XDP mode is active, we can't pass in a 0 local port

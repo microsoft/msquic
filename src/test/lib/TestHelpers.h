@@ -109,32 +109,70 @@ struct QuicTestPortReservation {
     QuicTestPortReservation() = default;
 
     QuicTestPortReservation(
-        _In_ QUIC_ADDRESS_FAMILY Family
+        _In_ QUIC_ADDRESS_FAMILY Family,
+        _In_ bool ReserveTcp = false
         )
     {
         int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
-
-        Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
-        if (Sock == INVALID_SOCKET) {
-            return;
-        }
-
-        QUIC_ADDR Addr{};
-        QuicAddrSetFamily(&Addr, Family);
-
         int AddrSize =
             (af == AF_INET) ?
                 (int)sizeof(struct sockaddr_in) :
                 (int)sizeof(struct sockaddr_in6);
 
-        if (bind(Sock, (struct sockaddr*)&Addr, AddrSize) == 0) {
-            int AddrLen = AddrSize;
-            if (getsockname(Sock, (struct sockaddr*)&Addr, &AddrLen) == 0) {
-                Port = QuicAddrGetPort(&Addr);
+        //
+        // Retry when the UDP ephemeral port collides with an in-use TCP port.
+        //
+        for (int Attempt = 0; Attempt < 100; Attempt++) {
+            UdpSock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
+            if (UdpSock == INVALID_SOCKET) {
+                return;
             }
-        }
 
-        if (Port == 0) {
+            QUIC_ADDR Addr{};
+            QuicAddrSetFamily(&Addr, Family);
+
+            if (bind(UdpSock, (struct sockaddr*)&Addr, AddrSize) != 0) {
+                Release();
+                return;
+            }
+
+            int AddrLen = AddrSize;
+            if (getsockname(UdpSock, (struct sockaddr*)&Addr, &AddrLen) != 0) {
+                Release();
+                return;
+            }
+
+            Port = QuicAddrGetPort(&Addr);
+            if (Port == 0) {
+                Release();
+                return;
+            }
+
+            if (!ReserveTcp) {
+                return;
+            }
+
+            //
+            // In QTIP mode, also reserve the same port for TCP. CIBIR+XDP
+            // servers skip OS socket creation (for cross-process port sharing),
+            // leaving TCP port N free. Without this, a QTIP client's auxiliary
+            // TCP socket could be assigned port N by the OS, colliding with the
+            // server's entry in the raw socket pool.
+            //
+            TcpSock = socket(af, SOCK_STREAM, IPPROTO_TCP);
+            if (TcpSock == INVALID_SOCKET) {
+                Release();
+                return;
+            }
+
+            QuicAddrSetPort(&Addr, Port);
+            if (bind(TcpSock, (struct sockaddr*)&Addr, AddrSize) == 0) {
+                return; // Both UDP and TCP reserved on the same port.
+            }
+
+            //
+            // TCP port is occupied; close both and retry for a new port.
+            //
             Release();
         }
     }
@@ -145,19 +183,25 @@ struct QuicTestPortReservation {
     QuicTestPortReservation& operator=(const QuicTestPortReservation&) = delete;
 
     //
-    // Releases the port reservation by closing the held socket. Call this
+    // Releases the port reservation by closing the held sockets. Call this
     // immediately before the listener binds to the same port.
     //
     void Release()
     {
-        if (Sock != INVALID_SOCKET) {
-            closesocket(Sock);
-            Sock = INVALID_SOCKET;
+        if (UdpSock != INVALID_SOCKET) {
+            closesocket(UdpSock);
+            UdpSock = INVALID_SOCKET;
         }
+        if (TcpSock != INVALID_SOCKET) {
+            closesocket(TcpSock);
+            TcpSock = INVALID_SOCKET;
+        }
+        Port = 0;
     }
 
 private:
-    SOCKET Sock{INVALID_SOCKET};
+    SOCKET UdpSock{INVALID_SOCKET};
+    SOCKET TcpSock{INVALID_SOCKET};
 };
 #endif // _WIN32 && !_KERNEL_MODE
 
