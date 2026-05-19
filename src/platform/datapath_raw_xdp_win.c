@@ -31,6 +31,11 @@ Abstract:
 
 #define XDP_MAX_SYNC_WAIT_TIMEOUT_MS 1000 // Used for querying XDP RSS capabilities.
 
+//
+// Mirrors XDP's private XSKMAP_MAX_SIZE; keep in sync with the XDP submodule.
+//
+#define CXPLAT_XSKMAP_MAX_SIZE 128
+
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH_RAW;
     DECLSPEC_CACHEALIGN
@@ -465,7 +470,7 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    CXPLAT_DBG_ASSERT(Interface->QueueCount <= 128); // XSKMAP_MAX_SIZE
+    CXPLAT_DBG_ASSERT(Interface->QueueCount <= CXPLAT_XSKMAP_MAX_SIZE);
 
     if (Interface->QueueCount == 0) {
         Status = QUIC_STATUS_INVALID_STATE;
@@ -1469,6 +1474,14 @@ CxPlatDpRawPlumbRulesOnSocket(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
+
+    //
+    // In external map mode, the caller manages XDP rules; nothing to do here.
+    //
+    if (Xdp->ParentDataPath->UseExternalXdpMaps) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
     if (Socket->Wildcard) {
         XDP_RULE Rules[5] = {0};
         uint8_t RulesSize = 0;
@@ -2268,11 +2281,6 @@ CxPlatDataPathRssConfigFree(
     CXPLAT_FREE(RssConfig, QUIC_POOL_DATAPATH_RSS_CONFIG);
 }
 
-//
-// Inserts each interface's RX XSK sockets into the matching XSKMAP from the
-// provided map configs. Uses an O(Interfaces * MapConfigCount) search to match
-// each config to its interface by IfIndex.
-//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInsertXskByMapConfigs(
