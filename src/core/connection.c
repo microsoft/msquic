@@ -6304,10 +6304,10 @@ QuicConnProcessPathValidationTimerOperation(
             continue;
         }
 
-        QuicTraceLogConnInfo(
-            PathValidationTimeout,
+        QuicTraceEvent(
+            ConnPathValidationTimeout,
+            "[conn][%p] Path[%hhu] validation timed out",
             Connection,
-            "Path[%hhu] validation timed out",
             Path->ID);
         QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
         if (QuicPathRemove(Connection, i)) {

@@ -18,49 +18,13 @@
 #define _clog_MACRO_QuicTraceLogConnInfo  1
 #define QuicTraceLogConnInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceEvent
+#define _clog_MACRO_QuicTraceEvent  1
+#define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
-/*----------------------------------------------------------
-// Decoder Ring for PathInitialized
-// [conn][%p] Path[%hhu] Initialized
-// QuicTraceLogConnInfo(
-        PathInitialized,
-        Connection,
-        "Path[%hhu] Initialized",
-        Path->ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->ID = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PathInitialized
-#define _clog_4_ARGS_TRACE_PathInitialized(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_PATH_C, PathInitialized , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for PathRemoved
-// [conn][%p] Path[%hhu] Removed
-// QuicTraceLogConnInfo(
-        PathRemoved,
-        Connection,
-        "Path[%hhu] Removed",
-        Path->ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->ID = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PathRemoved
-#define _clog_4_ARGS_TRACE_PathRemoved(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_PATH_C, PathRemoved , arg1, arg3);\
-
-#endif
-
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for PathActiveFallback
 // [conn][%p] Path[%hhu] removed; falling back to Path[%hhu]
@@ -77,50 +41,6 @@ tracepoint(CLOG_PATH_C, PathRemoved , arg1, arg3);\
 #ifndef _clog_5_ARGS_TRACE_PathActiveFallback
 #define _clog_5_ARGS_TRACE_PathActiveFallback(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_PATH_C, PathActiveFallback , arg1, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for PathValidated
-// [conn][%p] Path[%hhu] Validated (%s)
-// QuicTraceLogConnInfo(
-        PathValidated,
-        Connection,
-        "Path[%hhu] Validated (%s)",
-        Path->ID,
-        ReasonStrings[Reason]);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->ID = arg3
-// arg4 = arg4 = ReasonStrings[Reason] = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_PathValidated
-#define _clog_5_ARGS_TRACE_PathValidated(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_PATH_C, PathValidated , arg1, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for PathActive
-// [conn][%p] Path[%hhu] Set active (rebind=%hhu)
-// QuicTraceLogConnInfo(
-        PathActive,
-        Connection,
-        "Path[%hhu] Set active (rebind=%hhu)",
-        Connection->Paths[0].ID,
-        UdpPortChangeOnly);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
-// arg4 = arg4 = UdpPortChangeOnly = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_PathActive
-#define _clog_5_ARGS_TRACE_PathActive(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_PATH_C, PathActive , arg1, arg3, arg4);\
 
 #endif
 
@@ -161,6 +81,90 @@ tracepoint(CLOG_PATH_C, PathQeoEnabled , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_PathQeoDisabled
 #define _clog_4_ARGS_TRACE_PathQeoDisabled(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_PATH_C, PathQeoDisabled , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathInitialized
+// [conn][%p] Path[%hhu] Initialized
+// QuicTraceEvent(
+        ConnPathInitialized,
+        "[conn][%p] Path[%hhu] Initialized",
+        Connection,
+        Path->ID);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPathInitialized
+#define _clog_4_ARGS_TRACE_ConnPathInitialized(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PATH_C, ConnPathInitialized , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathRemoved
+// [conn][%p] Path[%hhu] Removed
+// QuicTraceEvent(
+        ConnPathRemoved,
+        "[conn][%p] Path[%hhu] Removed",
+        Connection,
+        Path->ID);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPathRemoved
+#define _clog_4_ARGS_TRACE_ConnPathRemoved(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PATH_C, ConnPathRemoved , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathValidated
+// [conn][%p] Path[%hhu] Validated (%hhu)
+// QuicTraceEvent(
+        ConnPathValidated,
+        "[conn][%p] Path[%hhu] Validated (%hhu)",
+        Connection,
+        Path->ID,
+        Reason);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = Reason = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnPathValidated
+#define _clog_5_ARGS_TRACE_ConnPathValidated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_PATH_C, ConnPathValidated , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathActive
+// [conn][%p] Path[%hhu] Set active (rebind=%hhu)
+// QuicTraceEvent(
+        ConnPathActive,
+        "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
+        Connection,
+        Connection->Paths[0].ID,
+        UdpPortChangeOnly);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Paths[0].ID = arg3
+// arg4 = arg4 = UdpPortChangeOnly = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnPathActive
+#define _clog_5_ARGS_TRACE_ConnPathActive(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_PATH_C, ConnPathActive , arg2, arg3, arg4);\
 
 #endif
 

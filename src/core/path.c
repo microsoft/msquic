@@ -39,10 +39,10 @@ QuicPathInitialize(
         CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
     }
 
-    QuicTraceLogConnInfo(
-        PathInitialized,
+    QuicTraceEvent(
+        ConnPathInitialized,
+        "[conn][%p] Path[%hhu] Initialized",
         Connection,
-        "Path[%hhu] Initialized",
         Path->ID);
 }
 
@@ -68,10 +68,10 @@ QuicPathRemove(
 
     const QUIC_PATH* Path = &Connection->Paths[Index];
     CXPLAT_DBG_ASSERT(Path->InUse);
-    QuicTraceLogConnInfo(
-        PathRemoved,
+    QuicTraceEvent(
+        ConnPathRemoved,
+        "[conn][%p] Path[%hhu] Removed",
         Connection,
-        "Path[%hhu] Removed",
         Path->ID);
 
     if (Connection->PathsCount == 1) {
@@ -188,18 +188,12 @@ QuicPathSetValid(
         return;
     }
 
-    const char* ReasonStrings[] = {
-        "Initial Token",
-        "Handshake Packet",
-        "Path Response"
-    };
-
-    QuicTraceLogConnInfo(
-        PathValidated,
+    QuicTraceEvent(
+        ConnPathValidated,
+        "[conn][%p] Path[%hhu] Validated (%hhu)",
         Connection,
-        "Path[%hhu] Validated (%s)",
         Path->ID,
-        ReasonStrings[Reason]);
+        Reason);
 
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
@@ -346,10 +340,10 @@ QuicPathSetActive(
         *Path = PrevActivePath;
     }
 
-    QuicTraceLogConnInfo(
-        PathActive,
+    QuicTraceEvent(
+        ConnPathActive,
+        "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
         Connection,
-        "Path[%hhu] Set active (rebind=%hhu)",
         Connection->Paths[0].ID,
         UdpPortChangeOnly);
 
