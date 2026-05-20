@@ -1,0 +1,179 @@
+name: Create or Update Issue (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      artifact-pattern:
+        description: >-
+          Glob pattern of failure artifacts to download (e.g. "BVT-*" or
+          "{stress-*,recvfuzz-*}"). Uses minimatch syntax.
+        required: true
+        type: string
+      log-dirs:
+        description: >-
+          Newline-separated list of log subdirectory names under
+          artifacts/[env]/logs/ to scan for failures.
+        required: true
+        type: string
+      labels:
+        description: 'Comma-separated labels to apply to created issues.'
+        required: false
+        type: string
+        default: 'ci-failure'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  create-or-update-issue:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Failure Artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      continue-on-error: true
+      with:
+        pattern: ${{ inputs.artifact-pattern }}
+        path: artifacts
+        merge-multiple: false
+
+    - name: Create or Update Issue
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+      env:
+        LOG_DIRS: ${{ inputs.log-dirs }}
+        LABELS: ${{ inputs.labels }}
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          const root = 'artifacts'
+          const potential_issues = [];
+          // If root does not exist, exit silently
+          console.log("Let's start filing issues if any");
+          if (!fs.existsSync(root)) {
+              console.log('No artifacts found');
+              process.exit(0);
+          }
+          const logDirs = (process.env.LOG_DIRS || '')
+              .split(/\r?\n/)
+              .map(s => s.trim())
+              .filter(s => s.length > 0);
+          const labels = (process.env.LABELS || 'ci-failure')
+              .split(',')
+              .map(s => s.trim())
+              .filter(s => s.length > 0);
+          class Issue {
+              constructor(title, description) {
+                  this.title = title;
+                  this.description = description;
+              }
+          }
+          let run_url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+          function find_issues(env, directory) {
+              const dirPath = path.join(root, env, 'logs', directory);
+              if (!fs.existsSync(dirPath)) {
+                  console.log(`${env} / ${directory} does not exist`);
+                  return;
+              }
+              let filedGroupIssue = false;
+              for (const log of fs.readdirSync(dirPath)) {
+                  const logPath = path.join(dirPath, log);
+                  // If log is not a directory, skip it.
+                  if (!fs.statSync(logPath).isDirectory()) {
+                      console.log(`${log} is not a directory`);
+                      continue;
+                  }
+                  // Inspect timestamp dir contents.
+                  const children = fs.readdirSync(logPath);
+                  const subdirs = children.filter(
+                      c => fs.statSync(path.join(logPath, c)).isDirectory()
+                  );
+                  if (subdirs.length > 0) {
+                      // Per-testcase layout (e.g. BVT): one issue per subfolder.
+                      for (const testcase of subdirs) {
+                          let title = `[CI - FAILURE]: ${env} / ${testcase} (${directory})`
+                          potential_issues.push(new Issue(title, run_url));
+                      }
+                  } else if (children.length > 0 && !filedGroupIssue) {
+                      // Per-run layout (e.g. stress/recvfuzz): timestamp dir holds
+                      // artifact files directly. File a single stable issue per
+                      // (env, directory) so multiple files don't create multiple
+                      // issues and so titles dedupe across runs.
+                      let title = `[CI - FAILURE]: ${env} (${directory})`
+                      potential_issues.push(new Issue(title, run_url));
+                      filedGroupIssue = true;
+                  }
+              }
+          }
+
+          for (const dir of logDirs) {
+              find_issues('', dir);
+          }
+
+          for (const env of fs.readdirSync(root)) {
+              // If env is not a directory, skip it.
+              if (!fs.statSync(path.join(root, env)).isDirectory()) {
+                  console.log(`ENV: ${env} is not a directory`);
+                  continue;
+              }
+              for (const dir of logDirs) {
+                  find_issues(env, dir);
+              }
+          }
+          for (let Issue of potential_issues) {
+              console.log(Issue.title);
+              console.log(Issue.description);
+          }
+
+          // --- Prepare to File Issues ---
+          let owner = context.repo.owner;
+          let repo = context.repo.repo;
+          const dedup = new Map();
+          for (const it of potential_issues) {
+            if (!dedup.has(it.title)) dedup.set(it.title, it);
+          }
+          const issuesToFile = [...dedup.values()];
+
+          if (issuesToFile.length > 10) {
+            console.log('Too many CI failures: ' + issuesToFile.length);
+            let body = run_url;
+            for (const it of issuesToFile) {
+              body += it.title + ", "
+            }
+            await github.rest.issues.create({
+              owner, repo,
+              title: 'Too many CI failures: ' + issuesToFile.length,
+              body: body,
+              labels: labels
+            });
+            process.exit(0);
+          }
+
+          // --- Fetch all open issues once (pagination safe) ---
+          const openIssues = await github.paginate(
+            github.rest.issues.listForRepo,
+            { owner, repo, state: 'open', per_page: 100 }
+          );
+          // Build a quick lookup by title
+          const openByTitle = new Map(openIssues.map(i => [i.title, i]));
+          // --- Upsert: comment on existing (open) or create a new issue ---
+
+          for (const it of issuesToFile) {
+            const existing = openByTitle.get(it.title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner, repo,
+                issue_number: existing.number,
+                body: it.description
+              });
+              core.notice(`Commented on existing issue #${existing.number}: ${it.title}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner, repo,
+                title: it.title,
+                body: it.description,
+                labels: labels
+              });
+              core.notice(`Created issue #${created.data.number}: ${it.title}`);
+            }
+          }
