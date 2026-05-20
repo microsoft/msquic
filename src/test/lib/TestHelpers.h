@@ -128,6 +128,11 @@ struct QuicTestPortReservation {
                 return;
             }
 
+            BOOL RandomizePort = TRUE;
+            (void)setsockopt(
+                UdpSock, SOL_SOCKET, SO_RANDOMIZE_PORT,
+                (const char*)&RandomizePort, sizeof(RandomizePort));
+
             QUIC_ADDR Addr{};
             QuicAddrSetFamily(&Addr, Family);
 
