@@ -5919,17 +5919,16 @@ QuicConnRecvDatagrams(
     // NB: Traversing the array backwards is simpler and more efficient here due
     // to the array shifting that happens in QuicPathRemove.
     //
-    for (uint8_t i = Connection->PathsCount - 1; i > 0; --i) {
+    for (int i = Connection->PathsCount - 1; i > 0; --i) {
         if (!Connection->Paths[i].GotValidPacket) {
             QuicTraceLogConnInfo(
                 PathDiscarded,
                 Connection,
                 "Removing invalid path[%hhu]",
                 Connection->Paths[i].ID);
-            QuicPathRemove(Connection, i);
+            QuicPathRemove(Connection, (uint8_t)i);
         }
     }
-
     if (!Connection->State.UpdateWorker && Connection->State.Connected &&
         !Connection->State.ShutdownComplete && RecvState.UpdatePartitionId) {
         //

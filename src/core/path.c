@@ -271,12 +271,12 @@ QuicConnGetPathForPacket(
         // NB: Traversing the array backwards is simpler and more efficient here due
         // to the array shifting that happens in QuicPathRemove.
         //
-        for (uint8_t i = Connection->PathsCount - 1; i > 0; i--) {
+        for (int i = Connection->PathsCount - 1; i > 0; i--) {
             if (!Connection->Paths[i].IsActive
                 && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
                 && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
                 && QuicAddrCompare(&Packet->Route->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
-                QuicPathRemove(Connection, i);
+                QuicPathRemove(Connection, (uint8_t)i);
             }
         }
 
