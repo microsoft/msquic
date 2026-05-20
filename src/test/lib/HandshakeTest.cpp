@@ -16,12 +16,6 @@ Abstract:
 
 #include "MsQuicTests.h"
 
-#if defined(_KERNEL_MODE)
-static bool UseQTIP = false;
-#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-extern bool UseQTIP;
-#endif
-
 char CurrentWorkingDirectory[MAX_PATH + 1];
 
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
@@ -4238,7 +4232,7 @@ QuicTestCibirExtension(
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
 #if defined(_WIN32) && !defined(_KERNEL_MODE)
-    QuicTestPortReservation PortReservation(QuicAddrFamily, UseQTIP);
+    QuicTestPortReservation PortReservation(QuicAddrFamily);
     if (UseDuoNic && (Mode & 1)) {
         //
         // CIBIR + XDP requires an explicit local port. Reserve an ephemeral port
@@ -4809,7 +4803,7 @@ QuicTestConnectionPoolCreate(
     }
 
 #if defined(_WIN32) && !defined(_KERNEL_MODE)
-    QuicTestPortReservation PortReservation(QuicAddrFamily, UseQTIP);
+    QuicTestPortReservation PortReservation(QuicAddrFamily);
     if (UseDuoNic && TestCibirSupport) {
         //
         // If Cibir+XDP mode is active, we can't pass in a 0 local port

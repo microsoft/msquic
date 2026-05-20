@@ -98,10 +98,10 @@ QuitTestIsFeatureSupported(uint32_t Feature) {
 
 #if defined(_WIN32) && !defined(_KERNEL_MODE)
 //
-// Reserves an ephemeral UDP port by binding a socket to port 0. The socket
-// stays open to hold the reservation until Release() is called (or the object
-// is destroyed). This minimizes the TOCTOU window between discovering a free
-// port and having the listener bind to it.
+// Reserves an ephemeral port by binding both a UDP and TCP socket to the same
+// port. The sockets stay open to hold the reservation until Release() is called
+// (or the object is destroyed). This minimizes the TOCTOU window between
+// discovering a free port and having the listener bind to it.
 //
 struct QuicTestPortReservation {
     uint16_t Port{0};
@@ -109,8 +109,7 @@ struct QuicTestPortReservation {
     QuicTestPortReservation() = default;
 
     QuicTestPortReservation(
-        _In_ QUIC_ADDRESS_FAMILY Family,
-        _In_ bool ReserveTcp = false
+        _In_ QUIC_ADDRESS_FAMILY Family
         )
     {
         int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
@@ -120,6 +119,7 @@ struct QuicTestPortReservation {
                 (int)sizeof(struct sockaddr_in6);
 
         //
+        // Reserve both a UDP and TCP port on the same ephemeral port number.
         // Retry when the UDP ephemeral port collides with an in-use TCP port.
         //
         for (int Attempt = 0; Attempt < 1000; Attempt++) {
@@ -143,21 +143,21 @@ struct QuicTestPortReservation {
             }
 
             Port = QuicAddrGetPort(&Addr);
+            //
+            // Defensive: bind to port 0 should always assign a real port, but
+            // guard against an unexpected OS behavior.
+            //
             if (Port == 0) {
                 Release();
                 return;
             }
 
-            if (!ReserveTcp) {
-                return;
-            }
-
             //
-            // In QTIP mode, also reserve the same port for TCP. CIBIR+XDP
-            // servers skip OS socket creation (for cross-process port sharing),
-            // leaving TCP port N free. Without this, a QTIP client's auxiliary
-            // TCP socket could be assigned port N by the OS, colliding with the
-            // server's entry in the raw socket pool.
+            // Also reserve the same port for TCP. CIBIR+XDP servers skip OS
+            // socket creation (for cross-process port sharing), leaving TCP
+            // port N free. Without this, a client's auxiliary TCP socket could
+            // be assigned port N by the OS, colliding with the server's entry
+            // in the raw socket pool.
             //
             TcpSock = socket(af, SOCK_STREAM, IPPROTO_TCP);
             if (TcpSock == INVALID_SOCKET) {
@@ -165,15 +165,20 @@ struct QuicTestPortReservation {
                 return;
             }
 
-            QuicAddrSetPort(&Addr, Port);
-            if (bind(TcpSock, (struct sockaddr*)&Addr, AddrSize) == 0) {
-                return; // Both UDP and TCP reserved on the same port.
+            if (bind(TcpSock, (struct sockaddr*)&Addr, AddrSize) != 0) {
+                //
+                // TCP port is occupied; close both and retry for a new port.
+                //
+                Release();
+                continue;
             }
 
-            //
-            // TCP port is occupied; close both and retry for a new port.
-            //
-            Release();
+            QuicTraceLogVerbose(
+                TestPortReservation,
+                "[test] Port reservation: port=%u, attempts=%d",
+                Port,
+                Attempt + 1);
+            return;
         }
     }
 

@@ -11567,6 +11567,22 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "TestPortReservation": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Port reservation: port=%u, attempts=%d",
+      "UniqueId": "TestPortReservation",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "TestScopeEntry": {
       "ModuleProperites": {},
       "TraceString": "[test]---> %s",
@@ -16591,6 +16607,11 @@
         "UniquenessHash": "3928cc2f-84c2-48ac-845b-40781cf8021b",
         "TraceID": "TestLogFailure",
         "EncodingString": "[test] FAILURE - %s:%d - %s"
+      },
+      {
+        "UniquenessHash": "8420a776-a5e2-5ceb-48bd-37eae8d1107b",
+        "TraceID": "TestPortReservation",
+        "EncodingString": "[test] Port reservation: port=%u, attempts=%d"
       },
       {
         "UniquenessHash": "76b54d32-001b-12e0-4e99-d29d2640eaeb",
