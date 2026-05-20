@@ -225,7 +225,7 @@ jobs:
 
   Create-Or-Update-Issue:
     needs: [Complete]
-    if: ${{ failure() && github.event_name != 'pull_request' }}
+    if: ${{ failure() && github.event_name  == 'push' }}
     uses: ./.github/workflows/file-issue-on-test-failure.yml
     with:
       artifact-pattern: '{stress-*,recvfuzz-*}'
