@@ -31,10 +31,6 @@ Abstract:
 
 #define XDP_MAX_SYNC_WAIT_TIMEOUT_MS 1000 // Used for querying XDP RSS capabilities.
 
-//
-// Mirrors XDP's private XSKMAP_MAX_SIZE; keep in sync with the XDP submodule.
-//
-#define CXPLAT_XSKMAP_MAX_SIZE 128
 
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH_RAW;
@@ -469,8 +465,6 @@ CxPlatDpRawInterfaceInitialize(
             "CxPlatGetRssQueueProcessors");
         goto Error;
     }
-
-    CXPLAT_DBG_ASSERT(Interface->QueueCount <= CXPLAT_XSKMAP_MAX_SIZE);
 
     if (Interface->QueueCount == 0) {
         Status = QUIC_STATUS_INVALID_STATE;
@@ -2318,15 +2312,25 @@ CxPlatDpRawInsertXskByMapConfigs(
                         "[ lib] ERROR, %u, %s.",
                         Hr,
                         "XdpMapInsert");
+                    QuicTraceLogVerbose(
+                        XdpMapInsertFailed,
+                        "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p",
+                        Interface,
+                        Interface->IfIndex,
+                        j,
+                        XskMap,
+                        Queue->RxXsk);
                     Status = (QUIC_STATUS)Hr;
                     goto Exit;
                 }
                 QuicTraceLogVerbose(
                     XdpMapModeInserted,
-                    "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u)",
+                    "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u, XskMap=%p, RxXsk=%p)",
                     Interface,
                     j,
-                    Interface->IfIndex);
+                    Interface->IfIndex,
+                    XskMap,
+                    Queue->RxXsk);
             }
             break;
         }
