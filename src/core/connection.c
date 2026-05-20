@@ -6107,42 +6107,27 @@ QuicConnProcessRouteCompletion(
 {
     uint8_t PathIndex;
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
-    if (Path != NULL) {
-        if (Succeeded) {
-            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
-            if (!QuicSendFlush(&Connection->Send)) {
-                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
-            }
-        } else {
-            //
-            // Kill the path that failed route resolution and make the next path active if possible.
-            //
-            if (Path->IsActive && Connection->PathsCount > 1) {
-                QuicTraceLogConnInfo(
-                    FailedRouteResolution,
-                    Connection,
-                    "Route resolution failed on Path[%hhu]. Switching paths...",
-                    PathId);
-                QuicPathSetActive(Connection, &Connection->Paths[1]);
-                QuicPathRemove(Connection, 1);
-                if (!QuicSendFlush(&Connection->Send)) {
-                    QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
-                }
-            } else {
-                QuicPathRemove(Connection, PathIndex);
-            }
-        }
+    if (Path == NULL) {
+        return;
     }
 
-    if (Connection->PathsCount == 0) {
+    if (Succeeded) {
+        CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
+    } else {
         //
-        // Close the connection since the peer is unreachable.
+        // Remove the path that failed route resolution, fallback to another path if possible.
         //
-        QuicConnCloseLocally(
+        QuicTraceLogConnInfo(
+            FailedRouteResolution,
             Connection,
-            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-            (uint64_t)QUIC_STATUS_UNREACHABLE,
-            NULL);
+            "Route resolution failed on Path[%hhu]. Switching paths...",
+            PathId);
+
+        QuicPathRemove(Connection, PathIndex);
+    }
+
+    if (!QuicSendFlush(&Connection->Send)) {
+        QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
     }
 }
 
@@ -6303,13 +6288,6 @@ QuicConnProcessPathValidationTimerOperation(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Connection->State.ClosedLocally || Connection->State.ClosedRemotely) {
-        //
-        // The connection is closing, nothing to do.
-        //
-        return;
-    }
-
     //
     // Abandon any path whose validation timed-out.
     //
@@ -6333,48 +6311,14 @@ QuicConnProcessPathValidationTimerOperation(
             "Path[%hhu] validation timed out",
             Path->ID);
         QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
-
-        if (i == 0) {
+        if (QuicPathRemove(Connection, i)) {
             //
-            // The active path failed validation. Try to fall back to a
-            // previously-validated non-active path. If none exists we have no
-            // validated path to keep the connection on, so silently close
-            // (RFC 9000 sections 8.2.4 + 10.2).
+            // Do not increase i: paths have been shifted with the removal.
             //
-            uint8_t FallbackIndex = 0;
-            for (uint8_t j = 1; j < Connection->PathsCount; ++j) {
-                if (Connection->Paths[j].IsPeerValidated) {
-                    FallbackIndex = j;
-                    break;
-                }
-            }
-            if (FallbackIndex == 0) {
-                QuicConnCloseLocally(
-                    Connection,
-                    QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-                    (uint64_t)QUIC_STATUS_UNREACHABLE,
-                    NULL);
-                return;
-            }
-            QuicTraceLogConnInfo(
-                PathValidationFallback,
-                Connection,
-                "Path[%hhu] failed; falling back to validated Path[%hhu]",
-                Path->ID,
-                Connection->Paths[FallbackIndex].ID);
-            //
-            // Promote the validated path to active. The swap moves the failed
-            // path into slot FallbackIndex; remove it there. The new Paths[0]
-            // is the validated fallback; the outer loop will skip it on the
-            // next iteration (IsPeerValidated == TRUE) and proceed.
-            //
-            QuicPathSetActive(Connection, &Connection->Paths[FallbackIndex]);
-            QuicPathRemove(Connection, FallbackIndex);
             continue;
         }
 
-        QuicPathRemove(Connection, i);
-        // QuicPathRemove shifted later entries down; do not advance i.
+        ++i;
     }
 
     //

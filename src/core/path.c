@@ -47,18 +47,24 @@ QuicPathInitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicPathRemove(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t Index
     )
 {
-    CXPLAT_DBG_ASSERT(Connection->PathsCount > 0);
     CXPLAT_DBG_ASSERT(Connection->PathsCount <= QUIC_MAX_PATH_COUNT);
-    if (Index >= Connection->PathsCount) {
-        CXPLAT_TEL_ASSERTMSG(Index < Connection->PathsCount, "Invalid path removal!");
-        return;
+    if (Connection->PathsCount == 0 ||
+        Index >= QUIC_MAX_PATH_COUNT ||
+        !Connection->Paths[Index].InUse) {
+        CXPLAT_TEL_ASSERTMSG(
+            Connection->PathsCount > 0 &&
+            Index < QUIC_MAX_PATH_COUNT &&
+            Connection->Paths[Index].InUse,
+            "Double or out-of-range path removal!");
+        return FALSE;
     }
+    CXPLAT_DBG_ASSERT(Index < Connection->PathsCount);
 
     const QUIC_PATH* Path = &Connection->Paths[Index];
     CXPLAT_DBG_ASSERT(Path->InUse);
@@ -68,9 +74,53 @@ QuicPathRemove(
         "Path[%hhu] Removed",
         Path->ID);
 
+    if (Connection->PathsCount == 1) {
+        //
+        // Last remaining path. Silently close per RFC 9000 sections 8.2.4 +
+        // 10.2, but leave the Paths array intact so in-flight operations see
+        // a valid Paths[0] until shutdown completes.
+        //
+        Connection->Paths[0].IsActive = FALSE;
+        if (!Connection->State.ClosedLocally) {
+            QuicConnCloseLocally(
+                Connection,
+                QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                (uint64_t)QUIC_STATUS_UNREACHABLE,
+                NULL);
+        }
+        return FALSE;
+    }
+
+    if (Index == 0) {
+        //
+        // Removing the active path while other paths exist. Promote the best
+        // available fallback: prefer a peer-validated path, otherwise accept
+        // any path.
+        //
+        uint8_t FallbackIndex = 1;
+        for (uint8_t j = 1; j < Connection->PathsCount; ++j) {
+            if (Connection->Paths[j].IsPeerValidated) {
+                FallbackIndex = j;
+                break;
+            }
+        }
+        QuicTraceLogConnInfo(
+            PathActiveFallback,
+            Connection,
+            "Path[%hhu] removed; falling back to Path[%hhu]",
+            Path->ID,
+            Connection->Paths[FallbackIndex].ID);
+        QuicPathSetActive(Connection, &Connection->Paths[FallbackIndex]);
+        //
+        // After the swap the old active path now lives at FallbackIndex.
+        // Fall through to remove it there.
+        //
+        Index = FallbackIndex;
+    }
+
 #if DEBUG
-    if (Path->DestCid) {
-        QUIC_CID_CLEAR_PATH(Path->DestCid);
+    if (Connection->Paths[Index].DestCid) {
+        QUIC_CID_CLEAR_PATH(Connection->Paths[Index].DestCid);
     }
 #endif
 
@@ -83,6 +133,7 @@ QuicPathRemove(
 
     Connection->PathsCount--;
     Connection->Paths[Connection->PathsCount].InUse = FALSE;
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

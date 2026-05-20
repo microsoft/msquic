@@ -8187,6 +8187,26 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathActiveFallback": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] removed; falling back to Path[%hhu]",
+      "UniqueId": "PathActiveFallback",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "PathDiscarded": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Removing invalid path[%hhu]",
@@ -15456,6 +15476,11 @@
         "UniquenessHash": "ec372104-72cb-c49c-d887-6610157e8ba9",
         "TraceID": "PathActive",
         "EncodingString": "[conn][%p] Path[%hhu] Set active (rebind=%hhu)"
+      },
+      {
+        "UniquenessHash": "dbe0fbfc-98b0-3033-000e-dd52c892d6e1",
+        "TraceID": "PathActiveFallback",
+        "EncodingString": "[conn][%p] Path[%hhu] removed; falling back to Path[%hhu]"
       },
       {
         "UniquenessHash": "8843a66a-349f-e5a2-a63c-5120fb187f69",

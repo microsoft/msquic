@@ -62,6 +62,28 @@ tracepoint(CLOG_PATH_C, PathRemoved , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PathActiveFallback
+// [conn][%p] Path[%hhu] removed; falling back to Path[%hhu]
+// QuicTraceLogConnInfo(
+            PathActiveFallback,
+            Connection,
+            "Path[%hhu] removed; falling back to Path[%hhu]",
+            Path->ID,
+            Connection->Paths[FallbackIndex].ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = Connection->Paths[FallbackIndex].ID = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PathActiveFallback
+#define _clog_5_ARGS_TRACE_PathActiveFallback(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_PATH_C, PathActiveFallback , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PathValidated
 // [conn][%p] Path[%hhu] Validated (%s)
 // QuicTraceLogConnInfo(
