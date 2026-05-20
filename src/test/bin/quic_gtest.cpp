@@ -1363,6 +1363,30 @@ INSTANTIATE_TEST_SUITE_P(
     WithCustomCertificateValidationArgs,
     testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
 
+struct WithAcceptTicket :
+    public testing::TestWithParam<bool> {
+};
+
+TEST_P(WithAcceptTicket, CustomTicketValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomTicketValidationAfterShutdown");
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomTicketValidationAfterShutdown), GetParam()));
+    } else {
+        QuicTestCustomTicketValidationAfterShutdown(GetParam());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithAcceptTicket,
+    testing::Values(true, false),
+    [](const testing::TestParamInfo<bool>& info) {
+        return info.param ? "Accept" : "Reject";
+    });
+
 struct WithClientCertificateArgs :
     public testing::TestWithParam<ClientCertificateArgs> {
 
@@ -1799,6 +1823,15 @@ TEST_P(WithFamilyArgs, BadSNI) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectBadSni), GetParam()));
     } else {
         QuicTestConnectBadSni(GetParam());
+    }
+}
+
+TEST_P(WithFamilyArgs, IpSNI) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectIpSni", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectIpSni), GetParam()));
+    } else {
+        QuicTestConnectIpSni(GetParam());
     }
 }
 
