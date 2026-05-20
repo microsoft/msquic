@@ -773,6 +773,48 @@ tracepoint(CLOG_CONNECTION_C, FailedRouteResolution , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PathValidationTimeout
+// [conn][%p] Path[%hhu] validation timed out
+// QuicTraceLogConnInfo(
+            PathValidationTimeout,
+            Connection,
+            "Path[%hhu] validation timed out",
+            Path->ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PathValidationTimeout
+#define _clog_4_ARGS_TRACE_PathValidationTimeout(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, PathValidationTimeout , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PathValidationFallback
+// [conn][%p] Path[%hhu] failed; falling back to validated Path[%hhu]
+// QuicTraceLogConnInfo(
+                PathValidationFallback,
+                Connection,
+                "Path[%hhu] failed; falling back to validated Path[%hhu]",
+                Path->ID,
+                Connection->Paths[FallbackIndex].ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = Connection->Paths[FallbackIndex].ID = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PathValidationFallback
+#define _clog_5_ARGS_TRACE_PathValidationFallback(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, PathValidationFallback , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for UpdatePeerPacketTolerance
 // [conn][%p] Updating peer packet tolerance to %hhu
 // QuicTraceLogConnInfo(

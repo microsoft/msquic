@@ -161,6 +161,11 @@ QuicPathSetValid(
         //
         QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
     }
+
+    //
+    // One fewer in-progress validation; re-evaluate (or cancel) the timer.
+    //
+    QuicConnPathValidationTimerUpdate(Connection);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

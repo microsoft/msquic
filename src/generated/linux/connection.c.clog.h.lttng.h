@@ -820,6 +820,56 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, FailedRouteResolution,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PathValidationTimeout
+// [conn][%p] Path[%hhu] validation timed out
+// QuicTraceLogConnInfo(
+            PathValidationTimeout,
+            Connection,
+            "Path[%hhu] validation timed out",
+            Path->ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathValidationTimeout,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PathValidationFallback
+// [conn][%p] Path[%hhu] failed; falling back to validated Path[%hhu]
+// QuicTraceLogConnInfo(
+                PathValidationFallback,
+                Connection,
+                "Path[%hhu] failed; falling back to validated Path[%hhu]",
+                Path->ID,
+                Connection->Paths[FallbackIndex].ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = Connection->Paths[FallbackIndex].ID = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathValidationFallback,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3,
+        unsigned char, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned char, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for UpdatePeerPacketTolerance
 // [conn][%p] Updating peer packet tolerance to %hhu
 // QuicTraceLogConnInfo(

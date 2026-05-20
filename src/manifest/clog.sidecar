@@ -8323,6 +8323,26 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathValidationFallback": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] failed; falling back to validated Path[%hhu]",
+      "UniqueId": "PathValidationFallback",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "PathValidationTimeout": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] validation timed out",
@@ -15476,6 +15496,11 @@
         "UniquenessHash": "4ce67714-4e7b-0004-8559-eee9a101fe4b",
         "TraceID": "PathValidated",
         "EncodingString": "[conn][%p] Path[%hhu] Validated (%s)"
+      },
+      {
+        "UniquenessHash": "cfd7dde2-9313-5a40-a873-3a101a438f35",
+        "TraceID": "PathValidationFallback",
+        "EncodingString": "[conn][%p] Path[%hhu] failed; falling back to validated Path[%hhu]"
       },
       {
         "UniquenessHash": "3ab19fcb-a837-77d2-82e3-a62d0361d98f",

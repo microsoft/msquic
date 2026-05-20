@@ -5516,6 +5516,12 @@ QuicConnRecvPostProcessing(
             QuicSendSetSendFlag(
                 &Connection->Send,
                 QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+
+            //
+            // (Re-)arm the path validation timer for whichever of the now
+            // in-progress validations has the earliest deadline.
+            //
+            QuicConnPathValidationTimerUpdate(Connection);
         }
 
     } else if (PeerUpdatedCid) {
@@ -6229,6 +6235,152 @@ QuicConnProcessKeepAliveOperation(
         Connection,
         QUIC_CONN_TIMER_KEEP_ALIVE,
         MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
+}
+
+//
+// Returns the path validation timeout (in microseconds) for the given path.
+// Per RFC 9000 section 8.2.4 we use the larger of:
+//   - a multiple of the current PTO on the path
+//   - a multiple of the connection's configured initial RTT
+//       (a floor for paths with no RTT samples yet).
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+uint64_t
+QuicConnPathValidationTimeoutUs(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_PATH* Path
+    )
+{
+    return
+        CXPLAT_MAX(
+            QuicLossDetectionComputeProbeTimeout(
+                &Connection->LossDetection, Path, QUIC_PATH_VALIDATION_PTO_COUNT),
+            QUIC_PATH_VALIDATION_MIN_INITIAL_RTT_MULTIPLE *
+                MS_TO_US(Connection->Settings.InitialRttMs));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnPathValidationTimerUpdate(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    //
+    // Find the earliest validation deadline across all paths that currently
+    // have a validation in progress and arm (or cancel) the timer accordingly.
+    //
+    const uint64_t TimeNow = CxPlatTimeUs64();
+    uint64_t EarliestDeadline = UINT64_MAX;
+
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+        const QUIC_PATH* Path = &Connection->Paths[i];
+        if (Path->IsPeerValidated || Path->PathValidationStartTime == 0) {
+            continue;
+        }
+        const uint64_t Deadline =
+            Path->PathValidationStartTime + QuicConnPathValidationTimeoutUs(Connection, Path);
+        EarliestDeadline = CXPLAT_MIN(Deadline, EarliestDeadline);
+    }
+
+    if (EarliestDeadline == UINT64_MAX) {
+        QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PATH_VALIDATION);
+        return;
+    }
+
+    const uint64_t Delay =
+        (EarliestDeadline > TimeNow) ? (EarliestDeadline - TimeNow) : 0;
+    QuicConnTimerSetEx(
+        Connection,
+        QUIC_CONN_TIMER_PATH_VALIDATION,
+        Delay,
+        TimeNow);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnProcessPathValidationTimerOperation(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    if (Connection->State.ClosedLocally || Connection->State.ClosedRemotely) {
+        //
+        // The connection is closing, nothing to do.
+        //
+        return;
+    }
+
+    //
+    // Abandon any path whose validation timed-out.
+    //
+    const uint64_t TimeNow = CxPlatTimeUs64();
+    uint8_t i = 0;
+    while (i < Connection->PathsCount) {
+        QUIC_PATH* Path = &Connection->Paths[i];
+        if (Path->IsPeerValidated || Path->PathValidationStartTime == 0) {
+            ++i;
+            continue;
+        }
+        const uint64_t Timeout = QuicConnPathValidationTimeoutUs(Connection, Path);
+        if (CxPlatTimeDiff64(Path->PathValidationStartTime, TimeNow) <= Timeout) {
+            ++i;
+            continue;
+        }
+
+        QuicTraceLogConnInfo(
+            PathValidationTimeout,
+            Connection,
+            "Path[%hhu] validation timed out",
+            Path->ID);
+        QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
+
+        if (i == 0) {
+            //
+            // The active path failed validation. Try to fall back to a
+            // previously-validated non-active path. If none exists we have no
+            // validated path to keep the connection on, so silently close
+            // (RFC 9000 sections 8.2.4 + 10.2).
+            //
+            uint8_t FallbackIndex = 0;
+            for (uint8_t j = 1; j < Connection->PathsCount; ++j) {
+                if (Connection->Paths[j].IsPeerValidated) {
+                    FallbackIndex = j;
+                    break;
+                }
+            }
+            if (FallbackIndex == 0) {
+                QuicConnCloseLocally(
+                    Connection,
+                    QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                    (uint64_t)QUIC_STATUS_UNREACHABLE,
+                    NULL);
+                return;
+            }
+            QuicTraceLogConnInfo(
+                PathValidationFallback,
+                Connection,
+                "Path[%hhu] failed; falling back to validated Path[%hhu]",
+                Path->ID,
+                Connection->Paths[FallbackIndex].ID);
+            //
+            // Promote the validated path to active. The swap moves the failed
+            // path into slot FallbackIndex; remove it there. The new Paths[0]
+            // is the validated fallback; the outer loop will skip it on the
+            // next iteration (IsPeerValidated == TRUE) and proceed.
+            //
+            QuicPathSetActive(Connection, &Connection->Paths[FallbackIndex]);
+            QuicPathRemove(Connection, FallbackIndex);
+            continue;
+        }
+
+        QuicPathRemove(Connection, i);
+        // QuicPathRemove shifted later entries down; do not advance i.
+    }
+
+    //
+    // Re-arm the timer for whichever (if any) validation is now the earliest.
+    //
+    QuicConnPathValidationTimerUpdate(Connection);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -7827,6 +7979,9 @@ QuicConnProcessExpiredTimer(
         break;
     case QUIC_CONN_TIMER_KEEP_ALIVE:
         QuicConnProcessKeepAliveOperation(Connection);
+        break;
+    case QUIC_CONN_TIMER_PATH_VALIDATION:
+        QuicConnProcessPathValidationTimerOperation(Connection);
         break;
     case QUIC_CONN_TIMER_SHUTDOWN:
         QuicConnProcessShutdownTimerOperation(Connection);
