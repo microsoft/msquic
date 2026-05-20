@@ -45,10 +45,10 @@ tracepoint(CLOG_DATAPATH_RAW_C, AllocFailure , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                PlumbStatus,
-                "CxPlatDpRawPlumbRulesOnSocket (delete)");
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            PlumbStatus,
+            "CxPlatDpRawPlumbRulesOnSocket (delete)");
 // arg2 = arg2 = PlumbStatus = arg2
 // arg3 = arg3 = "CxPlatDpRawPlumbRulesOnSocket (delete)" = arg3
 ----------------------------------------------------------*/
