@@ -39,6 +39,16 @@ CxPlatDataPathInitialize(
         // any code traversing platform-specific fields sees safe defaults.
         // Only the common base fields and the raw datapath are used.
         //
+        // Important: XDP map mode has a hard dependency on the Windows (winuser)
+        // datapath and the Windows XDP raw datapath implementation. The platform
+        // socket creation path (SocketCreateUdp in datapath_winuser.c) checks
+        // UseExternalXdpMaps and skips OS socket creation, reusing the
+        // SkipCreatingOsSockets mechanism from the CIBIR path. On non-Windows
+        // platforms, RawDataPathInitialize is a no-op stub that returns NULL
+        // (datapath_raw_dummy.c), which causes the initialization below to fail
+        // gracefully. If XDP support is ever added to other platforms, the
+        // corresponding SocketCreateUdp implementation must also handle map mode.
+        //
         CXPLAT_DATAPATH* Datapath =
             CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
         if (Datapath == NULL) {
@@ -194,6 +204,47 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN CreateRaw = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
+
+    if (Datapath->UseExternalXdpMaps) {
+        //
+        // XDP map mode: there are no OS sockets — the raw (XDP) datapath is
+        // the only data path. Implicitly enable XDP for all sockets since the
+        // app already opted into XDP-only operation by setting map configs.
+        // Treat any raw socket failure as fatal (no OS fallback, no QTIP TCP
+        // port retry).
+        //
+        CreateRaw = TRUE;
+
+        Status =
+            SocketCreateUdp(
+                Datapath,
+                Config,
+                NewSocket);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogVerbose(
+                SockCreateFail,
+                "[sock] Failed to create socket, status:%d", Status);
+            goto Error;
+        }
+
+        (*NewSocket)->RawSocketAvailable = 0;
+        CXPLAT_DBG_ASSERT(Datapath->RawDataPath != NULL);
+        Status =
+            RawSocketCreateUdp(
+                Datapath->RawDataPath,
+                Config,
+                CxPlatSocketToRaw(*NewSocket));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogVerbose(
+                RawSockCreateFail,
+                "[sock] Failed to create raw socket, status:%d", Status);
+            CxPlatSocketDelete(*NewSocket);
+            *NewSocket = NULL;
+            goto Error;
+        }
+        (*NewSocket)->RawSocketAvailable = TRUE;
+        goto Error; // Success path; Status is QUIC_STATUS_SUCCESS.
+    }
 
     //
     // In a real production (XDP/QTIP+XDP) scenario, we never have to loop more than once
