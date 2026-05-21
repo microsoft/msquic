@@ -572,6 +572,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestClientBlockedSourcePort);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestPathValidationTimeout);
+    RegisterTestFunction(QuicTestPathValidationLastPathClose);
     RegisterTestFunction(QuicTestNatPortRebind_NoPadding);
     RegisterTestFunction(QuicTestNatPortRebind_WithPadding);
     RegisterTestFunction(QuicTestNatAddrRebind_NoPadding);
