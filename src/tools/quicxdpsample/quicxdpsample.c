@@ -7,7 +7,7 @@ Abstract:
 
     Provides a very simple MsQuic API sample server and client application.
 
-    The quicadvanced app implements a simple protocol (ALPN "sample") where the
+    The quicxdpsample app implements a simple protocol (ALPN "sample") where the
     client connects to the server, opens a single bidirectional stream, sends
     some data and shuts down the stream in the send direction. On the server
     side all connections, streams and data are accepted. After the stream is
@@ -62,7 +62,7 @@ Abstract:
 // the app (used for persistent storage and for debugging). It also configures
 // the execution profile, using the default "low latency" profile.
 //
-const QUIC_REGISTRATION_CONFIG RegConfig = { "quicadvanced", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+const QUIC_REGISTRATION_CONFIG RegConfig = { "quicxdpsample", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 
 //
 // The protocol name used in the Application Layer Protocol Negotiation (ALPN).
@@ -121,16 +121,16 @@ void PrintUsage()
 {
     printf(
         "\n"
-        "quicadvanced runs a simple client or server.\n"
+        "quicxdpsample runs a simple client or server.\n"
         "\n"
         "Usage:\n"
         "\n"
-        "  quicadvanced.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>] [-cibir_id:<hex>]\n"
+        "  quicxdpsample.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>] [-cibir_id:<hex>]\n"
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-        "  quicadvanced.exe -multiclient -count:<N> -unsecure -target:{IPAddress|Hostname}\n"
+        "  quicxdpsample.exe -multiclient -count:<N> -unsecure -target:{IPAddress|Hostname}\n"
 #endif
-        "  quicadvanced.exe -server -cert_hash:<...> [-xdp] [-xdp_map_ifindex:<N>] [-cibir_id:<hex>]\n"
-        "  quicadvanced.exe -server -cert_file:<...> -key_file:<...> [-password:<...>] [-xdp] [-xdp_map_ifindex:<N>] [-cibir_id:<hex>]\n"
+        "  quicxdpsample.exe -server -cert_hash:<...> [-xdp] [-xdp_map_ifindex:<N>] [-cibir_id:<hex>]\n"
+        "  quicxdpsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>] [-xdp] [-xdp_map_ifindex:<N>] [-cibir_id:<hex>]\n"
         "\n"
         "  -xdp            Enable XDP datapath (server only, requires XDP driver).\n"
         "                  When enabled, prints the exact XDP rules being plumbed.\n"
