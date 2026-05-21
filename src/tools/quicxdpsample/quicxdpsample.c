@@ -5,9 +5,13 @@
 
 Abstract:
 
-    Provides a very simple MsQuic API sample server and client application.
+    Provides a sample MsQuic server/client application that is CIBIR-aware and
+    XDP-capable. It demonstrates various MsQuic XDP usage patterns (XDP datapath
+    enablement, CIBIR-based CID steering, and XDP map mode where an external
+    process attaches the XDP program) in addition to doing everything that's
+    capable in quicsample.
 
-    The quicxdpsample app implements a simple protocol (ALPN "sample") where the
+    The quicxdpsample app implements a simple protocol (ALPN "xdpsample") where the
     client connects to the server, opens a single bidirectional stream, sends
     some data and shuts down the stream in the send direction. On the server
     side all connections, streams and data are accepted. After the stream is
@@ -67,7 +71,7 @@ const QUIC_REGISTRATION_CONFIG RegConfig = { "quicxdpsample", QUIC_EXECUTION_PRO
 //
 // The protocol name used in the Application Layer Protocol Negotiation (ALPN).
 //
-const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
+const QUIC_BUFFER Alpn = { sizeof("xdpsample") - 1, (uint8_t*)"xdpsample" };
 
 //
 // The UDP port used by the server side of the protocol.
