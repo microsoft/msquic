@@ -1227,7 +1227,7 @@ SocketCreateUdp(
     int Result, Option;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
-    CXPLAT_DBG_ASSERT(IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
+    CXPLAT_DBG_ASSERT(Datapath->UseExternalXdpMaps || IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
     CXPLAT_DBG_ASSERT(Config->CibirIdLength <= sizeof(Config->CibirId));
 
     const uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
@@ -1276,6 +1276,34 @@ SocketCreateUdp(
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH :
             Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+
+    if (Datapath->UseExternalXdpMaps) {
+        //
+        // XDP map mode: the WinSock datapath was not initialized (no WSAStartup,
+        // no IOCP, PartitionCount == 0), so skip OS socket creation entirely.
+        // Like CIBIR, an explicit local port is required since there is no OS
+        // socket to assign an ephemeral port. This check must come before the
+        // QTIP and CIBIR checks because it applies to all socket types in map
+        // mode — there are no OS sockets to fall back to regardless of flags.
+        //
+        // N.B. CxPlatSocketCreateUdp implicitly enables CreateRaw in map mode,
+        // so Config->Flags may not have CXPLAT_SOCKET_FLAG_XDP set by the app.
+        //
+        CXPLAT_DBG_ASSERT(Datapath->RawDataPath != NULL);
+        Socket->SkipCreatingOsSockets = TRUE;
+        CxPlatRefInitializeEx(&Socket->RefCount, 1);
+        if (Config->LocalAddress == NULL || Config->LocalAddress->Ipv4.sin_port == 0) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                (uint32_t)QUIC_STATUS_INVALID_PARAMETER,
+                "XDP map mode requires an explicit local port");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+        goto Skip;
+    }
 
     if (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) {
         //

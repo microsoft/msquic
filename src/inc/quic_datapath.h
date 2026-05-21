@@ -486,6 +486,12 @@ typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     // XdpMapConfigs is NULL if and only if XdpMapConfigCount == 0.
     // The map configs must remain valid for the lifetime of the datapath.
     //
+    // N.B. XDP with/without maps is currently only supported on the winuser
+    // datapath. These fields are not compile-guarded, so a Linux/macOS app
+    // could set them, but RawDataPathInitialize will return NULL on
+    // non-Windows platforms (see datapath_raw_dummy.c) causing
+    // CxPlatDataPathInitialize to fail with QUIC_STATUS_NOT_SUPPORTED.
+    //
     const struct QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
     uint32_t XdpMapConfigCount;
 } CXPLAT_DATAPATH_INIT_CONFIG;
