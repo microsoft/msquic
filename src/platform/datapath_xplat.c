@@ -203,17 +203,15 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN CreateRaw = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
 
     if (Datapath->UseExternalXdpMaps) {
         //
-        // XDP map mode: there are no OS sockets — the raw (XDP) datapath is
+        // XDP map mode: there are no OS sockets -- the raw (XDP) datapath is
         // the only data path. Implicitly enable XDP for all sockets since the
         // app already opted into XDP-only operation by setting map configs.
         // Treat any raw socket failure as fatal (no OS fallback, no QTIP TCP
         // port retry).
         //
-        CreateRaw = TRUE;
 
         Status =
             SocketCreateUdp(
@@ -245,6 +243,8 @@ CxPlatSocketCreateUdp(
         (*NewSocket)->RawSocketAvailable = TRUE;
         goto Error; // Success path; Status is QUIC_STATUS_SUCCESS.
     }
+
+    BOOLEAN CreateRaw = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
 
     //
     // In a real production (XDP/QTIP+XDP) scenario, we never have to loop more than once
