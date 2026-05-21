@@ -6317,6 +6317,12 @@ QuicConnProcessPathValidationTimerOperation(
             continue;
         }
 
+        //
+        // QuicPathRemove returned FALSE: this was the last path and the
+        // connection is closing. Clear the validation start time so
+        // QuicConnPathValidationTimerUpdate won't re-arm the timer.
+        //
+        Connection->Paths[i].PathValidationStartTime = 0;
         ++i;
     }
 
