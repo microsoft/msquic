@@ -873,6 +873,22 @@ tracepoint(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingXdpDisabledInMapMode
+// [ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active.
+// QuicTraceLogError(
+            SettingXdpDisabledInMapMode,
+            "[ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_SettingXdpDisabledInMapMode
+#define _clog_2_ARGS_TRACE_SettingXdpDisabledInMapMode(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_SETTINGS_C, SettingXdpDisabledInMapMode );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(
