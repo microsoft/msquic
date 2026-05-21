@@ -216,7 +216,9 @@ QuicStreamProcessReliableResetFrame(
         return;
     }
 
-    if (!Stream->Flags.RemoteCloseResetReliable) {
+    BOOLEAN CloseNow = Stream->RecvBuffer.BaseOffset >= ReliableOffset;
+
+    if (!Stream->Flags.RemoteCloseResetReliable && CloseNow) {
         uint64_t TotalRecvLength = QuicRecvBufferGetTotalLength(&Stream->RecvBuffer);
         if (TotalRecvLength > FinalSize) {
             //
