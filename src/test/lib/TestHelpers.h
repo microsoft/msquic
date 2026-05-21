@@ -149,13 +149,9 @@ struct QuicTestPortReservation {
 
             Port = QuicAddrGetPort(&Addr);
             //
-            // Defensive: bind to port 0 should always assign a real port, but
-            // guard against an unexpected OS behavior.
+            // Bind to port 0 should always assign a real port.
             //
-            if (Port == 0) {
-                Release();
-                return;
-            }
+            ASSERT_NE(Port, (uint16_t)0) << "Bind to port 0 failed to assign a real port";
 
             //
             // Also reserve the same port for TCP. CIBIR+XDP servers skip OS
