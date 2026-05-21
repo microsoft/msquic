@@ -77,6 +77,9 @@ void QuicTestValidateConnection();
 void QuicTestValidateStream(const bool& Connect);
 void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestXdpMapConfigParam();
+#endif
 void QuicTestCommonParam();
 void QuicTestRegistrationParam();
 void QuicTestConfigurationParam();
@@ -357,6 +360,11 @@ QuicTestCustomServerCertValidationAfterShutdown();
 void
 QuicTestCustomClientCertValidationAfterShutdown();
 
+void
+QuicTestCustomTicketValidationAfterShutdown(
+    bool AcceptTicket
+    );
+
 struct ClientCertificateArgs {
     int Family;
     bool UseClientCertificate;
@@ -454,6 +462,11 @@ QuicTestConnectBadAlpn(
 
 void
 QuicTestConnectBadSni(
+    const FamilyArgs& Params
+    );
+
+void
+QuicTestConnectIpSni(
     const FamilyArgs& Params
     );
 

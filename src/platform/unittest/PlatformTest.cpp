@@ -64,6 +64,32 @@ TEST(PlatformTest, QuicAddrParsing)
     }
 }
 
+TEST(PlatformTest, CxPlatIsIpLiteral)
+{
+    struct TestEntry {
+        const char* Input;
+        bool IsIpLiteral;
+    };
+
+    TestEntry TestData[] = {
+        { "127.0.0.1", true },
+        { "192.168.1.11", true },
+        { "::1", true },
+        { "fc00::1:11", true },
+        { "::ffff:192.0.2.128", true },
+        { "localhost", false },
+        { "net.host", false },
+        { "128.net.host", false },
+        { "127.0.0.1:443", false },
+        { "[::1]", false },
+        { "[::1]:443", false }
+    };
+
+    for (const auto& Entry : TestData) {
+        ASSERT_EQ(Entry.IsIpLiteral, CxPlatIsIpLiteral(Entry.Input)) << Entry.Input;
+    }
+}
+
 TEST(PlatformTest, EventQueue)
 {
     struct my_sqe : public CXPLAT_SQE {

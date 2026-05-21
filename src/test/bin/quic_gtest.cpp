@@ -289,6 +289,23 @@ TEST(ParameterValidation, ValidateGlobalParam) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(ParameterValidation, ValidateXdpMapConfigParam) {
+    //
+    // User-mode only: QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG is set-once before the
+    // library's lazy initialization. In kernel mode the test driver shares one
+    // MsQuicLib across all tests in the run, so earlier tests have already
+    // triggered lazy init and this test cannot exercise the success paths.
+    // This is a test harness limitation today.
+    //
+    if (TestingKernelMode) {
+        GTEST_SKIP() << "QuicTestXdpMapConfigParam is user-mode only.";
+    }
+    TestLogger Logger("QuicTestValidateXdpMapConfigParam");
+    QuicTestXdpMapConfigParam();
+}
+#endif
+
 TEST(ParameterValidation, ValidateCommonParam) {
     TestLogger Logger("QuicTestValidateCommonParam");
     if (TestingKernelMode) {
@@ -1346,7 +1363,31 @@ INSTANTIATE_TEST_SUITE_P(
     WithCustomCertificateValidationArgs,
     testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
 
-struct WithClientCertificateArgs : 
+struct WithAcceptTicket :
+    public testing::TestWithParam<bool> {
+};
+
+TEST_P(WithAcceptTicket, CustomTicketValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomTicketValidationAfterShutdown");
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomTicketValidationAfterShutdown), GetParam()));
+    } else {
+        QuicTestCustomTicketValidationAfterShutdown(GetParam());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithAcceptTicket,
+    testing::Values(true, false),
+    [](const testing::TestParamInfo<bool>& info) {
+        return info.param ? "Accept" : "Reject";
+    });
+
+struct WithClientCertificateArgs :
     public testing::TestWithParam<ClientCertificateArgs> {
 
     static ::std::vector<ClientCertificateArgs> Generate() {
@@ -1782,6 +1823,15 @@ TEST_P(WithFamilyArgs, BadSNI) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectBadSni), GetParam()));
     } else {
         QuicTestConnectBadSni(GetParam());
+    }
+}
+
+TEST_P(WithFamilyArgs, IpSNI) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectIpSni", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectIpSni), GetParam()));
+    } else {
+        QuicTestConnectIpSni(GetParam());
     }
 }
 
