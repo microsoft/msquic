@@ -151,7 +151,7 @@ struct QuicTestPortReservation {
             //
             // Bind to port 0 should always assign a real port.
             //
-            ASSERT_NE(Port, (uint16_t)0) << "Bind to port 0 failed to assign a real port";
+            CXPLAT_DBG_ASSERT(Port != 0);
 
             //
             // Also reserve the same port for TCP. CIBIR+XDP servers skip OS
