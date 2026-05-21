@@ -1988,7 +1988,9 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
     Result = TRUE;
 
 Exit:
-
+    if (!Result) {
+        QuicCryptoTlsCleanupTransportParameters(TransportParams);
+    }
     return Result;
 }
 
