@@ -337,14 +337,49 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpMapInsertFailed
+// [ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p
+// QuicTraceLogVerbose(
+                XdpMapInsertFailed,
+                "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p",
+                Interface,
+                Interface->IfIndex,
+                j,
+                XskMap,
+                Queue->RxXsk);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = j = arg4
+// arg5 = arg5 = XskMap = arg5
+// arg6 = arg6 = Queue->RxXsk = arg6
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapInsertFailed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4,
+        const void *, arg5,
+        const void *, arg6), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer_hex(uint64_t, arg5, (uint64_t)arg5)
+        ctf_integer_hex(uint64_t, arg6, (uint64_t)arg6)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpMapModeConfigured
 // [ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)
 // QuicTraceLogVerbose(
-                XdpMapModeConfigured,
-                "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
-                Interface,
-                Interface->IfIndex,
-                XskMap);
+                    XdpMapModeConfigured,
+                    "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+                    Interface,
+                    Interface->IfIndex,
+                    XskMap);
 // arg2 = arg2 = Interface = arg2
 // arg3 = arg3 = Interface->IfIndex = arg3
 // arg4 = arg4 = XskMap = arg4
@@ -423,32 +458,5 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryError,
         const char *, arg2), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Interface,
-                Hr,
-                "XdpMapInsert");
-// arg2 = arg2 = Interface = arg2
-// arg3 = arg3 = Hr = arg3
-// arg4 = arg4 = "XdpMapInsert" = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, DatapathErrorStatus,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3,
-        const char *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-        ctf_string(arg4, arg4)
     )
 )
