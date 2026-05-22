@@ -24,6 +24,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
@@ -34,8 +35,8 @@ RawDataPathInitialize(
 
     *NewDataPath = NULL;
 
-    CXPLAT_DATAPATH_RAW* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
-    if (DataPath == NULL) {
+    CXPLAT_DATAPATH_RAW* RawDataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
+    if (RawDataPath == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
@@ -43,44 +44,63 @@ RawDataPathInitialize(
             DatapathSize);
         return;
     }
-    CxPlatZeroMemory(DataPath, DatapathSize);
+    CxPlatZeroMemory(RawDataPath, DatapathSize);
     CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool, CXPLAT_WORKER_POOL_REF_RAW));
 
-    DataPath->WorkerPool = WorkerPool;
+    RawDataPath->WorkerPool = WorkerPool;
 
-    if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
+    if (!CxPlatSockPoolInitialize(&RawDataPath->SocketPool)) {
         goto Error;
     }
     SockPoolInitialized = TRUE;
 
-    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, WorkerPool);
+    Status = CxPlatDpRawInitialize(RawDataPath, ClientRecvContextLength, WorkerPool);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
     DpRawInitialized = TRUE;
 
-    Status = CxPlatDataPathRouteWorkerInitialize(DataPath);
+    Status = CxPlatDataPathRouteWorkerInitialize(RawDataPath);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    *NewDataPath = DataPath;
-    DataPath->ParentDataPath = ParentDataPath;
-    DataPath = NULL;
+    if (InitConfig->XdpMapConfigCount > 0) {
+        CXPLAT_DBG_ASSERT(InitConfig->XdpMapConfigs != NULL);
+        CxPlatDpRawEnableExternalXdpMapMode(RawDataPath);
+        Status =
+            CxPlatDpRawInsertXskByMapConfigs(
+                RawDataPath,
+                InitConfig->XdpMapConfigs,
+                InitConfig->XdpMapConfigCount);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogVerbose(
+                DatapathRawMapInsertFail,
+                "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
+                Status);
+            RawDataPathUninitialize(RawDataPath);
+            RawDataPath = NULL;
+            goto Error;
+        }
+    }
+
+    *NewDataPath = RawDataPath;
+    RawDataPath->ParentDataPath = ParentDataPath;
+    RawDataPath = NULL;
 
 Error:
 
-    if (DataPath != NULL) {
+    if (RawDataPath != NULL) {
 #if DEBUG
-        DataPath->Uninitialized = TRUE;
+        RawDataPath->Uninitialized = TRUE;
 #endif
         if (DpRawInitialized) {
-            CxPlatDpRawUninitialize(DataPath);
+            CxPlatDpRawUninitialize(RawDataPath);
         } else {
             if (SockPoolInitialized) {
-                CxPlatSockPoolUninitialize(&DataPath->SocketPool);
+                CxPlatSockPoolUninitialize(&RawDataPath->SocketPool);
             }
-            CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
+            CXPLAT_FREE(RawDataPath, QUIC_POOL_DATAPATH);
             CxPlatWorkerPoolRelease(WorkerPool, CXPLAT_WORKER_POOL_REF_RAW);
         }
     }
