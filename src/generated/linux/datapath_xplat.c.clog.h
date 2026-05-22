@@ -84,24 +84,6 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, DatapathRawInitFailMapMode );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathRawMapInsertFail
-// [  dp] XDP map mode: failed to insert XSK sockets into map, status:%d
-// QuicTraceLogVerbose(
-                DatapathRawMapInsertFail,
-                "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
-                Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathRawMapInsertFail
-#define _clog_3_ARGS_TRACE_DatapathRawMapInsertFail(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_XPLAT_C, DatapathRawMapInsertFail , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathInitFail
 // [  dp] Failed to initialize datapath, status:%d
 // QuicTraceLogVerbose(
@@ -139,8 +121,8 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, SockCreateFail , arg2);\
 // Decoder Ring for RawSockCreateFail
 // [sock] Failed to create raw socket, status:%d
 // QuicTraceLogVerbose(
-                RawSockCreateFail,
-                "[sock] Failed to create raw socket, status:%d", Status);
+                    RawSockCreateFail,
+                    "[sock] Failed to create raw socket, status:%d", Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_RawSockCreateFail
