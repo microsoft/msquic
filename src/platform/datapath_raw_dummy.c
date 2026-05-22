@@ -83,6 +83,14 @@ CxPlatDpRawIsExternalXdpMapMode(
     return FALSE; // Dummy raw datapath never has XDP map mode.
 }
 
+void
+CxPlatDpRawEnableExternalXdpMapMode(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 RawDataPathUpdatePollingIdleTimeout(
