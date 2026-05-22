@@ -84,7 +84,7 @@ CxPlatDataPathInitialize(
             goto Error;
         }
 
-        CxPlatDpRawSetExternalXdpMapMode(Datapath->RawDataPath);
+        CxPlatDpRawEnableExternalXdpMapMode(Datapath->RawDataPath);
 
         Status =
             CxPlatDpRawInsertXskByMapConfigs(

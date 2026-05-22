@@ -1253,7 +1253,7 @@ CxPlatDpRawIsExternalXdpMapMode(
     );
 
 void
-CxPlatDpRawSetExternalXdpMapMode(
+CxPlatDpRawEnableExternalXdpMapMode(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath
     );
 
