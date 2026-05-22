@@ -205,48 +205,14 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN IsMapMode = CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath);
 
-    if (CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath)) {
-        //
-        // XDP map mode: there are no OS sockets -- the raw (XDP) datapath is
-        // the only data path. Implicitly enable XDP for all sockets since the
-        // app already opted into XDP-only operation by setting map configs.
-        // Treat any raw socket failure as fatal (no OS fallback, no QTIP TCP
-        // port retry).
-        //
-
-        Status =
-            SocketCreateUdp(
-                Datapath,
-                Config,
-                NewSocket);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogVerbose(
-                SockCreateFail,
-                "[sock] Failed to create socket, status:%d", Status);
-            goto Error;
-        }
-
-        (*NewSocket)->RawSocketAvailable = 0;
-        CXPLAT_DBG_ASSERT(Datapath->RawDataPath != NULL);
-        Status =
-            RawSocketCreateUdp(
-                Datapath->RawDataPath,
-                Config,
-                CxPlatSocketToRaw(*NewSocket));
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogVerbose(
-                RawSockCreateFail,
-                "[sock] Failed to create raw socket, status:%d", Status);
-            CxPlatSocketDelete(*NewSocket);
-            *NewSocket = NULL;
-            goto Error;
-        }
-        (*NewSocket)->RawSocketAvailable = TRUE;
-        goto Error; // Success path; Status is QUIC_STATUS_SUCCESS.
-    }
-
-    BOOLEAN CreateRaw = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
+    //
+    // In map mode the raw (XDP) datapath is the only data path. Implicitly
+    // enable XDP for all sockets and treat any raw socket failure as fatal
+    // (no OS fallback, no QTIP TCP port retry).
+    //
+    BOOLEAN CreateRaw = IsMapMode || (Config->Flags & CXPLAT_SOCKET_FLAG_XDP);
 
     //
     // In a real production (XDP/QTIP+XDP) scenario, we never have to loop more than once
@@ -272,6 +238,7 @@ CxPlatSocketCreateUdp(
         BOOLEAN CibirRequested = (Config->CibirIdLength > 0);
 
         (*NewSocket)->RawSocketAvailable = 0;
+        CXPLAT_DBG_ASSERT((IsMapMode && CreateRaw && Datapath->RawDataPath) || !IsMapMode);
         if (CreateRaw && Datapath->RawDataPath) {
             Status =
                 RawSocketCreateUdp(
@@ -283,6 +250,16 @@ CxPlatSocketCreateUdp(
                 QuicTraceLogVerbose(
                     RawSockCreateFail,
                     "[sock] Failed to create raw socket, status:%d", Status);
+
+                if (IsMapMode) {
+                    //
+                    // Map mode: no fallback allowed.
+                    //
+                    CxPlatSocketDelete(*NewSocket);
+                    *NewSocket = NULL;
+                    goto Error;
+                }
+
                 BOOLEAN IsServerSocket = !(*NewSocket)->HasFixedRemoteAddress;
                 if (IsServerSocket && RequiresQtip) {
                     //
