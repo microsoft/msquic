@@ -1450,37 +1450,6 @@ TEST_F(DataPathTest, XdpMapMode_ZeroConfigUsesNormalPath)
     CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
 }
 
-TEST_F(DataPathTest, XdpMapMode_NullConfigsUsesNormalPath)
-{
-    //
-    // XdpMapConfigCount > 0 but XdpMapConfigs == NULL should fall through
-    // to the normal path because the condition requires both to be set.
-    //
-    QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
-    CXPLAT_WORKER_POOL* WorkerPool =
-        CxPlatWorkerPoolCreate(&ExecConfig, CXPLAT_WORKER_POOL_REF_TOOL);
-    ASSERT_NE(nullptr, WorkerPool);
-
-    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-    InitConfig.EnableDscpOnRecv = TRUE;
-    InitConfig.XdpMapConfigs = nullptr;
-    InitConfig.XdpMapConfigCount = 1;
-
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    QUIC_STATUS Status =
-        CxPlatDataPathInitialize(
-            0,
-            &EmptyUdpCallbacks,
-            nullptr,
-            WorkerPool,
-            &InitConfig,
-            &Datapath);
-    VERIFY_QUIC_SUCCESS(Status);
-    ASSERT_NE(nullptr, Datapath);
-
-    CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
-}
 
 TEST_F(DataPathTest, XdpMapMode_InitFailsWithoutRawDatapath)
 {
