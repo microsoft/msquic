@@ -32,23 +32,20 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    if (InitConfig->XdpMapConfigCount > 0 && InitConfig->XdpMapConfigs != NULL) {
+    if (InitConfig->XdpMapConfigCount > 0) {
         //
-        // XDP map mode: bypass the platform datapath (WinSock/epoll) entirely.
-        // Allocate the full CXPLAT_DATAPATH struct (zero-initialized) so that
-        // any code traversing platform-specific fields sees safe defaults.
-        // Only the common base fields and the raw datapath are used.
+        // XDP map mode: must require the raw datapath to be successfully initialized
+        // as we are skipping OS platform specific initializations.
         //
-        // Important: XDP map mode has a hard dependency on the Windows (winuser)
-        // datapath and the Windows XDP raw datapath implementation. The platform
-        // socket creation path (SocketCreateUdp in datapath_winuser.c) checks
-        // UseExternalXdpMaps (on the raw datapath) and skips OS socket creation,
-        // reusing the SkipCreatingOsSockets mechanism from the CIBIR path. On non-Windows
-        // platforms, RawDataPathInitialize is a no-op stub that returns NULL
-        // (datapath_raw_dummy.c), which causes the initialization below to fail
-        // gracefully. If XDP support is ever added to other platforms, the
-        // corresponding SocketCreateUdp implementation needs to be aware of map mode.
-        //
+        CXPLAT_DBG_ASSERT(InitConfig->XdpMapConfigs != NULL);
+        if (NewDataPath == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (UdpCallbacks != NULL) {
+            if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+        }
         CXPLAT_DATAPATH* Datapath =
             CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
         if (Datapath == NULL) {
@@ -60,19 +57,17 @@ CxPlatDataPathInitialize(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
-
         CxPlatZeroMemory(Datapath, sizeof(CXPLAT_DATAPATH));
         if (UdpCallbacks) {
             Datapath->UdpHandlers = *UdpCallbacks;
         }
         Datapath->WorkerPool = WorkerPool;
 
-        *NewDataPath = Datapath;
-
         RawDataPathInitialize(
             ClientRecvContextLength,
-            *NewDataPath,
+            Datapath,
             WorkerPool,
+            InitConfig,
             &Datapath->RawDataPath);
         if (Datapath->RawDataPath == NULL) {
             QuicTraceLogVerbose(
@@ -83,25 +78,11 @@ CxPlatDataPathInitialize(
             Status = QUIC_STATUS_NOT_SUPPORTED;
             goto Error;
         }
-
-        CxPlatDpRawEnableExternalXdpMapMode(Datapath->RawDataPath);
-
-        Status =
-            CxPlatDpRawInsertXskByMapConfigs(
-                Datapath->RawDataPath,
-                InitConfig->XdpMapConfigs,
-                InitConfig->XdpMapConfigCount);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogVerbose(
-                DatapathRawMapInsertFail,
-                "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
-                Status);
-            RawDataPathUninitialize(Datapath->RawDataPath);
-            CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-            *NewDataPath = NULL;
-            goto Error;
-        }
+        *NewDataPath = Datapath;
     } else {
+        //
+        // OS platform-specific initializations.
+        //
         Status =
             DataPathInitialize(
                 ClientRecvContextLength,
@@ -124,6 +105,7 @@ CxPlatDataPathInitialize(
             ClientRecvContextLength,
             *NewDataPath,
             WorkerPool,
+            InitConfig,
             &((*NewDataPath)->RawDataPath));
     }
 

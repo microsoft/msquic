@@ -1206,6 +1206,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** DataPath
     );
 
