@@ -47,7 +47,7 @@ CxPlatDataPathInitialize(
         // platforms, RawDataPathInitialize is a no-op stub that returns NULL
         // (datapath_raw_dummy.c), which causes the initialization below to fail
         // gracefully. If XDP support is ever added to other platforms, the
-        // corresponding SocketCreateUdp implementation must also handle map mode.
+        // corresponding SocketCreateUdp implementation needs to be aware of map mode.
         //
         CXPLAT_DATAPATH* Datapath =
             CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
