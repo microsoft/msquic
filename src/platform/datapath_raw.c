@@ -86,6 +86,22 @@ Error:
     }
 }
 
+BOOLEAN
+CxPlatDpRawIsExternalXdpMapMode(
+    _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    return RawDataPath != NULL && RawDataPath->UseExternalXdpMaps;
+}
+
+void
+CxPlatDpRawSetExternalXdpMapMode(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    RawDataPath->UseExternalXdpMaps = TRUE;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 RawDataPathUninitialize(

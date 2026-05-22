@@ -42,8 +42,8 @@ CxPlatDataPathInitialize(
         // Important: XDP map mode has a hard dependency on the Windows (winuser)
         // datapath and the Windows XDP raw datapath implementation. The platform
         // socket creation path (SocketCreateUdp in datapath_winuser.c) checks
-        // UseExternalXdpMaps and skips OS socket creation, reusing the
-        // SkipCreatingOsSockets mechanism from the CIBIR path. On non-Windows
+        // UseExternalXdpMaps (on the raw datapath) and skips OS socket creation,
+        // reusing the SkipCreatingOsSockets mechanism from the CIBIR path. On non-Windows
         // platforms, RawDataPathInitialize is a no-op stub that returns NULL
         // (datapath_raw_dummy.c), which causes the initialization below to fail
         // gracefully. If XDP support is ever added to other platforms, the
@@ -66,7 +66,6 @@ CxPlatDataPathInitialize(
             Datapath->UdpHandlers = *UdpCallbacks;
         }
         Datapath->WorkerPool = WorkerPool;
-        Datapath->UseExternalXdpMaps = TRUE;
 
         *NewDataPath = Datapath;
 
@@ -84,6 +83,8 @@ CxPlatDataPathInitialize(
             Status = QUIC_STATUS_NOT_SUPPORTED;
             goto Error;
         }
+
+        CxPlatDpRawSetExternalXdpMapMode(Datapath->RawDataPath);
 
         Status =
             CxPlatDpRawInsertXskByMapConfigs(
@@ -137,10 +138,11 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
+    BOOLEAN IsMapMode = CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath);
     if (Datapath->RawDataPath) {
         RawDataPathUninitialize(Datapath->RawDataPath);
     }
-    if (Datapath->UseExternalXdpMaps) {
+    if (IsMapMode) {
         //
         // Map mode: no platform (WinSock) datapath was initialized,
         // so free directly without platform uninit.
@@ -204,7 +206,7 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (Datapath->UseExternalXdpMaps) {
+    if (CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath)) {
         //
         // XDP map mode: there are no OS sockets -- the raw (XDP) datapath is
         // the only data path. Implicitly enable XDP for all sockets since the

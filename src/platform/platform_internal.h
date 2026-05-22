@@ -263,7 +263,6 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
 
-    BOOLEAN UseExternalXdpMaps;
 
     //
     // The registration with WinSock Kernel.
@@ -475,7 +474,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
 
-    BOOLEAN UseExternalXdpMaps;
 
     //
     // Function pointer to AcceptEx.
@@ -995,7 +993,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PARTITION {
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
 
-    BOOLEAN UseExternalXdpMaps;
 
     //
     // Synchronization mechanism for cleanup.
@@ -1248,6 +1245,16 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 RawDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+BOOLEAN
+CxPlatDpRawIsExternalXdpMapMode(
+    _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    );
+
+void
+CxPlatDpRawSetExternalXdpMapMode(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -74,6 +74,15 @@ RawDataPathUninitialize(
     UNREFERENCED_PARAMETER(Datapath);
 }
 
+BOOLEAN
+CxPlatDpRawIsExternalXdpMapMode(
+    _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
+    return FALSE; // Dummy raw datapath never has XDP map mode.
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 RawDataPathUpdatePollingIdleTimeout(

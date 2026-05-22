@@ -1227,7 +1227,7 @@ SocketCreateUdp(
     int Result, Option;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
-    CXPLAT_DBG_ASSERT(Datapath->UseExternalXdpMaps || IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
+    CXPLAT_DBG_ASSERT(CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath) || IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
     CXPLAT_DBG_ASSERT(Config->CibirIdLength <= sizeof(Config->CibirId));
 
     const uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
@@ -1277,7 +1277,7 @@ SocketCreateUdp(
             MAX_URO_PAYLOAD_LENGTH :
             Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 
-    if (Datapath->UseExternalXdpMaps) {
+    if (CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath)) {
         //
         // There is no OS native datapath when XDP maps are used. The
         // application must specify the local port. Skip OS socket creation

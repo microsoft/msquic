@@ -63,6 +63,7 @@ typedef struct CXPLAT_DATAPATH_RAW {
     BOOLEAN Freed : 1;
 #endif
     BOOLEAN ReserveAuxTcpSockForQtip; // Whether or not we create an auxiliary TCP socket.
+    BOOLEAN UseExternalXdpMaps;       // XDP map mode: app manages XDP rules externally.
 
 } CXPLAT_DATAPATH_RAW;
 
