@@ -94,10 +94,8 @@ CxPlatDpRawInsertXskByMapConfigs(
     )
 {
     //
-    // Stub for platforms without XDP support. This is the safety net that
-    // prevents XDP map mode from succeeding on non-Windows datapaths — even
-    // if an app sets QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG, RawDataPathInitialize
-    // above already returns NULL which fails map mode init before we get here.
+    // Stub for platforms without XDP support. Must return QUIC_STATUS_NOT_SUPPORTED
+    // so map mode init fails gracefully on non-Windows platforms.
     //
     UNREFERENCED_PARAMETER(RawDataPath);
     UNREFERENCED_PARAMETER(MapConfigs);

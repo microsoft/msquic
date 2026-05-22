@@ -355,58 +355,6 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapModeConfigured , arg2, arg3, arg4)
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpMapInsertFailed
-// [ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p
-// QuicTraceLogVerbose(
-                        XdpMapInsertFailed,
-                        "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p",
-                        Interface,
-                        Interface->IfIndex,
-                        j,
-                        XskMap,
-                        Queue->RxXsk);
-// arg2 = arg2 = Interface = arg2
-// arg3 = arg3 = Interface->IfIndex = arg3
-// arg4 = arg4 = j = arg4
-// arg5 = arg5 = XskMap = arg5
-// arg6 = arg6 = Queue->RxXsk = arg6
-----------------------------------------------------------*/
-#ifndef _clog_7_ARGS_TRACE_XdpMapInsertFailed
-#define _clog_7_ARGS_TRACE_XdpMapInsertFailed(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapInsertFailed , arg2, arg3, arg4, arg5, arg6);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpMapModeInserted
-// [ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u, XskMap=%p, RxXsk=%p)
-// QuicTraceLogVerbose(
-                    XdpMapModeInserted,
-                    "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u, XskMap=%p, RxXsk=%p)",
-                    Interface,
-                    j,
-                    Interface->IfIndex,
-                    XskMap,
-                    Queue->RxXsk);
-// arg2 = arg2 = Interface = arg2
-// arg3 = arg3 = j = arg3
-// arg4 = arg4 = Interface->IfIndex = arg4
-// arg5 = arg5 = XskMap = arg5
-// arg6 = arg6 = Queue->RxXsk = arg6
-----------------------------------------------------------*/
-#ifndef _clog_7_ARGS_TRACE_XdpMapModeInserted
-#define _clog_7_ARGS_TRACE_XdpMapModeInserted(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapModeInserted , arg2, arg3, arg4, arg5, arg6);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -458,6 +406,28 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, AllocFailure , arg2, arg3);\
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryError , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Interface,
+                Hr,
+                "XdpMapInsert");
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Hr = arg3
+// arg4 = arg4 = "XdpMapInsert" = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 #endif
 

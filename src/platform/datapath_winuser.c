@@ -1279,15 +1279,9 @@ SocketCreateUdp(
 
     if (Datapath->UseExternalXdpMaps) {
         //
-        // XDP map mode: the WinSock datapath was not initialized (no WSAStartup,
-        // no IOCP, PartitionCount == 0), so skip OS socket creation entirely.
-        // Like CIBIR, an explicit local port is required since there is no OS
-        // socket to assign an ephemeral port. This check must come before the
-        // QTIP and CIBIR checks because it applies to all socket types in map
-        // mode — there are no OS sockets to fall back to regardless of flags.
-        //
-        // N.B. CxPlatSocketCreateUdp implicitly enables CreateRaw in map mode,
-        // so Config->Flags may not have CXPLAT_SOCKET_FLAG_XDP set by the app.
+        // There is no OS native datapath when XDP maps are used. The
+        // application must specify the local port. Skip OS socket creation
+        // entirely and defer to the raw (XDP) datapath.
         //
         CXPLAT_DBG_ASSERT(Datapath->RawDataPath != NULL);
         Socket->SkipCreatingOsSockets = TRUE;

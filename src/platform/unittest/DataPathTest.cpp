@@ -1622,6 +1622,7 @@ TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
     // socket in map mode and verify that create and delete succeed without
     // the rule plumbing step.
     //
+
     if (!UseDuoNic) {
         GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
         return;
@@ -1653,15 +1654,12 @@ TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, Datapath);
 
-    //
-    // Create a connected QTIP+XDP socket. QTIP skips the normal OS UDP
-    // socket creation and goes directly to RawSocketCreateUdp, which
-    // should skip rule plumbing in map mode.
-    //
     QuicAddr RemoteAddr = GetNewLocalIPv4();
+    QuicAddr LocalAddr = GetNewLocalIPv4();
 
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.RemoteAddress = &RemoteAddr.SockAddr;
+    UdpConfig.LocalAddress = &LocalAddr.SockAddr;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_XDP | CXPLAT_SOCKET_FLAG_QTIP;
 
     CXPLAT_SOCKET* Socket = nullptr;
