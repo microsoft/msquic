@@ -712,23 +712,23 @@ QuicSettingApply(
         Destination->IsSet.ReliableResetEnabled = TRUE;
     }
 
-    if (Source->IsSet.XdpEnabled && (!Destination->IsSet.XdpEnabled || OverWrite)) {
-        Destination->XdpEnabled = Source->XdpEnabled;
-        Destination->IsSet.XdpEnabled = TRUE;
-    }
-
     //
     // If XDP map mode is active (XdpMapConfigCount > 0), XDP is implicitly
     // enabled for all sockets. Reject an explicit XdpEnabled = FALSE since
     // it contradicts map mode — there is no OS datapath to fall back to.
     //
-    if (Destination->IsSet.XdpEnabled &&
-        !Destination->XdpEnabled &&
+    if (Source->IsSet.XdpEnabled &&
+        !Source->XdpEnabled &&
         MsQuicLib.XdpMapConfigCount > 0) {
         QuicTraceLogError(
             SettingXdpDisabledInMapMode,
             "[ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active.");
         return FALSE;
+    }
+
+    if (Source->IsSet.XdpEnabled && (!Destination->IsSet.XdpEnabled || OverWrite)) {
+        Destination->XdpEnabled = Source->XdpEnabled;
+        Destination->IsSet.XdpEnabled = TRUE;
     }
 
     if (Source->IsSet.QTIPEnabled && (!Destination->IsSet.QTIPEnabled || OverWrite)) {

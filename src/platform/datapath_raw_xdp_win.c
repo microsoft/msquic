@@ -2276,6 +2276,33 @@ CxPlatDataPathRssConfigFree(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+static
+QUIC_STATUS
+CxPlatDpRawInsertXskInMap(
+    _In_ XDP_INTERFACE* Interface,
+    _In_ HANDLE XskMap
+    )
+{
+    for (uint32_t j = 0; j < Interface->QueueCount; j++) {
+        CXPLAT_QUEUE* Queue = &Interface->Queues[j];
+        if (Queue->RxXsk == NULL) {
+            continue;
+        }
+        HRESULT Hr = XdpMapInsert(XskMap, &j, &Queue->RxXsk);
+        if (FAILED(Hr)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Interface,
+                Hr,
+                "XdpMapInsert");
+            return (QUIC_STATUS)Hr;
+        }
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInsertXskByMapConfigs(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
@@ -2289,50 +2316,26 @@ CxPlatDpRawInsertXskByMapConfigs(
     CXPLAT_LIST_ENTRY* Entry;
     for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+
+        HANDLE XskMap = NULL;
         for (uint32_t i = 0; i < MapConfigCount; i++) {
-            if (MapConfigs[i].InterfaceIndex != Interface->IfIndex) {
-                continue;
+            if (MapConfigs[i].InterfaceIndex == Interface->IfIndex) {
+                XskMap = (HANDLE)MapConfigs[i].MapHandle;
+                break;
             }
-            HANDLE XskMap = (HANDLE)MapConfigs[i].MapHandle;
+        }
+
+        if (XskMap != NULL) {
             QuicTraceLogVerbose(
                 XdpMapModeConfigured,
                 "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
                 Interface,
                 Interface->IfIndex,
                 XskMap);
-            for (uint32_t j = 0; j < Interface->QueueCount; j++) {
-                CXPLAT_QUEUE* Queue = &Interface->Queues[j];
-                if (Queue->RxXsk == NULL) {
-                    continue;
-                }
-                HRESULT Hr = XdpMapInsert(XskMap, &j, &Queue->RxXsk);
-                if (FAILED(Hr)) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        Hr,
-                        "XdpMapInsert");
-                    QuicTraceLogVerbose(
-                        XdpMapInsertFailed,
-                        "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p",
-                        Interface,
-                        Interface->IfIndex,
-                        j,
-                        XskMap,
-                        Queue->RxXsk);
-                    Status = (QUIC_STATUS)Hr;
-                    goto Exit;
-                }
-                QuicTraceLogVerbose(
-                    XdpMapModeInserted,
-                    "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u, XskMap=%p, RxXsk=%p)",
-                    Interface,
-                    j,
-                    Interface->IfIndex,
-                    XskMap,
-                    Queue->RxXsk);
+            Status = CxPlatDpRawInsertXskInMap(Interface, XskMap);
+            if (QUIC_FAILED(Status)) {
+                goto Exit;
             }
-            break;
         }
     }
 
