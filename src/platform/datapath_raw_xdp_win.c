@@ -2290,12 +2290,14 @@ CxPlatDpRawInsertXskInMap(
         }
         HRESULT Hr = XdpMapInsert(XskMap, &j, &Queue->RxXsk);
         if (FAILED(Hr)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
+            QuicTraceLogVerbose(
+                XdpMapInsertFailed,
+                "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p",
                 Interface,
-                Hr,
-                "XdpMapInsert");
+                Interface->IfIndex,
+                j,
+                XskMap,
+                Queue->RxXsk);
             return (QUIC_STATUS)Hr;
         }
     }
@@ -2317,24 +2319,20 @@ CxPlatDpRawInsertXskByMapConfigs(
     for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
 
-        HANDLE XskMap = NULL;
         for (uint32_t i = 0; i < MapConfigCount; i++) {
             if (MapConfigs[i].InterfaceIndex == Interface->IfIndex) {
-                XskMap = (HANDLE)MapConfigs[i].MapHandle;
+                HANDLE XskMap = (HANDLE)MapConfigs[i].MapHandle;
+                Status = CxPlatDpRawInsertXskInMap(Interface, XskMap);
+                if (QUIC_FAILED(Status)) {
+                    goto Exit;
+                }
+                QuicTraceLogVerbose(
+                    XdpMapModeConfigured,
+                    "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+                    Interface,
+                    Interface->IfIndex,
+                    XskMap);
                 break;
-            }
-        }
-
-        if (XskMap != NULL) {
-            QuicTraceLogVerbose(
-                XdpMapModeConfigured,
-                "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
-                Interface,
-                Interface->IfIndex,
-                XskMap);
-            Status = CxPlatDpRawInsertXskInMap(Interface, XskMap);
-            if (QUIC_FAILED(Status)) {
-                goto Exit;
             }
         }
     }
