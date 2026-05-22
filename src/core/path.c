@@ -80,7 +80,6 @@ QuicPathRemove(
         // 10.2, but leave the Paths array intact so in-flight operations see
         // a valid Paths[0] until shutdown completes.
         //
-        Connection->Paths[0].IsActive = FALSE;
         if (!Connection->State.ClosedLocally) {
             QuicConnCloseLocally(
                 Connection,
