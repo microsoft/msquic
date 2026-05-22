@@ -1988,6 +1988,10 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
     Result = TRUE;
 
 Exit:
+    if (!Result) {
+        QuicCryptoTlsCleanupTransportParameters(TransportParams);
+        CxPlatZeroMemory(TransportParams, sizeof(QUIC_TRANSPORT_PARAMETERS));
+    }
     return Result;
 }
 
