@@ -353,6 +353,12 @@ CxPlatSocketCompare(
     // For a client socket, make sure the local IP matches and the full
     // remote address matches along with QTIP settings.
     //
+    // TODO: In XDP map mode the OS socket creation path is skipped, so
+    // the socket's local IP may remain wildcard (0.0.0.0 / ::) if the
+    // caller doesn't supply a specific local IP. Map mode should require
+    // (or resolve) a concrete local IP so that this comparison works
+    // correctly without special-casing wildcards here.
+    //
     CXPLAT_DBG_ASSERT(Socket->Connected);
     return
         QuicAddrCompareIp(&Socket->LocalAddress, LocalAddress) &&

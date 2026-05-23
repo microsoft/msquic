@@ -14,6 +14,14 @@
 
 #include <array>
 
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#include <iphlpapi.h>
+#define XDP_API_VERSION 3
+#define XDP_INCLUDE_WINCOMMON
+#include <xdp/wincommon.h>
+#include <xdpapi.h>
+#endif
+
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 #pragma message("Test compiled with datapath hooks enabled")
 #endif
@@ -25,6 +33,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
+bool UseXdpMapMode = false;
 CXPLAT_WORKER_POOL* WorkerPool;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
@@ -36,6 +45,65 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
+
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+//
+// XDP map mode state. Populated during SetUp when --xdpMapMode is used.
+//
+#define XDP_MAP_MODE_MAX_INTERFACES 2
+#define XDP_MAP_MODE_MAX_QUEUES 64
+struct XdpMapModeState {
+    uint32_t InterfaceCount;
+    uint32_t IfIndices[XDP_MAP_MODE_MAX_INTERFACES];
+    HANDLE XskMaps[XDP_MAP_MODE_MAX_INTERFACES];
+} XdpMapState = {};
+
+//
+// Discover DuoNic interface indices by enumerating Ethernet adapters with
+// known DuoNic IPv4 addresses (192.168.1.11 and 192.168.1.12).
+//
+static bool
+DiscoverDuoNicInterfaces(
+    _Out_writes_(XDP_MAP_MODE_MAX_INTERFACES) uint32_t* IfIndices,
+    _Out_ uint32_t* Count
+    )
+{
+    *Count = 0;
+    ULONG Flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_ANYCAST |
+                  GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+    ULONG BufSize = 0;
+    GetAdaptersAddresses(AF_INET, Flags, NULL, NULL, &BufSize);
+    if (BufSize == 0) return false;
+
+    auto Adapters = (PIP_ADAPTER_ADDRESSES)malloc(BufSize);
+    if (!Adapters) return false;
+
+    if (GetAdaptersAddresses(AF_INET, Flags, NULL, Adapters, &BufSize) != NO_ERROR) {
+        free(Adapters);
+        return false;
+    }
+
+    for (auto Adapter = Adapters; Adapter && *Count < XDP_MAP_MODE_MAX_INTERFACES; Adapter = Adapter->Next) {
+        if (Adapter->IfType != IF_TYPE_ETHERNET_CSMACD ||
+            Adapter->OperStatus != IfOperStatusUp) {
+            continue;
+        }
+        for (auto Unicast = Adapter->FirstUnicastAddress; Unicast; Unicast = Unicast->Next) {
+            if (Unicast->Address.lpSockaddr->sa_family != AF_INET) continue;
+            auto* Sin = (SOCKADDR_IN*)Unicast->Address.lpSockaddr;
+            ULONG Addr = ntohl(Sin->sin_addr.S_un.S_addr);
+            // 192.168.1.11 or 192.168.1.12
+            if (Addr == 0xC0A8010B || Addr == 0xC0A8010C) {
+                IfIndices[*Count] = Adapter->IfIndex;
+                (*Count)++;
+                break;
+            }
+        }
+    }
+    free(Adapters);
+    return *Count > 0;
+}
+#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
 
 //
 // These are explicitly passed in as the name of the GitHub/Azure runners.
@@ -123,7 +191,40 @@ public:
                 Settings.SetQtipEnabled(true);
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
-#endif
+#if defined(_WIN32)
+            if (UseXdpMapMode) {
+                //
+                // Discover DuoNic interfaces and create XSKMAPs.
+                //
+                ASSERT_TRUE(
+                    DiscoverDuoNicInterfaces(
+                        XdpMapState.IfIndices,
+                        &XdpMapState.InterfaceCount));
+                printf("XDP Map Mode: discovered %u DuoNic interface(s)\n",
+                    XdpMapState.InterfaceCount);
+
+                QUIC_XDP_MAP_CONFIG MapConfigs[XDP_MAP_MODE_MAX_INTERFACES];
+                for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+                    ASSERT_TRUE(SUCCEEDED(
+                        XdpMapCreate(&XdpMapState.XskMaps[i], XDP_MAP_TYPE_XSKMAP)));
+                    MapConfigs[i].InterfaceIndex = XdpMapState.IfIndices[i];
+                    MapConfigs[i].MapHandle = (QUIC_XDP_MAP_HANDLE)XdpMapState.XskMaps[i];
+                    printf("  IfIndex=%u, XskMap=%p\n",
+                        XdpMapState.IfIndices[i], XdpMapState.XskMaps[i]);
+                }
+
+                //
+                // Set the XDP map config before any registration is opened.
+                // This must happen before LazyInitComplete.
+                //
+                ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    XdpMapState.InterfaceCount * sizeof(QUIC_XDP_MAP_CONFIG),
+                    MapConfigs)));
+            }
+#endif // _WIN32
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
             //
             // Enable DSCP on the receive path. This is needed to test DSCP Send path.
             //
@@ -143,6 +244,19 @@ public:
             ClientCertCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
             QuicTestInitialize();
 
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (UseXdpMapMode) {
+                //
+                // Force lazy initialization so MsQuic creates XSK sockets
+                // and inserts them into the XSKMAPs we provided.
+                //
+                {
+                    MsQuicRegistration TempReg("XdpMapModeInit");
+                    ASSERT_TRUE(TempReg.IsValid());
+                }
+            }
+#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #ifdef _WIN32
             ASSERT_NE(GetCurrentDirectoryA(sizeof(CurrentWorkingDirectory), CurrentWorkingDirectory), 0);
 #else
@@ -158,6 +272,16 @@ public:
             QuicTestUninitialize();
             delete MsQuic;
         }
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        if (UseXdpMapMode) {
+            for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+                if (XdpMapState.XskMaps[i]) {
+                    CloseHandle(XdpMapState.XskMaps[i]);
+                    XdpMapState.XskMaps[i] = nullptr;
+                }
+            }
+        }
+#endif
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatFreeSelfSignedCert(ClientCertParams);
 
@@ -3130,6 +3254,151 @@ INSTANTIATE_TEST_SUITE_P(
     WithFamilyArgs,
     ::testing::ValuesIn(WithFamilyArgs::Generate()));
 
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+//
+// XDP Map Mode tests. These only run when --xdpMapMode is passed.
+// Each test reserves its own ports (keeping OS sockets open to prevent
+// reuse), creates XDP programs for those ports, and tears them down.
+//
+
+struct XdpMapMode : public ::testing::TestWithParam<int> {
+    SOCKET PortSocks[2] = {INVALID_SOCKET, INVALID_SOCKET};
+    uint16_t ServerPort = 0;
+    uint16_t ClientPort = 0;
+    HANDLE XdpPrograms[XDP_MAP_MODE_MAX_INTERFACES][XDP_MAP_MODE_MAX_QUEUES] = {};
+    uint32_t QueueCounts[XDP_MAP_MODE_MAX_INTERFACES] = {};
+    bool WsaInitialized = false;
+
+    void SetUp() override {
+        if (!UseXdpMapMode) return;
+
+        WSADATA WsaData;
+        ASSERT_EQ(WSAStartup(MAKEWORD(2, 2), &WsaData), 0);
+        WsaInitialized = true;
+
+        //
+        // Reserve 2 ports (server + client) with OS sockets that stay open.
+        //
+        for (int i = 0; i < 2; i++) {
+            PortSocks[i] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+            ASSERT_NE(PortSocks[i], INVALID_SOCKET)
+                << "Failed to create socket: WSAGetLastError=" << WSAGetLastError();
+            struct sockaddr_in Addr = {};
+            Addr.sin_family = AF_INET;
+            ASSERT_EQ(bind(PortSocks[i], (struct sockaddr*)&Addr, sizeof(Addr)), 0);
+            int AddrLen = sizeof(Addr);
+            ASSERT_EQ(getsockname(PortSocks[i], (struct sockaddr*)&Addr, &AddrLen), 0);
+            uint16_t Port = ntohs(Addr.sin_port);
+            ASSERT_NE(Port, (uint16_t)0);
+            if (i == 0) ServerPort = Port; else ClientPort = Port;
+        }
+
+        printf("XDP Map Mode [%s]: ports Server=%u Client=%u\n",
+            ::testing::UnitTest::GetInstance()->current_test_info()->name(),
+            ServerPort, ClientPort);
+
+        //
+        // Create per-queue XDP programs mirroring MsQuic's internal
+        // CxPlatDpRawInterfaceUpdateRules: one program per queue with
+        // flags=0, targeting the XSKMAP for redirect-by-queue-id.
+        //
+        static const XDP_HOOK_ID RxHook = {
+            XDP_HOOK_L2,
+            XDP_HOOK_RX,
+            XDP_HOOK_INSPECT,
+        };
+
+        for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+            for (uint32_t q = 0; q < XDP_MAP_MODE_MAX_QUEUES; q++) {
+                XDP_RULE Rules[2] = {};
+
+                Rules[0].Match = XDP_MATCH_UDP_DST;
+                Rules[0].Pattern.Port = htons(ServerPort);
+                Rules[0].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                Rules[0].Redirect.Target = XdpMapState.XskMaps[i];
+
+                Rules[1].Match = XDP_MATCH_UDP_DST;
+                Rules[1].Pattern.Port = htons(ClientPort);
+                Rules[1].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                Rules[1].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                Rules[1].Redirect.Target = XdpMapState.XskMaps[i];
+
+                HRESULT Hr = XdpCreateProgram(
+                    XdpMapState.IfIndices[i],
+                    &RxHook,
+                    q,
+                    XDP_CREATE_PROGRAM_FLAG_NONE,
+                    Rules,
+                    2,
+                    &XdpPrograms[i][q]);
+                if (FAILED(Hr)) {
+                    //
+                    // No more queues on this interface.
+                    //
+                    QueueCounts[i] = q;
+                    break;
+                }
+            }
+            printf("XDP Map Mode: IfIndex=%u created %u per-queue programs\n",
+                XdpMapState.IfIndices[i], QueueCounts[i]);
+            ASSERT_GT(QueueCounts[i], (uint32_t)0)
+                << "Failed to create any XDP programs for IfIndex="
+                << XdpMapState.IfIndices[i];
+        }
+    }
+
+    void TearDown() override {
+        if (!UseXdpMapMode) return;
+
+        for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+            for (uint32_t q = 0; q < QueueCounts[i]; q++) {
+                if (XdpPrograms[i][q]) {
+                    CloseHandle(XdpPrograms[i][q]);
+                    XdpPrograms[i][q] = nullptr;
+                }
+            }
+        }
+        for (int i = 0; i < 2; i++) {
+            if (PortSocks[i] != INVALID_SOCKET) {
+                closesocket(PortSocks[i]);
+                PortSocks[i] = INVALID_SOCKET;
+            }
+        }
+        if (WsaInitialized) {
+            WSACleanup();
+        }
+    }
+};
+
+TEST_P(XdpMapMode, Handshake) {
+    if (!UseXdpMapMode) {
+        GTEST_SKIP() << "XDP Map Mode not enabled (use --xdpMapMode)";
+    }
+    TestLogger Logger("QuicTestXdpMapModeHandshake");
+    QuicTestXdpMapModeHandshake(
+        GetParam(),
+        ServerPort,
+        ClientPort);
+}
+
+TEST_P(XdpMapMode, DataTransfer) {
+    if (!UseXdpMapMode) {
+        GTEST_SKIP() << "XDP Map Mode not enabled (use --xdpMapMode)";
+    }
+    TestLogger Logger("QuicTestXdpMapModeDataTransfer");
+    QuicTestXdpMapModeDataTransfer(
+        GetParam(),
+        ServerPort,
+        ClientPort);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    XdpMapMode,
+    XdpMapMode,
+    ::testing::Values(4, 6));
+#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
+
 int main(int argc, char** argv) {
 #ifdef _WIN32
     //
@@ -3153,6 +3422,14 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
+        } else if (strcmp("--xdpMapMode", argv[i]) == 0) {
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            UseXdpMapMode = true;
+            UseDuoNic = true; // Map mode implies DuoNic
+#else
+            printf("XDP Map Mode is only supported on Windows with preview features.\n");
+            return -1;
+#endif
         } else if (strcmp("--useQTIP", argv[i]) == 0) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             UseQTIP = true;

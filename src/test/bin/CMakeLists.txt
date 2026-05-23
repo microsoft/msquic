@@ -10,6 +10,10 @@ add_executable(msquictest ${SOURCES})
 
 target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
+if (WIN32)
+    target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
+endif()
+
 set_property(TARGET msquictest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
 set_property(TARGET msquictest APPEND PROPERTY BUILD_RPATH "$ORIGIN")
 
@@ -22,7 +26,7 @@ endif()
 target_link_libraries(msquictest inc gtest logging base_link)
 
 if (WIN32)
-    target_link_libraries(msquictest oldnames)
+    target_link_libraries(msquictest oldnames iphlpapi)
 endif()
 
 # At least /W3 must be used on all windows builds to pass compliance
