@@ -79,6 +79,8 @@ void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void QuicTestXdpMapConfigParam();
+void QuicTestXdpMapModeHandshake(_In_ int Family, _In_ uint16_t ServerPort, _In_ uint16_t ClientPort);
+void QuicTestXdpMapModeDataTransfer(_In_ int Family, _In_ uint16_t ServerPort, _In_ uint16_t ClientPort);
 #endif
 void QuicTestCommonParam();
 void QuicTestRegistrationParam();
