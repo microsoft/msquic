@@ -101,6 +101,30 @@ if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     if (CX_PLATFORM STREQUAL "darwin")
         target_link_libraries(msquic_platform PUBLIC "-framework CoreFoundation" "-framework Security")
     endif()
+
+    # If QUIC_OPENSSL_SYMBOL_PREFIX is set, rewrite OpenSSL references inside
+    # libmsquic_platform.a to use the prefixed names. Running on the archive
+    # (rather than individual .o files) is sufficient because objcopy
+    # --redefine-syms operates on every member object inside a .a in one pass.
+    # The same rename was already applied to the bundled libssl.a / libcrypto.a
+    # in submodules/CMakeLists.txt, so the final exe / shared-lib link resolves
+    # cleanly.
+    if(NOT "${QUIC_OPENSSL_SYMBOL_PREFIX}" STREQUAL "")
+        add_custom_command(
+            TARGET msquic_platform
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E env
+                "NM=${CMAKE_NM}" "OBJCOPY=${CMAKE_OBJCOPY}"
+                "${OpenSSLQuicPrefixed_PREFIX_SCRIPT}" apply
+                "${OpenSSLQuicPrefixed_REDEFINE_SYMS}"
+                "$<TARGET_FILE:msquic_platform>"
+                "$<TARGET_FILE:msquic_platform>"
+            COMMENT
+                "Prefix-renaming OpenSSL references in $<TARGET_FILE_NAME:msquic_platform> (prefix=${QUIC_OPENSSL_SYMBOL_PREFIX})"
+            VERBATIM
+        )
+        add_dependencies(msquic_platform OpenSSLQuicPrefixed_Build)
+    endif()
 elseif(QUIC_TLS_LIB STREQUAL "schannel")
     target_link_libraries(msquic_platform PUBLIC secur32)
     if (NOT QUIC_GAMECORE_BUILD)

@@ -41,6 +41,8 @@ endif()
 
 project(msquic)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 # Set a default build type if none was specified
 set(default_build_type "Release")
 
@@ -113,6 +115,7 @@ option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if quictls TLS" OFF)
 option(QUIC_USE_EXTERNAL_OPENSSL "Use external OpenSSL instead of building from submodules" OFF)
 set(QUIC_OPENSSL_INCLUDE_DIR "" CACHE PATH "Path to OpenSSL include directory")
 set(QUIC_OPENSSL_LIB_DIR "" CACHE PATH "Path to OpenSSL library directory")
+set(QUIC_OPENSSL_SYMBOL_PREFIX "" CACHE STRING "If non-empty, namespace-prefix every symbol in the bundled OpenSSL static archives (Linux only) so the resulting binary can coexist in the same process with another OpenSSL copy. See docs/OpenSSLSymbolPrefix.md")
 set(QUIC_OPENSSL_ROOT_DIR "" CACHE PATH "Path to OpenSSL root directory")
 option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
@@ -811,10 +814,37 @@ if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
         FetchContent_MakeAvailable(OpenSSLQuic)
     endif()
 
-    target_link_libraries(OpenSSL
-        INTERFACE
-        MsQuic::OpenSSL
-    )
+    # Optional: namespace-prefix the bundled OpenSSL symbols so the resulting
+    # binary can coexist with another OpenSSL copy loaded into the same
+    # process. See docs/OpenSSLSymbolPrefix.md for motivation and caveats.
+    if(NOT "${QUIC_OPENSSL_SYMBOL_PREFIX}" STREQUAL "")
+        if(NOT CX_PLATFORM STREQUAL "linux")
+            message(FATAL_ERROR "QUIC_OPENSSL_SYMBOL_PREFIX is only supported on Linux today (got CX_PLATFORM=${CX_PLATFORM}).")
+        endif()
+        if(QUIC_USE_EXTERNAL_OPENSSL OR QUIC_OPENSSL_INCLUDE_DIR OR QUIC_OPENSSL_LIB_DIR OR QUIC_OPENSSL_ROOT_DIR)
+            message(FATAL_ERROR "QUIC_OPENSSL_SYMBOL_PREFIX requires the bundled OpenSSL build; do not combine with QUIC_USE_EXTERNAL_OPENSSL / QUIC_OPENSSL_INCLUDE_DIR / QUIC_OPENSSL_LIB_DIR / QUIC_OPENSSL_ROOT_DIR.")
+        endif()
+        if(QUIC_USE_SYSTEM_LIBCRYPTO)
+            message(FATAL_ERROR "QUIC_OPENSSL_SYMBOL_PREFIX is incompatible with QUIC_USE_SYSTEM_LIBCRYPTO; the system libcrypto cannot be renamed.")
+        endif()
+
+        include(PrefixOpenSSLArchives)
+        prefix_openssl_archives(
+            PREFIX        "${QUIC_OPENSSL_SYMBOL_PREFIX}"
+            INPUT_TARGET  OpenSSLQuic
+            OUTPUT_TARGET OpenSSLQuicPrefixed
+        )
+
+        target_link_libraries(OpenSSL
+            INTERFACE
+            OpenSSLQuicPrefixed
+        )
+    else()
+        target_link_libraries(OpenSSL
+            INTERFACE
+            MsQuic::OpenSSL
+        )
+    endif()
 endif()
 
 if (QUIC_USE_SYSTEM_LIBCRYPTO)
