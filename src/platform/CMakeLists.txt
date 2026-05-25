@@ -107,14 +107,24 @@ if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     # (rather than individual .o files) is sufficient because objcopy
     # --redefine-syms operates on every member object inside a .a in one pass.
     # The same rename was already applied to the bundled libssl.a / libcrypto.a
-    # in submodules/CMakeLists.txt, so the final exe / shared-lib link resolves
-    # cleanly.
+    # in cmake/PrefixOpenSSLArchives.cmake, so the final exe / shared-lib link
+    # resolves cleanly.
     if(NOT "${QUIC_OPENSSL_SYMBOL_PREFIX}" STREQUAL "")
+        # Mirror the conditional NM/OBJCOPY forwarding used in
+        # cmake/PrefixOpenSSLArchives.cmake so an unset CMAKE_NM / CMAKE_OBJCOPY
+        # falls back to the script's defaults instead of forwarding the literal
+        # empty string and breaking the helper's `command -v` check.
+        set(_prefix_env_args)
+        if(CMAKE_NM)
+            list(APPEND _prefix_env_args "NM=${CMAKE_NM}")
+        endif()
+        if(CMAKE_OBJCOPY)
+            list(APPEND _prefix_env_args "OBJCOPY=${CMAKE_OBJCOPY}")
+        endif()
         add_custom_command(
             TARGET msquic_platform
             POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E env
-                "NM=${CMAKE_NM}" "OBJCOPY=${CMAKE_OBJCOPY}"
+            COMMAND ${CMAKE_COMMAND} -E env ${_prefix_env_args}
                 "${OpenSSLQuicPrefixed_PREFIX_SCRIPT}" apply
                 "${OpenSSLQuicPrefixed_REDEFINE_SYMS}"
                 "$<TARGET_FILE:msquic_platform>"

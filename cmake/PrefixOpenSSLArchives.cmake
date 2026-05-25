@@ -83,7 +83,11 @@ function(prefix_openssl_archives)
     endforeach()
 
     if(NOT _orig_libssl OR NOT _orig_libcrypto)
-        message(FATAL_ERROR "prefix_openssl_archives: ${ARG_INPUT_TARGET} does not expose both libssl.a and libcrypto.a (got: ${_openssl_libs})")
+        message(FATAL_ERROR
+            "prefix_openssl_archives: ${ARG_INPUT_TARGET} does not expose both libssl.a and libcrypto.a as plain archive paths on its INTERFACE_LINK_LIBRARIES. "
+            "Got INTERFACE_LINK_LIBRARIES='${_openssl_libs}', found libssl.a='${_orig_libssl}' libcrypto.a='${_orig_libcrypto}'. "
+            "This helper only handles bundled OpenSSL configurations whose interface points directly at the two static archives; "
+            "generator-expression-wrapped or target-name link items are not supported.")
     endif()
 
     set(_out_dir            "${CMAKE_BINARY_DIR}/openssl-prefixed/${ARG_PREFIX}")
@@ -154,15 +158,19 @@ function(prefix_openssl_archives)
     set(${ARG_OUTPUT_TARGET}_PREFIX_SCRIPT "${_script}" CACHE INTERNAL
         "Path to cmake/openssl-prefix-rename.sh used by ${ARG_OUTPUT_TARGET}")
 
-    # Create placeholder files so Ninja dependency checking passes on clean
-    # builds (the custom commands above will overwrite them with real content
-    # on first build).
-    if(NOT EXISTS "${_renamed_libssl}")
-        file(WRITE "${_renamed_libssl}" "")
-    endif()
-    if(NOT EXISTS "${_renamed_libcrypto}")
-        file(WRITE "${_renamed_libcrypto}" "")
-    endif()
+    # NOTE: We do NOT pre-create empty placeholder libssl.a / libcrypto.a here.
+    # Earlier revisions did, ostensibly to keep Ninja's dep check happy on a
+    # clean tree, but empty placeholders mask real failures: if gen-syms or
+    # apply silently produced a 0-byte archive, the placeholder would let the
+    # link step blow up with a baffling "no symbols" error instead of the
+    # original tool failure. Ninja is perfectly happy to schedule the custom
+    # commands above for files that don't yet exist.
+    #
+    # NOTE: ${CMAKE_BINARY_DIR}/openssl-prefixed/${ARG_PREFIX} is NOT made
+    # config-specific. The feature is Linux-only today (enforced upstream),
+    # and Linux builds use single-config generators (Make/Ninja) where
+    # CMAKE_BINARY_DIR is per-config. Revisit if/when we ever extend to a
+    # multi-config generator.
 
     message(STATUS "Configured prefixed OpenSSL archives (${ARG_OUTPUT_TARGET}):")
     message(STATUS "  Prefix:      ${ARG_PREFIX}")

@@ -36,6 +36,11 @@ set -euo pipefail
 NM=${NM:-nm}
 OBJCOPY=${OBJCOPY:-objcopy}
 
+# Surface unusable tools as a clear configuration error instead of a generic
+# "no such file or directory" from the underlying exec.
+command -v "$NM" >/dev/null 2>&1 || { echo "$0: NM='$NM' not found" >&2; exit 1; }
+command -v "$OBJCOPY" >/dev/null 2>&1 || { echo "$0: OBJCOPY='$OBJCOPY' not found" >&2; exit 1; }
+
 usage() {
     cat >&2 <<EOF
 usage:
@@ -58,11 +63,29 @@ gen-syms)
     prefix=$1
     out_syms=$2
     shift 2
-    "$NM" --defined-only --extern-only "$@" 2>/dev/null \
-        | awk 'NF==3 && $2 ~ /^[TDRBWVC]$/ {print $3}' \
+    # Defined-extern symbol-type filter:
+    #   T/D/R/B = text / data / read-only / bss globals
+    #   W/V/C   = weak (func / object) and common
+    #   I       = STT_GNU_IFUNC (e.g. AES-NI/SHA-NI dispatch resolvers OpenSSL
+    #             3.x emits on x86_64); these are externally-visible defined
+    #             symbols, so they must end up in the rename map or MsQuic's
+    #             undefs to them won't get prefixed and unprefixed OpenSSL
+    #             symbols will still leak through the consumer archive.
+    # Do NOT pipe nm's stderr to /dev/null: an unreadable archive, a wrong
+    # cross-compile nm, or a corrupt input file should surface its real error
+    # message in the custom-command log.
+    "$NM" --defined-only --extern-only "$@" \
+        | awk 'NF==3 && $2 ~ /^[TDRBWVCI]$/ {print $3}' \
         | LC_ALL=C sort -u \
         | awk -v p="$prefix" '{print $1 " " p $1}' \
         > "$out_syms"
+    # A 0-line syms file would make `objcopy --redefine-syms` a no-op, leaving
+    # the build green with unprefixed symbols. Fail loudly instead.
+    [[ -s "$out_syms" ]] || {
+        echo "$0: gen-syms produced an empty syms file from: $*" >&2
+        echo "$0: (check that nm '$NM' supports the input archives and emits defined-extern globals)" >&2
+        exit 1
+    }
     ;;
 
 apply)
@@ -71,9 +94,21 @@ apply)
     in_ar=$2
     out_ar=$3
     if [[ "$(readlink -f -- "$in_ar")" != "$(readlink -f -- "$out_ar")" ]]; then
-        cp -- "$in_ar" "$out_ar"
+        # Tmp-file + atomic rename so an interrupted run does not leave a
+        # fresh-mtime, partially-renamed (or un-renamed) archive at out_ar
+        # that the next build would mistake for up-to-date.
+        tmp="${out_ar}.tmp.$$"
+        trap 'rm -f -- "$tmp"' EXIT
+        cp -- "$in_ar" "$tmp"
+        "$OBJCOPY" --redefine-syms="$syms" "$tmp"
+        mv -- "$tmp" "$out_ar"
+        trap - EXIT
+    else
+        # In-place rename on the same path. No atomic-rename protection is
+        # possible here (callers that need crash-safety should pass a distinct
+        # out_ar). Used by the POST_BUILD step on libmsquic_platform.a.
+        "$OBJCOPY" --redefine-syms="$syms" "$out_ar"
     fi
-    "$OBJCOPY" --redefine-syms="$syms" "$out_ar"
     ;;
 
 *)

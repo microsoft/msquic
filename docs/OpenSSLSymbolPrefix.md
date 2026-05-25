@@ -55,14 +55,38 @@ other OpenSSL copy present in the same process.
 
 ## Usage
 
+Replace `<your_prefix>` with a value unique to your binary, e.g.
+`acme_myapp_msquic_` (so that two independently-renamed MsQuics in the same
+process still do not collide with each other). The prefix must match
+`^[A-Za-z_][A-Za-z0-9_]*$` — the CMake guard rejects anything else, because
+the value is interpolated into `objcopy --redefine-syms` map lines and into
+the build-tree path.
+
 ```bash
-cmake -B build -DQUIC_TLS_LIB=quictls -DQUIC_OPENSSL_SYMBOL_PREFIX=mymsquic_ ...
+cmake -B build -DQUIC_TLS_LIB=quictls -DQUIC_OPENSSL_SYMBOL_PREFIX=<your_prefix> ...
 cmake --build build
 ```
 
-Pick a prefix that is unique to your binary (`<orgname>_<binname>_`) so that
-two independently-renamed MsQuics in the same process still do not collide
-with each other.
+### Changing the prefix value
+
+The POST_BUILD rename step on `libmsquic_platform.a` is keyed on the platform
+archive's mtime, not on the prefix value. If you reconfigure with a different
+`QUIC_OPENSSL_SYMBOL_PREFIX` over the same build tree, the platform archive
+is untouched, the POST_BUILD step does not refire, and the resulting binary
+will still carry the previous prefix on the platform side while the
+`openssl-prefixed/<new_prefix>/` directory holds the new prefix on the OpenSSL
+side — link will fail or, worse, silently produce a mixed-prefix binary.
+
+Workaround until the rename is restructured as a proper `add_custom_command`
+in the dependency graph: when you change the prefix, force a clean rebuild of
+the affected targets:
+
+```bash
+cmake --build build --target clean
+cmake --build build
+```
+
+or blow the build tree away (`rm -rf build && cmake -B build ...`).
 
 ## Constraints
 
@@ -71,6 +95,9 @@ with each other.
 | Linux only (`CX_PLATFORM=linux`) | The implementation uses GNU binutils `objcopy --redefine-syms`. macOS support would need `llvm-objcopy` >= 13 (untested); PE/COFF lacks a flat-namespace symbol table and would need an entirely different approach. |
 | Bundled OpenSSL only | An external/system OpenSSL is owned by the caller and cannot be renamed. The option is rejected with `FATAL_ERROR` if combined with `QUIC_USE_EXTERNAL_OPENSSL`, `QUIC_OPENSSL_INCLUDE_DIR`, `QUIC_OPENSSL_LIB_DIR`, `QUIC_OPENSSL_ROOT_DIR`, or `QUIC_USE_SYSTEM_LIBCRYPTO`. |
 | Cross-compile aware | `${CMAKE_NM}` and `${CMAKE_OBJCOPY}` are honored so cross-compiled builds (e.g. `aarch64-linux-gnu-objcopy`) work correctly. |
+| Prefix charset | Must match `^[A-Za-z_][A-Za-z0-9_]*$`. The CMake guard rejects anything else. The value is interpolated into `objcopy --redefine-syms` map lines and into the build-tree path. |
+| `BUILD_SHARED_LIBS=OFF` only | The prefixed OpenSSL is exposed as an `INTERFACE IMPORTED GLOBAL` target referencing build-tree archive paths under `${CMAKE_BINARY_DIR}/openssl-prefixed/`; it is not installable via `install(TARGETS ... EXPORT msquic)`. Building MsQuic as a shared lib with prefixing enabled is rejected with `FATAL_ERROR` until the install path is restructured. |
+| Prefix changes require clean rebuild | The POST_BUILD rename on `libmsquic_platform.a` is keyed on the archive mtime, not the prefix value. See "Changing the prefix value" above. |
 
 ## Performance
 
@@ -81,11 +108,14 @@ whenever it changes, which is negligible.
 
 ## Verification
 
-After the build, the prefixed archive should contain only renamed symbols:
+Replace `<your_prefix>` and `<arch>_<tls>` (e.g. `x64_quictls`) with the
+values used at configure time. After the build, the prefixed archive should
+contain only renamed symbols:
 
 ```bash
-nm -gC --defined-only build/openssl-prefixed/mymsquic_/libssl.a \
-  | awk 'NF==3 && $2 ~ /^[TDRBWVC]$/ {print $3}' | grep -vc '^mymsquic_'
+nm -g --defined-only build/openssl-prefixed/<your_prefix>/libssl.a \
+  | awk 'NF>=3 && $(NF-1) ~ /^[TDRBWVCI]$/ {print $NF}' \
+  | grep -v '^<your_prefix>' | wc -l
 # Expected: 0
 ```
 
@@ -93,9 +123,22 @@ The shared/static library's external OpenSSL references should all be
 prefixed:
 
 ```bash
-nm -uC build/lib/libmsquic.so | grep -E 'SSL_|EVP_|BN_|ERR_' | grep -v mymsquic_
+nm -u build/linux/<arch>_<tls>/bin/libmsquic.so \
+  | grep -E 'SSL_|EVP_|BN_|ERR_' | grep -v '<your_prefix>'
 # Expected: no output
 ```
+
+Notes on the `nm` invocations above:
+
+- We use plain `-g` (no `-C`) to match the script's symbol filter, which
+  operates on mangled names.
+- The `awk` filter mirrors the script's rule (`NF>=3` and a symbol-type set
+  that includes `I` / GNU IFUNC, used by OpenSSL 3.x dispatch resolvers on
+  x86_64). If you tighten it, you may falsely conclude the rename is
+  incomplete.
+- The pipeline uses `grep -v ... | wc -l` rather than `grep -vc` because
+  `grep -vc` exits non-zero when its count is 0, which under `set -e` would
+  abort a verification script for the success case.
 
 ## Future direction
 
