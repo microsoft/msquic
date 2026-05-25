@@ -63,9 +63,17 @@ the value is interpolated into `objcopy --redefine-syms` map lines and into
 the build-tree path.
 
 ```bash
-cmake -B build -DQUIC_TLS_LIB=quictls -DQUIC_OPENSSL_SYMBOL_PREFIX=<your_prefix> ...
+cmake -B build \
+    -DQUIC_TLS_LIB=quictls \
+    -DQUIC_BUILD_SHARED=OFF \
+    -DQUIC_OPENSSL_SYMBOL_PREFIX=<your_prefix> ...
 cmake --build build
 ```
+
+`-DQUIC_BUILD_SHARED=OFF` is required: this option drives MsQuic's
+`BUILD_SHARED_LIBS`, and the prefixed OpenSSL is currently only supported with
+`BUILD_SHARED_LIBS=OFF` (see Constraints below). Omitting it on a default
+configure (where `QUIC_BUILD_SHARED=ON`) trips the `FATAL_ERROR` guard.
 
 ### Changing the prefix value
 
@@ -119,13 +127,15 @@ nm -g --defined-only build/openssl-prefixed/<your_prefix>/libssl.a \
 # Expected: 0
 ```
 
-The shared/static library's external OpenSSL references should all be
-prefixed:
+`libmsquic_platform.a`'s undefined OpenSSL references should all be
+prefixed (this option requires `QUIC_BUILD_SHARED=OFF`, so the final output is
+the static archive — there is no `libmsquic.so` to check):
 
 ```bash
-nm -u build/linux/<arch>_<tls>/bin/libmsquic.so \
-  | grep -E 'SSL_|EVP_|BN_|ERR_' | grep -v '<your_prefix>'
-# Expected: no output
+nm -u build/linux/<arch>_<tls>/obj/Release/libmsquic_platform.a \
+  | awk '$1=="U"{print $2}' \
+  | grep -E '^(SSL_|EVP_|BN_|ERR_|X509_|OPENSSL_|RAND_|RSA_|EC_|BIO_|ASN1_|PEM_|CRYPTO_)'
+# Expected: no output (every OpenSSL undef is now <your_prefix>-prefixed)
 ```
 
 Notes on the `nm` invocations above:

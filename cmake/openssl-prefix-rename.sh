@@ -93,22 +93,17 @@ apply)
     syms=$1
     in_ar=$2
     out_ar=$3
-    if [[ "$(readlink -f -- "$in_ar")" != "$(readlink -f -- "$out_ar")" ]]; then
-        # Tmp-file + atomic rename so an interrupted run does not leave a
-        # fresh-mtime, partially-renamed (or un-renamed) archive at out_ar
-        # that the next build would mistake for up-to-date.
-        tmp="${out_ar}.tmp.$$"
-        trap 'rm -f -- "$tmp"' EXIT
-        cp -- "$in_ar" "$tmp"
-        "$OBJCOPY" --redefine-syms="$syms" "$tmp"
-        mv -- "$tmp" "$out_ar"
-        trap - EXIT
-    else
-        # In-place rename on the same path. No atomic-rename protection is
-        # possible here (callers that need crash-safety should pass a distinct
-        # out_ar). Used by the POST_BUILD step on libmsquic_platform.a.
-        "$OBJCOPY" --redefine-syms="$syms" "$out_ar"
-    fi
+    # Always go through a temp file + atomic rename, even when in_ar and out_ar
+    # resolve to the same path (the POST_BUILD step on libmsquic_platform.a).
+    # POSIX rename(2) over an existing file is atomic, so an interrupted run
+    # cannot leave out_ar in a partially-rewritten (or un-renamed but
+    # fresh-mtime) state that the next build would mistake for up-to-date.
+    tmp="${out_ar}.tmp.$$"
+    trap 'rm -f -- "$tmp"' EXIT
+    cp -- "$in_ar" "$tmp"
+    "$OBJCOPY" --redefine-syms="$syms" "$tmp"
+    mv -- "$tmp" "$out_ar"
+    trap - EXIT
     ;;
 
 *)
