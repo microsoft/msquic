@@ -145,6 +145,7 @@ typedef UINT64 uint64_t;
 
 typedef ADDRESS_FAMILY QUIC_ADDRESS_FAMILY;
 typedef SOCKADDR_INET QUIC_ADDR;
+typedef HANDLE QUIC_XDP_MAP_HANDLE;
 
 #define QUIC_ADDR_V4_PORT_OFFSET        FIELD_OFFSET(SOCKADDR_IN, sin_port)
 #define QUIC_ADDR_V4_IP_OFFSET          FIELD_OFFSET(SOCKADDR_IN, sin_addr)
@@ -328,6 +329,28 @@ QuicAddrFromString(
         Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
     }
     return TRUE;
+}
+
+QUIC_INLINE
+BOOLEAN
+CxPlatIsIpLiteral(
+    _In_z_ const char* AddrStr
+    )
+{
+    const char* Terminator = NULL;
+    IN_ADDR Ipv4Addr = {0};
+    if (RtlIpv4StringToAddressA(AddrStr, TRUE, &Terminator, &Ipv4Addr) == STATUS_SUCCESS &&
+        *Terminator == '\0') {
+        return TRUE;
+    }
+
+    IN6_ADDR Ipv6Addr = {0};
+    if (RtlIpv6StringToAddressA(AddrStr, &Terminator, &Ipv6Addr) == STATUS_SUCCESS &&
+        *Terminator == '\0') {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 //

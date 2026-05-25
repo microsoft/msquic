@@ -2523,18 +2523,20 @@ CxPlatTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
-            if (TlsContext->SNI == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "SNI",
-                    ServerNameLength + 1);
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                goto Exit;
-            }
+            if (!CxPlatIsIpLiteral(Config->ServerName)) {
+                TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
+                if (TlsContext->SNI == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "SNI",
+                        ServerNameLength + 1);
+                    Status = QUIC_STATUS_OUT_OF_MEMORY;
+                    goto Exit;
+                }
 
-            memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
+                memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
+            }
         }
     }
 
@@ -3321,25 +3323,27 @@ more_handshake:
 
 Exit:
 
-    if (!(TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR)) {
-        if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
-            State->BufferOffsetHandshake == 0) {
-            State->BufferOffsetHandshake = State->BufferTotalLength;
-            QuicTraceLogConnInfo(
-                OpenSslHandshakeDataStart,
-                TlsContext->Connection,
-                "Writing Handshake data starts at %u",
-                State->BufferOffsetHandshake);
-        }
-        if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
-            State->BufferOffset1Rtt == 0) {
-            State->BufferOffset1Rtt = State->BufferTotalLength;
-            QuicTraceLogConnInfo(
-                OpenSsl1RttDataStart,
-                TlsContext->Connection,
-                "Writing 1-RTT data starts at %u",
-                State->BufferOffset1Rtt);
-        }
+    //
+    // Always set buffer offsets if keys have been installed to preserve code invariants.
+    // On error, the connection will be torn down anyway.
+    //
+    if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
+        State->BufferOffsetHandshake == 0) {
+        State->BufferOffsetHandshake = State->BufferTotalLength;
+        QuicTraceLogConnInfo(
+            OpenSslHandshakeDataStart,
+            TlsContext->Connection,
+            "Writing Handshake data starts at %u",
+            State->BufferOffsetHandshake);
+    }
+    if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
+        State->BufferOffset1Rtt == 0) {
+        State->BufferOffset1Rtt = State->BufferTotalLength;
+        QuicTraceLogConnInfo(
+            OpenSsl1RttDataStart,
+            TlsContext->Connection,
+            "Writing 1-RTT data starts at %u",
+            State->BufferOffset1Rtt);
     }
 
     return TlsContext->ResultFlags;

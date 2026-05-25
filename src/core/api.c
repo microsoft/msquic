@@ -82,7 +82,7 @@ QuicConnectionOpenInPartition(
     //
     // Hard partitioning is only supported on a subset of platforms.
     //
-#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING) && !defined(CXPLAT_LINUX_XDP_ENABLED)
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
     Connection->State.Partitioned = Partitioned;
 #else
     UNREFERENCED_PARAMETER(Partitioned);
@@ -1571,14 +1571,8 @@ Error:
     //
     while (!CxPlatListIsEmpty(&ChunkList)) {
         CXPLAT_DBG_ASSERT(Connection != NULL);
-        CxPlatPoolFree(
+        QuicRecvChunkFree(
             CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
-        CXPLAT_FREE(
-            CXPLAT_CONTAINING_RECORD(
-                CxPlatListRemoveHead(&ChunkList),
-                QUIC_RECV_CHUNK,
-                Link),
-            QUIC_POOL_RECVBUF);
     }
 
     QuicTraceEvent(

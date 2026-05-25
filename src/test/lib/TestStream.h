@@ -29,6 +29,12 @@ const size_t MaxSendRequestQueue = 16;
 const uint32_t MaxSendBuffers = 2;
 
 //
+// The maximum number of stream bytes carried by a single MsQuic->StreamSend
+// call (MaxSendBuffers buffers, each up to MaxSendLength bytes).
+//
+const uint32_t MaxBytesPerSend = MaxSendBuffers * (uint32_t)MaxSendLength;
+
+//
 // Callback for handling stream shutdown completion.
 //
 typedef

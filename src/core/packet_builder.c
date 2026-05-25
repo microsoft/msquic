@@ -352,6 +352,19 @@ QuicPacketBuilderPrepare(
     }
 
     if (NewQuicPacket) {
+        //
+        // Per RFC 9001 s4.9.1, a client MUST discard Initial keys when it first
+        // sends a Handshake packet. It must be done on ANY Handshake packet, to
+        // ensure the congestion control state is cleared and Initial bytes in flight
+        // are not limiting Handshake packets.
+        //
+        if (QuicConnIsClient(Connection) && NewPacketKeyType == QUIC_PACKET_KEY_HANDSHAKE) {
+            QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
+            //
+            // Ensure we don't keep a dangling pointer to the freed INITIAL keys.
+            //
+            Builder->Key = NULL;
+        }
 
         //
         // Initialize the new QUIC packet state.

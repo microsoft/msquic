@@ -489,6 +489,21 @@ QuicAddrFromString(
         QuicAddr6FromString(AddrStr, Addr);
 }
 
+typedef int QUIC_XDP_MAP_HANDLE;
+
+QUIC_INLINE
+BOOLEAN
+CxPlatIsIpLiteral(
+    _In_z_ const char* AddrStr
+    )
+{
+    IN_ADDR Ipv4Addr = {0};
+    IN6_ADDR Ipv6Addr = {0};
+    return
+        inet_pton(AF_INET, AddrStr, &Ipv4Addr) == 1 ||
+        inet_pton(AF_INET6, AddrStr, &Ipv6Addr) == 1;
+}
+
 //
 // Represents an IP address and (optionally) port number as a string.
 //
@@ -538,7 +553,7 @@ QuicAddrToString(
 //
 // TODO: build on other 64-bit architectures
 //
-#if CXPLAT_USE_IO_URING && defined(__x86_64__) // liburing
+#if CXPLAT_USE_IO_URING && (defined(__x86_64__) || defined(__aarch64__)) // liburing
 #define LIBURING_INTERNAL
 
 #if defined(__cplusplus)

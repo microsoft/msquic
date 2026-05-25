@@ -545,6 +545,8 @@ ExecuteTestRequest(
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestCustomServerCertificateValidation);
     RegisterTestFunction(QuicTestCustomClientCertificateValidation);
+    RegisterTestFunction(QuicTestCustomServerCertValidationAfterShutdown);
+    RegisterTestFunction(QuicTestCustomClientCertValidationAfterShutdown);
     RegisterTestFunction(QuicTestConnectClientCertificate);
     RegisterTestFunction(QuicTestCibirExtension);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -565,6 +567,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnectInvalidAddress);
     RegisterTestFunction(QuicTestConnectBadAlpn);
     RegisterTestFunction(QuicTestConnectBadSni);
+    RegisterTestFunction(QuicTestConnectIpSni);
     RegisterTestFunction(QuicTestConnectServerRejected);
     RegisterTestFunction(QuicTestClientBlockedSourcePort);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -611,6 +614,7 @@ ExecuteTestRequest(
 #ifndef QUIC_DISABLE_0RTT_TESTS
     RegisterTestFunction(QuicTestConnectAndPing_Send0Rtt);
     RegisterTestFunction(QuicTestConnectAndPing_Reject0Rtt);
+    RegisterTestFunction(QuicTestCustomTicketValidationAfterShutdown);
 #endif // QUIC_DISABLE_0RTT_TESTS
     RegisterTestFunction(QuicTestConnectAndPing_SendLarge);
     RegisterTestFunction(QuicTestConnectAndPing_SendIntermittently);

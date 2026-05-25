@@ -835,11 +835,14 @@ QuicListenerAcceptConnection(
 
     if (Connection->CibirId[0] != 0) {
         QuicTraceLogConnInfo(
-            CibirIdSet,
+            CibirIdSetInfo,
             Connection,
-            "CIBIR ID set (len %hhu, offset %hhu)",
+            "CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Connection->CibirId[0],
-            Connection->CibirId[1]);
+            Connection->CibirId[1],
+            (unsigned long long)QuicCibirIdToUint64(
+                Connection->CibirId + 2,
+                Connection->CibirId[0]));
     }
 
     if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
@@ -885,11 +888,14 @@ QuicListenerParamSet(
         memcpy(Listener->CibirId + 1, Buffer, BufferLength);
 
         QuicTraceLogVerbose(
-            ListenerCibirIdSet,
-            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            ListenerCibirIdSetInfo,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)",
             Listener,
             Listener->CibirId[0],
-            Listener->CibirId[1]);
+            Listener->CibirId[1],
+            (unsigned long long)QuicCibirIdToUint64(
+                Listener->CibirId + 2,
+                Listener->CibirId[0]));
 
         return QUIC_STATUS_SUCCESS;
     }
@@ -916,7 +922,7 @@ QuicListenerParamSet(
             !Listener->Stopped) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING) && !defined(CXPLAT_LINUX_XDP_ENABLED)
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
         Listener->PartitionIndex = PartitionIndex;
         Listener->Partitioned = TRUE;
         QuicWorkerAssignListener(

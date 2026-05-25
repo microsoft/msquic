@@ -2606,7 +2606,11 @@ CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_POOL* BufferPool
     )
 {
-    CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer = CxPlatPoolAlloc(BufferPool);
+    //
+    // Use the *PoolAllocUninitialized method here to preserve the MDL
+    // pre-initializations (the default *PoolAlloc method zero-inits).
+    //
+    CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer = CxPlatPoolAllocUninitialized(BufferPool);
     if (SendBuffer == NULL) {
         return NULL;
     }

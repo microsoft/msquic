@@ -1849,7 +1849,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                         "Allocation of '%s' failed. (%llu bytes)",
                         "Version Negotiation Info",
                         Length);
-                    break;
+                    goto Exit;
                 }
                 CxPlatCopyMemory((uint8_t*)TransportParams->VersionInfo, TPBuf + Offset, Length);
             } else {

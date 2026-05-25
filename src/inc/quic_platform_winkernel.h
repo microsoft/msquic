@@ -253,8 +253,10 @@ CxPlatLogAssert(
 
 extern uint64_t CxPlatTotalMemory;
 
-#define CXPLAT_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
-#define CXPLAT_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define CXPLAT_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED, Size, Tag)
+#define CXPLAT_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, Tag)
+#define CXPLAT_ALLOC_PAGED_UNINITIALIZED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define CXPLAT_ALLOC_NONPAGED_UNINITIALIZED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
 
 //
@@ -290,6 +292,23 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_HEADER {
 QUIC_INLINE
 void*
 CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CXPLAT_POOL_HEADER* Header =
+        (CXPLAT_POOL_HEADER*)ExAllocateFromLookasideListEx(Pool);
+    if (Header == NULL) {
+        return NULL;
+    }
+    Header->Owner = Pool;
+    void* Result = (void*)(Header + 1);
+    RtlZeroMemory(Result, Pool->L.Size - sizeof(CXPLAT_POOL_HEADER));
+    return Result;
+}
+
+QUIC_INLINE
+void*
+CxPlatPoolAllocUninitialized(
     _Inout_ CXPLAT_POOL* Pool
     )
 {

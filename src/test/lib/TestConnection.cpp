@@ -27,6 +27,8 @@ TestConnection::TestConnection(
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
     CxPlatEventInitialize(&EventShutdownComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
+    CxPlatEventInitialize(&EventPeerCertReceived, TRUE, FALSE);
+    CxPlatEventInitialize(&EventResumed, TRUE, FALSE);
 
     if (QuicConnection == nullptr) {
         TEST_FAILURE("Invalid handle passed into TestConnection.");
@@ -49,6 +51,8 @@ TestConnection::TestConnection(
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
     CxPlatEventInitialize(&EventShutdownComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
+    CxPlatEventInitialize(&EventPeerCertReceived, TRUE, FALSE);
+    CxPlatEventInitialize(&EventResumed, TRUE, FALSE);
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
@@ -69,6 +73,8 @@ TestConnection::TestConnection(
 TestConnection::~TestConnection()
 {
     MsQuic->ConnectionClose(QuicConnection);
+    CxPlatEventUninitialize(EventResumed);
+    CxPlatEventUninitialize(EventPeerCertReceived);
     CxPlatEventUninitialize(EventResumptionTicketReceived);
     CxPlatEventUninitialize(EventShutdownComplete);
     CxPlatEventUninitialize(EventPeerClosed);
@@ -210,6 +216,26 @@ TestConnection::WaitForPeerClose()
 {
     if (!CxPlatEventWaitWithTimeout(EventPeerClosed, GetWaitTimeout())) {
         TEST_FAILURE("WaitForPeerClose timed out after %u ms.", GetWaitTimeout());
+        return false;
+    }
+    return true;
+}
+
+bool
+TestConnection::WaitForPeerCertReceived()
+{
+    if (!CxPlatEventWaitWithTimeout(EventPeerCertReceived, GetWaitTimeout())) {
+        TEST_FAILURE("WaitForPeerCertReceived timed out after %u ms.", GetWaitTimeout());
+        return false;
+    }
+    return true;
+}
+
+bool
+TestConnection::WaitForResumed()
+{
+    if (!CxPlatEventWaitWithTimeout(EventResumed, GetWaitTimeout())) {
+        TEST_FAILURE("WaitForResumed timed out after %u ms.", GetWaitTimeout());
         return false;
     }
     return true;
@@ -944,6 +970,7 @@ TestConnection::HandleConnectionEvent(
         break;
 
     case QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED:
+        CxPlatEventSet(EventPeerCertReceived);
         if (AsyncCustomValidation) {
             return QUIC_STATUS_PENDING;
         }
@@ -984,6 +1011,7 @@ TestConnection::HandleConnectionEvent(
         break;
 
     case QUIC_CONNECTION_EVENT_RESUMED:
+        CxPlatEventSet(EventResumed);
         return ExpectedCustomTicketValidationResult;
 
     default:
