@@ -13,6 +13,7 @@
 #include <MsQuicTests.h>
 
 #include <array>
+#include <vector>
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 #include <iphlpapi.h>
@@ -3231,47 +3232,139 @@ INSTANTIATE_TEST_SUITE_P(
 // Each test reserves its own ports (keeping OS sockets open to prevent
 // reuse), creates XDP programs for those ports, and tears them down.
 //
+// Test matrix: {IPv4, IPv6} x {no CIBIR, CIBIR} x {no QTIP, QTIP}
+//
 
-struct XdpMapMode : public ::testing::TestWithParam<int> {
-    SOCKET PortSocks[2] = {INVALID_SOCKET, INVALID_SOCKET};
+struct XdpMapModeParams {
+    int Family;
+    bool UseCibir;
+    bool UseQtip;
+};
+
+std::ostream& operator << (std::ostream& o, const XdpMapModeParams& p) {
+    o << (p.Family == 4 ? "v4" : "v6");
+    if (p.UseCibir) o << "/CIBIR";
+    if (p.UseQtip) o << "/QTIP";
+    if (!p.UseCibir && !p.UseQtip) o << "/Plain";
+    return o;
+}
+
+struct XdpMapMode : public ::testing::TestWithParam<XdpMapModeParams> {
+    static constexpr int PortCount = 2; // server + client
+    SOCKET PortSocksUdp[PortCount] = {INVALID_SOCKET, INVALID_SOCKET};
+    SOCKET PortSocksTcp[PortCount] = {INVALID_SOCKET, INVALID_SOCKET};
     uint16_t ServerPort = 0;
     uint16_t ClientPort = 0;
     HANDLE XdpPrograms[XDP_MAP_MODE_MAX_INTERFACES][XDP_MAP_MODE_MAX_QUEUES] = {};
     uint32_t QueueCounts[XDP_MAP_MODE_MAX_INTERFACES] = {};
     bool WsaInitialized = false;
+    bool PreviousQtipSetting = false;
+
+    //
+    // CIBIR test constants matching existing CIBIR tests.
+    // API buffer format: {offset, id_byte0, id_byte1, ...}
+    //
+    static constexpr uint8_t CibirApiId[] = { 0 /* offset */, 4, 3, 2, 1 };
+    static constexpr uint8_t CibirApiIdLength = sizeof(CibirApiId);
+    //
+    // Internal XDP rule format: just the ID bytes, with offset computed as
+    // MsQuicLib.CidServerIdLength + 2. Default CidServerIdLength=0, so offset=2.
+    //
+    static constexpr uint8_t CibirIdData[] = { 4, 3, 2, 1 };
+    static constexpr uint8_t CibirIdDataLength = sizeof(CibirIdData);
+    static constexpr uint8_t CibirCidOffset = 2; // CidServerIdLength(0) + 2
 
     void SetUp() override {
         if (!UseXdpMapMode) return;
+
+        auto Params = GetParam();
 
         WSADATA WsaData;
         ASSERT_EQ(WSAStartup(MAKEWORD(2, 2), &WsaData), 0);
         WsaInitialized = true;
 
         //
-        // Reserve 2 ports (server + client) with OS sockets that stay open.
+        // Reserve ports (server + client) with OS sockets that stay open.
+        // Always reserve both UDP and TCP to prevent port stealing.
+        // Retry if the OS-assigned UDP port collides with an existing TCP
+        // binding, since UDP and TCP port spaces are independent.
         //
-        for (int i = 0; i < 2; i++) {
-            PortSocks[i] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-            ASSERT_NE(PortSocks[i], INVALID_SOCKET)
-                << "Failed to create socket: WSAGetLastError=" << WSAGetLastError();
-            struct sockaddr_in Addr = {};
-            Addr.sin_family = AF_INET;
-            ASSERT_EQ(bind(PortSocks[i], (struct sockaddr*)&Addr, sizeof(Addr)), 0);
-            int AddrLen = sizeof(Addr);
-            ASSERT_EQ(getsockname(PortSocks[i], (struct sockaddr*)&Addr, &AddrLen), 0);
-            uint16_t Port = ntohs(Addr.sin_port);
-            ASSERT_NE(Port, (uint16_t)0);
-            if (i == 0) ServerPort = Port; else ClientPort = Port;
+        static const int MaxPortRetries = 1000;
+        for (int i = 0; i < PortCount; i++) {
+            bool PortReserved = false;
+            for (int Retry = 0; Retry < MaxPortRetries; Retry++) {
+                PortSocksUdp[i] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+                ASSERT_NE(PortSocksUdp[i], INVALID_SOCKET)
+                    << "Failed to create UDP socket: WSAGetLastError=" << WSAGetLastError();
+                struct sockaddr_in Addr = {};
+                Addr.sin_family = AF_INET;
+                ASSERT_EQ(bind(PortSocksUdp[i], (struct sockaddr*)&Addr, sizeof(Addr)), 0);
+                int AddrLen = sizeof(Addr);
+                ASSERT_EQ(getsockname(PortSocksUdp[i], (struct sockaddr*)&Addr, &AddrLen), 0);
+                uint16_t Port = ntohs(Addr.sin_port);
+                ASSERT_NE(Port, (uint16_t)0);
+
+                //
+                // Reserve the same port number on TCP. This prevents another
+                // process from binding a TCP socket to this port, which is
+                // required for QTIP (QUIC-over-TCP) tests.
+                //
+                PortSocksTcp[i] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+                ASSERT_NE(PortSocksTcp[i], INVALID_SOCKET)
+                    << "Failed to create TCP socket: WSAGetLastError=" << WSAGetLastError();
+                struct sockaddr_in TcpAddr = {};
+                TcpAddr.sin_family = AF_INET;
+                TcpAddr.sin_port = htons(Port);
+                if (bind(PortSocksTcp[i], (struct sockaddr*)&TcpAddr, sizeof(TcpAddr)) == 0) {
+                    if (i == 0) ServerPort = Port; else ClientPort = Port;
+                    PortReserved = true;
+                    break;
+                }
+                //
+                // TCP port collision. Close both sockets and retry with a
+                // new OS-assigned port.
+                //
+                printf("XDP Map Mode: port %u TCP collision (attempt %d/%d), retrying\n",
+                    Port, Retry + 1, MaxPortRetries);
+                closesocket(PortSocksTcp[i]);
+                PortSocksTcp[i] = INVALID_SOCKET;
+                closesocket(PortSocksUdp[i]);
+                PortSocksUdp[i] = INVALID_SOCKET;
+            }
+            ASSERT_TRUE(PortReserved)
+                << "Failed to reserve a UDP+TCP port pair after "
+                << MaxPortRetries << " attempts";
         }
 
-        printf("XDP Map Mode [%s]: ports Server=%u Client=%u\n",
+        printf("XDP Map Mode [%s]: ports Server=%u Client=%u CIBIR=%d QTIP=%d\n",
             ::testing::UnitTest::GetInstance()->current_test_info()->name(),
-            ServerPort, ClientPort);
+            ServerPort, ClientPort, Params.UseCibir, Params.UseQtip);
 
         //
-        // Create per-queue XDP programs mirroring MsQuic's internal
-        // CxPlatDpRawInterfaceUpdateRules: one program per queue with
-        // flags=0, targeting the XSKMAP for redirect-by-queue-id.
+        // If QTIP is needed, enable it globally before creating XDP programs.
+        //
+        if (Params.UseQtip) {
+            MsQuicSettings Settings;
+            uint32_t SettingsSize = sizeof(Settings);
+            MsQuic->GetParam(nullptr, QUIC_PARAM_GLOBAL_SETTINGS, &SettingsSize, &Settings);
+            PreviousQtipSetting = Settings.QTIPEnabled;
+            if (!PreviousQtipSetting) {
+                Settings.SetQtipEnabled(true);
+                ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
+            }
+        }
+
+        //
+        // Build XDP rules based on CIBIR/QTIP mode.
+        //
+        // Server (listener/wildcard) rules:
+        //   - No CIBIR: XDP_MATCH_UDP_DST (+ XDP_MATCH_TCP_DST if QTIP)
+        //   - CIBIR: QUIC_FLOW_SRC_CID + QUIC_FLOW_DST_CID
+        //            (+ TCP_QUIC_FLOW_SRC_CID + TCP_QUIC_FLOW_DST_CID + TCP_CONTROL_DST if QTIP)
+        //
+        // Client (non-wildcard) rules:
+        //   - Always: XDP_MATCH_UDP_DST (no QTIP) or XDP_MATCH_TCP_DST (QTIP)
+        //   - CIBIR does NOT change client XDP matching.
         //
         static const XDP_HOOK_ID RxHook = {
             XDP_HOOK_L2,
@@ -3281,19 +3374,98 @@ struct XdpMapMode : public ::testing::TestWithParam<int> {
 
         for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
             for (uint32_t q = 0; q < XDP_MAP_MODE_MAX_QUEUES; q++) {
-                XDP_RULE Rules[2] = {};
+                XDP_RULE Rules[8] = {};
+                uint8_t RulesSize = 0;
 
-                Rules[0].Match = XDP_MATCH_UDP_DST;
-                Rules[0].Pattern.Port = htons(ServerPort);
-                Rules[0].Action = XDP_PROGRAM_ACTION_REDIRECT;
-                Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
-                Rules[0].Redirect.Target = XdpMapState.XskMaps[i];
+                //
+                // Server port rules.
+                //
+                if (Params.UseCibir) {
+                    Rules[RulesSize].Match = XDP_MATCH_QUIC_FLOW_SRC_CID;
+                    Rules[RulesSize].Pattern.QuicFlow.UdpPort = htons(ServerPort);
+                    Rules[RulesSize].Pattern.QuicFlow.CidLength = CibirIdDataLength;
+                    Rules[RulesSize].Pattern.QuicFlow.CidOffset = CibirCidOffset;
+                    memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, CibirIdData, CibirIdDataLength);
+                    Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                    Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                    Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                    RulesSize++;
 
-                Rules[1].Match = XDP_MATCH_UDP_DST;
-                Rules[1].Pattern.Port = htons(ClientPort);
-                Rules[1].Action = XDP_PROGRAM_ACTION_REDIRECT;
-                Rules[1].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
-                Rules[1].Redirect.Target = XdpMapState.XskMaps[i];
+                    Rules[RulesSize].Match = XDP_MATCH_QUIC_FLOW_DST_CID;
+                    Rules[RulesSize].Pattern.QuicFlow.UdpPort = htons(ServerPort);
+                    Rules[RulesSize].Pattern.QuicFlow.CidLength = CibirIdDataLength;
+                    Rules[RulesSize].Pattern.QuicFlow.CidOffset = CibirCidOffset;
+                    memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, CibirIdData, CibirIdDataLength);
+                    Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                    Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                    Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                    RulesSize++;
+
+                    if (Params.UseQtip) {
+                        Rules[RulesSize].Match = XDP_MATCH_TCP_QUIC_FLOW_SRC_CID;
+                        Rules[RulesSize].Pattern.QuicFlow.UdpPort = htons(ServerPort);
+                        Rules[RulesSize].Pattern.QuicFlow.CidLength = CibirIdDataLength;
+                        Rules[RulesSize].Pattern.QuicFlow.CidOffset = CibirCidOffset;
+                        memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, CibirIdData, CibirIdDataLength);
+                        Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                        Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                        Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                        RulesSize++;
+
+                        Rules[RulesSize].Match = XDP_MATCH_TCP_QUIC_FLOW_DST_CID;
+                        Rules[RulesSize].Pattern.QuicFlow.UdpPort = htons(ServerPort);
+                        Rules[RulesSize].Pattern.QuicFlow.CidLength = CibirIdDataLength;
+                        Rules[RulesSize].Pattern.QuicFlow.CidOffset = CibirCidOffset;
+                        memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, CibirIdData, CibirIdDataLength);
+                        Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                        Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                        Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                        RulesSize++;
+
+                        Rules[RulesSize].Match = XDP_MATCH_TCP_CONTROL_DST;
+                        Rules[RulesSize].Pattern.Port = htons(ServerPort);
+                        Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                        Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                        Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                        RulesSize++;
+                    }
+                } else {
+                    Rules[RulesSize].Match = XDP_MATCH_UDP_DST;
+                    Rules[RulesSize].Pattern.Port = htons(ServerPort);
+                    Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                    Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                    Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                    RulesSize++;
+
+                    if (Params.UseQtip) {
+                        Rules[RulesSize].Match = XDP_MATCH_TCP_DST;
+                        Rules[RulesSize].Pattern.Port = htons(ServerPort);
+                        Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                        Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                        Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                        RulesSize++;
+                    }
+                }
+
+                //
+                // Client port rules. CIBIR does not change client XDP matching.
+                // QTIP clients use TCP-only; non-QTIP clients use UDP-only.
+                //
+                if (Params.UseQtip) {
+                    Rules[RulesSize].Match = XDP_MATCH_TCP_DST;
+                    Rules[RulesSize].Pattern.Port = htons(ClientPort);
+                    Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                    Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                    Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                    RulesSize++;
+                } else {
+                    Rules[RulesSize].Match = XDP_MATCH_UDP_DST;
+                    Rules[RulesSize].Pattern.Port = htons(ClientPort);
+                    Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                    Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID;
+                    Rules[RulesSize].Redirect.Target = XdpMapState.XskMaps[i];
+                    RulesSize++;
+                }
 
                 HRESULT Hr = XdpCreateProgram(
                     XdpMapState.IfIndices[i],
@@ -3301,7 +3473,7 @@ struct XdpMapMode : public ::testing::TestWithParam<int> {
                     q,
                     XDP_CREATE_PROGRAM_FLAG_NONE,
                     Rules,
-                    2,
+                    RulesSize,
                     &XdpPrograms[i][q]);
                 if (FAILED(Hr)) {
                     //
@@ -3330,11 +3502,23 @@ struct XdpMapMode : public ::testing::TestWithParam<int> {
                 }
             }
         }
-        for (int i = 0; i < 2; i++) {
-            if (PortSocks[i] != INVALID_SOCKET) {
-                closesocket(PortSocks[i]);
-                PortSocks[i] = INVALID_SOCKET;
+        for (int i = 0; i < PortCount; i++) {
+            if (PortSocksUdp[i] != INVALID_SOCKET) {
+                closesocket(PortSocksUdp[i]);
+                PortSocksUdp[i] = INVALID_SOCKET;
             }
+            if (PortSocksTcp[i] != INVALID_SOCKET) {
+                closesocket(PortSocksTcp[i]);
+                PortSocksTcp[i] = INVALID_SOCKET;
+            }
+        }
+        //
+        // Restore QTIP global setting.
+        //
+        if (GetParam().UseQtip && !PreviousQtipSetting) {
+            MsQuicSettings Settings;
+            Settings.SetQtipEnabled(false);
+            Settings.SetGlobal();
         }
         if (WsaInitialized) {
             WSACleanup();
@@ -3342,32 +3526,56 @@ struct XdpMapMode : public ::testing::TestWithParam<int> {
     }
 };
 
+constexpr uint8_t XdpMapMode::CibirApiId[];
+constexpr uint8_t XdpMapMode::CibirIdData[];
+
 TEST_P(XdpMapMode, Handshake) {
     if (!UseXdpMapMode) {
         GTEST_SKIP() << "XDP Map Mode not enabled (use --xdpMapMode)";
     }
+    auto Params = GetParam();
     TestLogger Logger("QuicTestXdpMapModeHandshake");
     QuicTestXdpMapModeHandshake(
-        GetParam(),
+        Params.Family,
         ServerPort,
-        ClientPort);
+        ClientPort,
+        Params.UseCibir,
+        Params.UseQtip);
 }
 
 TEST_P(XdpMapMode, DataTransfer) {
     if (!UseXdpMapMode) {
         GTEST_SKIP() << "XDP Map Mode not enabled (use --xdpMapMode)";
     }
+    auto Params = GetParam();
     TestLogger Logger("QuicTestXdpMapModeDataTransfer");
     QuicTestXdpMapModeDataTransfer(
-        GetParam(),
+        Params.Family,
         ServerPort,
-        ClientPort);
+        ClientPort,
+        Params.UseCibir,
+        Params.UseQtip);
+}
+
+static std::vector<XdpMapModeParams> GenerateXdpMapModeParams() {
+    std::vector<XdpMapModeParams> list;
+    for (int Family : { 4, 6 })
+    for (bool UseCibir : { false, true })
+    for (bool UseQtip : { false, true })
+        list.push_back({ Family, UseCibir, UseQtip });
+    return list;
 }
 
 INSTANTIATE_TEST_SUITE_P(
     XdpMapMode,
     XdpMapMode,
-    ::testing::Values(4, 6));
+    ::testing::ValuesIn(GenerateXdpMapModeParams()),
+    [](const ::testing::TestParamInfo<XdpMapModeParams>& info) {
+        std::string name = (info.param.Family == 4 ? "v4" : "v6");
+        name += info.param.UseCibir ? "_CIBIR" : "_NoCIBIR";
+        name += info.param.UseQtip ? "_QTIP" : "_NoQTIP";
+        return name;
+    });
 #endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
 
 int main(int argc, char** argv) {

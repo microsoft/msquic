@@ -4919,9 +4919,12 @@ void
 QuicTestXdpMapModeHandshake(
     _In_ int Family,
     _In_ uint16_t ServerPort,
-    _In_ uint16_t ClientPort
+    _In_ uint16_t ClientPort,
+    _In_ bool UseCibir,
+    _In_ bool UseQtip
     )
 {
+    UNREFERENCED_PARAMETER(UseQtip); // QTIP is configured globally by the fixture
     QUIC_ADDRESS_FAMILY QuicAddrFamily =
         (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
@@ -4941,9 +4944,24 @@ QuicTestXdpMapModeHandshake(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
+    //
+    // CIBIR ID in API format: {offset, id_byte0, ...}
+    //
+    const uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 1 };
+    const uint8_t CibirIdLength = sizeof(CibirId);
+
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
+
+        if (UseCibir) {
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Listener.GetListener(),
+                    QUIC_PARAM_LISTENER_CIBIR_ID,
+                    CibirIdLength,
+                    CibirId));
+        }
 
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         QuicAddrSetPort(&ServerLocalAddr.SockAddr, ServerPort);
@@ -4958,6 +4976,16 @@ QuicTestXdpMapModeHandshake(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+
+                if (UseCibir) {
+                    TEST_QUIC_SUCCEEDED(Client.SetShareUdpBinding(true));
+                    TEST_QUIC_SUCCEEDED(
+                        MsQuic->SetParam(
+                            Client.GetConnection(),
+                            QUIC_PARAM_CONN_CIBIR_ID,
+                            CibirIdLength,
+                            CibirId));
+                }
 
                 QuicAddr ClientLocalAddr(QuicAddrFamily);
                 QuicAddrSetToDuoNicClient(&ClientLocalAddr.SockAddr);

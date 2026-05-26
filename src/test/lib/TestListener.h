@@ -106,6 +106,8 @@ public:
     QUIC_STATUS GetLocalAddr(_Out_ QuicAddr &localAddr);
     QUIC_STATUS GetStatistics(_Out_ QUIC_LISTENER_STATISTICS &stats);
 
+    HQUIC GetListener() const { return QuicListener; }
+
     bool GetHasRandomLoss() const { return HasRandomLoss; }
     void SetHasRandomLoss(bool Value) { HasRandomLoss = Value; }
 };
