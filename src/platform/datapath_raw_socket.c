@@ -177,6 +177,16 @@ CxPlatDpRawParseUdp(
         return;
     }
 
+    if (QuicNetByteSwapShort(Udp->Length) < sizeof(UDP_HEADER)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            QuicNetByteSwapShort(Udp->Length),
+            "UDP Length smaller than header size");
+        return;
+    }
+
     Packet->Reserved = L4_TYPE_UDP;
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
