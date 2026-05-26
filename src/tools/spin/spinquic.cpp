@@ -252,7 +252,11 @@ struct SpinQuicGlobals {
                         ((CxPlatEvent*)Context)->Set();
                     },
                     &CloseComplete);
-                CloseComplete.WaitForever();
+                if (!CloseComplete.WaitTimeout(30000)) {
+                    CXPLAT_FRE_ASSERTMSG(
+                        FALSE,
+                        "RegistrationClose2 callback did not fire within 30s");
+                }
             } else {
                 MsQuic->RegistrationClose(Registration);
             }
@@ -347,6 +351,12 @@ public:
         }
         if (CloseStreamsNow) CloseStreams();
         MsQuicTable.ConnectionClose(Connection);
+        // ConnectionClose has returned, so no more events will fire on this
+        // connection. Close any streams still tracked here as a safety net:
+        // OnShutdownComplete may have fired after we were logically dead (or
+        // not at all) and left streams attached. CloseStreams is idempotent
+        // (locks, copies, clears), so a duplicate call is a no-op.
+        CloseStreams();
     }
     void Set(HQUIC _Connection) {
         Connection = _Connection;
