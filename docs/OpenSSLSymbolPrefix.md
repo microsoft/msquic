@@ -48,10 +48,14 @@ the build:
 5. Routes the existing `OpenSSL` interface target at the prefixed archives, so
    the rest of the build is unchanged.
 
-The result is a `libmsquic.so` (or final exe / static archive when
-`BUILD_SHARED_LIBS=OFF`) whose only externally-visible OpenSSL symbols are the
-prefixed ones. The dynamic linker has no reason to resolve them against any
-other OpenSSL copy present in the same process.
+The result is `libmsquic.a` plus the prefixed `libssl.a` / `libcrypto.a` (and
+whatever final executable or shared library the downstream consumer links them
+into) whose only externally-visible OpenSSL symbols are the prefixed ones. The
+dynamic linker has no reason to resolve them against any other OpenSSL copy
+present in the same process. Note that `QUIC_OPENSSL_SYMBOL_PREFIX` itself
+requires `BUILD_SHARED_LIBS=OFF` — see Constraints below — so this mode never
+produces `libmsquic.so` directly; shared-library packaging is the consumer's
+responsibility.
 
 ## Usage
 
