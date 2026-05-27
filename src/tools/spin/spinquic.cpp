@@ -1295,19 +1295,30 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                         }
                     }
                 } else {
-                    // Pool creation failed -- tear down the pre-allocated
-                    // wrappers (their Connection is null, so dtor is a no-op
-                    // for ConnectionClose) and close any connections msquic
-                    // did manage to create if CLOSE_ON_FAILURE wasn't set.
-                    for (uint16_t i = 0; i < PoolSize; i++) {
-                        delete Wrappers[i];
-                    }
+                    // Pool creation failed. Order matters here: any
+                    // connections msquic did manage to create have their
+                    // ClientContext pointing at our Wrappers (we passed those
+                    // in via PoolConfig.Context). ConnectionClose is sync and
+                    // fires SHUTDOWN_COMPLETE through our handler before
+                    // returning, and that handler dereferences the wrapper
+                    // (reads ctx->ThreadID). So we must close the connections
+                    // FIRST while the wrappers are still alive, then delete
+                    // the wrappers. Doing it in the opposite order is a
+                    // heap-use-after-free -- ASan caught exactly that.
+                    //
+                    // If CLOSE_ON_FAILURE is set, msquic already closed the
+                    // created connections during PoolCreate (and fired any
+                    // events with the wrappers still alive at the time), so
+                    // we skip the manual close, matching the original code.
                     if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
                         for (uint16_t i = 0; i < PoolSize; i++) {
                             if (PoolConnections[i] != nullptr) {
                                 MsQuicTable.ConnectionClose(PoolConnections[i]);
                             }
                         }
+                    }
+                    for (uint16_t i = 0; i < PoolSize; i++) {
+                        delete Wrappers[i];
                     }
                 }
             }
