@@ -1280,7 +1280,7 @@ TEST_F(TlsTest, HandshakeMultiAlpnBoth)
     DoHandshake(ServerContext, ClientContext);
 }
 
-TEST_F(TlsTest, DISABLED_HandshakeFragmented) // Remove DISABLED_ after fixing Schannel, #6035
+TEST_F(TlsTest, DISABLED_HandshakeFragmented) // Remove DISABLED_ after fixing #6035
 {
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
@@ -1290,7 +1290,7 @@ TEST_F(TlsTest, DISABLED_HandshakeFragmented) // Remove DISABLED_ after fixing S
     DoHandshake(ServerContext, ClientContext, 200);
 }
 
-TEST_F(TlsTest, DISABLED_HandshakeVeryFragmented) // Remove DISABLED_ after fixing Schannel, #6035
+TEST_F(TlsTest, DISABLED_HandshakeVeryFragmented) // Remove DISABLED_ after fixing #6035
 {
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
