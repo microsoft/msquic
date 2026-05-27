@@ -1249,7 +1249,27 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             if (!IsServer) {
                 uint16_t PoolSize = (uint16_t)(GetRandom(4, ThreadID) + 1); // 1-4 connections
                 std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
-                std::vector<void*> Contexts(PoolSize, &ThreadID);
+                //
+                // Pre-allocate the SpinQuicConnection wrappers and use them as
+                // the per-connection initial ClientContext. Pool connections
+                // start the handshake immediately, so connection events
+                // (CONNECTED, PEER_STREAM_STARTED, etc.) can fire before this
+                // function gets around to constructing wrappers in the success
+                // loop below. The previous code passed `&ThreadID` (a stack
+                // pointer in this spin thread) for every slot, so events that
+                // landed before wrapper creation would cast that stack address
+                // to SpinQuicConnection*, AddStream into stack memory, and
+                // orphan the stream for the rest of the run. Wrappers created
+                // with the single-arg ctor have Connection == nullptr; their
+                // dtor calls ConnectionClose(nullptr) which is a documented
+                // no-op, so unwinding them on failure is safe.
+                //
+                std::vector<SpinQuicConnection*> Wrappers(PoolSize, nullptr);
+                std::vector<void*> Contexts(PoolSize, nullptr);
+                for (uint16_t i = 0; i < PoolSize; i++) {
+                    Wrappers[i] = new(std::nothrow) SpinQuicConnection(ThreadID);
+                    Contexts[i] = Wrappers[i];
+                }
                 QUIC_CONNECTION_POOL_CONFIG PoolConfig = {0};
                 PoolConfig.Registration = Gb.Registration;
                 PoolConfig.Configuration = GetRandomFromVector(Gb.ClientConfigurations, ThreadID);
@@ -1266,18 +1286,27 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 QUIC_STATUS Status = MsQuicTable.ConnectionPoolCreate(&PoolConfig, PoolConnections.data());
                 if (QUIC_SUCCEEDED(Status)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
-                        auto ctx = new(std::nothrow) SpinQuicConnection(PoolConnections[i], ThreadID);
-                        if (ctx != nullptr) {
+                        if (Wrappers[i] != nullptr) {
+                            Wrappers[i]->Set(PoolConnections[i]);
                             std::lock_guard<std::mutex> Lock(Connections);
                             Connections.push_back(PoolConnections[i]);
                         } else {
                             MsQuicTable.ConnectionClose(PoolConnections[i]);
                         }
                     }
-                } else if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
+                } else {
+                    // Pool creation failed -- tear down the pre-allocated
+                    // wrappers (their Connection is null, so dtor is a no-op
+                    // for ConnectionClose) and close any connections msquic
+                    // did manage to create if CLOSE_ON_FAILURE wasn't set.
                     for (uint16_t i = 0; i < PoolSize; i++) {
-                        if (PoolConnections[i] != nullptr) {
-                            MsQuicTable.ConnectionClose(PoolConnections[i]);
+                        delete Wrappers[i];
+                    }
+                    if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
+                        for (uint16_t i = 0; i < PoolSize; i++) {
+                            if (PoolConnections[i] != nullptr) {
+                                MsQuicTable.ConnectionClose(PoolConnections[i]);
+                            }
                         }
                     }
                 }
