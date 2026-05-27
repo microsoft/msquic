@@ -32,7 +32,7 @@ const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku
 
 bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
 bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
-bool IsWindows2025() { return OsRunner && strcmp(OsRunner, "windows-2025") == 0; }
+bool IsWindowsPreRelease() { return OsRunner && strcmp(OsRunner, "WinServerPrerelease") == 0; }
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -1283,7 +1283,7 @@ TEST_F(TlsTest, HandshakeMultiAlpnBoth)
 
 TEST_F(TlsTest, HandshakeFragmented)
 {
-    if (IsWindows2025()) GTEST_SKIP(); // Remove once fixing Schannel
+    if (IsWindowsPreRelease()) GTEST_SKIP(); // Remove once fixing Schannel
 
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
@@ -1295,7 +1295,7 @@ TEST_F(TlsTest, HandshakeFragmented)
 
 TEST_F(TlsTest, HandshakeVeryFragmented)
 {
-    if (IsWindows2025()) GTEST_SKIP(); // Remove once fixing Schannel
+    if (IsWindowsPreRelease()) GTEST_SKIP(); // Remove once fixing Schannel
 
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
