@@ -214,24 +214,114 @@ function Install-SigningCertificates {
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
-    Write-Host "Downloading XDP msi"
-    $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
-    Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer -OutFile $MsiPath
-    Write-Host "Installing XDP driver certificate"
-    $CertFileName = Join-Path $ArtifactsPath 'xdp.cer'
-    Get-AuthenticodeSignature $MsiPath | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
-    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\root'
-    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
-    Write-Host "Installing XDP driver"
-    msiexec.exe /i $MsiPath /quiet | Out-Null
+    $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
+    $InstallerUrl = $XdpJson.installer
+    $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
+
+    Write-Host "Downloading XDP package from $InstallerUrl"
+    Invoke-WebRequest -Uri $InstallerUrl -OutFile $ZipPath
+
+    if ($InstallerUrl -like "*.msi") {
+        #
+        # Legacy MSI-based installation (XDP < 1.3).
+        #
+        $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
+        Move-Item -Force $ZipPath $MsiPath
+        Write-Host "Installing XDP driver certificate"
+        $CertFileName = Join-Path $ArtifactsPath 'xdp.cer'
+        Get-AuthenticodeSignature $MsiPath | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
+        Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\root'
+        Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
+        Write-Host "Installing XDP driver via MSI"
+        msiexec.exe /i $MsiPath /quiet | Out-Null
+    } else {
+        #
+        # NuGet/zip-based installation (XDP >= 1.3).
+        #
+        Write-Host "Extracting XDP package"
+        if (Test-Path $XdpPath) { Remove-Item -Recurse -Force $XdpPath }
+        Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
+
+        #
+        # Locate the xdp-setup.ps1 or fall back to manual pnputil install.
+        #
+        $SetupScript = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdp-setup.ps1" | Select-Object -First 1
+        if ($SetupScript) {
+            #
+            # Import driver cert before netcfg-based install.
+            #
+            $XdpCert = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdp.cer" | Select-Object -First 1
+            if ($XdpCert) {
+                Write-Host "Installing XDP driver certificate"
+                Import-Certificate -FilePath $XdpCert.FullName -CertStoreLocation 'cert:\localmachine\root'
+                Import-Certificate -FilePath $XdpCert.FullName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
+            }
+            Write-Host "Installing XDP driver via xdp-setup.ps1"
+            & $SetupScript.FullName -Install "xdp"
+        } else {
+            #
+            # Manual install: import cert, install driver via pnputil.
+            #
+            $XdpCert = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdp.cer" | Select-Object -First 1
+            if ($XdpCert) {
+                Write-Host "Installing XDP driver certificate"
+                Import-Certificate -FilePath $XdpCert.FullName -CertStoreLocation 'cert:\localmachine\root'
+                Import-Certificate -FilePath $XdpCert.FullName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
+            }
+            $XdpInf = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdp.inf" | Select-Object -First 1
+            if (!$XdpInf) { Write-Error "xdp.inf not found in extracted package" }
+            Write-Host "Installing XDP driver via pnputil"
+            pnputil.exe /install /add-driver $XdpInf.FullName
+            #
+            # Copy xdpapi.dll to System32 so msquic can load it at runtime.
+            #
+            $XdpApiDll = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdpapi.dll" | Select-Object -First 1
+            if ($XdpApiDll) {
+                Write-Host "Copying xdpapi.dll to System32"
+                Copy-Item -Force $XdpApiDll.FullName (Join-Path $env:SystemRoot "System32\xdpapi.dll")
+            }
+        }
+    }
 }
 
 # Completely removes the XDP driver and SDK.
 function Uninstall-Xdp {
     if (!$IsWindows) { return } # Windows only
+
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
     $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
-    if (Test-Path $MsiPath) {
-        Write-Host "Uninstalling XDP driver"
+
+    #
+    # Try xdp-setup.ps1 uninstall first (NuGet/zip path).
+    #
+    if (Test-Path $XdpPath) {
+        $SetupScript = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdp-setup.ps1" | Select-Object -First 1
+        if ($SetupScript) {
+            Write-Host "Uninstalling XDP driver via xdp-setup.ps1"
+            try { & $SetupScript.FullName -Uninstall "xdp" } catch {}
+            return
+        }
+        #
+        # Manual uninstall via pnputil.
+        #
+        Write-Host "Uninstalling XDP driver via pnputil"
+        try {
+            $DriverPkg = pnputil.exe /enum-drivers | Select-String -Pattern "xdp\.inf" -Context 1 |
+                ForEach-Object { ($_.Context.PreContext -split '\s+')[-1] }
+            if ($DriverPkg) {
+                pnputil.exe /delete-driver $DriverPkg /uninstall /force
+            }
+        } catch {}
+        $XdpApiPath = Join-Path $env:SystemRoot "System32\xdpapi.dll"
+        if (Test-Path $XdpApiPath) {
+            try { Remove-Item -Force $XdpApiPath } catch {}
+        }
+    } elseif (Test-Path $MsiPath) {
+        #
+        # Legacy MSI uninstall.
+        #
+        Write-Host "Uninstalling XDP driver via MSI"
         try { msiexec.exe /x $MsiPath /quiet | Out-Null } catch {}
     }
 }
