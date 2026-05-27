@@ -1283,7 +1283,7 @@ TEST_F(TlsTest, HandshakeMultiAlpnBoth)
 
 TEST_F(TlsTest, HandshakeFragmented)
 {
-    if (IsWindowsPreRelease()) GTEST_SKIP(); // Remove once fixing Schannel
+    if (IsWindowsPreRelease()) GTEST_SKIP(); // Remove after fixing Schannel, #6035
 
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
@@ -1295,7 +1295,7 @@ TEST_F(TlsTest, HandshakeFragmented)
 
 TEST_F(TlsTest, HandshakeVeryFragmented)
 {
-    if (IsWindowsPreRelease()) GTEST_SKIP(); // Remove once fixing Schannel
+    if (IsWindowsPreRelease()) GTEST_SKIP(); // Remove after fixing Schannel, #6035
 
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
