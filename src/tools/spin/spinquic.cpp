@@ -577,18 +577,17 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
         if (!GetRandom(20, ThreadID)) {
             return QUIC_STATUS_CONNECTION_REFUSED;
         }
-        auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection, ThreadID);
-        if (ctx == nullptr) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
-        MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, ctx);
+        MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, &((ListenerContext*)Context)->ThreadID);
         QUIC_STATUS Status =
             MsQuicTable.ConnectionSetConfiguration(
                 Event->NEW_CONNECTION.Connection,
                 ServerConfiguration);
         if (QUIC_FAILED(Status)) {
-            delete ctx;
             return Status;
+        }
+        auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection, ThreadID);
+        if (ctx == nullptr) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
         }
         {
             std::lock_guard<std::mutex> Lock(Connections);
