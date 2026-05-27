@@ -351,12 +351,6 @@ public:
         }
         if (CloseStreamsNow) CloseStreams();
         MsQuicTable.ConnectionClose(Connection);
-        // ConnectionClose has returned, so no more events will fire on this
-        // connection. Close any streams still tracked here as a safety net:
-        // OnShutdownComplete may have fired after we were logically dead (or
-        // not at all) and left streams attached. CloseStreams is idempotent
-        // (locks, copies, clears), so a duplicate call is a no-op.
-        CloseStreams();
     }
     void Set(HQUIC _Connection) {
         Connection = _Connection;
@@ -583,17 +577,18 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
         if (!GetRandom(20, ThreadID)) {
             return QUIC_STATUS_CONNECTION_REFUSED;
         }
-        MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, &((ListenerContext*)Context)->ThreadID);
+        auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection, ThreadID);
+        if (ctx == nullptr) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        MsQuicTable.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, ctx);
         QUIC_STATUS Status =
             MsQuicTable.ConnectionSetConfiguration(
                 Event->NEW_CONNECTION.Connection,
                 ServerConfiguration);
         if (QUIC_FAILED(Status)) {
+            delete ctx;
             return Status;
-        }
-        auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection, ThreadID);
-        if (ctx == nullptr) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
         }
         {
             std::lock_guard<std::mutex> Lock(Connections);
@@ -1017,7 +1012,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 if (ctx == nullptr) continue;
 
                 HQUIC Connection;
-                QUIC_STATUS Status = MsQuicTable.ConnectionOpen(Gb.Registration, SpinQuicHandleConnectionEvent, &ThreadID, &Connection);
+                QUIC_STATUS Status = MsQuicTable.ConnectionOpen(Gb.Registration, SpinQuicHandleConnectionEvent, ctx, &Connection);
                 if (QUIC_SUCCEEDED(Status)) {
                     ctx->Set(Connection);
                     Connections.push_back(Connection);

@@ -212,17 +212,6 @@ function Start-Executable {
 
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
-        #
-        # Make ASan terminate the process at first error detection. Without this,
-        # ASan on Windows defaults to abort_on_error=0 -- it prints the report to
-        # stderr but keeps running, which lets the process limp on in a corrupted
-        # state until something else (e.g. the spinquic watchdog) trips minutes
-        # later. With abort_on_error=1 the ASan-detected exception goes unhandled,
-        # ProcDump captures a dump at the actual crash site, and the report flows
-        # to the stderr.txt we already collect. (The Linux/bash path below sets
-        # the equivalent option inline.)
-        #
-        $pinfo.EnvironmentVariables["ASAN_OPTIONS"] = "abort_on_error=1:halt_on_error=1"
         if ($EnableAppVerifier) {
             where.exe appverif.exe | Out-Null
             if ($LastExitCode -eq 0) {
