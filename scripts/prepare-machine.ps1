@@ -30,7 +30,7 @@ on the provided configuration.
 
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 param (
     [Parameter(Mandatory = $false)]
