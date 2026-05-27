@@ -76,6 +76,9 @@ param (
     [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseXdpMapMode,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
 
     [Parameter(Mandatory = $false)]
@@ -149,9 +152,16 @@ if ($ForTest) {
         $InstallXdpDriver = $true;
         $InstallDuoNic = $true;
     }
+    if ($UseXdpMapMode) {
+        $InstallXdpDriver = $true;
+        $InstallDuoNic = $true;
+    }
 }
 
-if ($InstallXdpDriver) {
+# The official MSI (xdp.json) is production-signed and does not need test
+# signing.  Only the prerelease zip (xdp_ex.json, used by -UseXdpMapMode)
+# is test-signed and requires signing certs + test signing enabled.
+if ($UseXdpMapMode) {
     $InstallSigningCertificates = $true;
 }
 
@@ -216,7 +226,8 @@ function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
     # Remove any previous XDP installation to avoid netcfg "already exists" errors.
     Uninstall-Xdp
-    $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
+    $XdpJsonFile = if ($UseXdpMapMode) { "xdp_ex.json" } else { "xdp.json" }
+    $XdpJson = Get-Content (Join-Path $PSScriptRoot $XdpJsonFile) | ConvertFrom-Json
     $InstallerUrl = $XdpJson.installer
     $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
     $XdpPath = Join-Path $ArtifactsPath "xdp"

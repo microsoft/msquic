@@ -30,6 +30,11 @@ on:
         - 'SpinQuicWarnings.Light'
         - 'Stacks.Light'
         - 'Stacks.Verbose'
+      only_mapmode:
+        description: 'Run only the XDP map mode BVT job (on 1ES pool)'
+        required: false
+        default: false
+        type: boolean
   push:
     branches:
     - main
@@ -52,6 +57,7 @@ permissions:
 jobs:
   build-windows-kernel:
     name: Build WinKernel
+    if: inputs.only_mapmode != true
     strategy:
       fail-fast: false
       matrix:
@@ -96,6 +102,7 @@ jobs:
 
   build-unix:
     name: Build Unix
+    if: inputs.only_mapmode != true
     strategy:
       fail-fast: false
       matrix:
@@ -127,6 +134,7 @@ jobs:
 
   bvt:
     name: BVT
+    if: inputs.only_mapmode != true
     needs: [build-windows, build-unix]
     strategy:
       fail-fast: false
@@ -211,6 +219,7 @@ jobs:
 
   bvt-kernel:
     name: BVT Kernel
+    if: inputs.only_mapmode != true
     needs: [build-windows, build-windows-kernel]
     strategy:
       fail-fast: false
@@ -261,6 +270,7 @@ jobs:
 
   interop:
     name: Interop
+    if: inputs.only_mapmode != true
     needs: [build-windows, build-unix]
     strategy:
       fail-fast: false
@@ -309,16 +319,57 @@ jobs:
         name: InteropWinlatest-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts
 
+  bvt-mapmode:
+    name: BVT XDP Map Mode
+    if: github.event_name == 'workflow_dispatch'
+    needs: [build-windows]
+    runs-on:
+      - self-hosted
+      - 1ES.Pool=1es-msquic-pool
+      - 1ES.ImageOverride=windows-2022
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.ref || '' }}
+    - name: Download Windows Build Artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      with:
+        name: Debug-windows-windows-2025-x64-schannel-Test
+        path: artifacts
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -Tls schannel -ForTest -UseXdpMapMode
+    - name: Install ETW Manifest
+      shell: pwsh
+      run: |
+        $MsQuicDll = ".\artifacts\bin\windows\x64_Debug_schannel\msquic.dll"
+        $ManifestPath = ".\src\manifest\MsQuicEtw.man"
+        wevtutil.exe um $ManifestPath
+        wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
+    - name: Test
+      shell: pwsh
+      timeout-minutes: 120
+      run: scripts/test.ps1 -Config Debug -Arch x64 -Tls schannel -OsRunner windows-2022 -GHA -LogProfile ${{ inputs.log_level || 'Full.Light' }} -GenerateXmlResults -UseXdp ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+    - name: Upload on Failure or Cancellation
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      if: failure() || cancelled()
+      with:
+        name: BVT-Debug-windows-1es-windows-2022-x64-schannel-UseXdpMapMode
+        path: artifacts
+
   Complete:
     name: BVT Complete
     if: always()
-    needs: [bvt, bvt-kernel, interop]
+    needs: [bvt, bvt-kernel, interop, bvt-mapmode]
     runs-on: ubuntu-latest
     permissions: {} # No need for any permissions.
     steps:
     - name: Decide whether the needed jobs succeeded or failed
       uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
       with:
+        allowed-skips: bvt, bvt-kernel, interop, bvt-mapmode
         jobs: ${{ toJSON(needs) }}
 
   Create-Or-Update-Issue:
