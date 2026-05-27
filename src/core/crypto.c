@@ -941,16 +941,6 @@ QuicCryptoWriteFrames(
         return TRUE;
     }
 
-    if (QuicConnIsClient(Connection) &&
-        Builder->Key == Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_HANDSHAKE]) {
-        CXPLAT_DBG_ASSERT(Builder->Key);
-        //
-        // Per spec, client MUST discard Initial keys when it starts
-        // encrypting packets with handshake keys.
-        //
-        QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_INITIAL);
-    }
-
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
 
     uint16_t AvailableBufferLength =
@@ -1740,15 +1730,27 @@ QuicCryptoCustomCertValidationComplete(
     _In_ QUIC_TLS_ALERT_CODES TlsAlert
     )
 {
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
     if (!Crypto->CertValidationPending) {
         return;
     }
 
     Crypto->CertValidationPending = FALSE;
+
+    //
+    // The connection might have been shutdown during the cert validation.
+    // Nothing to do in that case.
+    //
+    if (Connection->State.ShutdownComplete) {
+        Crypto->PendingValidationBufferLength = 0;
+        return;
+    }
+
     if (Result) {
         QuicTraceLogConnInfo(
             CustomCertValidationSuccess,
-            QuicCryptoGetConnection(Crypto),
+            Connection,
             "Custom cert validation succeeded");
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
@@ -1762,11 +1764,11 @@ QuicCryptoCustomCertValidationComplete(
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
-            QuicCryptoGetConnection(Crypto),
+            Connection,
             "Custom cert validation failed.");
         CXPLAT_DBG_ASSERT(TlsAlert <= QUIC_TLS_ALERT_CODE_MAX);
         QuicConnTransportError(
-            QuicCryptoGetConnection(Crypto),
+            Connection,
             QUIC_ERROR_CRYPTO_ERROR(0xFF & TlsAlert));
     }
     Crypto->PendingValidationBufferLength = 0;
@@ -1785,6 +1787,18 @@ QuicCryptoCustomTicketValidationComplete(
     // Need to set TicketValidationPending = FALSE to drain packet and continue handshake
     //
     if (!Crypto->TicketValidationPending || Crypto->TicketValidationRejecting) {
+        return;
+    }
+
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
+    //
+    // The connection might have been shutdown during the ticket validation.
+    // Nothing to do in that case.
+    //
+    if (Connection->State.ShutdownComplete) {
+        Crypto->TicketValidationPending = FALSE;
+        Crypto->PendingValidationBufferLength = 0;
         return;
     }
 
@@ -1825,7 +1839,6 @@ QuicCryptoCustomTicketValidationComplete(
             Crypto->TlsState.WriteKeys[i] = NULL;
         }
         QuicRecvBufferResetRead(&Crypto->RecvBuffer);
-        QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
         QUIC_STATUS Status = QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
         if (Status != QUIC_STATUS_SUCCESS) {
             QuicConnFatalError(Connection, Status, "Failed finalizing resumption ticket rejection");

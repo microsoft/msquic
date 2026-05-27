@@ -11,6 +11,8 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 #define XDP_API_VERSION 3
+#define XDP_MINIMUM_MAJOR_VER 1
+#define XDP_MINIMUM_MINOR_VER 1
 #define XDP_INCLUDE_WINCOMMON
 
 #include <xdp/wincommon.h>
@@ -853,7 +855,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Requires_lock_held_(Interface->RuleLock)
-void
+QUIC_STATUS
 CxPlatDpRawInterfaceUpdateRules(
     _In_ XDP_INTERFACE* Interface
     )
@@ -863,6 +865,8 @@ CxPlatDpRawInterfaceUpdateRules(
         .Direction = XDP_HOOK_RX,
         .SubLayer = XDP_HOOK_INSPECT,
     };
+
+    QUIC_STATUS ReturnStatus = QUIC_STATUS_SUCCESS;
 
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
 
@@ -882,16 +886,14 @@ CxPlatDpRawInterfaceUpdateRules(
                 Interface->RuleCount,
                 &NewRxProgram);
         if (QUIC_FAILED(Status)) {
-            //
-            // TODO - Figure out how to better handle failure and revert changes.
-            // This will likely require working with XDP to get an improved API;
-            // possibly to update all queues at once.
-            //
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XdpCreateProgram");
+            if (QUIC_SUCCEEDED(ReturnStatus)) {
+                ReturnStatus = Status;
+            }
             continue;
         }
 
@@ -901,10 +903,18 @@ CxPlatDpRawInterfaceUpdateRules(
 
         Queue->RxProgram = NewRxProgram;
     }
+
+    return ReturnStatus;
 }
 
+//
+// Takes ownership of any PortSet buffers in the input rules. On any failure
+// path (pre-copy or post-copy via CxPlatDpRawInterfaceUpdateRules), the
+// PortSet buffer is freed by either this function or the interface — the
+// caller must not free it.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 CxPlatDpRawInterfaceAddRules(
     _In_ XDP_INTERFACE* Interface,
     _In_reads_(Count) const XDP_RULE* Rules,
@@ -913,6 +923,8 @@ CxPlatDpRawInterfaceAddRules(
 {
 #pragma warning(push)
 #pragma warning(disable:6386) // Buffer overrun while writing to 'NewRules' - FALSE POSITIVE
+
+    QUIC_STATUS Status;
 
     CxPlatLockAcquire(&Interface->RuleLock);
     // TODO - Don't always allocate a new array?
@@ -923,7 +935,18 @@ CxPlatDpRawInterfaceAddRules(
             "[ lib] ERROR, %s.",
             "No more room for rules");
         CxPlatLockRelease(&Interface->RuleLock);
-        return;
+        //
+        // We own any PortSet buffers in the input rules; free them since
+        // they were not transferred to Interface->Rules.
+        //
+        for (uint8_t i = 0; i < Count; i++) {
+            if (Rules[i].Pattern.IpPortSet.PortSet.PortSet) {
+                CxPlatFree(
+                    (uint8_t*)Rules[i].Pattern.IpPortSet.PortSet.PortSet,
+                    PORT_SET_TAG);
+            }
+        }
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
 
     const size_t OldSize = sizeof(XDP_RULE) * (size_t)Interface->RuleCount;
@@ -937,7 +960,18 @@ CxPlatDpRawInterfaceAddRules(
             "XDP_RULE",
             NewSize);
         CxPlatLockRelease(&Interface->RuleLock);
-        return;
+        //
+        // We own any PortSet buffers in the input rules; free them since
+        // they were not transferred to Interface->Rules.
+        //
+        for (uint8_t i = 0; i < Count; i++) {
+            if (Rules[i].Pattern.IpPortSet.PortSet.PortSet) {
+                CxPlatFree(
+                    (uint8_t*)Rules[i].Pattern.IpPortSet.PortSet.PortSet,
+                    PORT_SET_TAG);
+            }
+        }
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     if (Interface->RuleCount > 0) {
@@ -952,11 +986,13 @@ CxPlatDpRawInterfaceAddRules(
     }
     Interface->Rules = NewRules;
 
-    CxPlatDpRawInterfaceUpdateRules(Interface);
+    Status = CxPlatDpRawInterfaceUpdateRules(Interface);
 
     CxPlatLockRelease(&Interface->RuleLock);
 
 #pragma warning(pop)
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1423,12 +1459,13 @@ CxPlatDpRawClearPortBit(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
         XDP_RULE Rules[5] = {0};
@@ -1504,7 +1541,17 @@ CxPlatDpRawPlumbRulesOnSocket(
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
             if (IsCreated) {
-                CxPlatDpRawInterfaceAddRules(Interface, Rules, RulesSize);
+                QUIC_STATUS AddStatus = CxPlatDpRawInterfaceAddRules(Interface, Rules, RulesSize);
+                if (QUIC_FAILED(AddStatus)) {
+                    //
+                    // Stop on first failure and propagate. The caller is
+                    // responsible for invoking this function again with
+                    // IsCreated=FALSE to roll back any rules already
+                    // installed on previous interfaces.
+                    //
+                    Status = AddStatus;
+                    break;
+                }
             } else {
                 CxPlatDpRawInterfaceRemoveRules(Interface, Rules, RulesSize);
             }
@@ -1566,14 +1613,29 @@ CxPlatDpRawPlumbRulesOnSocket(
                             "Allocation of '%s' failed. (%llu bytes)",
                             "PortSet",
                             XDP_PORT_SET_BUFFER_SIZE);
-                        return;
+                        Status = QUIC_STATUS_OUT_OF_MEMORY;
+                        break;
                     }
                     CxPlatDpRawSetPortBit(
                         (uint8_t*)NewRule.Pattern.IpPortSet.PortSet.PortSet,
                         Socket->LocalAddress.Ipv4.sin_port);
                     memcpy(
                         &NewRule.Pattern.IpPortSet.Address, IpAddress, IpAddressSize);
-                    CxPlatDpRawInterfaceAddRules(Interface, &NewRule, 1);
+                    QUIC_STATUS AddStatus = CxPlatDpRawInterfaceAddRules(Interface, &NewRule, 1);
+                    if (QUIC_FAILED(AddStatus)) {
+                        Status = AddStatus;
+                        //
+                        // CxPlatDpRawInterfaceAddRules takes ownership of the
+                        // PortSet buffer on every path — including failure —
+                        // so we don't free it here.
+                        //
+                        // Stop on first failure and propagate. The caller is
+                        // responsible for invoking this function again with
+                        // IsCreated=FALSE to roll back any port bits already
+                        // set on previous interfaces.
+                        //
+                        break;
+                    }
                 }
             } else {
                 //
@@ -1588,6 +1650,8 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
         }
     }
+
+    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

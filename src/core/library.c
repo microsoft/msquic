@@ -759,6 +759,12 @@ MsQuicLibraryUninitialize(
         MsQuicLib.ExecutionConfig = NULL;
     }
 
+    if (MsQuicLib.XdpMapConfigs != NULL) {
+        CXPLAT_FREE(MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
+        MsQuicLib.XdpMapConfigs = NULL;
+        MsQuicLib.XdpMapConfigCount = 0;
+    }
+
 #ifndef _KERNEL_MODE
     CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
     MsQuicLib.WorkerPool = NULL;
@@ -1430,6 +1436,68 @@ QuicLibrarySetGlobalParam(
         break;
     }
 
+    case QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG: {
+        if (BufferLength == 0) {
+            CxPlatLockAcquire(&MsQuicLib.Lock);
+            if (MsQuicLib.LazyInitComplete) {
+                CxPlatLockRelease(&MsQuicLib.Lock);
+                Status = QUIC_STATUS_INVALID_STATE;
+                break;
+            }
+            if (MsQuicLib.XdpMapConfigs != NULL) {
+                CXPLAT_FREE(MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
+                MsQuicLib.XdpMapConfigs = NULL;
+                MsQuicLib.XdpMapConfigCount = 0;
+            }
+            CxPlatLockRelease(&MsQuicLib.Lock);
+            break;
+        }
+
+        if (Buffer == NULL ||
+            BufferLength % sizeof(QUIC_XDP_MAP_CONFIG) != 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        const uint32_t Count = BufferLength / sizeof(QUIC_XDP_MAP_CONFIG);
+        const QUIC_XDP_MAP_CONFIG* Configs = (const QUIC_XDP_MAP_CONFIG*)Buffer;
+
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+
+        //
+        // Only allowed before the datapath is initialized.
+        //
+        if (MsQuicLib.LazyInitComplete) {
+            CxPlatLockRelease(&MsQuicLib.Lock);
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QUIC_XDP_MAP_CONFIG* NewConfigs =
+            CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_XDP_MAP_CONFIG);
+        if (NewConfigs == NULL) {
+            CxPlatLockRelease(&MsQuicLib.Lock);
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "XDP map config",
+                BufferLength);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            break;
+        }
+
+        CxPlatCopyMemory(NewConfigs, Configs, BufferLength);
+
+        if (MsQuicLib.XdpMapConfigs != NULL) {
+            CXPLAT_FREE(MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
+        }
+
+        MsQuicLib.XdpMapConfigs = NewConfigs;
+        MsQuicLib.XdpMapConfigCount = Count;
+        CxPlatLockRelease(&MsQuicLib.Lock);
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -1783,6 +1851,29 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_NOT_SUPPORTED;
         break;
 #endif // DEBUG
+    }
+
+    case QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG: {
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+        const uint32_t RequiredLength =
+            MsQuicLib.XdpMapConfigCount * (uint32_t)sizeof(QUIC_XDP_MAP_CONFIG);
+        if (RequiredLength == 0) {
+            CxPlatLockRelease(&MsQuicLib.Lock);
+            *BufferLength = 0;
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        }
+        if (*BufferLength < RequiredLength || Buffer == NULL) {
+            CxPlatLockRelease(&MsQuicLib.Lock);
+            *BufferLength = RequiredLength;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+        *BufferLength = RequiredLength;
+        CxPlatCopyMemory(Buffer, MsQuicLib.XdpMapConfigs, RequiredLength);
+        CxPlatLockRelease(&MsQuicLib.Lock);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
     }
 
     default:

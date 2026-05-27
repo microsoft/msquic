@@ -546,7 +546,7 @@ CxPlatDataPathQuerySockoptSupport(
     // Test ToS support with IPv6, because IPv4 just fails silently.
     //
     SOCKET Udpv6Socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-    if (UdpSocket == INVALID_SOCKET) {
+    if (Udpv6Socket == INVALID_SOCKET) {
         int WsaError = WSAGetLastError();
         QuicTraceLogWarning(
             DatapathOpenUdpv6SocketFailed,
