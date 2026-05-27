@@ -31,7 +31,9 @@ concurrency:
   group: stress-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-permissions: read-all
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   build-windows:
@@ -220,3 +222,16 @@ jobs:
       uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
       with:
         jobs: ${{ toJSON(needs) }}
+
+  Create-Or-Update-Issue:
+    needs: [Complete]
+    if: ${{ failure() && github.event_name  == 'push' }}
+    uses: ./.github/workflows/file-issue-on-test-failure.yml
+    with:
+      artifact-pattern: '{stress-*,recvfuzz-*}'
+      log-dirs: |
+        spinquic
+        recvfuzz
+        spinquic.exe
+        recvfuzz.exe
+      labels: 'stress,ci-failure'
