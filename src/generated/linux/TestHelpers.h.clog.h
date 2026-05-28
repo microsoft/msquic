@@ -110,6 +110,26 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookUnregistered );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for TestPortReservation
+// [test] Port reservation: port=%u, attempts=%d
+// QuicTraceLogVerbose(
+                TestPortReservation,
+                "[test] Port reservation: port=%u, attempts=%d",
+                Port,
+                Attempt + 1);
+// arg2 = arg2 = Port = arg2
+// arg3 = arg3 = Attempt + 1 = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TestPortReservation
+#define _clog_4_ARGS_TRACE_TestPortReservation(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_TESTHELPERS_H, TestPortReservation , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for TestHookDropPacketRandom
 // [test][hook] Random packet drop
 // QuicTraceLogVerbose(
