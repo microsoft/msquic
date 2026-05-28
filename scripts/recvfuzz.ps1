@@ -98,7 +98,7 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false,
+    [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
     [switch]$UseProcDump = $false
