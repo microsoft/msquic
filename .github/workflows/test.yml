@@ -143,7 +143,7 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test", log: "Full.Verbose" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", xdpmapmode: "-XdpMapMode", sanitize: "-SanitizeAddress", build: "-Test", testfilter: "XdpMapMode*" },
+          # { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", xdpmapmode: "-XdpMapMode", sanitize: "-SanitizeAddress", build: "-Test", testfilter: "XdpMapMode*" }, # Disabled until CI has XDP driver with map mode support
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", log: "Full.Verbose" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
