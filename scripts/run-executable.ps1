@@ -287,26 +287,6 @@ function Start-Executable {
         $pinfo.RedirectStandardError = $true
     }
     $pinfo.UseShellExecute = $false
-    
-    # On Windows, make ASan abort the process at first detection. Without this
-    # the default is abort_on_error=0 -- ASan prints a report to stderr and the
-    # process keeps running in a corrupted state, so ProcDump's dump (taken
-    # later when the spinquic watchdog assertion fires) points at the watchdog
-    # rather than the actual crash site, and the ASan report gets lost.
-    #
-    # We set the env var via $env:ASAN_OPTIONS rather than
-    # $pinfo.EnvironmentVariables because the latter doesn't reliably propagate
-    # through ProcDump to its child process on Windows. Setting $env: puts it
-    # in the parent PowerShell process's environment block, which ProcDump and
-    # its child inherit via the OS the way you'd expect. The Linux path below
-    # already handles this inline in its bash invocation.
-    #
-    if ($IsWindows) {
-        $env:ASAN_OPTIONS = "abort_on_error=1:halt_on_error=1"
-    }
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null 
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
