@@ -98,10 +98,10 @@ QuitTestIsFeatureSupported(uint32_t Feature) {
 
 #if defined(_WIN32) && !defined(_KERNEL_MODE)
 //
-// Reserves an ephemeral UDP port by binding a socket to port 0. The socket
-// stays open to hold the reservation until Release() is called (or the object
-// is destroyed). This minimizes the TOCTOU window between discovering a free
-// port and having the listener bind to it.
+// Reserves an ephemeral port by binding both a UDP and TCP socket to the same
+// port. The sockets stay open to hold the reservation until Release() is called
+// (or the object is destroyed). This minimizes the TOCTOU window between
+// discovering a free port and having the listener bind to it.
 //
 struct QuicTestPortReservation {
     uint16_t Port{0};
@@ -113,29 +113,73 @@ struct QuicTestPortReservation {
         )
     {
         int af = (Family == QUIC_ADDRESS_FAMILY_INET) ? AF_INET : AF_INET6;
-
-        Sock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
-        if (Sock == INVALID_SOCKET) {
-            return;
-        }
-
-        QUIC_ADDR Addr{};
-        QuicAddrSetFamily(&Addr, Family);
-
         int AddrSize =
             (af == AF_INET) ?
                 (int)sizeof(struct sockaddr_in) :
                 (int)sizeof(struct sockaddr_in6);
 
-        if (bind(Sock, (struct sockaddr*)&Addr, AddrSize) == 0) {
-            int AddrLen = AddrSize;
-            if (getsockname(Sock, (struct sockaddr*)&Addr, &AddrLen) == 0) {
-                Port = QuicAddrGetPort(&Addr);
+        //
+        // Reserve both a UDP and TCP port on the same ephemeral port number.
+        // Retry when the UDP ephemeral port collides with an in-use TCP port.
+        //
+        for (int Attempt = 0; Attempt < 1000; Attempt++) {
+            UdpSock = socket(af, SOCK_DGRAM, IPPROTO_UDP);
+            if (UdpSock == INVALID_SOCKET) {
+                return;
             }
-        }
 
-        if (Port == 0) {
-            Release();
+            BOOL RandomizePort = TRUE;
+            (void)setsockopt(
+                UdpSock, SOL_SOCKET, SO_RANDOMIZE_PORT,
+                (const char*)&RandomizePort, sizeof(RandomizePort));
+
+            QUIC_ADDR Addr{};
+            QuicAddrSetFamily(&Addr, Family);
+
+            if (bind(UdpSock, (struct sockaddr*)&Addr, AddrSize) != 0) {
+                Release();
+                return;
+            }
+
+            int AddrLen = AddrSize;
+            if (getsockname(UdpSock, (struct sockaddr*)&Addr, &AddrLen) != 0) {
+                Release();
+                return;
+            }
+
+            Port = QuicAddrGetPort(&Addr);
+            //
+            // Bind to port 0 should always assign a real port.
+            //
+            CXPLAT_DBG_ASSERT(Port != 0);
+
+            //
+            // Also reserve the same port for TCP. CIBIR+XDP servers skip OS
+            // socket creation (for cross-process port sharing), leaving TCP
+            // port N free. Without this, a client's auxiliary TCP socket could
+            // be assigned port N by the OS, colliding with the server's entry
+            // in the raw socket pool.
+            //
+            TcpSock = socket(af, SOCK_STREAM, IPPROTO_TCP);
+            if (TcpSock == INVALID_SOCKET) {
+                Release();
+                return;
+            }
+
+            if (bind(TcpSock, (struct sockaddr*)&Addr, AddrSize) != 0) {
+                //
+                // TCP port is occupied; close both and retry for a new port.
+                //
+                Release();
+                continue;
+            }
+
+            QuicTraceLogVerbose(
+                TestPortReservation,
+                "[test] Port reservation: port=%u, attempts=%d",
+                Port,
+                Attempt + 1);
+            return;
         }
     }
 
@@ -145,19 +189,25 @@ struct QuicTestPortReservation {
     QuicTestPortReservation& operator=(const QuicTestPortReservation&) = delete;
 
     //
-    // Releases the port reservation by closing the held socket. Call this
+    // Releases the port reservation by closing the held sockets. Call this
     // immediately before the listener binds to the same port.
     //
     void Release()
     {
-        if (Sock != INVALID_SOCKET) {
-            closesocket(Sock);
-            Sock = INVALID_SOCKET;
+        if (UdpSock != INVALID_SOCKET) {
+            closesocket(UdpSock);
+            UdpSock = INVALID_SOCKET;
         }
+        if (TcpSock != INVALID_SOCKET) {
+            closesocket(TcpSock);
+            TcpSock = INVALID_SOCKET;
+        }
+        Port = 0;
     }
 
 private:
-    SOCKET Sock{INVALID_SOCKET};
+    SOCKET UdpSock{INVALID_SOCKET};
+    SOCKET TcpSock{INVALID_SOCKET};
 };
 #endif // _WIN32 && !_KERNEL_MODE
 
