@@ -4185,13 +4185,6 @@ QuicTestConnectionPoolCreate(
         }
 #endif
 
-    //
-    // Make sure to create the connection contexts before the connections,
-    // to ensure they are not freed before the connection is closed.
-    //
-    UniquePtrArray<ConnectionPoolConnectionContext> Contexts(new(std::nothrow) ConnectionPoolConnectionContext[NumberOfConnections]);
-    TEST_NOT_EQUAL(nullptr, Contexts);
-
         UniquePtrArray<ConnectionPoolConnectionContext> Contexts(new(std::nothrow) ConnectionPoolConnectionContext[NumberOfConnections]);
         TEST_NOT_EQUAL(nullptr, Contexts);
 
