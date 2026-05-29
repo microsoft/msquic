@@ -1324,25 +1324,25 @@ CxPlatDpRawPlumbRulesOnSocket(
         XDP_RULE Rules[5] = {0};
         uint8_t RulesSize = 0;
         if (Socket->CibirIdLength) {
-            Rules[RuleSize].Match = XDP_MATCH_QUIC_FLOW_SRC_CID;
-            Rules[RuleSize].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
-            Rules[RuleSize].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
-            Rules[RuleSize].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
-            Rules[RuleSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
-            Rules[RuleSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
-            Rules[RuleSize].Redirect.Target = NULL;
-            memcpy(Rules[RuleSize].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
-            RuleSize++;
+            Rules[RulesSize].Match = XDP_MATCH_QUIC_FLOW_SRC_CID;
+            Rules[RulesSize].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[RulesSize].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+            Rules[RulesSize].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
+            Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[RulesSize].Redirect.Target = NULL;
+            memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            RulesSize++;
 
-            Rules[RuleSize].Match = XDP_MATCH_QUIC_FLOW_DST_CID;
-            Rules[RuleSize].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
-            Rules[RuleSize].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
-            Rules[RuleSize].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
-            Rules[RuleSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
-            Rules[RuleSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
-            Rules[RuleSize].Redirect.Target = NULL;
-            memcpy(Rules[RuleSize].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
-            RuleSize++;
+            Rules[RulesSize].Match = XDP_MATCH_QUIC_FLOW_DST_CID;
+            Rules[RulesSize].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[RulesSize].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+            Rules[RulesSize].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
+            Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[RulesSize].Redirect.Target = NULL;
+            memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            RulesSize++;
 
             if (Socket->ReserveAuxTcpSockForQtip) {
                 Rules[RulesSize].Match = XDP_MATCH_TCP_QUIC_FLOW_SRC_CID;
@@ -1354,31 +1354,31 @@ CxPlatDpRawPlumbRulesOnSocket(
                 memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
                 RulesSize++;
 
-                Rules[RuleSize].Match = XDP_MATCH_TCP_QUIC_FLOW_DST_CID;
-                Rules[RuleSize].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
-                Rules[RuleSize].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
-                Rules[RuleSize].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
-                Rules[RuleSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
-                Rules[RuleSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
-                Rules[RuleSize].Redirect.Target = NULL;
-                memcpy(Rules[RuleSize].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
-                RuleSize++;
+                Rules[RulesSize].Match = XDP_MATCH_TCP_QUIC_FLOW_DST_CID;
+                Rules[RulesSize].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+                Rules[RulesSize].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+                Rules[RulesSize].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
+                Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+                Rules[RulesSize].Redirect.Target = NULL;
+                memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+                RulesSize++;
             }
 
-            Rules[RuleSize].Match = XDP_MATCH_TCP_CONTROL_DST;
-            Rules[RuleSize].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
-            Rules[RuleSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
-            Rules[RuleSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
-            Rules[RuleSize].Redirect.Target = NULL;
+            Rules[RulesSize].Match = XDP_MATCH_TCP_CONTROL_DST;
+            Rules[RulesSize].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[RulesSize].Redirect.Target = NULL;
             RulesSize++;
 
             CXPLAT_DBG_ASSERT(RulesSize <= RTL_NUMBER_OF(Rules));
         } else {
-            Rules[RuleSize].Match = XDP_MATCH_TCP_DST;
-            Rules[RuleSize].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
-            Rules[RuleSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
-            Rules[RuleSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
-            Rules[RuleSize].Redirect.Target = NULL;
+            Rules[RulesSize].Match = XDP_MATCH_TCP_DST;
+            Rules[RulesSize].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[RulesSize].Redirect.Target = NULL;
             RulesSize++;
 
             if (Socket->ReserveAuxTcpSockForQtip) {
