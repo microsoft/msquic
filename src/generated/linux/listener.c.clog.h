@@ -96,26 +96,6 @@ tracepoint(CLOG_LISTENER_C, ListenerCibirIdSetInfo , arg2, arg3, arg4, arg5);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ListenerPartitionIndexSet
-// [list][%p] PartitionIndex set (index %hu)
-// QuicTraceLogVerbose(
-            ListenerPartitionIndexSet,
-            "[list][%p] PartitionIndex set (index %hu)",
-            Listener,
-            Listener->PartitionIndex);
-// arg2 = arg2 = Listener = arg2
-// arg3 = arg3 = Listener->PartitionIndex = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ListenerPartitionIndexSet
-#define _clog_4_ARGS_TRACE_ListenerPartitionIndexSet(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LISTENER_C, ListenerPartitionIndexSet , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CibirIdSetInfo
 // [conn][%p] CIBIR ID set (len %hhu, offset %hhu, id 0x%llx)
 // QuicTraceLogConnInfo(
