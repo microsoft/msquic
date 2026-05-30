@@ -989,11 +989,6 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
 
         uint32_t APICall = GetRandom(SpinQuicAPICallCount, ThreadID);
 
-        //
-        // Above SOFT_CONNECTION_TARGET, replace the random pick with a
-        // ConnectionClose with probability (Excess / SOFT_CONNECTION_TARGET).
-        // Pulls the count back toward the target without forbidding bursts.
-        //
         {
             size_t Live = Connections.size();
             if (Live > SOFT_CONNECTION_TARGET) {
@@ -1249,26 +1244,23 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             if (!IsServer) {
                 uint16_t PoolSize = (uint16_t)(GetRandom(4, ThreadID) + 1); // 1-4 connections
                 std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
-                //
-                // Pre-allocate the SpinQuicConnection wrappers and use them as
-                // the per-connection initial ClientContext. Pool connections
-                // start the handshake immediately, so connection events
-                // (CONNECTED, PEER_STREAM_STARTED, etc.) can fire before this
-                // function gets around to constructing wrappers in the success
-                // loop below. The previous code passed `&ThreadID` (a stack
-                // pointer in this spin thread) for every slot, so events that
-                // landed before wrapper creation would cast that stack address
-                // to SpinQuicConnection*, AddStream into stack memory, and
-                // orphan the stream for the rest of the run. Wrappers created
-                // with the single-arg ctor have Connection == nullptr; their
-                // dtor calls ConnectionClose(nullptr) which is a documented
-                // no-op, so unwinding them on failure is safe.
-                //
                 std::vector<SpinQuicConnection*> Wrappers(PoolSize, nullptr);
                 std::vector<void*> Contexts(PoolSize, nullptr);
+                bool AllocFailed = false;
                 for (uint16_t i = 0; i < PoolSize; i++) {
                     Wrappers[i] = new(std::nothrow) SpinQuicConnection(ThreadID);
+                    if (Wrappers[i] == nullptr) {
+                        AllocFailed = true;
+                        break;
+                    }
                     Contexts[i] = Wrappers[i];
+                }
+                if (AllocFailed) {
+                    // Don't proceed with a partially populated Contexts array
+                    for (uint16_t i = 0; i < PoolSize; i++) {
+                        delete Wrappers[i];
+                    }
+                    break;
                 }
                 QUIC_CONNECTION_POOL_CONFIG PoolConfig = {0};
                 PoolConfig.Registration = Gb.Registration;
@@ -1295,21 +1287,6 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                         }
                     }
                 } else {
-                    // Pool creation failed. Order matters here: any
-                    // connections msquic did manage to create have their
-                    // ClientContext pointing at our Wrappers (we passed those
-                    // in via PoolConfig.Context). ConnectionClose is sync and
-                    // fires SHUTDOWN_COMPLETE through our handler before
-                    // returning, and that handler dereferences the wrapper
-                    // (reads ctx->ThreadID). So we must close the connections
-                    // FIRST while the wrappers are still alive, then delete
-                    // the wrappers. Doing it in the opposite order is a
-                    // heap-use-after-free -- ASan caught exactly that.
-                    //
-                    // If CLOSE_ON_FAILURE is set, msquic already closed the
-                    // created connections during PoolCreate (and fired any
-                    // events with the wrappers still alive at the time), so
-                    // we skip the manual close, matching the original code.
                     if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
                         for (uint16_t i = 0; i < PoolSize; i++) {
                             if (PoolConnections[i] != nullptr) {
