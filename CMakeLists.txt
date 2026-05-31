@@ -206,7 +206,7 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 include(GNUInstallDirs)
 
 if (WIN32)
-    set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
+    set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 /wd6385 /wd6101 /wd6001 CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
 
     include(CheckCCompilerFlag)

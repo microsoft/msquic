@@ -34,6 +34,9 @@ target_link_libraries(msquiccoretest inc gtest warnings logging base_link)
 
 if (WIN32)
     target_link_libraries(msquiccoretest oldnames)
+    # VS2019 的编译器在 gtest 的 ASSERT_EQ 模板里会报 C4389(有符号/无符号不匹配)，
+    # 配合 /WX 变成错误。这里只对测试目标禁用该警告，不改测试源码。
+    target_compile_options(msquiccoretest PRIVATE /wd4389)
 endif()
 
 add_test(NAME msquiccoretest

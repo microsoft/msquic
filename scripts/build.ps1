@@ -248,7 +248,7 @@ if ($Generator -eq "") {
     if (!$IsWindows) {
         $Generator = "Unix Makefiles"
     } else {
-        $Generator = "Visual Studio 17 2022"
+        $Generator = "Visual Studio 16 2019"
     }
 }
 
