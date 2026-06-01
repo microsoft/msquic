@@ -11,6 +11,8 @@ Abstract:
 
 #include "InteropServer.h"
 
+#include <algorithm>
+
 const QUIC_API_TABLE* MsQuic;
 HQUIC Configuration;
 const char* RootFolderPath;
