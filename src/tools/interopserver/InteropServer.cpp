@@ -313,48 +313,38 @@ HttpRequest::ReceiveUniDiData(
             return false;
         }
 
-        const char* FileName = (const char*)FirstBuffer->Buffer + 5;
-        const uint32_t FileNameMaxLen = FirstBuffer->Length - 5;
-        const char* FileNameEnd = nullptr;
-        for (uint32_t i = 0; i + 1 < FileNameMaxLen; ++i) {
-            if (FileName[i] == '\r' && FileName[i + 1] == '\n') {
-                FileNameEnd = FileName + i;
-                break;
-            }
-        }
+        char HeaderBuf[256];
+        const size_t CopyLen = min((size_t)FirstBuffer->Length, sizeof(HeaderBuf) - 1);
+        memcpy(HeaderBuf, FirstBuffer->Buffer, CopyLen);
+        HeaderBuf[CopyLen] = '\0';
+
+        char* FileName = HeaderBuf + 5;
+        char* FileNameEnd = strstr(FileName, "\r\n");
         if (FileNameEnd == nullptr) {
             printf("[%s] Invalid post suffix\n", GetRemoteAddr(MsQuic, QuicStream).Address);
             return false;
         }
+        *FileNameEnd = '\0';
 
-        char FileNameBuf[256];
-        size_t FileNameLen = (size_t)(FileNameEnd - FileName);
-        if (FileNameLen >= sizeof(FileNameBuf)) {
-            printf("[%s] File name too long\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-            return false;
-        }
-        memcpy(FileNameBuf, FileName, FileNameLen);
-        FileNameBuf[FileNameLen] = '\0';
-
-        if (strstr(FileNameBuf, "..") != nullptr) {
+        if (strstr(FileName, "..") != nullptr) {
             printf("[%s] '..' found\n", GetRemoteAddr(MsQuic, QuicStream).Address);
             return false;
         }
 
         char FullFilePath[256];
-        if (snprintf(FullFilePath, sizeof(FullFilePath), "%s/%s", UploadFolderPath, FileNameBuf) < 0) {
+        if (snprintf(FullFilePath, sizeof(FullFilePath), "%s/%s", UploadFolderPath, FileName) < 0) {
             printf("[%s] Invalid path\n", GetRemoteAddr(MsQuic, QuicStream).Address);
             return false;
         }
 
-        printf("[%s] POST '%s'\n", GetRemoteAddr(MsQuic, QuicStream).Address, FileNameBuf);
+        printf("[%s] POST '%s'\n", GetRemoteAddr(MsQuic, QuicStream).Address, FileName);
         File = fopen(FullFilePath, "wb");
         if (!File) {
             printf("[%s] Failed to open file\n", GetRemoteAddr(MsQuic, QuicStream).Address);
             return false;
         }
 
-        SkipLength = (uint32_t)((const uint8_t*)FileNameEnd + 2 - FirstBuffer->Buffer);
+        SkipLength = (uint32_t)((FileNameEnd - HeaderBuf) + 2);
     }
 
     for (uint32_t i = 0; i < BufferCount; ++i) {
