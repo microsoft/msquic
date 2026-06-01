@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <algorithm>
 
@@ -1244,22 +1245,18 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             if (!IsServer) {
                 uint16_t PoolSize = (uint16_t)(GetRandom(4, ThreadID) + 1); // 1-4 connections
                 std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
-                std::vector<SpinQuicConnection*> Wrappers(PoolSize, nullptr);
+                std::vector<std::unique_ptr<SpinQuicConnection>> Wrappers(PoolSize);
                 std::vector<void*> Contexts(PoolSize, nullptr);
                 bool AllocFailed = false;
                 for (uint16_t i = 0; i < PoolSize; i++) {
-                    Wrappers[i] = new(std::nothrow) SpinQuicConnection(ThreadID);
-                    if (Wrappers[i] == nullptr) {
+                    Wrappers[i].reset(new(std::nothrow) SpinQuicConnection(ThreadID));
+                    if (!Wrappers[i]) {
                         AllocFailed = true;
                         break;
                     }
-                    Contexts[i] = Wrappers[i];
+                    Contexts[i] = Wrappers[i].get();
                 }
                 if (AllocFailed) {
-                    // Don't proceed with a partially populated Contexts array
-                    for (uint16_t i = 0; i < PoolSize; i++) {
-                        delete Wrappers[i];
-                    }
                     break;
                 }
                 QUIC_CONNECTION_POOL_CONFIG PoolConfig = {0};
@@ -1278,13 +1275,10 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 QUIC_STATUS Status = MsQuicTable.ConnectionPoolCreate(&PoolConfig, PoolConnections.data());
                 if (QUIC_SUCCEEDED(Status)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
-                        if (Wrappers[i] != nullptr) {
-                            Wrappers[i]->Set(PoolConnections[i]);
-                            std::lock_guard<std::mutex> Lock(Connections);
-                            Connections.push_back(PoolConnections[i]);
-                        } else {
-                            MsQuicTable.ConnectionClose(PoolConnections[i]);
-                        }
+                        SpinQuicConnection* ctx = Wrappers[i].release();
+                        ctx->Set(PoolConnections[i]);
+                        std::lock_guard<std::mutex> Lock(Connections);
+                        Connections.push_back(PoolConnections[i]);
                     }
                 } else {
                     if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
@@ -1293,9 +1287,6 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                                 MsQuicTable.ConnectionClose(PoolConnections[i]);
                             }
                         }
-                    }
-                    for (uint16_t i = 0; i < PoolSize; i++) {
-                        delete Wrappers[i];
                     }
                 }
             }
