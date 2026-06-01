@@ -1369,6 +1369,7 @@ CxPlatDpRawPlumbRulesOnSocket(
                 Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
                 Rules[RulesSize].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
                 Rules[RulesSize].Redirect.Target = NULL;
+                memcpy(Rules[RulesSize].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
                 RulesSize++;
             }
 
