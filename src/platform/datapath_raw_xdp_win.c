@@ -1346,6 +1346,7 @@ CxPlatDpRawPlumbRulesOnSocket(
 
             if (Socket->ReserveAuxTcpSockForQtip) {
                 Rules[RulesSize].Match = XDP_MATCH_TCP_QUIC_FLOW_SRC_CID;
+                Rules[RulesSize].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
                 Rules[RulesSize].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
                 Rules[RulesSize].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
                 Rules[RulesSize].Action = XDP_PROGRAM_ACTION_REDIRECT;
