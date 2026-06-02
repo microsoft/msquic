@@ -316,7 +316,7 @@ HttpRequest::ReceiveUniDiData(
         }
 
         char HeaderBuf[256];
-        const size_t CopyLen = (std::min)((size_t)FirstBuffer->Length, sizeof(HeaderBuf) - 1);
+        const size_t CopyLen = std::min((size_t)FirstBuffer->Length, sizeof(HeaderBuf) - 1);
         memcpy(HeaderBuf, FirstBuffer->Buffer, CopyLen);
         HeaderBuf[CopyLen] = '\0';
 
