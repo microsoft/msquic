@@ -62,7 +62,7 @@ typedef struct CXPLAT_DATAPATH_RAW {
     BOOLEAN Uninitialized : 1;
     BOOLEAN Freed : 1;
 #endif
-    BOOLEAN ReserveAuxTcpSock; // Whether or not we create an auxiliary TCP socket.
+    BOOLEAN ReserveAuxTcpSockForQtip; // Whether or not we create an auxiliary TCP socket.
 
 } CXPLAT_DATAPATH_RAW;
 
@@ -293,21 +293,29 @@ BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     )
 {
     CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
     if (Socket->Wildcard) {
-        return TRUE; // The local port match is all that is needed.
+        //
+        // For a listener socket, always give a match if the listener
+        // socket has enabled QTIP (can accept both UDP/QTIP traffic).
+        // Otherwise, we want to NOT match if UseQtip is TRUE but the listener socket does not enable QTIP.
+        //
+        return Socket->ReserveAuxTcpSockForQtip || !UseQtip;
     }
 
     //
-    // Make sure the local IP matches and the full remote address matches.
+    // For a client socket, make sure the local IP matches and the full
+    // remote address matches along with QTIP settings.
     //
     CXPLAT_DBG_ASSERT(Socket->Connected);
     return
         QuicAddrCompareIp(&Socket->LocalAddress, LocalAddress) &&
-        QuicAddrCompare(&Socket->RemoteAddress, RemoteAddress);
+        QuicAddrCompare(&Socket->RemoteAddress, RemoteAddress) &&
+        Socket->ReserveAuxTcpSockForQtip == UseQtip;
 }
 
 //
@@ -317,7 +325,8 @@ CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     );
 
 QUIC_STATUS

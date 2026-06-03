@@ -531,6 +531,7 @@ struct CxPlatSocket {
     CXPLAT_SOCKET* Socket {nullptr};
     QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_STATE};
     CXPLAT_ROUTE Route {0};
+    uint8_t CibirIdLength {0};
     CxPlatSocket() { }
     CxPlatSocket(
         _In_ CxPlatDataPath& Datapath,
@@ -571,6 +572,7 @@ struct CxPlatSocket {
         UdpConfig.Flags = InternalFlags;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = CallbackContext;
+        UdpConfig.CibirIdLength = CibirIdLength;
         InitStatus =
             CxPlatSocketCreateUdp(
                 Datapath,
@@ -847,6 +849,47 @@ TEST_P(DataPathTest, UdpData)
     Client.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
+
+#ifdef _WIN32
+TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
+    UdpRecvContext RecvContext;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    auto unspecAddress = GetNewUnspecAddr();
+    CxPlatSocket Server1;
+    Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server1.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    }
+    VERIFY_QUIC_SUCCESS(Server1.GetInitStatus());
+    ASSERT_NE(nullptr, Server1.Socket);
+
+    //
+    // Try creating a CIBIR-aware socket on the same port.
+    //
+    CxPlatSocket Server2;
+    Server2.CibirIdLength = 6;
+    Server2.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext, CXPLAT_SOCKET_FLAG_XDP);
+
+    if (UseDuoNic) {
+        VERIFY_QUIC_SUCCESS(Server2.GetInitStatus());
+        ASSERT_NE(nullptr, Server2.Socket);
+    } else {
+        //
+        // If XDP is not supported, the CIBIR-aware socket should fail to bind to the same port as the non-CIBIR-aware socket.
+        //
+        ASSERT_EQ(QUIC_STATUS_ADDRESS_IN_USE, Server2.GetInitStatus());
+    }
+
+    //
+    // Try creating a non-CIBIR-aware socket on the same port.
+    //
+    CxPlatSocket Server3;
+    Server3.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    ASSERT_EQ(QUIC_STATUS_ADDRESS_IN_USE, Server3.GetInitStatus());
+}
+#endif
 
 TEST_P(DataPathTest, UdpDataPolling)
 {

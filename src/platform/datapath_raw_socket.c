@@ -51,7 +51,8 @@ CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const BOOLEAN UseQtip
     )
 {
     CXPLAT_SOCKET_RAW* Socket = NULL;
@@ -61,7 +62,7 @@ CxPlatGetSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
-        if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
+        if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress, UseQtip)) {
             if (CxPlatRundownAcquire(&Temp->RawRundown)) {
                 Socket = Temp;
             }
@@ -865,7 +866,7 @@ CxPlatTryAddSocket(
     // binding an auxiliary (dual stack) socket.
     //
 
-    if (Socket->ReserveAuxTcpSock) {
+    if (Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         Socket->AuxSocket =
             socket(
                 AF_INET6,
@@ -903,28 +904,6 @@ CxPlatTryAddSocket(
             goto Error;
         }
 
-        if (Socket->CibirIdLength) {
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    Socket->AuxSocket,
-                    SOL_SOCKET,
-                    SO_REUSEADDR,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set SO_REUSEADDR");
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-        }
-
         CxPlatConvertToMappedV6(&Socket->LocalAddress, &MappedAddress);
 #if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
         if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
@@ -935,7 +914,7 @@ CxPlatTryAddSocket(
 
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
 
-    if (Socket->ReserveAuxTcpSock) {
+    if (Socket->ReserveAuxTcpSockForQtip && !Socket->SkipCreatingOsSockets) {
         QUIC_ADDR_STR LocalAddressString = {0};
         QuicAddrToString(&MappedAddress, &LocalAddressString);
         QuicTraceLogVerbose(
@@ -1117,12 +1096,13 @@ CxPlatTryAddSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
-        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
+        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress, Socket->ReserveAuxTcpSockForQtip)) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;
         }
         Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
     }
+
     if (QUIC_SUCCEEDED(Status)) {
         CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, &Context);
     }

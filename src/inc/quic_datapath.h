@@ -614,6 +614,24 @@ typedef struct CXPLAT_UDP_CONFIG {
 } CXPLAT_UDP_CONFIG;
 
 //
+// Converts a CIBIR ID byte array to a uint64 for trace logging.
+//
+QUIC_INLINE
+uint64_t
+QuicCibirIdToUint64(
+    _In_reads_(Length) const uint8_t* Id,
+    _In_ uint8_t Length
+    )
+{
+    CXPLAT_DBG_ASSERT(Length <= 8);
+    uint64_t Value = 0;
+    for (uint8_t i = 0; i < Length; ++i) {
+        Value = (Value << 8) | Id[i];
+    }
+    return Value;
+}
+
+//
 // Creates a UDP socket for the given (optional) local address and/or (optional)
 // remote address. This function immediately registers for receive upcalls from
 // the layer below.
@@ -675,6 +693,15 @@ CxPlatSocketUpdateQeo(
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
     _In_ uint32_t OffloadCount
+    );
+
+//
+// Queries the QTIP settings of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketGetQtipEnabled(
+    _In_ CXPLAT_SOCKET* Socket
     );
 
 //
