@@ -397,6 +397,27 @@ public:
     }
 };
 
+//
+// Allocates Count connection wrappers and records a raw pointer to each in
+// Contexts, for use as the per-connection initial ClientContext when creating
+// a connection pool. 
+//
+static bool SpinAllocateConnectionWrappers(
+    uint16_t Count,
+    uint16_t ThreadID,
+    std::vector<std::unique_ptr<SpinQuicConnection>>& Wrappers,
+    std::vector<void*>& Contexts)
+{
+    for (uint16_t i = 0; i < Count; i++) {
+        Wrappers[i].reset(new(std::nothrow) SpinQuicConnection(ThreadID));
+        if (!Wrappers[i]) {
+            return false;
+        }
+        Contexts[i] = Wrappers[i].get();
+    }
+    return true;
+}
+
 static struct {
     bool RunServer {false};
     bool RunClient {false};
@@ -1247,16 +1268,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
                 std::vector<std::unique_ptr<SpinQuicConnection>> Wrappers(PoolSize);
                 std::vector<void*> Contexts(PoolSize, nullptr);
-                bool AllocFailed = false;
-                for (uint16_t i = 0; i < PoolSize; i++) {
-                    Wrappers[i].reset(new(std::nothrow) SpinQuicConnection(ThreadID));
-                    if (!Wrappers[i]) {
-                        AllocFailed = true;
-                        break;
-                    }
-                    Contexts[i] = Wrappers[i].get();
-                }
-                if (AllocFailed) {
+                if (!SpinAllocateConnectionWrappers(PoolSize, ThreadID, Wrappers, Contexts)) {
                     break;
                 }
                 QUIC_CONNECTION_POOL_CONFIG PoolConfig = {0};
@@ -1275,10 +1287,13 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 QUIC_STATUS Status = MsQuicTable.ConnectionPoolCreate(&PoolConfig, PoolConnections.data());
                 if (QUIC_SUCCEEDED(Status)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
-                        SpinQuicConnection* ctx = Wrappers[i].release();
-                        ctx->Set(PoolConnections[i]);
+                        Wrappers[i]->Set(PoolConnections[i]);
                         std::lock_guard<std::mutex> Lock(Connections);
                         Connections.push_back(PoolConnections[i]);
+                        // Release ownership only after push_back has succeeded.
+                        // If it threw, the unique_ptr would still own the
+                        // wrapper and clean it up instead of leaking it.
+                        Wrappers[i].release();
                     }
                 } else {
                     if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
