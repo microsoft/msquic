@@ -397,6 +397,32 @@ public:
     }
 };
 
+//
+// Allocates Count connection wrappers and records a raw pointer to each in
+// Contexts, for use as the per-connection initial ClientContext when creating
+// a connection pool. Ownership stays with the unique_ptrs in Wrappers until
+// the caller transfers it (e.g. once the connection is successfully tracked).
+// Returns false if any allocation fails, in which case Wrappers cleans up
+// whatever was allocated on scope exit and the caller must not proceed with
+// the pool create -- a null Context slot would be dereferenced on the
+// connection's first event.
+//
+static bool SpinAllocateConnectionWrappers(
+    uint16_t Count,
+    uint16_t ThreadID,
+    std::vector<std::unique_ptr<SpinQuicConnection>>& Wrappers,
+    std::vector<void*>& Contexts)
+{
+    for (uint16_t i = 0; i < Count; i++) {
+        Wrappers[i].reset(new(std::nothrow) SpinQuicConnection(ThreadID));
+        if (!Wrappers[i]) {
+            return false;
+        }
+        Contexts[i] = Wrappers[i].get();
+    }
+    return true;
+}
+
 static struct {
     bool RunServer {false};
     bool RunClient {false};
@@ -1247,16 +1273,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::vector<HQUIC> PoolConnections(PoolSize, nullptr);
                 std::vector<std::unique_ptr<SpinQuicConnection>> Wrappers(PoolSize);
                 std::vector<void*> Contexts(PoolSize, nullptr);
-                bool AllocFailed = false;
-                for (uint16_t i = 0; i < PoolSize; i++) {
-                    Wrappers[i].reset(new(std::nothrow) SpinQuicConnection(ThreadID));
-                    if (!Wrappers[i]) {
-                        AllocFailed = true;
-                        break;
-                    }
-                    Contexts[i] = Wrappers[i].get();
-                }
-                if (AllocFailed) {
+                if (!SpinAllocateConnectionWrappers(PoolSize, ThreadID, Wrappers, Contexts)) {
                     break;
                 }
                 QUIC_CONNECTION_POOL_CONFIG PoolConfig = {0};
