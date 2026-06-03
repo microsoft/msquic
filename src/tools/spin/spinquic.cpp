@@ -400,12 +400,7 @@ public:
 //
 // Allocates Count connection wrappers and records a raw pointer to each in
 // Contexts, for use as the per-connection initial ClientContext when creating
-// a connection pool. Ownership stays with the unique_ptrs in Wrappers until
-// the caller transfers it (e.g. once the connection is successfully tracked).
-// Returns false if any allocation fails, in which case Wrappers cleans up
-// whatever was allocated on scope exit and the caller must not proceed with
-// the pool create -- a null Context slot would be dereferenced on the
-// connection's first event.
+// a connection pool. 
 //
 static bool SpinAllocateConnectionWrappers(
     uint16_t Count,
