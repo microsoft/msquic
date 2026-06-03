@@ -1275,10 +1275,13 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 QUIC_STATUS Status = MsQuicTable.ConnectionPoolCreate(&PoolConfig, PoolConnections.data());
                 if (QUIC_SUCCEEDED(Status)) {
                     for (uint16_t i = 0; i < PoolSize; i++) {
-                        SpinQuicConnection* ctx = Wrappers[i].release();
-                        ctx->Set(PoolConnections[i]);
+                        Wrappers[i]->Set(PoolConnections[i]);
                         std::lock_guard<std::mutex> Lock(Connections);
                         Connections.push_back(PoolConnections[i]);
+                        // Release ownership only after push_back has succeeded.
+                        // If it threw, the unique_ptr would still own the
+                        // wrapper and clean it up instead of leaking it.
+                        Wrappers[i].release();
                     }
                 } else {
                     if (!(PoolConfig.Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE)) {
