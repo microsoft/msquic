@@ -11,6 +11,8 @@ Abstract:
 
 #include "InteropServer.h"
 
+#include <algorithm>
+
 const QUIC_API_TABLE* MsQuic;
 HQUIC Configuration;
 const char* RootFolderPath;
@@ -313,13 +315,18 @@ HttpRequest::ReceiveUniDiData(
             return false;
         }
 
-        char* FileName = (char*)FirstBuffer->Buffer + 5;
+        char HeaderBuf[256];
+        const size_t CopyLen = std::min((size_t)FirstBuffer->Length, sizeof(HeaderBuf) - 1);
+        memcpy(HeaderBuf, FirstBuffer->Buffer, CopyLen);
+        HeaderBuf[CopyLen] = '\0';
+
+        char* FileName = HeaderBuf + 5;
         char* FileNameEnd = strstr(FileName, "\r\n");
         if (FileNameEnd == nullptr) {
             printf("[%s] Invalid post suffix\n", GetRemoteAddr(MsQuic, QuicStream).Address);
             return false;
         }
-        *FileNameEnd = '\0'; // We shouldn't be writing to the buffer. Don't imitate this.
+        *FileNameEnd = '\0';
 
         if (strstr(FileName, "..") != nullptr) {
             printf("[%s] '..' found\n", GetRemoteAddr(MsQuic, QuicStream).Address);
@@ -339,8 +346,7 @@ HttpRequest::ReceiveUniDiData(
             return false;
         }
 
-        FileNameEnd += 2; // Skip "\r\n"
-        SkipLength = (uint32_t)((uint8_t*)FileNameEnd - FirstBuffer->Buffer);
+        SkipLength = (uint32_t)((FileNameEnd - HeaderBuf) + 2);
     }
 
     for (uint32_t i = 0; i < BufferCount; ++i) {
