@@ -2,6 +2,23 @@
 
 > **Status: Experimental / opt-in.** Linux only. Default off.
 
+## Scope
+
+This option only matters in one specific configuration:
+
+- the consuming application links MsQuic statically, **and**
+- MsQuic was built with bundled OpenSSL statically linked
+  (`QUIC_TLS_LIB=quictls|openssl` without `QUIC_USE_SYSTEM_LIBCRYPTO` or any
+  of the external-OpenSSL hooks).
+
+If MsQuic dynamically links to the system OpenSSL, the bundled OpenSSL
+symbols never enter the consumer's binary in the first place and there is
+nothing to namespace. The msquic project is moving toward dynamic linking of
+the system OpenSSL where it is available (e.g. OpenSSL 3.5 on newer distros);
+as that becomes the default for the affected platforms, `QUIC_OPENSSL_SYMBOL_PREFIX`
+becomes irrelevant for those configurations and remains useful only for
+consumers that must continue to bundle OpenSSL statically.
+
 ## Motivation
 
 When a process links MsQuic statically and also pulls in another copy of
@@ -156,7 +173,20 @@ Notes on the `nm` invocations above:
 
 ## Future direction
 
-The cleanest long-term solution is for OpenSSL itself to expose a
-configure-time `--symbol-prefix=` option that compiles every public symbol
-with the prefix baked in. Until that lands upstream, this CMake helper
-provides an equivalent at link time without requiring an OpenSSL fork.
+This CMake helper is a workaround at the link layer. A build-time
+`--symbol-prefix=` configure option in OpenSSL itself — equivalent to
+BoringSSL's [`BORINGSSL_PREFIX`][boringssl-prefix], which bakes the prefix
+into every public symbol at compile time — would make this helper
+unnecessary.
+
+The collision class was raised upstream in
+[openssl/openssl#20766 "OpenSSL symbols conflict while linking with
+application"](https://github.com/openssl/openssl/issues/20766) (Apr 2023) and
+closed Jan 2024 as `resolved: answered` with OpenSSL maintainers explicitly
+declining a prefix mechanism — the upstream position is that statically
+linking two OpenSSL copies into one process is the consumer's problem to
+solve, and that `objcopy`-style renaming (i.e. what this helper does) is
+considered a "dodgy kludge" they do not want in tree. We should treat this
+helper as a permanent workaround unless that upstream position changes.
+
+[boringssl-prefix]: https://github.com/google/boringssl/blob/main/BUILDING.md#building-with-prefixed-symbols

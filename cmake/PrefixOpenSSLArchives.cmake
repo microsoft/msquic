@@ -38,15 +38,12 @@
 #   - INTERFACE IMPORTED target `<OUTPUT_TARGET>` exists with include dirs
 #     copied from `<INPUT_TARGET>` and link libs pointing at the renamed
 #     archives.
-#   - Cache variables:
-#       `<OUTPUT_TARGET>_REDEFINE_SYMS`  absolute path to the syms file
-#                                        (so a consumer's POST_BUILD step can
-#                                        apply the same rename to its own
-#                                        archive)
-#       `<OUTPUT_TARGET>_PREFIX_SCRIPT`  absolute path to
-#                                        `cmake/openssl-prefix-rename.sh`
-#                                        (so consumers do not have to
-#                                        re-resolve the script path)
+#   - Two target properties carry the artifacts a consumer needs to apply the
+#     same rename to its own archive (e.g. `libmsquic_platform.a`):
+#       `PREFIX_RENAME_SYMS_FILE`  absolute path to the redefine-syms file
+#       `PREFIX_RENAME_SCRIPT`     absolute path to
+#                                  `cmake/openssl-prefix-rename.sh`
+#     Read them at the consumer site with `get_target_property()`.
 #
 
 # Capture this module's directory at parse time so the script-path lookup is
@@ -153,24 +150,12 @@ function(prefix_openssl_archives)
         INTERFACE "${_renamed_libssl}" "${_renamed_libcrypto}"
     )
 
-    set(${ARG_OUTPUT_TARGET}_REDEFINE_SYMS "${_syms_file}" CACHE INTERNAL
-        "Path to the prefix-rename syms file used by ${ARG_OUTPUT_TARGET}")
-    set(${ARG_OUTPUT_TARGET}_PREFIX_SCRIPT "${_script}" CACHE INTERNAL
-        "Path to cmake/openssl-prefix-rename.sh used by ${ARG_OUTPUT_TARGET}")
-
-    # NOTE: We do NOT pre-create empty placeholder libssl.a / libcrypto.a here.
-    # Earlier revisions did, ostensibly to keep Ninja's dep check happy on a
-    # clean tree, but empty placeholders mask real failures: if gen-syms or
-    # apply silently produced a 0-byte archive, the placeholder would let the
-    # link step blow up with a baffling "no symbols" error instead of the
-    # original tool failure. Ninja is perfectly happy to schedule the custom
-    # commands above for files that don't yet exist.
-    #
-    # NOTE: ${CMAKE_BINARY_DIR}/openssl-prefixed/${ARG_PREFIX} is NOT made
-    # config-specific. The feature is Linux-only today (enforced upstream),
-    # and Linux builds use single-config generators (Make/Ninja) where
-    # CMAKE_BINARY_DIR is per-config. Revisit if/when we ever extend to a
-    # multi-config generator.
+    # Carry the syms file and helper-script paths on the output target itself
+    # (rather than as cache variables) so consumers retrieve them via
+    # get_target_property() at the call site, which keeps the dependency
+    # explicit and avoids polluting the cache.
+    set_property(TARGET ${ARG_OUTPUT_TARGET} PROPERTY PREFIX_RENAME_SYMS_FILE "${_syms_file}")
+    set_property(TARGET ${ARG_OUTPUT_TARGET} PROPERTY PREFIX_RENAME_SCRIPT    "${_script}")
 
     message(STATUS "Configured prefixed OpenSSL archives (${ARG_OUTPUT_TARGET}):")
     message(STATUS "  Prefix:      ${ARG_PREFIX}")

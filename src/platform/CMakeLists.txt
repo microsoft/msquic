@@ -103,17 +103,9 @@ if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     endif()
 
     # If QUIC_OPENSSL_SYMBOL_PREFIX is set, rewrite OpenSSL references inside
-    # libmsquic_platform.a to use the prefixed names. Running on the archive
-    # (rather than individual .o files) is sufficient because objcopy
-    # --redefine-syms operates on every member object inside a .a in one pass.
-    # The same rename was already applied to the bundled libssl.a / libcrypto.a
-    # in cmake/PrefixOpenSSLArchives.cmake, so the final exe / shared-lib link
-    # resolves cleanly.
+    # libmsquic_platform.a so they match the prefixed bundled archives. See
+    # cmake/PrefixOpenSSLArchives.cmake and cmake/openssl-prefix-rename.sh.
     if(NOT "${QUIC_OPENSSL_SYMBOL_PREFIX}" STREQUAL "")
-        # Mirror the conditional NM/OBJCOPY forwarding used in
-        # cmake/PrefixOpenSSLArchives.cmake so an unset CMAKE_NM / CMAKE_OBJCOPY
-        # falls back to the script's defaults instead of forwarding the literal
-        # empty string and breaking the helper's `command -v` check.
         set(_prefix_env_args)
         if(CMAKE_NM)
             list(APPEND _prefix_env_args "NM=${CMAKE_NM}")
@@ -121,12 +113,14 @@ if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
         if(CMAKE_OBJCOPY)
             list(APPEND _prefix_env_args "OBJCOPY=${CMAKE_OBJCOPY}")
         endif()
+        get_target_property(_prefix_script  OpenSSLQuicPrefixed PREFIX_RENAME_SCRIPT)
+        get_target_property(_prefix_syms    OpenSSLQuicPrefixed PREFIX_RENAME_SYMS_FILE)
         add_custom_command(
             TARGET msquic_platform
             POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E env ${_prefix_env_args}
-                "${OpenSSLQuicPrefixed_PREFIX_SCRIPT}" apply
-                "${OpenSSLQuicPrefixed_REDEFINE_SYMS}"
+                "${_prefix_script}" apply
+                "${_prefix_syms}"
                 "$<TARGET_FILE:msquic_platform>"
                 "$<TARGET_FILE:msquic_platform>"
             COMMENT
