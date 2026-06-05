@@ -142,6 +142,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/OpenSSLSymbolPrefix.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/OpenSSLSymbolPrefix.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/PGO.md",
       "output": {
         ".html": {

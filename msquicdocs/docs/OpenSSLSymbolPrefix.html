@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>OpenSSL Symbol Prefix (QUIC_OPENSSL_SYMBOL_PREFIX) </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="OpenSSL Symbol Prefix (QUIC_OPENSSL_SYMBOL_PREFIX) ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/OpenSSLSymbolPrefix.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="openssl-symbol-prefix-quic_openssl_symbol_prefix">OpenSSL Symbol Prefix (<code>QUIC_OPENSSL_SYMBOL_PREFIX</code>)</h1>
+
+<blockquote>
+<p><strong>Status: Experimental / opt-in.</strong> Linux only. Default off.</p>
+</blockquote>
+<h2 id="scope">Scope</h2>
+<p>This option only matters in one specific configuration:</p>
+<ul>
+<li>the consuming application links MsQuic statically, <strong>and</strong></li>
+<li>MsQuic was built with bundled OpenSSL statically linked
+(<code>QUIC_TLS_LIB=quictls|openssl</code> without <code>QUIC_USE_SYSTEM_LIBCRYPTO</code> or any
+of the external-OpenSSL hooks).</li>
+</ul>
+<p>If MsQuic dynamically links to the system OpenSSL, the bundled OpenSSL
+symbols never enter the consumer's binary in the first place and there is
+nothing to namespace. The msquic project is moving toward dynamic linking of
+the system OpenSSL where it is available (e.g. OpenSSL 3.5 on newer distros);
+as that becomes the default for the affected platforms, <code>QUIC_OPENSSL_SYMBOL_PREFIX</code>
+becomes irrelevant for those configurations and remains useful only for
+consumers that must continue to bundle OpenSSL statically.</p>
+<h2 id="motivation">Motivation</h2>
+<p>When a process links MsQuic statically and also pulls in another copy of
+OpenSSL via an unrelated dependency (e.g. a system <code>libcrypto.so.3</code> brought in
+by a logging library, a database driver, or any C++ library that itself uses
+OpenSSL), the two OpenSSL copies share the same global C symbols
+(<code>SSL_CTX_new</code>, <code>EVP_*</code>, <code>BN_*</code>, <code>ERR_*</code>, the per-module init constructors,
+etc.). The dynamic linker resolves every reference to the <strong>first definition
+loaded</strong>, so all callers — including MsQuic — silently end up sharing one
+OpenSSL's state machine while their headers and ABI assumptions came from the
+other. Typical symptoms:</p>
+<ul>
+<li>Crashes in <code>OPENSSL_init_crypto</code> / <code>RAND_load_file</code> when one OpenSSL's
+per-module init runs against the other's global registries.</li>
+<li>Spurious SSL handshake failures when callbacks installed against one
+<code>SSL_CTX</code> see the other's vtable layout.</li>
+<li>ABI mismatches when one OpenSSL is <code>3.0.x</code> (system <code>libcrypto.so.3</code> on
+Ubuntu 22.04 / RHEL 9) and MsQuic's bundled OpenSSL is <code>3.5.x</code> (required for
+<code>SSL_set_quic_tls_cbs</code>).</li>
+</ul>
+<p>Building MsQuic as a <code>SHARED</code> library with <code>--exclude-libs=ALL</code> hides the
+bundled OpenSSL from the global symbol table, but does not help consumers that
+want a single statically-linked binary, and does not address process-level
+duplicate-singleton issues if the consumer itself produces a <code>.so</code>.</p>
+<h2 id="what-this-option-does">What this option does</h2>
+<p>When <code>QUIC_OPENSSL_SYMBOL_PREFIX=&lt;prefix&gt;</code> is passed at CMake configure time,
+the build:</p>
+<ol>
+<li>Builds the bundled OpenSSL submodule normally to produce <code>libssl.a</code> and
+<code>libcrypto.a</code>.</li>
+<li>Extracts every globally-defined external symbol from those two archives
+using <code>nm --defined-only --extern-only</code> and writes a redefine-syms file
+mapping each <code>&lt;sym&gt;</code> to <code>&lt;prefix&gt;&lt;sym&gt;</code>.</li>
+<li>Produces prefixed copies of the archives via
+<code>objcopy --redefine-syms=&lt;file&gt; libssl.a libssl_prefixed.a</code> (and the same
+for <code>libcrypto.a</code>). The rename touches both definitions and undefined
+references inside each member object.</li>
+<li>Applies the same <code>--redefine-syms</code> step as a POST_BUILD action on
+<code>libmsquic_platform.a</code> so that MsQuic's own undefined references to
+OpenSSL (from <code>tls_openssl.c</code>, <code>tls_quictls.c</code>, <code>crypt_openssl.c</code>,
+<code>selfsign_openssl.c</code>) get rewritten to match the prefixed names.</li>
+<li>Routes the existing <code>OpenSSL</code> interface target at the prefixed archives, so
+the rest of the build is unchanged.</li>
+</ol>
+<p>The result is <code>libmsquic.a</code> plus the prefixed <code>libssl.a</code> / <code>libcrypto.a</code> (and
+whatever final executable or shared library the downstream consumer links them
+into) whose only externally-visible OpenSSL symbols are the prefixed ones. The
+dynamic linker has no reason to resolve them against any other OpenSSL copy
+present in the same process. Note that <code>QUIC_OPENSSL_SYMBOL_PREFIX</code> itself
+requires <code>BUILD_SHARED_LIBS=OFF</code> — see Constraints below — so this mode never
+produces <code>libmsquic.so</code> directly; shared-library packaging is the consumer's
+responsibility.</p>
+<h2 id="usage">Usage</h2>
+<p>Replace <code>&lt;your_prefix&gt;</code> with a value unique to your binary, e.g.
+<code>acme_myapp_msquic_</code> (so that two independently-renamed MsQuics in the same
+process still do not collide with each other). The prefix must match
+<code>^[A-Za-z_][A-Za-z0-9_]*$</code> — the CMake guard rejects anything else, because
+the value is interpolated into <code>objcopy --redefine-syms</code> map lines and into
+the build-tree path.</p>
+<pre><code class="lang-bash">cmake -B build \
+    -DQUIC_TLS_LIB=quictls \
+    -DQUIC_BUILD_SHARED=OFF \
+    -DQUIC_OPENSSL_SYMBOL_PREFIX=&lt;your_prefix&gt; ...
+cmake --build build
+</code></pre>
+<p><code>-DQUIC_BUILD_SHARED=OFF</code> is required: this option drives MsQuic's
+<code>BUILD_SHARED_LIBS</code>, and the prefixed OpenSSL is currently only supported with
+<code>BUILD_SHARED_LIBS=OFF</code> (see Constraints below). Omitting it on a default
+configure (where <code>QUIC_BUILD_SHARED=ON</code>) trips the <code>FATAL_ERROR</code> guard.</p>
+<h3 id="changing-the-prefix-value">Changing the prefix value</h3>
+<p>The POST_BUILD rename step on <code>libmsquic_platform.a</code> is keyed on the platform
+archive's mtime, not on the prefix value. If you reconfigure with a different
+<code>QUIC_OPENSSL_SYMBOL_PREFIX</code> over the same build tree, the platform archive
+is untouched, the POST_BUILD step does not refire, and the resulting binary
+will still carry the previous prefix on the platform side while the
+<code>openssl-prefixed/&lt;new_prefix&gt;/</code> directory holds the new prefix on the OpenSSL
+side — link will fail or, worse, silently produce a mixed-prefix binary.</p>
+<p>Workaround until the rename is restructured as a proper <code>add_custom_command</code>
+in the dependency graph: when you change the prefix, force a clean rebuild of
+the affected targets:</p>
+<pre><code class="lang-bash">cmake --build build --target clean
+cmake --build build
+</code></pre>
+<p>or blow the build tree away (<code>rm -rf build &amp;&amp; cmake -B build ...</code>).</p>
+<h2 id="constraints">Constraints</h2>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux only (<code>CX_PLATFORM=linux</code>)</td>
+<td>The implementation uses GNU binutils <code>objcopy --redefine-syms</code>. macOS support would need <code>llvm-objcopy</code> &gt;= 13 (untested); PE/COFF lacks a flat-namespace symbol table and would need an entirely different approach.</td>
+</tr>
+<tr>
+<td>Bundled OpenSSL only</td>
+<td>An external/system OpenSSL is owned by the caller and cannot be renamed. The option is rejected with <code>FATAL_ERROR</code> if combined with <code>QUIC_USE_EXTERNAL_OPENSSL</code>, <code>QUIC_OPENSSL_INCLUDE_DIR</code>, <code>QUIC_OPENSSL_LIB_DIR</code>, <code>QUIC_OPENSSL_ROOT_DIR</code>, or <code>QUIC_USE_SYSTEM_LIBCRYPTO</code>.</td>
+</tr>
+<tr>
+<td>Cross-compile aware</td>
+<td><code>${CMAKE_NM}</code> and <code>${CMAKE_OBJCOPY}</code> are honored so cross-compiled builds (e.g. <code>aarch64-linux-gnu-objcopy</code>) work correctly.</td>
+</tr>
+<tr>
+<td>Prefix charset</td>
+<td>Must match <code>^[A-Za-z_][A-Za-z0-9_]*$</code>. The CMake guard rejects anything else. The value is interpolated into <code>objcopy --redefine-syms</code> map lines and into the build-tree path.</td>
+</tr>
+<tr>
+<td><code>BUILD_SHARED_LIBS=OFF</code> only</td>
+<td>The prefixed OpenSSL is exposed as an <code>INTERFACE IMPORTED GLOBAL</code> target referencing build-tree archive paths under <code>${CMAKE_BINARY_DIR}/openssl-prefixed/</code>; it is not installable via <code>install(TARGETS ... EXPORT msquic)</code>. Building MsQuic as a shared lib with prefixing enabled is rejected with <code>FATAL_ERROR</code> until the install path is restructured.</td>
+</tr>
+<tr>
+<td>Prefix changes require clean rebuild</td>
+<td>The POST_BUILD rename on <code>libmsquic_platform.a</code> is keyed on the archive mtime, not the prefix value. See &quot;Changing the prefix value&quot; above.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="performance">Performance</h2>
+<p>The rename step adds a few seconds to the first build (the syms file is ~95k
+lines; <code>objcopy --redefine-syms</code> over each archive runs in 1-2s). Subsequent
+incremental builds re-apply the POST_BUILD step on <code>libmsquic_platform.a</code>
+whenever it changes, which is negligible.</p>
+<h2 id="verification">Verification</h2>
+<p>Replace <code>&lt;your_prefix&gt;</code> and <code>&lt;arch&gt;_&lt;tls&gt;</code> (e.g. <code>x64_quictls</code>) with the
+values used at configure time. After the build, the prefixed archive should
+contain only renamed symbols:</p>
+<pre><code class="lang-bash">nm -g --defined-only build/openssl-prefixed/&lt;your_prefix&gt;/libssl.a \
+  | awk 'NF&gt;=3 &amp;&amp; $(NF-1) ~ /^[TDRBWVCI]$/ {print $NF}' \
+  | grep -v '^&lt;your_prefix&gt;' | wc -l
+# Expected: 0
+</code></pre>
+<p><code>libmsquic_platform.a</code>'s undefined OpenSSL references should all be
+prefixed (this option requires <code>QUIC_BUILD_SHARED=OFF</code>, so the final output is
+the static archive — there is no <code>libmsquic.so</code> to check):</p>
+<pre><code class="lang-bash">nm -u build/linux/&lt;arch&gt;_&lt;tls&gt;/obj/Release/libmsquic_platform.a \
+  | awk '$1==&quot;U&quot;{print $2}' \
+  | grep -E '^(SSL_|EVP_|BN_|ERR_|X509_|OPENSSL_|RAND_|RSA_|EC_|BIO_|ASN1_|PEM_|CRYPTO_)'
+# Expected: no output (every OpenSSL undef is now &lt;your_prefix&gt;-prefixed)
+</code></pre>
+<p>Notes on the <code>nm</code> invocations above:</p>
+<ul>
+<li>We use plain <code>-g</code> (no <code>-C</code>) to match the script's symbol filter, which
+operates on mangled names.</li>
+<li>The <code>awk</code> filter mirrors the script's rule (<code>NF&gt;=3</code> and a symbol-type set
+that includes <code>I</code> / GNU IFUNC, used by OpenSSL 3.x dispatch resolvers on
+x86_64). If you tighten it, you may falsely conclude the rename is
+incomplete.</li>
+<li>The pipeline uses <code>grep -v ... | wc -l</code> rather than <code>grep -vc</code> because
+<code>grep -vc</code> exits non-zero when its count is 0, which under <code>set -e</code> would
+abort a verification script for the success case.</li>
+</ul>
+<h2 id="future-direction">Future direction</h2>
+<p>This CMake helper is a workaround at the link layer. A build-time
+<code>--symbol-prefix=</code> configure option in OpenSSL itself — equivalent to
+BoringSSL's <a href="https://github.com/google/boringssl/blob/main/BUILDING.md#building-with-prefixed-symbols"><code>BORINGSSL_PREFIX</code></a>, which bakes the prefix
+into every public symbol at compile time — would make this helper
+unnecessary.</p>
+<p>The collision class was raised upstream in
+<a href="https://github.com/openssl/openssl/issues/20766">openssl/openssl#20766 &quot;OpenSSL symbols conflict while linking with
+application&quot;</a> (Apr 2023) and
+closed Jan 2024 as <code>resolved: answered</code> with OpenSSL maintainers explicitly
+declining a prefix mechanism — the upstream position is that statically
+linking two OpenSSL copies into one process is the consumer's problem to
+solve, and that <code>objcopy</code>-style renaming (i.e. what this helper does) is
+considered a &quot;dodgy kludge&quot; they do not want in tree. We should treat this
+helper as a permanent workaround unless that upstream position changes.</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/OpenSSLSymbolPrefix.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
