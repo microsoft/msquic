@@ -395,14 +395,35 @@ MsQuicRegistrationShutdown(
             Entry = Entry->Flink;
         }
 
-        CxPlatDispatchLockRelease(&Registration->ConnectionLock);
+        //
+        // Drain listeners under the registration lock into a private list while
+        // taking a non-zero cleanup reference on each one. Then stop them outside
+        // the lock.
+        //
+        CXPLAT_LIST_ENTRY PendingListeners;
+        CxPlatListInitializeHead(&PendingListeners);
 
-        Entry = Registration->Listeners.Flink;
-        while (Entry != &Registration->Listeners) {
+        while (!CxPlatListIsEmpty(&Registration->Listeners)) {
+            Entry = CxPlatListRemoveHead(&Registration->Listeners);
             QUIC_LISTENER* Listener =
                 CXPLAT_CONTAINING_RECORD(Entry, QUIC_LISTENER, RegistrationLink);
-            Entry = Entry->Flink;
+
+            if (CxPlatRefIncrementNonZero(&Listener->RefCount, 1)) {
+                CxPlatListInsertTail(&PendingListeners, &Listener->RegistrationLink);
+            }
+        }
+
+        CxPlatDispatchLockRelease(&Registration->ConnectionLock);
+
+        while (!CxPlatListIsEmpty(&PendingListeners)) {
+            QUIC_LISTENER* Listener =
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&PendingListeners),
+                    QUIC_LISTENER,
+                    RegistrationLink);
+
             MsQuicListenerStop((HQUIC)Listener);
+            QuicListenerRelease(Listener);
         }
     }
 
