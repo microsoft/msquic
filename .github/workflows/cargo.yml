@@ -34,7 +34,7 @@ jobs:
     name: Cargo
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForBuild -InstallTestCertificates
       shell: pwsh
@@ -136,7 +136,7 @@ jobs:
     name: Cargo-Preinstall
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
     - name: Install Rust
       uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
       with:
