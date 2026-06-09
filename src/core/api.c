@@ -1529,7 +1529,7 @@ Error:
     //
     while (!CxPlatListIsEmpty(&ChunkList)) {
         CXPLAT_DBG_ASSERT(Connection != NULL);
-        QuicRecvChunkFree(
+        CxPlatPoolFree(
             CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
     }
 
