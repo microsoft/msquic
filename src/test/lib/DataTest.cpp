@@ -1724,7 +1724,8 @@ QuicCancelOnLossSend(
         &ClientContext);
     TEST_TRUE(ClientContext.Stream->IsValid());
     TEST_QUIC_SUCCEEDED(ClientContext.Stream->Start());
-
+    // Arm the loss helper to drop one packet from the send operation.
+    // There is a small chance the wrong packet is dropped if a timer triggers a send flush just at the wrong time.
     //
     // Arm the loss helper BEFORE sending so the stream data packet itself is
     // the one that gets dropped. Arming after Send is racy: on a fast loopback
