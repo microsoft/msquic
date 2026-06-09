@@ -1724,12 +1724,19 @@ QuicCancelOnLossSend(
         &ClientContext);
     TEST_TRUE(ClientContext.Stream->IsValid());
     TEST_QUIC_SUCCEEDED(ClientContext.Stream->Start());
-    TEST_QUIC_SUCCEEDED(ClientContext.Stream->Send(&MessageBuffer, 1, QUIC_SEND_FLAG_CANCEL_ON_LOSS));
 
-    // If requested, drop packets.
+    //
+    // Arm the loss helper BEFORE sending so the stream data packet itself is
+    // the one that gets dropped. Arming after Send is racy: on a fast loopback
+    // datapath, the worker thread can transmit the data and the server can
+    // dispatch QUIC_STREAM_EVENT_RECEIVE before the test thread arms the drop,
+    // causing the test to see SuccessExitCode instead of the expected
+    // ErrorExitCode triggered by QUIC_STREAM_EVENT_CANCEL_ON_LOSS.
+    //
     if (DropPackets) {
         LossHelper.DropPackets(1);
     }
+    TEST_QUIC_SUCCEEDED(ClientContext.Stream->Send(&MessageBuffer, 1, QUIC_SEND_FLAG_CANCEL_ON_LOSS));
 
     // Wait for the send phase to conclude.
     if (!ClientContext.SendPhaseEndedEvent.WaitTimeout(EventWaitTimeoutMs)) {
