@@ -1,6 +1,6 @@
 # Publishing a Release
 
-Follow these instruction to create and publish a new minor or patch version of MsQuic.
+Follow these instructions to create and publish a new minor or patch version of MsQuic.
 
 ## Create a New Release Branch
 
@@ -10,14 +10,14 @@ It goes through a period of stabilization before the release is published.
 1. Add (via PR) notes above for the new release.
 1. Fork `main` branch to `release/X.Y` where `X` is the major version and `Y` is the minor version.
 1. Update (via PR) the minor version for the `main` branch:
-   - Run `./scripts/update-version.ps1 -Part Minor` to generate the relavent changes.
+   - Run `./scripts/update-version.ps1 -Part Minor` to generate the relevant changes.
    - Also add the new version to the bug_report.yaml issue template file.
 
 ## Servicing a Release Branch
 
-1. Changes first go into the `main` branch, and then are cherry-picked into the relavent `release/X.Y` branches.
+1. Changes first go into the `main` branch, and then are cherry-picked into the relevant `release/X.Y` branches.
 1. Update (via PR) the patch version for the release branches:
-   - Run `./scripts/update-version.ps1 -Part Patch` to generate the relavent changes.
+   - Run `./scripts/update-version.ps1 -Part Patch` to generate the relevant changes.
 
 ## Publishing a Release Branch
 
@@ -25,7 +25,7 @@ It goes through a period of stabilization before the release is published.
    - Make sure to pick the correct `release/X.Y` branch
    - The tag should be the full version number: `vX.Y.Z`
    - The release title should be `MsQuic vX.Y.Z`
-   - Put relavent information in the notes of the release (see previous releases for examples)
+   - Put relevant information in the notes of the release (see previous releases for examples)
 1. Wait for [msquic-Official-Tests](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&_a=summary) pipeline to run for the newly created tag.
 1. Download the `distribution` packages from the artifacts and upload them to the GitHub release:
    - msquic_gamecore_console_x64_Release_schannel.zip
@@ -90,7 +90,7 @@ The following are the complete (manual) steps for publishing the Rust crate.
 ## Synchronizing with Windows
 
 1. Once the release branch/tag is created, the undock pipeline should run automatically.
-   - If for some reason there's a problem, you may need to run the pipline manually by clicking on "Run Pipeline" [here](https://microsoft.visualstudio.com/undock/_build?definitionId=134439) (MSFT-only access required), scroll down to the **resources tab** and pick the MsQuic release tag of interest then run the pipeline.
+   - If for some reason there's a problem, you may need to run the pipeline manually by clicking on "Run Pipeline" [here](https://microsoft.visualstudio.com/undock/_build?definitionId=134439) (MSFT-only access required), scroll down to the **resources tab** and pick the MsQuic release tag of interest then run the pipeline.
    - Another workaround to force a manual re-run by going [here](https://microsoft.visualstudio.com/undock/_git/msquic/tags) (MSFT-only access required) and deleting the tag, and then waiting for the [mirror pipeline](https://microsoft.visualstudio.com/undock/_build?definitionId=134727) (MSFT-only access required) to run automatically re-copy over the tag from GitHub.
-2. Once the pipeline passes tests, get the VPACK ID from the "Create VPACK" stage, and create a PR to point [this file](https://microsoft.visualstudio.com/OS/_git/os.2020?path=/minio/netio/quic/msquic/msquic.man) (MSFT-only access required) to the VPACK created by the pipline run.
+2. Once the pipeline passes tests, get the VPACK ID from the "Create VPACK" stage, and create a PR to point [this file](https://microsoft.visualstudio.com/OS/_git/os.2020?path=/minio/netio/quic/msquic/msquic.man) (MSFT-only access required) to the VPACK created by the pipeline run.
 3. Review and merge the PR to complete the process.

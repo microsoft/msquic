@@ -1,6 +1,6 @@
 # MsQuic releases and support
 
-MsQuic follows [semantic versionning](https://semver.org/).
+MsQuic follows [semantic versioning](https://semver.org/).
 
 ## Releases
 
@@ -9,9 +9,9 @@ A new release is generally created every 6 months to a year.
 
 | Version | Branch                                                              | Fork Date   | Release Date | End of Support |
 |---------|---------------------------------------------------------------------|-------------|--------------|----------------|
-| v2.5    | [release/2.5](https://github.com/microsoft/msquic/tree/release/2.5) | May 15 2025 | May 16 2025  | TDB            |
+| v2.5    | [release/2.5](https://github.com/microsoft/msquic/tree/release/2.5) | May 15 2025 | May 16 2025  | TBD            |
 | v2.4    | [release/2.4](https://github.com/microsoft/msquic/tree/release/2.4) | Aug 5 2024  | Aug 16 2024  | Sep 1 2026     |
-| v2.3    | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | Jan 26 2024 | Mar 12 2024  | Sept 12 2025   |
+| v2.3    | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | Jan 26 2024 | Mar 12 2024  | Sep 12 2025    |
 
 **End of support** refers to the date when Microsoft no longer provides fixes, updates, or online technical assistance for your product.
 As this date nears, make sure to upgrade to a supported version.
@@ -25,7 +25,7 @@ MsQuic officially supports the following operating systems and architectures.
 | Windows | x64, arm64        |
 | Linux   | x64, arm64, arm32 |
 
-MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc... but this is a best effort with no support guarantee.
+MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc., but this is a best-effort basis with no support guarantee.
 
 ### Packages
 
@@ -33,12 +33,12 @@ MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc... b
 
 MsQuic is published as a NuGet package for Windows: [Microsoft.Native.Quic.MsQuic.Schannel](https://www.nuget.org/packages/microsoft.native.quic.msquic.schannel/).
 
-An package using OpenSSL is also published: [Microsoft.Native.Quic.MsQuic.OpenSSL](https://www.nuget.org/packages/microsoft.native.quic.msquic.openssl/)
+A package using OpenSSL is also published: [Microsoft.Native.Quic.MsQuic.OpenSSL](https://www.nuget.org/packages/microsoft.native.quic.msquic.openssl/).
 
 **Linux**
 
 MsQuic packages are published on the [Microsoft Linux Software Repository](https://learn.microsoft.com/en-us/linux/packages).
-The following distribution are supported:
+The following distributions are supported:
 
 | Distribution                                                                                        | Version                           | Architectures          |
 |-----------------------------------------------------------------------------------------------------|-----------------------------------|------------------------|

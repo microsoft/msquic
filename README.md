@@ -65,7 +65,7 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * For deploying QUIC, see the [Deployment docs](./docs/Deployment.md).
   * For diagnosing issues, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TroubleShootingGuide.md).
   * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
-  * For contributor and internal design, see the [Contributor docs](./docs/contrib).
+  * For contributor guides and internal design docs, see the [Contributor docs](./docs/contrib).
 
 # Contributing
 
