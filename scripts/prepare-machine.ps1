@@ -76,7 +76,7 @@ param (
     [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdpMapMode,
+    [switch]$UseXdpPrerelease,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
@@ -152,16 +152,16 @@ if ($ForTest) {
         $InstallXdpDriver = $true;
         $InstallDuoNic = $true;
     }
-    if ($UseXdpMapMode) {
+    if ($UseXdpPrerelease) {
         $InstallXdpDriver = $true;
         $InstallDuoNic = $true;
     }
 }
 
 # The official MSI (xdp.json) is production-signed and does not need test
-# signing.  Only the prerelease zip (xdp_ex.json, used by -UseXdpMapMode)
+# signing.  Only the prerelease nupkg (xdp_ex.json, used by -UseXdpPrerelease)
 # is test-signed and requires signing certs + test signing enabled.
-if ($UseXdpMapMode) {
+if ($UseXdpPrerelease) {
     $InstallSigningCertificates = $true;
 }
 
@@ -226,21 +226,24 @@ function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
     # Remove any previous XDP installation to avoid netcfg "already exists" errors.
     Uninstall-Xdp
-    $XdpJsonFile = if ($UseXdpMapMode) { "xdp_ex.json" } else { "xdp.json" }
+    $XdpJsonFile = if ($UseXdpPrerelease) { "xdp_ex.json" } else { "xdp.json" }
     $XdpJson = Get-Content (Join-Path $PSScriptRoot $XdpJsonFile) | ConvertFrom-Json
     $InstallerUrl = $XdpJson.installer
-    $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
     $XdpPath = Join-Path $ArtifactsPath "xdp"
 
+    # Determine the package type from the URL extension.
+    $PkgPath = Join-Path $ArtifactsPath "xdp-pkg"
+    if ($InstallerUrl -like "*.nupkg") { $PkgPath += ".nupkg" } else { $PkgPath += ".zip" }
+
     Write-Host "Downloading XDP package from $InstallerUrl"
-    Invoke-WebRequest -Uri $InstallerUrl -OutFile $ZipPath
+    Invoke-WebRequest -Uri $InstallerUrl -OutFile $PkgPath
 
     if ($InstallerUrl -like "*.msi") {
         #
         # Legacy MSI-based installation (XDP < 1.3).
         #
         $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
-        Move-Item -Force $ZipPath $MsiPath
+        Move-Item -Force $PkgPath $MsiPath
         Write-Host "Installing XDP driver certificate"
         $CertFileName = Join-Path $ArtifactsPath 'xdp.cer'
         Get-AuthenticodeSignature $MsiPath | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
@@ -251,15 +254,14 @@ function Install-Xdp-Driver {
     } else {
         #
         # NuGet/zip-based installation (XDP >= 1.3).
+        # .nupkg files are zip-compatible and can be extracted with Expand-Archive.
         #
         Write-Host "Extracting XDP package"
         if (Test-Path $XdpPath) { Remove-Item -Recurse -Force $XdpPath }
-        Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
+        Expand-Archive -Path $PkgPath -DestinationPath $XdpPath -Force
 
-        #
-        # INF-based installation (same approach as xdp repo's setup.ps1 -XdpInstaller INF).
-        # Uses the xdp\ subdirectory which contains xdp.inf + xdp.cat (signed catalog).
-        #
+        # Install the test-signing certificate from the signed catalog so
+        # Windows trusts the test-signed driver.
         $XdpCat = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdp.cat" | Select-Object -First 1
         if ($XdpCat) {
             Write-Host "Installing XDP driver certificate from catalog"
@@ -269,19 +271,13 @@ function Install-Xdp-Driver {
             Import-Certificate -FilePath $CertPath -CertStoreLocation 'cert:\localmachine\root'
             Import-Certificate -FilePath $CertPath -CertStoreLocation 'cert:\localmachine\trustedpublisher'
         }
-        # Use the INF next to xdp.cat (in the xdp\ subdirectory), not the top-level one.
-        $XdpInf = Join-Path $XdpCat.DirectoryName "xdp.inf"
-        if (!(Test-Path $XdpInf)) { Write-Error "xdp.inf not found alongside xdp.cat" }
-        $XdpPcwMan = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdppcw.man" | Select-Object -First 1
 
-        Write-Host "Installing XDP driver via netcfg (INF mode)"
-        netcfg.exe -v -l $XdpInf -c s -i ms_xdp
-        if ($LastExitCode) { Write-Error "netcfg.exe exit code: $LastExitCode" }
-
-        if ($XdpPcwMan) {
-            Write-Verbose "lodctr.exe /m:$($XdpPcwMan.FullName) $env:WINDIR\system32\drivers\"
-            lodctr.exe /m:$XdpPcwMan.FullName "$env:WINDIR\system32\drivers\" 2>&1 | Write-Verbose
-        }
+        # Use the official xdp-setup.ps1 that ships inside the package.
+        # See https://github.com/microsoft/xdp-for-windows/blob/main/docs/usage.md#installation
+        $XdpSetup = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdp-setup.ps1" | Select-Object -First 1
+        if (!$XdpSetup) { Write-Error "xdp-setup.ps1 not found in extracted package" }
+        Write-Host "Installing XDP driver via xdp-setup.ps1"
+        & $XdpSetup.FullName -Install xdp -Verbose
 
         # Copy xdpapi.dll to System32 so msquic can load it at runtime.
         $XdpApiDll = Get-ChildItem -Path $XdpPath -Recurse -Filter "xdpapi.dll" | Select-Object -First 1
@@ -299,40 +295,47 @@ function Uninstall-Xdp {
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
 
-    #
-    # Unregister performance counters.
-    #
-    $XdpPcwMan = if (Test-Path $XdpPath) {
-        Get-ChildItem -Path $XdpPath -Recurse -Filter "xdppcw.man" -ErrorAction Ignore | Select-Object -First 1
+    # Prefer the official xdp-setup.ps1 for uninstall when available.
+    $XdpSetup = if (Test-Path $XdpPath) {
+        Get-ChildItem -Path $XdpPath -Recurse -Filter "xdp-setup.ps1" -ErrorAction Ignore | Select-Object -First 1
     }
-    if ($XdpPcwMan) {
-        try { unlodctr.exe /m:$XdpPcwMan.FullName 2>&1 | Write-Verbose } catch {}
-    }
-
-    #
-    # Remove netcfg-registered component (the XDP network service).
-    #
-    Write-Host "Uninstalling XDP network component via netcfg"
-    try { cmd.exe /c "netcfg.exe -u ms_xdp 2>&1" | Write-Verbose } catch {}
-
-    #
-    # Remove staged driver package via pnputil.
-    #
-    Write-Host "Uninstalling XDP driver via pnputil"
-    try {
-        $DriverPkg = pnputil.exe /enum-drivers | Select-String -Pattern "xdp\.inf" -Context 1 |
-            ForEach-Object { ($_.Context.PreContext -split '\s+')[-1] }
-        if ($DriverPkg) {
-            pnputil.exe /delete-driver $DriverPkg /uninstall /force
+    if ($XdpSetup) {
+        Write-Host "Uninstalling XDP via xdp-setup.ps1"
+        try { & $XdpSetup.FullName -Uninstall xdp -Force -Verbose } catch {
+            Write-Host "WARNING: xdp-setup.ps1 -Uninstall failed: $_"
         }
-    } catch {}
+    } else {
+        #
+        # Manual fallback when the extracted package is missing.
+        #
 
-    #
-    # Clean up the xdp service if it's still lingering.
-    #
-    if (Get-Service xdp -ErrorAction Ignore) {
-        try { Stop-Service xdp -Force -ErrorAction Ignore } catch {}
-        try { sc.exe delete xdp 2>&1 | Out-Null } catch {}
+        # Unregister performance counters.
+        $XdpPcwMan = if (Test-Path $XdpPath) {
+            Get-ChildItem -Path $XdpPath -Recurse -Filter "xdppcw.man" -ErrorAction Ignore | Select-Object -First 1
+        }
+        if ($XdpPcwMan) {
+            try { unlodctr.exe /m:$XdpPcwMan.FullName 2>&1 | Write-Verbose } catch {}
+        }
+
+        # Remove netcfg-registered component (the XDP network service).
+        Write-Host "Uninstalling XDP network component via netcfg"
+        try { cmd.exe /c "netcfg.exe -u ms_xdp 2>&1" | Write-Verbose } catch {}
+
+        # Remove staged driver package via pnputil.
+        Write-Host "Uninstalling XDP driver via pnputil"
+        try {
+            $DriverPkg = pnputil.exe /enum-drivers | Select-String -Pattern "xdp\.inf" -Context 1 |
+                ForEach-Object { ($_.Context.PreContext -split '\s+')[-1] }
+            if ($DriverPkg) {
+                pnputil.exe /delete-driver $DriverPkg /uninstall /force
+            }
+        } catch {}
+
+        # Clean up the xdp service if it's still lingering.
+        if (Get-Service xdp -ErrorAction Ignore) {
+            try { Stop-Service xdp -Force -ErrorAction Ignore } catch {}
+            try { sc.exe delete xdp 2>&1 | Out-Null } catch {}
+        }
     }
 
     $XdpApiPath = Join-Path $env:SystemRoot "System32\xdpapi.dll"

@@ -30,11 +30,16 @@ on:
         - 'SpinQuicWarnings.Light'
         - 'Stacks.Light'
         - 'Stacks.Verbose'
-      only_mapmode:
-        description: 'Run only the XDP map mode BVT job (on 1ES pool)'
+      only_xdp_prerelease:
+        description: 'Run only the XDP prerelease BVT job (on 1ES pool)'
         required: false
         default: false
         type: boolean
+      xdp_prerelease_sha:
+        description: 'SHA of the msquic commit to test for the xdp_prerelease job (defaults to current branch head)'
+        required: false
+        default: ''
+        type: string
   push:
     branches:
     - main
@@ -57,7 +62,7 @@ permissions:
 jobs:
   build-windows-kernel:
     name: Build WinKernel
-    if: inputs.only_mapmode != true
+    if: inputs.only_xdp_prerelease != true
     strategy:
       fail-fast: false
       matrix:
@@ -102,7 +107,7 @@ jobs:
 
   build-unix:
     name: Build Unix
-    if: inputs.only_mapmode != true
+    if: inputs.only_xdp_prerelease != true
     strategy:
       fail-fast: false
       matrix:
@@ -134,7 +139,7 @@ jobs:
 
   bvt:
     name: BVT
-    if: inputs.only_mapmode != true
+    if: inputs.only_xdp_prerelease != true
     needs: [build-windows, build-unix]
     strategy:
       fail-fast: false
@@ -219,7 +224,7 @@ jobs:
 
   bvt-kernel:
     name: BVT Kernel
-    if: inputs.only_mapmode != true
+    if: inputs.only_xdp_prerelease != true
     needs: [build-windows, build-windows-kernel]
     strategy:
       fail-fast: false
@@ -270,7 +275,7 @@ jobs:
 
   interop:
     name: Interop
-    if: inputs.only_mapmode != true
+    if: inputs.only_xdp_prerelease != true
     needs: [build-windows, build-unix]
     strategy:
       fail-fast: false
@@ -320,7 +325,7 @@ jobs:
         path: artifacts
 
   bvt-xdpprerelease:
-    name: BVT XDP Map Mode
+    name: BVT XDP Prerelease
     if: github.event_name == 'workflow_dispatch'
     needs: [build-windows]
     runs-on:
@@ -332,7 +337,7 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       with:
         fetch-depth: 0
-        ref: ${{ inputs.ref || '' }}
+        ref: ${{ inputs.xdp_prerelease_sha || inputs.ref || '' }}
     - name: Download Windows Build Artifacts
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       with:
@@ -340,7 +345,7 @@ jobs:
         path: artifacts
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -Tls schannel -ForTest -UseXdpMapMode
+      run: scripts/prepare-machine.ps1 -Tls schannel -ForTest -UseXdpPrerelease
     - name: Install ETW Manifest
       shell: pwsh
       run: |
@@ -356,7 +361,7 @@ jobs:
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       if: failure() || cancelled()
       with:
-        name: BVT-Debug-windows-1es-windows-2022-x64-schannel-UseXdpMapMode
+        name: BVT-Debug-windows-1es-windows-2022-x64-schannel-UseXdpPrerelease
         path: artifacts
 
   Complete:
