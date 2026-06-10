@@ -357,6 +357,10 @@ jobs:
       shell: pwsh
       timeout-minutes: 120
       run: scripts/test.ps1 -Config Debug -Arch x64 -Tls schannel -OsRunner windows-2022 -GHA -LogProfile ${{ inputs.log_level || 'Full.Light' }} -GenerateXmlResults -UseXdp ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+    - name: Test XDP Map Mode
+      shell: pwsh
+      timeout-minutes: 120
+      run: scripts/test.ps1 -Config Debug -Arch x64 -Tls schannel -OsRunner windows-2022 -GHA -LogProfile ${{ inputs.log_level || 'Full.Light' }} -GenerateXmlResults -UseXdp -XdpMapMode -Filter "XdpMapMode*"
     - name: Upload on Failure or Cancellation
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       if: failure() || cancelled()
