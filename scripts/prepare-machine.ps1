@@ -236,7 +236,33 @@ function Install-Xdp-Driver {
     if ($InstallerUrl -like "*.nupkg") { $PkgPath += ".nupkg" } else { $PkgPath += ".zip" }
 
     Write-Host "Downloading XDP package from $InstallerUrl"
-    Invoke-WebRequest -Uri $InstallerUrl -OutFile $PkgPath
+    # GitHub draft/prerelease assets require authentication. Use 'gh release
+    # download' when the URL points to a GitHub release asset so that the gh
+    # CLI can supply credentials automatically. Fall back to Invoke-WebRequest
+    # for non-GitHub URLs or when gh is unavailable.
+    $Downloaded = $false
+    if ($InstallerUrl -match '^https://github\.com/(?<owner>[^/]+)/(?<repo>[^/]+)/releases/download/(?<tag>[^/]+)/(?<asset>.+)$') {
+        $ghOwner = $Matches['owner']
+        $ghRepo  = $Matches['repo']
+        $ghTag   = $Matches['tag']
+        $ghAsset = $Matches['asset']
+        if (Get-Command gh -ErrorAction SilentlyContinue) {
+            Write-Host "Using 'gh release download' for authenticated access"
+            gh release download $ghTag --repo "$ghOwner/$ghRepo" --pattern $ghAsset --dir (Split-Path $PkgPath) --clobber 2>&1
+            $DownloadedAsset = Join-Path (Split-Path $PkgPath) $ghAsset
+            if ($LASTEXITCODE -eq 0 -and (Test-Path $DownloadedAsset)) {
+                if ($DownloadedAsset -ne $PkgPath) {
+                    Move-Item -Force $DownloadedAsset $PkgPath
+                }
+                $Downloaded = $true
+            } else {
+                Write-Host "gh release download failed (exit code $LASTEXITCODE), falling back to Invoke-WebRequest"
+            }
+        }
+    }
+    if (-not $Downloaded) {
+        Invoke-WebRequest -Uri $InstallerUrl -OutFile $PkgPath
+    }
 
     if ($InstallerUrl -like "*.msi") {
         #
