@@ -5016,16 +5016,11 @@ QuicTestConnectionPoolCreate(
 
 void
 QuicTestXdpMapModeHandshake(
-    _In_ int Family,
-    _In_ uint16_t ServerPort,
-    _In_ uint16_t ClientPort,
-    _In_ bool UseCibir,
-    _In_ bool UseQtip
+    const XdpMapModeArgs& Params
     )
 {
-    UNREFERENCED_PARAMETER(UseQtip); // QTIP is configured globally by the fixture
     QUIC_ADDRESS_FAMILY QuicAddrFamily =
-        (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        (Params.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -5049,74 +5044,63 @@ QuicTestXdpMapModeHandshake(
     const uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 1 };
     const uint8_t CibirIdLength = sizeof(CibirId);
 
-    {
-        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
+    TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
 
-        if (UseCibir) {
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Listener.GetListener(),
-                    QUIC_PARAM_LISTENER_CIBIR_ID,
-                    CibirIdLength,
-                    CibirId));
-        }
-
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        QuicAddrSetPort(&ServerLocalAddr.SockAddr, ServerPort);
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            Listener.Context = &ServerAcceptCtx;
-
-            {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
-
-                if (UseCibir) {
-                    TEST_QUIC_SUCCEEDED(Client.SetShareUdpBinding(true));
-                    TEST_QUIC_SUCCEEDED(
-                        MsQuic->SetParam(
-                            Client.GetConnection(),
-                            QUIC_PARAM_CONN_CIBIR_ID,
-                            CibirIdLength,
-                            CibirId));
-                }
-
-                QuicAddr ClientLocalAddr(QuicAddrFamily);
-                QuicAddrSetToDuoNicClient(&ClientLocalAddr.SockAddr);
-                QuicAddrSetPort(&ClientLocalAddr.SockAddr, ClientPort);
-                TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(ClientLocalAddr));
-
-                QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
-                QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
-                TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
-
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                         ClientConfiguration,
-                         QuicAddrFamily,
-                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                         ServerLocalAddr.GetPort()));
-
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
-
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
-
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-            }
-        }
+    if (Params.UseCibir) {
+        TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
     }
+
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    QuicAddrSetPort(&ServerLocalAddr.SockAddr, Params.ServerPort);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    UniquePtr<TestConnection> Server;
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    Listener.Context = &ServerAcceptCtx;
+
+    TestConnection Client(Registration);
+    TEST_TRUE(Client.IsValid());
+
+    if (Params.UseCibir) {
+        TEST_QUIC_SUCCEEDED(Client.SetShareUdpBinding(true));
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Client.GetConnection(),
+                QUIC_PARAM_CONN_CIBIR_ID,
+                CibirIdLength,
+                CibirId));
+    }
+
+    QuicAddr ClientLocalAddr(QuicAddrFamily);
+    QuicAddrSetToDuoNicClient(&ClientLocalAddr.SockAddr);
+    QuicAddrSetPort(&ClientLocalAddr.SockAddr, Params.ClientPort);
+    TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(ClientLocalAddr));
+
+    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QuicAddrFamily,
+            QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+            ServerLocalAddr.GetPort()));
+
+    if (!Client.WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Client.GetIsConnected());
+
+    TEST_NOT_EQUAL(nullptr, Server);
+    if (!Server->WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Server->GetIsConnected());
+
+    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 }
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

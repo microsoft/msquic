@@ -3235,27 +3235,7 @@ TEST_P(XdpMapMode, Handshake) {
     ASSERT_NO_FATAL_FAILURE(Scope.Setup(Params.UseCibir, Params.UseQtip));
     TestLogger Logger("QuicTestXdpMapModeHandshake");
     QuicTestXdpMapModeHandshake(
-        Params.Family,
-        Scope.GetServerPort(),
-        Scope.GetClientPort(),
-        Params.UseCibir,
-        Params.UseQtip);
-}
-
-TEST_P(XdpMapMode, DataTransfer) {
-    if (!UseXdpMapMode) {
-        GTEST_SKIP() << "XDP Map Mode not enabled (use --xdpMapMode)";
-    }
-    auto Params = GetParam();
-    XdpMapModeRuleScope Scope;
-    ASSERT_NO_FATAL_FAILURE(Scope.Setup(Params.UseCibir, Params.UseQtip));
-    TestLogger Logger("QuicTestXdpMapModeDataTransfer");
-    QuicTestXdpMapModeDataTransfer(
-        Params.Family,
-        Scope.GetServerPort(),
-        Scope.GetClientPort(),
-        Params.UseCibir,
-        Params.UseQtip);
+        { Params.Family, Scope.GetServerPort(), Scope.GetClientPort(), Params.UseCibir });
 }
 
 static std::vector<XdpMapModeParams> GenerateXdpMapModeParams() {

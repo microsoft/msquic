@@ -141,9 +141,14 @@ jobs:
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", iouring: "-UseIoUring"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test"  },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test", log: "Full.Verbose" },
+<<<<<<< HEAD
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-prerelease", xdpmapmode: "-XdpMapMode", sanitize: "-SanitizeAddress", build: "-Test", testfilter: "XdpMapMode*" },
+=======
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
+>>>>>>> cb6db819c (test harness refactors)
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", log: "Full.Verbose" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", qtip: "-UseQtip", build: "-Test" },
