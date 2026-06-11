@@ -396,7 +396,7 @@ MsQuicRegistrationShutdown(
         }
 
         //
-        // Drain listeners under the registration lock into a private list while
+        // Drain listeners under the registration lock into a local list while
         // taking a non-zero cleanup reference on each one. Then stop them outside
         // the lock.
         //
@@ -422,7 +422,7 @@ MsQuicRegistrationShutdown(
                     QUIC_LISTENER,
                     RegistrationLink);
 
-            MsQuicListenerStop((HQUIC)Listener);
+            QuicListenerStopAsync(Listener);
             QuicListenerRelease(Listener);
         }
     }
