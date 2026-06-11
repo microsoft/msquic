@@ -79,8 +79,13 @@ void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void QuicTestXdpMapConfigParam();
-void QuicTestXdpMapModeHandshake(_In_ int Family, _In_ uint16_t ServerPort, _In_ uint16_t ClientPort, _In_ bool UseCibir, _In_ bool UseQtip);
-void QuicTestXdpMapModeDataTransfer(_In_ int Family, _In_ uint16_t ServerPort, _In_ uint16_t ClientPort, _In_ bool UseCibir, _In_ bool UseQtip);
+struct XdpMapModeArgs {
+    int Family;
+    uint16_t ServerPort;
+    uint16_t ClientPort;
+    bool UseCibir;
+};
+void QuicTestXdpMapModeHandshake(const XdpMapModeArgs& Params);
 #endif
 void QuicTestCommonParam();
 void QuicTestRegistrationParam();

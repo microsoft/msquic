@@ -14,6 +14,28 @@ Abstract:
 #include "DatagramTest.cpp.clog.h"
 #endif
 
+_Function_class_(NEW_CONNECTION_CALLBACK)
+static
+bool
+QUIC_API
+ListenerAcceptConnection(
+    _In_ TestListener* Listener,
+    _In_ HQUIC ConnectionHandle
+    )
+{
+    ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
+    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
+    if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
+        TEST_FAILURE("Failed to accept new TestConnection.");
+        delete *AcceptContext->NewConnection;
+        *AcceptContext->NewConnection = nullptr;
+        return false;
+    }
+    (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
+    CxPlatEventSet(AcceptContext->NewConnectionReady);
+    return true;
+}
+
 void
 QuicTestDatagramNegotiation(
     const DatagramNegotiationArgs& Params
@@ -41,7 +63,7 @@ QuicTestDatagramNegotiation(
     QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
 
     {
-        TestListener Listener(Registration, ListenerAcceptConnectionBasic, ServerConfiguration);
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
@@ -142,7 +164,7 @@ QuicTestDatagramSend(
     SelectiveLossHelper LossHelper;
 
     {
-        TestListener Listener(Registration, ListenerAcceptConnectionBasic, ServerConfiguration);
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
@@ -276,7 +298,7 @@ QuicTestDatagramDrop(
     SelectiveLossHelper LossHelper;
 
     {
-        TestListener Listener(Registration, ListenerAcceptConnectionBasic, ServerConfiguration);
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;

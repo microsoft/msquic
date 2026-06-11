@@ -106,7 +106,7 @@ public:
     QUIC_STATUS GetLocalAddr(_Out_ QuicAddr &localAddr);
     QUIC_STATUS GetStatistics(_Out_ QUIC_LISTENER_STATISTICS &stats);
 
-    HQUIC GetListener() const { return QuicListener; }
+    QUIC_STATUS SetCibirId(_In_reads_(Length) const uint8_t* CibirId, _In_ uint8_t Length);
 
     bool GetHasRandomLoss() const { return HasRandomLoss; }
     void SetHasRandomLoss(bool Value) { HasRandomLoss = Value; }
