@@ -6,6 +6,10 @@ set(SOURCES
     quic_gtest.h
 )
 
+if (WIN32)
+    list(APPEND SOURCES XdpMapModeHelpers.cpp XdpMapModeHelpers.h)
+endif()
+
 add_executable(msquictest ${SOURCES})
 
 target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
