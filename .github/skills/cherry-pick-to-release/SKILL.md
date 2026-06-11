@@ -74,23 +74,28 @@ Do **not** invent new prefixes; stick to `[CP]` unless asked.
 
 ### PR Body
 
-Reuse the standard MsQuic PR template
-(`.github/pull_request_template.md`) with three sections: `## Description`,
-`## Testing`, `## Documentation`.
+**Use the exact body of the original PR, verbatim**, including the
+`## Description`, `## Testing`, and `## Documentation` sections as the
+original author wrote them. Do **not** rewrite, summarize, or augment them
+with cherry-pick commentary.
 
-Typical content:
+Allowed additions, kept *outside* the verbatim original body:
 
-- **Description** — either:
-  - A short statement: `Cherry-pick of #<orig_pr>` / `Cherry-pick of #<orig_pr> to release 2.5`, or
-  - The original PR's description (verbatim or lightly condensed), so reviewers don't have to click through. Preferred when the fix is non-trivial.
-- **Testing** — usually `CI`, `Existing testing.`, or
-  `Test not backported as they rely on changes present only in main` if
-  tests couldn't be cleanly back-ported.
-- **Documentation** — usually `N/A` or `No` unless the cherry-pick
-  changes docs.
+- A single short prefix line (above the original `## Description`)
+  identifying this as a cherry-pick, e.g. `Cherry-pick of #<orig_pr>` or
+  `Cherry-pick of #<orig_pr> to release 2.5`.
+- A companion-PR cross-reference when cherry-picking the same fix to
+  multiple branches (e.g. `Companion PR for release/2.4: #<sibling>`).
+  Add this as a separate trailing line, not inside the original sections.
 
 If the original PR description references an upstream issue, keep the
 `Fixes #<issue>` line so the issue closes when the cherry-pick merges.
+
+If tests from the original PR could not be back-ported, do **not** alter
+the original `## Testing` section. Instead, mention it in the cherry-pick
+prefix line above the body (e.g.
+`Cherry-pick of #<orig_pr>. Tests not back-ported — they rely on changes
+present only in main.`).
 
 ### Branch Naming
 
@@ -187,18 +192,42 @@ will fail otherwise (`check-clog.yml`, `check-dotnet.yml`).
 
 If neither applies, skip this phase.
 
-### Phase 5 — Build / verify locally
+### Phase 5 — Build and run tests locally (REQUIRED)
 
-If the cherry-pick had conflicts or required adaptation, build locally
-before pushing:
+Build and run tests locally before pushing. This is **required for every
+cherry-pick**, regardless of whether the `git cherry-pick` was clean or
+required conflict resolution. Do not skip this phase.
 
-```powershell
-./scripts/build.ps1 -Tls schannel
-```
+1. **Build** with the default TLS provider for the platform you're on:
+   ```powershell
+   ./scripts/build.ps1 -Tls schannel    # Windows
+   pwsh ./scripts/build.ps1 -Tls openssl # Linux
+   ```
+   If the cherry-pick touches OpenSSL- or QuicTLS-specific code on
+   Windows, also build with `-Tls openssl` / `-Tls quictls` (requires
+   Perl + NASM).
 
-If tests are easily runnable and relevant, run them. For pure
-configuration / CI / build-system cherry-picks, relying on CI is
-acceptable (this is what most existing CP PRs do — see `## Testing: CI`).
+2. **Run the tests that exercise the cherry-picked code.** Use a
+   GoogleTest `--Filter` to keep the runtime short:
+   ```powershell
+   ./scripts/test.ps1 -Tls schannel -Filter '<TestSuite>.<TestPattern>*'
+   ```
+   At minimum, run:
+   - the tests that were added or modified by the cherry-pick, and
+   - the tests directly covering the changed code paths (e.g.
+     `TlsTest.*` for `src/platform/tls_*`, `ApiTest.*` for `src/inc/`
+     surface changes, `HandshakeTest.*` for `src/core/` handshake logic).
+   For pure CI / build-system cherry-picks where no functional tests
+   apply, run a representative smoke test (e.g. one BVT) and note that
+   in the PR body.
+
+3. If the build or the relevant tests fail on the release branch but
+   pass on `main`, **stop and ask the user** — do not push a broken
+   cherry-pick. Likely causes: missing prerequisite commits, API drift
+   between branches, or test infra changes that didn't get back-ported.
+
+Capture the build and test outcome (pass/fail, number of tests run) to
+mention briefly when you ask for permission to push.
 
 ### Phase 6 — Push and open the PR (gated on explicit user permission)
 
@@ -226,10 +255,12 @@ Before telling the user the cherry-pick is ready:
 
 - [ ] PR `--base` is the correct `release/X.Y` branch (never `main`).
 - [ ] PR title is `[CP] <orig title> (#<orig_pr>)` (or an explicitly approved variant).
-- [ ] PR body uses the three template sections and references the original PR.
+- [ ] PR body uses the **exact body of the original PR verbatim**, optionally with a single `Cherry-pick of #<orig_pr>` prefix line and a companion-PR cross-reference. No rewritten / summarized descriptions.
 - [ ] Branch name follows `guhetier/cp_<short_desc>_<X_Y>_copilot`.
 - [ ] PR is opened as a draft.
 - [ ] Only the cherry-picked commit (+ optional minimal build-fix commits) is on the branch — no unrelated changes.
+- [ ] **Local build succeeded** on the release branch with the cherry-pick applied (Phase 5).
+- [ ] **Relevant tests were run locally and pass** (Phase 5). The exact test filter and result are mentioned when asking the user for permission to push.
 - [ ] If trace/log macros were touched → `scripts/update-sidecar.ps1` was run and generated files committed.
 - [ ] If `src/inc/` public headers were touched → `scripts/generate-dotnet.ps1` was run and generated files committed.
 - [ ] For multi-branch cherry-picks, one PR per release branch (not a single PR targeting multiple branches).
@@ -247,6 +278,14 @@ Before telling the user the cherry-pick is ready:
   `[CP]` to stay consistent with the last ~2 years of cherry-pick PRs.
 - **Don't** silently drop test changes. If you skip back-porting tests,
   call it out explicitly in `## Testing`.
+- **Don't** rewrite, summarize, or paraphrase the original PR's
+  description. The body must contain the original PR's body verbatim
+  (you may prepend a short `Cherry-pick of #<orig_pr>` line and append a
+  companion-PR cross-reference, but the original sections themselves
+  stay intact).
+- **Don't** skip the local build / test step (Phase 5), even when the
+  cherry-pick applied with no conflicts. Auto-merged hunks can still
+  produce subtly wrong code.
 - **Don't** push or open a PR without explicit user permission.
 - **Don't** bump the version number as part of a cherry-pick PR —
   version bumps (`Bump version to v2.5.X`) are separate PRs done at
