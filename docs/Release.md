@@ -18,6 +18,7 @@ As this date nears, make sure to upgrade to a supported version.
 ### Historical versions
 
 | Version | Branch                                                              | Fork Date   | Release Date | End of Support |
+|---------|---------------------------------------------------------------------|-------------|--------------|----------------|
 | v2.3    | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | Jan 26 2024 | Mar 12 2024  | Sep 12 2025    |
 
 ## Supported platforms

@@ -2,14 +2,14 @@
 
 Follow the instructions below to create, validate and publish a new minor or patch version of MsQuic.
 
-## Creating a new Minor release
+## Creating a new minor release
 
 When publishing a new minor release, the main branch is forked into a new release branch.
 The documentation and scripts must be updated in the `main` branch.
 The rest of the process is similar to creating a patch release.
 
 1. **Update the Release Documentation**
-   Create a PR against `main` to update the release table in [Relase.md](../Release.md).
+   Create a PR against `main` to update the release table in [Release.md](../Release.md).
 
 2. **Create the Release Branch**
    Fork the main branch to create release/X.Y:
@@ -28,14 +28,14 @@ The rest of the process is similar to creating a patch release.
 This updates the version number across all relevant files, so that main is ready for the next release.
 A branch should always have the version number for its next release.
 
-The [create-release.ps1](/scripts/create-release.ps1) script can be used to automate steps 2 and 3.
-```
-./scripts/create-release.ps1 -Type Minor
-```
+> **Tip**: The [create-release.ps1](/scripts/create-release.ps1) script automates steps 2 and 3:
+> ```
+> ./scripts/create-release.ps1 -Type Minor
+> ```
 
-Then, proceed to publish vX.Y.0 by following the [Publishing a Patch release](#publishing-a-patch-release) process below.
+Then, proceed to publish vX.Y.0 by following the [Publishing a patch release](#publishing-a-patch-release) process below.
 
-## Publishing a Patch release
+## Publishing a patch release
 
 This is the core release process, used for both initial minor releases (vX.Y.0) and subsequent patch releases (vX.Y.Z).
 
@@ -44,11 +44,11 @@ This is the core release process, used for both initial minor releases (vX.Y.0) 
 Release candidates allow us and our partners to validate a release before it is officially published.
 
 - Create a pre-release GitHub release on the release/X.Y branch:
-    -	Tag: `vX.Y.Z-rc` (or `vX.Y.Z-rc2`, `vX.Y.Z-rc3` for subsequent candidates)
-    -	Populate the release notes automatically, update as needed
-    -	Check "Set as a pre-release"
+    - Tag: `vX.Y.Z-rc` (or `vX.Y.Z-rc2`, `vX.Y.Z-rc3` for subsequent candidates)
+    - Populate the release notes automatically, update as needed
+    - Check "Set as a pre-release"
 - The tag triggers the internal (ADO) build, packaging and publishing pipelines automatically (VPack, NuGet, Linux packages).
-   All packages are produced with a pre-release suffix, so package managers will not install them by default.
+    All packages are produced with a pre-release suffix, so package managers will not install them by default.
 - Confirm the build and test passes are succeeding.
 - If everything is as expected, approve the publication on the [Approval service](https://approval.azengsys.com/Home/PendingRelease)
     (internal link, secure station and AP_MSQUIC membership required).
@@ -57,25 +57,25 @@ Release candidates allow us and our partners to validate a release before it is 
 - If the release is meant to be ingested in Windows OS, ingest the release candidate first for validation.
 
 If issues are found in the release candidate, fix them in `main` and cherry-pick the fix.
-Then create a new release candidate (`vX.Y.Z-rc2`, etc.), rinse, and repeat.
+Then create a new release candidate (`vX.Y.Z-rc2`, etc.) and repeat the validation.
 
 ### 2. Publish the final release
 
 Once a release candidate has been fully validated:
 
 - Create a new GitHub release:
-    -	Pick the `release/X.Y` branch
-    -	Tag: `vX.Y.Z`
-    -	Populate the release notes automatically, update as needed
+    - Pick the `release/X.Y` branch
+    - Tag: `vX.Y.Z`
+    - Populate the release notes automatically, update as needed
 - The tag triggers the internal (ADO) build, packaging and publishing pipelines automatically (VPack, NuGet, Linux packages).
 - Confirm the build and test passes are succeeding.
-- If everything is as expected, approve the publication on the [Approval service](https://approval.azengsys.com/Home/PendingRelease)
+- If everything is as expected, approve the publication on the [Approval service](https://approval.azengsys.com/Home/PendingRelease).
 - Bump the patch version on the release/X.Y branch to prepare for the next patch release:
    ```
    ./scripts/update-version.ps1 -Part Patch
    ```
 
-**Note**: Avoid creating multiple release tags in quick succession. A known ADO issues can cause it to start the build pipeline on the wrong commit when multiple tags are mirrored at once, causing confusing failures.
+**Note**: Avoid creating multiple release tags in quick succession. A known ADO issue can cause it to start the build pipeline on the wrong commit when multiple tags are mirrored at once, causing confusing failures.
 
 ### 3. Update down-level tests
 
@@ -86,7 +86,7 @@ If relevant test changes were present in the release (mostly relevant for minor 
 
 ## Extra publication targets
 
-MsQuic is published as needed to those extra target.
+MsQuic is published as needed to these additional targets.
 
 ### MsQuic ingestion in Windows OS
 

@@ -31,7 +31,7 @@ body:
       required: true
     attributes:
       label: MsQuic version
-      description: On what version of MsQuic does this bug occur? Please specify the release number or commit.
+      description: On what version of MsQuic does this bug occur? Please specify the release number or commit hash (e.g., v2.5.0 or commit abc1234).
   - type: textarea
     validations:
       required: true
