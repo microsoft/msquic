@@ -396,9 +396,10 @@ MsQuicRegistrationShutdown(
         }
 
         //
-        // Drain listeners under the registration lock into a local list while
-        // taking a non-zero cleanup reference on each one. Then stop them outside
-        // the lock.
+        // Prevent close/shutdown races: once we drop the registration lock we must not
+        // depend on the shared listener list or listener lifetime. We snapshot listeners
+        // under lock and take a non-zero ref so only still-alive listeners are handled
+        // afterward.
         //
         CXPLAT_LIST_ENTRY PendingListeners;
         CxPlatListInitializeHead(&PendingListeners);
