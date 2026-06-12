@@ -7,14 +7,18 @@ MsQuic follows [semantic versioning](https://semver.org/).
 MsQuic releases are supported for a minimum of 18 months after release, and may be supported longer.
 A new release is generally created every 6 months to a year.
 
+**End of support** refers to the date when Microsoft no longer provides fixes, updates, or online technical assistance for your product.
+As this date nears, make sure to upgrade to a supported version.
+
 | Version | Branch                                                              | Fork Date   | Release Date | End of Support |
 |---------|---------------------------------------------------------------------|-------------|--------------|----------------|
 | v2.5    | [release/2.5](https://github.com/microsoft/msquic/tree/release/2.5) | May 15 2025 | May 16 2025  | TBD            |
 | v2.4    | [release/2.4](https://github.com/microsoft/msquic/tree/release/2.4) | Aug 5 2024  | Aug 16 2024  | Sep 1 2026     |
-| v2.3    | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | Jan 26 2024 | Mar 12 2024  | Sep 12 2025    |
 
-**End of support** refers to the date when Microsoft no longer provides fixes, updates, or online technical assistance for your product.
-As this date nears, make sure to upgrade to a supported version.
+### Historical versions
+
+| Version | Branch                                                              | Fork Date   | Release Date | End of Support |
+| v2.3    | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | Jan 26 2024 | Mar 12 2024  | Sep 12 2025    |
 
 ## Supported platforms
 
@@ -60,4 +64,4 @@ The following distributions are supported:
 MsQuic has two main types of branches **main** and **release** defined as:
 
 - **main** - Main is the primary development branch, and receives security and bug fixes just the same as the release branches. However, the main branch is where active development happens and it may experience breaking changes as we develop new features.
-- **release/vX.Y** - Release branches only receive security and bug fixes, and are considered stable.
+- **release/X.Y** - Release branches only receive security and bug fixes, and are considered stable.

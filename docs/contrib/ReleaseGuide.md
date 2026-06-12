@@ -1,57 +1,101 @@
 # Publishing a Release
 
-Follow these instructions to create and publish a new minor or patch version of MsQuic.
+Follow the instructions below to create, validate and publish a new minor or patch version of MsQuic.
 
-## Create a New Release Branch
+## Creating a new Minor release
 
-A release branch will be created (forked) for each major/minor version of MsQuic.
-It goes through a period of stabilization before the release is published.
+When publishing a new minor release, the main branch is forked into a new release branch.
+The documentation and scripts must be updated in the `main` branch.
+The rest of the process is similar to creating a patch release.
 
-1. Add (via PR) notes above for the new release.
-1. Fork `main` branch to `release/X.Y` where `X` is the major version and `Y` is the minor version.
-1. Update (via PR) the minor version for the `main` branch:
-   - Run `./scripts/update-version.ps1 -Part Minor` to generate the relevant changes.
-   - Also add the new version to the bug_report.yaml issue template file.
+1. **Update the Release Documentation**
+   Create a PR against `main` to update the release table in [Relase.md](../Release.md).
 
-## Servicing a Release Branch
+2. **Create the Release Branch**
+   Fork the main branch to create release/X.Y:
+   ```
+   git checkout main
+   git pull
+   git checkout -b release/X.Y
+   git push
+   ```
+3. **Bump the Version on main**
+   After creating the release branch, increment the minor version on main:
+   ```
+   ./scripts/update-version.ps1 -Part Minor
+   ```
 
-1. Changes first go into the `main` branch, and then are cherry-picked into the relevant `release/X.Y` branches.
-1. Update (via PR) the patch version for the release branches:
-   - Run `./scripts/update-version.ps1 -Part Patch` to generate the relevant changes.
+This updates the version number across all relevant files, so that main is ready for the next release.
+A branch should always have the version number for its next release.
 
-## Publishing a Release Branch
+The [create-release.ps1](/scripts/create-release.ps1) script can be used to automate steps 2 and 3.
+```
+./scripts/create-release.ps1 -Type Minor
+```
 
-1. Create a [new GitHub release](https://github.com/microsoft/msquic/releases/new) along with the corresponding tag.
-   - Make sure to pick the correct `release/X.Y` branch
-   - The tag should be the full version number: `vX.Y.Z`
-   - The release title should be `MsQuic vX.Y.Z`
-   - Put relevant information in the notes of the release (see previous releases for examples)
-1. Wait for [msquic-Official-Tests](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&_a=summary) pipeline to run for the newly created tag.
-1. Download the `distribution` packages from the artifacts and upload them to the GitHub release:
-   - msquic_gamecore_console_x64_Release_schannel.zip
-   - msquic_linux_x64_Release_quictls.zip
-   - msquic_linux_x64_Release_quictls_test.zip
-   - msquic_windows_arm64_Release_quictls.zip
-   - msquic_windows_arm64_Release_schannel.zip
-   - msquic_windows_arm_Release_quictls.zip
-   - msquic_windows_arm_Release_schannel.zip
-   - msquic_windows_x64_Release_quictls.zip
-   - msquic_windows_x64_Release_quictls_test.zip
-   - msquic_windows_x64_Release_schannel.zip
-   - msquic_windows_x64_Release_schannel_test.zip
-   - msquic_windows_x86_Release_quictls.zip
-   - msquic_windows_x86_Release_schannel.zip
-1. Update (via PR) `main` branch's `test-down-level.yml` to point the newly uploaded `*_test.zip` release binaries.
+Then, proceed to publish vX.Y.0 by following the [Publishing a Patch release](#publishing-a-patch-release) process below.
 
-> **Note** - NuGet packages are automatically published to nuget.org by the pipeline.
+## Publishing a Patch release
 
-### Publishing Linux packages to packages.microsoft.com (PMC)
+This is the core release process, used for both initial minor releases (vX.Y.0) and subsequent patch releases (vX.Y.Z).
 
-The publishing [pipeline](https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068) automatically uploads packages into PMC when a tag is created.
+### 1. Create a release candidate
 
-Sometimes the pipeline fails due to PMC infra issues (e.g. the PMC HTTP endpoint returning errors). The publishing pipeline can be run manually to retry. When running manually, please ensure that the right tag is chosen and the right resources (under "Advanced options") are chosen. By default, the pipeline picks up the latest resources from the official build pipeline which are not always the right ones.
+Release candidates allow us and our partners to validate a release before it is officially published.
 
-When testing the pipeline, please make sure to comment out the PMC cli commands in [upload-linux-packages.sh](https://github.com/microsoft/msquic/blob/main/scripts/upload-linux-packages.sh) to avoid accidentally publishing packages into prod.
+- Create a pre-release GitHub release on the release/X.Y branch:
+    -	Tag: `vX.Y.Z-rc` (or `vX.Y.Z-rc2`, `vX.Y.Z-rc3` for subsequent candidates)
+    -	Populate the release notes automatically, update as needed
+    -	Check "Set as a pre-release"
+- The tag triggers the internal (ADO) build, packaging and publishing pipelines automatically (VPack, NuGet, Linux packages).
+   All packages are produced with a pre-release suffix, so package managers will not install them by default.
+- Confirm the build and test passes are succeeding.
+- If everything is as expected, approve the publication on the [Approval service](https://approval.azengsys.com/Home/PendingRelease)
+    (internal link, secure station and AP_MSQUIC membership required).
+- Run the [Linux package validation pipeline](/.github/workflows/validate-linux-packages.yml).
+    Share the release candidate with partners for validation.
+- If the release is meant to be ingested in Windows OS, ingest the release candidate first for validation.
+
+If issues are found in the release candidate, fix them in `main` and cherry-pick the fix.
+Then create a new release candidate (`vX.Y.Z-rc2`, etc.), rinse, and repeat.
+
+### 2. Publish the final release
+
+Once a release candidate has been fully validated:
+
+- Create a new GitHub release:
+    -	Pick the `release/X.Y` branch
+    -	Tag: `vX.Y.Z`
+    -	Populate the release notes automatically, update as needed
+- The tag triggers the internal (ADO) build, packaging and publishing pipelines automatically (VPack, NuGet, Linux packages).
+- Confirm the build and test passes are succeeding.
+- If everything is as expected, approve the publication on the [Approval service](https://approval.azengsys.com/Home/PendingRelease)
+- Bump the patch version on the release/X.Y branch to prepare for the next patch release:
+   ```
+   ./scripts/update-version.ps1 -Part Patch
+   ```
+
+**Note**: Avoid creating multiple release tags in quick succession. A known ADO issues can cause it to start the build pipeline on the wrong commit when multiple tags are mirrored at once, causing confusing failures.
+
+### 3. Update down-level tests
+
+If relevant test changes were present in the release (mostly relevant for minor releases), the down-level tests must be updated:
+
+- Attach the *_test.zip artifacts from the tagged commit build run to the GitHub release.
+- Update the test-down-level.yml workflow on main to point to the newly uploaded *_test.zip artifacts.
+
+## Extra publication targets
+
+MsQuic is published as needed to those extra target.
+
+### MsQuic ingestion in Windows OS
+
+The MsQuic manifest must be updated to point to a new release VPack. VPacks are produced only for builds on a release tag.
+Not every MsQuic release is ingested in the OS repository, this is done as needed.
+
+- Once the build pipeline is completed, get the build ID from the ADO pipeline run URL.
+- Update the [MsQuic manifest](https://microsoft.visualstudio.com/OS/_git/os.2020?path=/minio/netio/quic/msquic/msquic.man) (internal link) to point to the new VPack.
+
 
 ### Publishing MsQuic for Alpine
 
@@ -59,38 +103,16 @@ Prerequisites:
 - Docker
 - Powershell
 
-1. Checkout to release tag. (e.g. `git checkout v2.4.7`)
-1. Run `generate-alpine-packaging-file.ps1` script from the repository root on host computer to create `APKBUILD` file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)
-1. If you don't have account for [AlpineLinux GitLab](https://gitlab.alpinelinux.org). Create an account and [configure your SSH](https://docs.gitlab.com/ee/user/ssh.html).
-1. If you didn't fork `aports` repository yet, Fork `https://gitlab.alpinelinux.org/alpine/aports`.
-1. Clone `https://gitlab.alpinelinux.org/<your_username>/aports` repository.
-1. Navigate to `aports/community/libmsquic` folder.
-1. Replace the `APKBUILD` file with newly created `APKBUILD` file.
-1. Create a commit using `community/libmsquic: upgrade to <version_number>` (version_number e.g. 2.5.0 or 2.4.4).
-1. Create a merge request using `community/libmsquic: upgrade to <version_number>` (version_number e.g. 2.5.0 or 2.4.4).
-1. Owners of the `aports` repository will respond to the PR or merge it in couple of days/hours.
+1. Checkout to release tag. (e.g. `git checkout vX.Y.Z`)
+2. Run `scripts/generate-alpine-packaging-file.ps1` from the repository root to create the `APKBUILD` file for the release.
+    (This script can run on any Linux distro, and will create a docker alpine container to calculate hash keys in the APKBUILD file)
+3. If you don't have account for [AlpineLinux GitLab](https://gitlab.alpinelinux.org), create one and [configure your SSH](https://docs.gitlab.com/ee/user/ssh.html).
+4. If you didn't fork `aports` repository yet, fork `https://gitlab.alpinelinux.org/alpine/aports`.
+5. Clone `https://gitlab.alpinelinux.org/<your_username>/aports` repository.
+6. Navigate to `aports/community/libmsquic` folder.
+7. Replace the `APKBUILD` file with newly created `APKBUILD` file.
+8. Create a commit using `community/libmsquic: upgrade to <version_number>` (version_number e.g. 2.5.0 or 2.4.4).
+9. Create a merge request using `community/libmsquic: upgrade to <version_number>` (version_number e.g. 2.5.0 or 2.4.4).
+10. Owners of the `aports` repository will respond to the PR or merge it in couple of days/hours.
 
 For future reference: [Official documentation](https://wiki.alpinelinux.org/wiki/Creating_an_Alpine_package)
-
-### Publishing the Rust Crate
-
-The following are the complete (manual) steps for publishing the Rust crate.
-
-1. Create a (Linux) GitHub CodeSpace.
-1. `sudo apt update`
-1. `sudo apt install curl`
-1. `curl https://sh.rustup.rs -sSf | sh`
-1. Restart bash.
-1. `cargo login`
-1. Create an API token on https://crates.io/settings/tokens (with `publish-update` scope).
-1. Paste the token into bash.
-1. If doing a beta release, update `Cargo.toml` to add a # after `beta` in the version.
-1. `cargo publish` or `cargo publish --allow-dirty` if beta release
-
-## Synchronizing with Windows
-
-1. Once the release branch/tag is created, the undock pipeline should run automatically.
-   - If for some reason there's a problem, you may need to run the pipeline manually by clicking on "Run Pipeline" [here](https://microsoft.visualstudio.com/undock/_build?definitionId=134439) (MSFT-only access required), scroll down to the **resources tab** and pick the MsQuic release tag of interest then run the pipeline.
-   - Another workaround to force a manual re-run by going [here](https://microsoft.visualstudio.com/undock/_git/msquic/tags) (MSFT-only access required) and deleting the tag, and then waiting for the [mirror pipeline](https://microsoft.visualstudio.com/undock/_build?definitionId=134727) (MSFT-only access required) to run automatically re-copy over the tag from GitHub.
-2. Once the pipeline passes tests, get the VPACK ID from the "Create VPACK" stage, and create a PR to point [this file](https://microsoft.visualstudio.com/OS/_git/os.2020?path=/minio/netio/quic/msquic/msquic.man) (MSFT-only access required) to the VPACK created by the pipeline run.
-3. Review and merge the PR to complete the process.

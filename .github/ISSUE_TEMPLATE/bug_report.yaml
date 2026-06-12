@@ -26,18 +26,12 @@ body:
       label: Additional OS information
       description: Please provide any additional details about the affected operating system here, if applicable. You must specify the affected OS and its respective build/version if you have selected the "Windows Insider Preview" or "Other" options.
       placeholder: Windows 11 Insider Preview (10.0.22463.1000.rs_prerelease.210917-1503), Fedora 34
-  - type: dropdown
+  - type: textarea
     validations:
       required: true
     attributes:
       label: MsQuic version
-      description: On what version of MsQuic does this bug occur? Please select the affected code branch from the drop-down menu.
-      options:
-        - main
-        - v2.5
-        - v2.4
-        - v2.3
-        - Older
+      description: On what version of MsQuic does this bug occur? Please specify the release number or commit.
   - type: textarea
     validations:
       required: true
