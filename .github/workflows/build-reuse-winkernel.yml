@@ -29,9 +29,11 @@ on:
       os:
         required: false
         type: string
-        default: 'windows-2022'
+        default: 'windows-latest'
         # options:
+        #   - windows-latest
         #   - windows-2022
+        #   - windows-2025
       arch:
         required: false
         default: 'x64'
