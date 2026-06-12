@@ -77,16 +77,16 @@ RawDataPathUninitialize(
 }
 
 BOOLEAN
-CxPlatDpRawIsExternalXdpMapMode(
+CxPlatDpRawIsRawDatapathOnly(
     _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
     )
 {
     UNREFERENCED_PARAMETER(RawDataPath);
-    return FALSE; // Dummy raw datapath never has XDP map mode.
+    return FALSE; // Dummy raw datapath is never raw-only.
 }
 
 void
-CxPlatDpRawEnableExternalXdpMapMode(
+CxPlatDpRawEnableRawDatapathOnly(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath
     )
 {
@@ -114,7 +114,7 @@ CxPlatDpRawInsertXskByMapConfigs(
 {
     //
     // Stub for platforms without XDP support. Must return QUIC_STATUS_NOT_SUPPORTED
-    // so map mode init fails gracefully on non-Windows platforms.
+    // so raw-only init fails gracefully on non-Windows platforms.
     //
     UNREFERENCED_PARAMETER(RawDataPath);
     UNREFERENCED_PARAMETER(MapConfigs);

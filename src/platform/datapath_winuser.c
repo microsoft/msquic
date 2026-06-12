@@ -1227,7 +1227,7 @@ SocketCreateUdp(
     int Result, Option;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
-    CXPLAT_DBG_ASSERT(CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath) || IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
+    CXPLAT_DBG_ASSERT(CxPlatDpRawIsRawDatapathOnly(Datapath->RawDataPath) || IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
     CXPLAT_DBG_ASSERT(Config->CibirIdLength <= sizeof(Config->CibirId));
 
     const uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
@@ -1277,11 +1277,11 @@ SocketCreateUdp(
             MAX_URO_PAYLOAD_LENGTH :
             Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 
-    if (CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath)) {
+    if (CxPlatDpRawIsRawDatapathOnly(Datapath->RawDataPath)) {
         //
-        // There is no OS native datapath when XDP maps are used. The
-        // application must specify the local port. Skip OS socket creation
-        // entirely and defer to the raw (XDP) datapath.
+        // There is no OS native datapath in raw-only mode. The application
+        // must specify the local port. Skip OS socket creation entirely and
+        // defer to the raw (XDP) datapath.
         //
         CXPLAT_DBG_ASSERT(Datapath->RawDataPath != NULL);
         Socket->SkipCreatingOsSockets = TRUE;
@@ -1292,16 +1292,16 @@ SocketCreateUdp(
                 "[data][%p] ERROR, %u, %s.",
                 Socket,
                 (uint32_t)QUIC_STATUS_INVALID_PARAMETER,
-                "XDP map mode requires an explicit local port");
+                "Raw-only datapath requires an explicit local port");
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
         //
-        // Client (connected) sockets are demuxed on local IP + port. In map
-        // mode there is no OS bind to resolve a wildcard local IP into the
-        // concrete bound address, so a wildcard local IP would never match
-        // inbound packets and would silently black-hole all RX. Require a
-        // concrete local IP for connected sockets. Listeners legitimately
+        // Client (connected) sockets are demuxed on local IP + port. In
+        // raw-only mode there is no OS bind to resolve a wildcard local IP
+        // into the concrete bound address, so a wildcard local IP would never
+        // match inbound packets and would silently black-hole all RX. Require
+        // a concrete local IP for connected sockets. Listeners legitimately
         // stay wildcard and are demuxed on port alone.
         //
         if (!IsServerSocket && QuicAddrIsWildCard(Config->LocalAddress)) {
@@ -1310,7 +1310,7 @@ SocketCreateUdp(
                 "[data][%p] ERROR, %u, %s.",
                 Socket,
                 (uint32_t)QUIC_STATUS_INVALID_PARAMETER,
-                "XDP map mode requires an explicit local IP for connected sockets");
+                "Raw-only datapath requires an explicit local IP for connected sockets");
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }

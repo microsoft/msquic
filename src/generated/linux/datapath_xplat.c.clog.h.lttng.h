@@ -36,13 +36,13 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibirSockets,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathRawInitFailMapMode
-// [  dp] XDP map mode: raw datapath required but failed to initialize
+// Decoder Ring for DatapathRawInitFailRawOnly
+// [  dp] Raw-only mode: raw datapath required but failed to initialize
 // QuicTraceLogVerbose(
-                DatapathRawInitFailMapMode,
-                "[  dp] XDP map mode: raw datapath required but failed to initialize");
+                DatapathRawInitFailRawOnly,
+                "[  dp] Raw-only mode: raw datapath required but failed to initialize");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, DatapathRawInitFailMapMode,
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, DatapathRawInitFailRawOnly,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -127,9 +127,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForQtip,
 // QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH (map mode)",
+                "CXPLAT_DATAPATH (raw-only)",
                 sizeof(CXPLAT_DATAPATH));
-// arg2 = arg2 = "CXPLAT_DATAPATH (map mode)" = arg2
+// arg2 = arg2 = "CXPLAT_DATAPATH (raw-only)" = arg2
 // arg3 = arg3 = sizeof(CXPLAT_DATAPATH) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, AllocFailure,
