@@ -1249,12 +1249,12 @@ RawDataPathIsPaddingPreferred(
     );
 
 BOOLEAN
-CxPlatDpRawIsExternalXdpMapMode(
+CxPlatDpRawIsRawDatapathOnly(
     _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
     );
 
 void
-CxPlatDpRawEnableExternalXdpMapMode(
+CxPlatDpRawEnableRawDatapathOnly(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath
     );
 

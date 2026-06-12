@@ -34,8 +34,8 @@ CxPlatDataPathInitialize(
 
     if (InitConfig->XdpMapConfigCount > 0) {
         //
-        // XDP map mode: must require the raw datapath to be successfully initialized
-        // as we are skipping OS platform specific initializations.
+        // Raw-only datapath: the raw datapath must initialize successfully
+        // since we are skipping OS platform specific initializations.
         //
         CXPLAT_DBG_ASSERT(InitConfig->XdpMapConfigs != NULL);
         if (NewDataPath == NULL) {
@@ -52,7 +52,7 @@ CxPlatDataPathInitialize(
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH (map mode)",
+                "CXPLAT_DATAPATH (raw-only)",
                 sizeof(CXPLAT_DATAPATH));
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
@@ -71,8 +71,8 @@ CxPlatDataPathInitialize(
             &Datapath->RawDataPath);
         if (Datapath->RawDataPath == NULL) {
             QuicTraceLogVerbose(
-                DatapathRawInitFailMapMode,
-                "[  dp] XDP map mode: raw datapath required but failed to initialize");
+                DatapathRawInitFailRawOnly,
+                "[  dp] Raw-only mode: raw datapath required but failed to initialize");
             CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
             *NewDataPath = NULL;
             Status = QUIC_STATUS_NOT_SUPPORTED;
@@ -120,13 +120,13 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    BOOLEAN IsMapMode = CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath);
+    BOOLEAN IsRawDatapathOnly = CxPlatDpRawIsRawDatapathOnly(Datapath->RawDataPath);
     if (Datapath->RawDataPath) {
         RawDataPathUninitialize(Datapath->RawDataPath);
     }
-    if (IsMapMode) {
+    if (IsRawDatapathOnly) {
         //
-        // Map mode: no platform (WinSock) datapath was initialized,
+        // Raw-only mode: no platform (WinSock) datapath was initialized,
         // so free directly without platform uninit.
         //
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
@@ -187,14 +187,14 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN IsMapMode = CxPlatDpRawIsExternalXdpMapMode(Datapath->RawDataPath);
+    BOOLEAN IsRawDatapathOnly = CxPlatDpRawIsRawDatapathOnly(Datapath->RawDataPath);
 
     //
-    // In map mode the raw (XDP) datapath is the only data path. Implicitly
+    // In raw-only mode the raw (XDP) datapath is the only data path. Implicitly
     // enable XDP for all sockets and treat any raw socket failure as fatal
     // (no OS fallback, no QTIP TCP port retry).
     //
-    BOOLEAN CreateRaw = IsMapMode || (Config->Flags & CXPLAT_SOCKET_FLAG_XDP);
+    BOOLEAN CreateRaw = IsRawDatapathOnly || (Config->Flags & CXPLAT_SOCKET_FLAG_XDP);
 
     //
     // In a real production (XDP/QTIP+XDP) scenario, we never have to loop more than once
@@ -220,7 +220,7 @@ CxPlatSocketCreateUdp(
         BOOLEAN CibirRequested = (Config->CibirIdLength > 0);
 
         (*NewSocket)->RawSocketAvailable = 0;
-        CXPLAT_DBG_ASSERT((IsMapMode && CreateRaw && Datapath->RawDataPath) || !IsMapMode);
+        CXPLAT_DBG_ASSERT((IsRawDatapathOnly && CreateRaw && Datapath->RawDataPath) || !IsRawDatapathOnly);
         if (CreateRaw && Datapath->RawDataPath) {
             Status =
                 RawSocketCreateUdp(
@@ -233,9 +233,9 @@ CxPlatSocketCreateUdp(
                     RawSockCreateFail,
                     "[sock] Failed to create raw socket, status:%d", Status);
 
-                if (IsMapMode) {
+                if (IsRawDatapathOnly) {
                     //
-                    // Map mode: no fallback allowed.
+                    // Raw-only mode: no fallback allowed.
                     //
                     CxPlatSocketDelete(*NewSocket);
                     *NewSocket = NULL;

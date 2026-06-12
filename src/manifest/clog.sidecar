@@ -2895,10 +2895,10 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathRawInitFailMapMode": {
+    "DatapathRawInitFailRawOnly": {
       "ModuleProperites": {},
-      "TraceString": "[  dp] XDP map mode: raw datapath required but failed to initialize",
-      "UniqueId": "DatapathRawInitFailMapMode",
+      "TraceString": "[  dp] Raw-only mode: raw datapath required but failed to initialize",
+      "UniqueId": "DatapathRawInitFailRawOnly",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
@@ -14154,9 +14154,9 @@
         "EncodingString": "[data] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x"
       },
       {
-        "UniquenessHash": "bc85b642-06e2-35a0-f754-716b4e5484cb",
-        "TraceID": "DatapathRawInitFailMapMode",
-        "EncodingString": "[  dp] XDP map mode: raw datapath required but failed to initialize"
+        "UniquenessHash": "4001a3d6-c475-003a-33d3-0252c3c10417",
+        "TraceID": "DatapathRawInitFailRawOnly",
+        "EncodingString": "[  dp] Raw-only mode: raw datapath required but failed to initialize"
       },
       {
         "UniquenessHash": "38cb5c9d-e612-01a0-ec5f-6af064bb0724",

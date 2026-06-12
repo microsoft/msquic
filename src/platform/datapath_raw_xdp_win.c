@@ -1472,7 +1472,7 @@ CxPlatDpRawPlumbRulesOnSocket(
     //
     // In external map mode, the caller manages XDP rules; nothing to do here.
     //
-    if (Xdp->UseExternalXdpMaps) {
+    if (Xdp->RawDatapathOnly) {
         return QUIC_STATUS_SUCCESS;
     }
 

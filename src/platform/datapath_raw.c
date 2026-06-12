@@ -67,7 +67,7 @@ RawDataPathInitialize(
 
     if (InitConfig->XdpMapConfigCount > 0) {
         CXPLAT_DBG_ASSERT(InitConfig->XdpMapConfigs != NULL);
-        CxPlatDpRawEnableExternalXdpMapMode(RawDataPath);
+        CxPlatDpRawEnableRawDatapathOnly(RawDataPath);
         Status =
             CxPlatDpRawInsertXskByMapConfigs(
                 RawDataPath,
@@ -107,19 +107,19 @@ Error:
 }
 
 BOOLEAN
-CxPlatDpRawIsExternalXdpMapMode(
+CxPlatDpRawIsRawDatapathOnly(
     _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
     )
 {
-    return RawDataPath != NULL && RawDataPath->UseExternalXdpMaps;
+    return RawDataPath != NULL && RawDataPath->RawDatapathOnly;
 }
 
 void
-CxPlatDpRawEnableExternalXdpMapMode(
+CxPlatDpRawEnableRawDatapathOnly(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath
     )
 {
-    RawDataPath->UseExternalXdpMaps = TRUE;
+    RawDataPath->RawDatapathOnly = TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
