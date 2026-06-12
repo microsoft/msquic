@@ -241,6 +241,11 @@ if ($UseXdp) {
     $DuoNic = $true
 }
 
+if ($XdpMapMode) {
+    # Map mode implies DuoNic
+    $DuoNic = $true
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -306,9 +311,6 @@ if ($DuoNic) {
 }
 if ($XdpMapMode) {
     $TestArguments += " -XdpMapMode"
-    if (!$DuoNic) {
-        $TestArguments += " -DuoNic"
-    }
 }
 if ($Kernel) {
     $TestArguments += " -Kernel $KernelPath"

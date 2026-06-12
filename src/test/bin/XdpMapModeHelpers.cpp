@@ -70,12 +70,16 @@ DiscoverDuoNicInterfaces(
             Adapter->OperStatus != IfOperStatusUp) {
             continue;
         }
+        IN_ADDR DuoNicServer, DuoNicClient;
+        if (inet_pton(AF_INET, "192.168.1.11", &DuoNicServer) != 1 ||
+            inet_pton(AF_INET, "192.168.1.12", &DuoNicClient) != 1) {
+            break;
+        }
         for (auto Unicast = Adapter->FirstUnicastAddress; Unicast; Unicast = Unicast->Next) {
             if (Unicast->Address.lpSockaddr->sa_family != AF_INET) continue;
             auto* Sin = (SOCKADDR_IN*)Unicast->Address.lpSockaddr;
-            ULONG Addr = ntohl(Sin->sin_addr.S_un.S_addr);
-            // 192.168.1.11 or 192.168.1.12
-            if (Addr == 0xC0A8010B || Addr == 0xC0A8010C) {
+            if (Sin->sin_addr.s_addr == DuoNicServer.s_addr ||
+                Sin->sin_addr.s_addr == DuoNicClient.s_addr) {
                 IfIndices[*Count] = Adapter->IfIndex;
                 (*Count)++;
                 break;
