@@ -58,8 +58,9 @@ jobs:
         vec: [
           { config: "Debug", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Debug", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Release", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" }
+          # windows-2025 disabled: image lacks the WDK bits to build kernel drivers.
+          # { config: "Debug", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
+          # { config: "Release", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" }
         ]
     uses: ./.github/workflows/build-reuse-winkernel.yml
     with:
@@ -220,8 +221,9 @@ jobs:
         vec: [
           { config: "Debug", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Debug", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Release", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
+          # windows-2025 disabled: image lacks the WDK bits to build kernel drivers.
+          # { config: "Debug", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
+          # { config: "Release", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Debug", plat: "winkernel", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "winkernel", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]

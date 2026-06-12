@@ -80,7 +80,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [winkernel]
-        os: ['windows-2022', 'windows-2025']
+        os: ['windows-2022'] # windows-2025 disabled: image lacks the WDK bits to build kernel drivers.
         arch: [x64, arm64]
         tls: [schannel]
     uses: ./.github/workflows/build-reuse-winkernel.yml
