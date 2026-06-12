@@ -100,6 +100,7 @@ TestListener::GetStatistics(
             &stats);
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 QUIC_STATUS
 TestListener::SetCibirId(
     _In_reads_(Length) const uint8_t* CibirId,
@@ -113,6 +114,7 @@ TestListener::SetCibirId(
             Length,
             CibirId);
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 QUIC_STATUS
 TestListener::HandleListenerEvent(
