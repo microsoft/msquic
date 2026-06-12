@@ -1296,6 +1296,24 @@ SocketCreateUdp(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
+        //
+        // Client (connected) sockets are demuxed on local IP + port. In map
+        // mode there is no OS bind to resolve a wildcard local IP into the
+        // concrete bound address, so a wildcard local IP would never match
+        // inbound packets and would silently black-hole all RX. Require a
+        // concrete local IP for connected sockets. Listeners legitimately
+        // stay wildcard and are demuxed on port alone.
+        //
+        if (!IsServerSocket && QuicAddrIsWildCard(Config->LocalAddress)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                (uint32_t)QUIC_STATUS_INVALID_PARAMETER,
+                "XDP map mode requires an explicit local IP for connected sockets");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
         goto Skip;
     }
 
