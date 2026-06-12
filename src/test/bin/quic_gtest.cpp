@@ -16,7 +16,6 @@
 #include <vector>
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-#include <iphlpapi.h>
 #define XDP_API_VERSION 3
 #define XDP_INCLUDE_WINCOMMON
 #include <xdp/wincommon.h>
@@ -186,19 +185,6 @@ public:
             memcpy(&ClientCertCredConfig, ClientCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ClientCertCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
             QuicTestInitialize();
-
-#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            if (UseXdpMapMode) {
-                //
-                // Force lazy initialization so MsQuic creates XSK sockets
-                // and inserts them into the XSKMAPs we provided.
-                //
-                {
-                    MsQuicRegistration TempReg("XdpMapModeInit");
-                    ASSERT_TRUE(TempReg.IsValid());
-                }
-            }
-#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #ifdef _WIN32
             ASSERT_NE(GetCurrentDirectoryA(sizeof(CurrentWorkingDirectory), CurrentWorkingDirectory), 0);

@@ -717,9 +717,7 @@ QuicSettingApply(
     // enabled for all sockets. Reject an explicit XdpEnabled = FALSE since
     // it contradicts map mode — there is no OS datapath to fall back to.
     //
-    if (Source->IsSet.XdpEnabled &&
-        !Source->XdpEnabled &&
-        MsQuicLib.XdpMapConfigCount > 0) {
+    if (Source->IsSet.XdpEnabled && !Source->XdpEnabled && MsQuicLib.XdpMapConfigCount > 0) {
         QuicTraceLogError(
             SettingXdpDisabledInMapMode,
             "[ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active.");
