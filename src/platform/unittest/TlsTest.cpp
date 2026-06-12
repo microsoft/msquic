@@ -466,6 +466,9 @@ protected:
                 if (ConsumedBuffer > 0) {
                     Buffer += ConsumedBuffer;
                     BufferLength -= ConsumedBuffer;
+                    if (ConsumedBuffer > BufferLength) {
+                        ConsumedBuffer = BufferLength;
+                    }
                 } else {
                     ConsumedBuffer = FragmentSize * ++Count;
                     ConsumedBuffer = CXPLAT_MIN(ConsumedBuffer, BufferLength);
