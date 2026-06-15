@@ -326,11 +326,6 @@ function Install-JOM {
 # >= 4.2, but some hosted runner images (notably windows-2025 as of
 # 2026-06) still ship CMake 3.x. The freshly installed cmake is prepended
 # to PATH so it wins over any older copy already on the runner.
-#
-# When the system cmake is already as recent as $TargetCMakeVersion (i.e.
-# the runner image has caught up, or a different CI environment ships its
-# own modern cmake), this function leaves it in place and logs a loud
-# warning so the helper can eventually be removed.
 function Install-CMake {
     if (!$IsWindows) { return } # Windows only
 

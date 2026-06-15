@@ -27,23 +27,25 @@ fn cmake_build() {
     }
 
     let target = env::var("TARGET").unwrap().replace("\\", "/");
-    let out_dir = env::var("OUT_DIR").unwrap().replace("\\", "/");
+    let out_dir = env::var("OUT_DIR").unwrap();
     // The output directory for the native MsQuic library.
-    // Build as a String (not Path::join) so we keep the forward-slash
-    // separators on Windows. CMake 4.x rejects backslashes embedded in
-    // the path it generates into install() scripts (e.g. "...out\lib"
-    // is parsed as an invalid `\l` character escape).
     let quic_output_dir = if cfg!(windows) {
-        format!("{out_dir}/lib")
+        Path::new(&out_dir).join("lib")
     } else {
-        format!("{out_dir}/artifacts")
+        Path::new(&out_dir).join("artifacts")
     };
 
     // Builds the native MsQuic and installs it into $OUT_DIR.
     let mut config = Config::new(".");
     config
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
-        .define("QUIC_OUTPUT_DIR", &quic_output_dir);
+        // CMake 4.x rejects backslashes embedded in paths it generates
+        // into install() scripts (e.g. "...out\lib" is parsed as an
+        // invalid `\l` character escape). Convert to forward slashes.
+        .define(
+            "QUIC_OUTPUT_DIR",
+            quic_output_dir.to_str().unwrap().replace('\\', "/"),
+        );
 
     // Disable parallel builds on Windows, as they seems to break manifest builds.
     if cfg!(windows) {
