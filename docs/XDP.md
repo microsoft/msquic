@@ -3,6 +3,26 @@
 To avoid confusion, "XDP" refers to [XDP-for-windows](https://github.com/microsoft/xdp-for-windows).
 MsQuic does not support Linux XDP as a datapath.
 
+## Installing XDP
+
+MsQuic consumes XDP as a binary dependency for its tests; it does not build XDP
+from source. The exact package consumed is pinned in
+[`scripts/xdp.json`](../scripts/xdp.json) (currently the official **v1.1.0**
+XDP-for-Windows runtime NuGet package). A test-signed prerelease package can be
+pinned separately in [`scripts/xdp_prerelease.json`](../scripts/xdp_prerelease.json).
+
+To install XDP for testing, use `prepare-machine.ps1`, which downloads the
+runtime NuGet package, extracts it, and installs the driver via the package's
+own `xdp-setup.ps1`:
+
+```powershell
+# Install the official (production-signed) XDP release.
+./scripts/prepare-machine.ps1 -ForTest -UseXdp
+
+# Install the test-signed prerelease XDP package (requires test signing enabled).
+./scripts/prepare-machine.ps1 -ForTest -UseXdpPrerelease
+```
+
 ## What is XDP
 
 XDP enables received packets to completely bypass the OS networking stack.

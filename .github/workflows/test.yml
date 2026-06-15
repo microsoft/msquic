@@ -143,6 +143,7 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test", log: "Full.Verbose" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdpPrerelease", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", log: "Full.Verbose" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
@@ -158,7 +159,7 @@ jobs:
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
         ]
-    runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=bvt-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
+    runs-on: ${{ matrix.vec.xdp == '-UseXdpPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=windows-2022'']') || matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=bvt-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
