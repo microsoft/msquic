@@ -6,10 +6,9 @@ MsQuic does not support Linux XDP as a datapath.
 ## Installing XDP
 
 MsQuic consumes XDP as a binary dependency for its tests; it does not build XDP
-from source. The exact package consumed is pinned in
-[`scripts/xdp.json`](../scripts/xdp.json) (currently the official **v1.1.0**
-XDP-for-Windows runtime NuGet package). A test-signed prerelease package can be
-pinned separately in [`scripts/xdp_prerelease.json`](../scripts/xdp_prerelease.json).
+from source. The available packages — and the exact version pinned for each — are
+defined in [`scripts/xdp.json`](../scripts/xdp.json), which is the single source
+of truth. Each entry is keyed by a version moniker (e.g. `1.1`, `prerelease`).
 
 To install XDP for testing, use `prepare-machine.ps1`, which downloads the
 runtime NuGet package, extracts it, and installs the driver via the package's
@@ -17,11 +16,14 @@ own `xdp-setup.ps1`:
 
 ```powershell
 # Install the official (production-signed) XDP release.
-./scripts/prepare-machine.ps1 -ForTest -UseXdp
+./scripts/prepare-machine.ps1 -ForTest -UseXdp 1.1
 
-# Install the test-signed prerelease XDP package (requires test signing enabled).
-./scripts/prepare-machine.ps1 -ForTest -UseXdpPrerelease
+# Install a test-signed prerelease XDP package (requires test signing enabled).
+./scripts/prepare-machine.ps1 -ForTest -UseXdp prerelease
 ```
+
+`-UseXdp` takes the version moniker to install (any key from `xdp.json`); omit it
+to skip XDP entirely.
 
 ## What is XDP
 

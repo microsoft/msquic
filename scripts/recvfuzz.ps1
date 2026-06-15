@@ -95,7 +95,7 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp
+    [string]$UseXdp = ""
 )
 
 $env:ASAN_OPTIONS = "allocator_may_return_null=1"

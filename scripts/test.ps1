@@ -179,10 +179,7 @@ param (
     [switch]$DuoNic = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$UseXdpPrerelease = $false,
+    [string]$UseXdp = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$UseQtip = $false,
@@ -233,9 +230,9 @@ $Tls = $BuildConfig.Tls
 $Arch = $BuildConfig.Arch
 $RootArtifactDir = $BuildConfig.ArtifactsDir
 
-if ($UseXdp -or $UseXdpPrerelease) {
-    # Helper for XDP usage (the prerelease package runs over XDP the same way as
-    # the official release; only the installed driver differs).
+if ($UseXdp) {
+    # Helper for XDP usage (every XDP version runs over the same datapath; only
+    # the installed driver differs).
     $DuoNic = $true
 }
 

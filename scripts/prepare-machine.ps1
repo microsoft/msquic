@@ -73,10 +73,7 @@ param (
     [switch]$InstallPerl,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$UseXdpPrerelease,
+    [string]$UseXdp = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
@@ -148,7 +145,7 @@ if ($ForTest) {
                                   # hangs sometimes, so we only want to install
                                   # for jobs that absolutely need it.
 
-    if ($UseXdp -or $UseXdpPrerelease) {
+    if ($UseXdp) {
         $InstallXdpDriver = $true;
         $InstallDuoNic = $true;
     }
@@ -235,11 +232,18 @@ function Install-Xdp-Driver {
     Uninstall-Xdp
 
     # The installer URL is architecture-agnostic; substitute the moniker for the
-    # current OS architecture (e.g. x64, arm64). Use the prerelease package when
-    # requested, otherwise the official XDP release.
-    $XdpJsonFile = if ($UseXdpPrerelease) { "xdp_prerelease.json" } else { "xdp.json" }
-    $XdpJson = Get-Content (Join-Path $PSScriptRoot $XdpJsonFile) | ConvertFrom-Json
-    $InstallerUrl = $XdpJson.installer.Replace("{arch}", (Get-XdpArch))
+    # current OS architecture (e.g. x64, arm64). The XDP version to install is
+    # selected by $UseXdp (e.g. "1.1", "prerelease"); a single version-keyed
+    # xdp.json maps each version to its runtime package. When the driver is
+    # installed directly (-InstallXdpDriver) without a version, default to the
+    # latest official release.
+    $XdpVersion = if ($UseXdp) { $UseXdp } else { "1.1" }
+    $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
+    $XdpEntry = $XdpJson.$XdpVersion
+    if ($null -eq $XdpEntry) {
+        Write-Error "Unknown XDP version '$XdpVersion'. Available versions: $($XdpJson.PSObject.Properties.Name -join ', ')"
+    }
+    $InstallerUrl = $XdpEntry.installer.Replace("{arch}", (Get-XdpArch))
 
     $NupkgPath = Join-Path $ArtifactsPath "xdp.nupkg"
     Write-Host "Downloading XDP runtime package from $InstallerUrl"
