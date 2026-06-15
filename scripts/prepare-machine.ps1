@@ -154,10 +154,7 @@ if ($ForTest) {
     }
 }
 
-# The official XDP release (xdp.json) is production (WHQL) signed and does not
-# require test signing. The prerelease package (xdp_prerelease.json) is
-# test-signed, so it additionally needs signing certs + test signing enabled.
-if ($UseXdpPrerelease) {
+if ($InstallXdpDriver) {
     $InstallSigningCertificates = $true;
 }
 
