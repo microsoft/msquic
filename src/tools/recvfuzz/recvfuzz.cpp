@@ -541,12 +541,11 @@ void WriteCryptoFrame(
         0, ClientContext->State.BufferLength, ClientContext->State.Buffer
     };
 
-    CXPLAT_FRE_ASSERT(
-        QuicCryptoFrameEncode(
-            &Frame,
-            Offset,
-            BufferLength,
-            Buffer));
+    QuicCryptoFrameEncode(
+        &Frame,
+        Offset,
+        BufferLength,
+        Buffer);
 }
 
 //
