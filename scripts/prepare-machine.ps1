@@ -70,6 +70,9 @@ param (
     [switch]$InstallJom,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallCMake,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallPerl,
 
     [Parameter(Mandatory = $false)]
@@ -125,6 +128,7 @@ if ($ForBuild) {
     # enabled for any possible build.
     $InstallNasm = $true
     $InstallJom = $true
+    $InstallCMake = $true
     $InstallCoreNetCiDeps = $true; # For kernel signing certs
 }
 
@@ -313,6 +317,70 @@ function Install-JOM {
         Expand-Archive -Path "$ArtifactsPath\jom.zip" -DestinationPath $JomPath -Force
         Remove-Item -Path "$ArtifactsPath\jom.zip"
         Update-Path $JomPath
+    }
+}
+
+# Installs a recent CMake from Kitware's official GitHub release. Needed
+# because the default CMake generator used for Windows builds is
+# "Visual Studio 18 2026" (see scripts/build.ps1), which requires CMake
+# >= 4.2, but some hosted runner images (notably windows-2025 as of
+# 2026-06) still ship CMake 3.x. The freshly installed cmake is prepended
+# to PATH so it wins over any older copy already on the runner.
+#
+# When the system cmake is already as recent as $TargetCMakeVersion (i.e.
+# the runner image has caught up), this function logs a loud error to ensure it will be cleaned up.
+function Install-CMake {
+    if (!$IsWindows) { return } # Windows only
+
+    $TargetCMakeVersion = "4.3.3"
+    $CMakeDir = "cmake-$TargetCMakeVersion-windows-x86_64"
+    $CMakePath = Join-Path $env:Programfiles $CMakeDir
+    $CMakeBin = Join-Path $CMakePath "bin"
+    $CMakeExe = Join-Path $CMakeBin "cmake.exe"
+
+    # Check whatever cmake is already on PATH (skipping any cmake.exe we
+    # may have installed in a previous run of this script).
+    $SysCMake = $null
+    try {
+        $SysCMake = Get-Command cmake.exe -ErrorAction Stop |
+            Where-Object { $_.Source -ne $CMakeExe } |
+            Select-Object -First 1
+    } catch { }
+
+    if ($null -ne $SysCMake) {
+        $SysVersionLine = & $SysCMake.Source --version 2>$null | Select-Object -First 1
+        if ($SysVersionLine -match "cmake version (\d+\.\d+\.\d+)") {
+            $SysVersion = [Version]$Matches[1]
+            $Target = [Version]$TargetCMakeVersion
+            if ($SysVersion -ge $Target) {
+                $msg = "System cmake $SysVersion at '$($SysCMake.Source)' is already >= the version this helper installs ($Target). The Install-CMake helper in scripts/prepare-machine.ps1 is no longer needed and should be removed."
+                # Emit a GitHub Actions error annotation when running in CI,
+                # plus a Write-Error (non-terminating) for local visibility.
+                if ($null -ne $env:GITHUB_PATH) {
+                    Write-Host "::error::$msg"
+                }
+                Write-Error $msg -ErrorAction Continue
+                return
+            }
+        }
+    }
+
+    if (!(Test-Path $CMakeExe)) {
+        Write-Host "Downloading CMake $TargetCMakeVersion"
+        $Zip = Join-Path $ArtifactsPath "cmake.zip"
+        Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v$TargetCMakeVersion/$CMakeDir.zip" -OutFile $Zip
+        Write-Host "Extracting/installing CMake to $CMakePath"
+        Expand-Archive -Path $Zip -DestinationPath $env:Programfiles -Force
+        Remove-Item -Path $Zip
+    }
+
+    # Prepend so this CMake wins over any older one already on
+    # PATH for both the current process and subsequent workflow steps.
+    $env:PATH = "$CMakeBin;$env:PATH"
+    if ($null -ne $env:GITHUB_PATH) {
+        # Each line written to $GITHUB_PATH is prepended to PATH for
+        # subsequent steps in the same job.
+        Add-Content -Path $env:GITHUB_PATH -Value $CMakeBin
     }
 }
 
@@ -550,6 +618,7 @@ if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
+if ($InstallCMake) { Install-CMake }
 if ($InstallPerl) { Install-Perl }
 if ($InstallCodeCoverage) { Install-CodeCoverage }
 if ($InstallTestCertificates) { Install-TestCertificates }
