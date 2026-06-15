@@ -793,18 +793,21 @@ QuicStreamOnBytesDelivered(
                 // low.
                 //
 
+                uint64_t NewLength = (uint64_t)Stream->RecvBuffer.VirtualBufferLength * 2;
+                NewLength = CXPLAT_MIN(NewLength, UINT32_MAX);
+
                 QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
                     "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
-                    Stream->RecvBuffer.VirtualBufferLength * 2,
+                    (uint32_t)NewLength,
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,
                     Stream->RecvWindowLastUpdate);
 
                 QuicRecvBufferIncreaseVirtualBufferLength(
                     &Stream->RecvBuffer,
-                    Stream->RecvBuffer.VirtualBufferLength * 2);
+                    (uint32_t)NewLength);
             }
         }
 
