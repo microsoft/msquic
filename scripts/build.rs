@@ -39,9 +39,6 @@ fn cmake_build() {
     let mut config = Config::new(".");
     config
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
-        // CMake 4.x rejects backslashes embedded in paths it generates
-        // into install() scripts (e.g. "...out\lib" is parsed as an
-        // invalid `\l` character escape). Convert to forward slashes.
         .define(
             "QUIC_OUTPUT_DIR",
             quic_output_dir.to_str().unwrap().replace('\\', "/"),
