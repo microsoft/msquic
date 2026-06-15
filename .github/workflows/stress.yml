@@ -172,12 +172,12 @@ jobs:
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
       shell: pwsh
-      run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp }}
+      run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp }} -UseProcDump
     - name: recvfuzz (Official)
       if: github.event_name != 'pull_request'
       timeout-minutes: 65
       shell: pwsh
-      run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }}
+      run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }} -UseProcDump
     - name: Upload on Failure
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: failure()
