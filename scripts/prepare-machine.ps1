@@ -328,7 +328,9 @@ function Install-JOM {
 # to PATH so it wins over any older copy already on the runner.
 #
 # When the system cmake is already as recent as $TargetCMakeVersion (i.e.
-# the runner image has caught up), this function logs a loud error to ensure it will be cleaned up.
+# the runner image has caught up, or a different CI environment ships its
+# own modern cmake), this function leaves it in place and logs a loud
+# warning so the helper can eventually be removed.
 function Install-CMake {
     if (!$IsWindows) { return } # Windows only
 
@@ -354,12 +356,13 @@ function Install-CMake {
             $Target = [Version]$TargetCMakeVersion
             if ($SysVersion -ge $Target) {
                 $msg = "System cmake $SysVersion at '$($SysCMake.Source)' is already >= the version this helper installs ($Target). The Install-CMake helper in scripts/prepare-machine.ps1 is no longer needed and should be removed."
-                # Emit a GitHub Actions error annotation when running in CI,
-                # plus a Write-Error (non-terminating) for local visibility.
+                # Surface a GitHub Actions warning annotation when running in CI
+                # so this stays visible without failing the build, and a
+                # Write-Warning for local visibility.
                 if ($null -ne $env:GITHUB_PATH) {
-                    Write-Host "::error::$msg"
+                    Write-Host "::warning::$msg"
                 }
-                Write-Error $msg -ErrorAction Continue
+                Write-Warning $msg
                 return
             }
         }
@@ -374,8 +377,8 @@ function Install-CMake {
         Remove-Item -Path $Zip
     }
 
-    # Prepend so this CMake wins over any older one already on
-    # PATH for both the current process and subsequent workflow steps.
+    # Prepend so this CMake wins over any older one already on PATH for
+    # both the current process and subsequent workflow steps.
     $env:PATH = "$CMakeBin;$env:PATH"
     if ($null -ne $env:GITHUB_PATH) {
         # Each line written to $GITHUB_PATH is prepended to PATH for
