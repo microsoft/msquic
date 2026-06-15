@@ -95,7 +95,10 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp
+    [switch]$UseXdp,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseProcDump = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -180,6 +183,10 @@ if ($CodeCoverage) {
 }
 if ($AZP) {
     $Arguments += " -AZP"
+}
+
+if ($UseProcDump) {
+    $Arguments += " -UseProcDump"
 }
 
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
