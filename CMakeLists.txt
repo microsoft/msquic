@@ -228,6 +228,11 @@ endif()
 
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CACHE STRING "Output directory for build artifacts")
+# Normalize backslashes to forward slashes. Callers like Rust's cmake
+# crate can pass a Windows native path here, which CMake 4.x then rejects
+# as an "invalid character escape" when it appears in a generated
+# install() script (e.g. \l in "...out\lib").
+file(TO_CMAKE_PATH "${QUIC_OUTPUT_DIR}" QUIC_OUTPUT_DIR)
 
 string(GENEX_STRIP ${QUIC_OUTPUT_DIR} QUIC_OUTPUT_DIR_STRIPPED)
 
