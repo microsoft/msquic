@@ -88,6 +88,12 @@ jobs:
         perl-version: '5.34'
     - name: Install NASM
       uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
+    - name: Use system CMake
+      # Strawberry Perl (added to PATH by actions-setup-perl) ships an
+      # older cmake.exe that shadows the runner image's CMake. Prepend
+      # the image's CMake bin dir so it wins for the rest of the job.
+      shell: pwsh
+      run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\CMake\bin'
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
