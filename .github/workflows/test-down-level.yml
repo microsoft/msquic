@@ -54,7 +54,7 @@ jobs:
       shell: pwsh
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf ${{ matrix.vec.os == 'windows-2022' && '-Generator "Visual Studio 17 2022"' || '' }}
     - name: Download Tests
       shell: pwsh
       run: |
