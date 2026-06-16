@@ -237,7 +237,7 @@ function Install-Xdp-Driver {
     # xdp.json maps each version to its runtime package. When the driver is
     # installed directly (-InstallXdpDriver) without a version, default to the
     # latest official release.
-    $XdpVersion = if ($UseXdp) { $UseXdp } else { "1.1" }
+    $XdpVersion = $UseXdp
     $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
     $XdpEntry = $XdpJson.$XdpVersion
     if ($null -eq $XdpEntry) {
@@ -404,7 +404,7 @@ function Install-CodeCoverage {
             sudo apt-get install -y pip
         }
         pip install gcovr==$GcovrVersion
-    } 
+    }
 }
 
 # Installs StrawberryPerl on Windows via Winget.
