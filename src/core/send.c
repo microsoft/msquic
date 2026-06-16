@@ -1493,6 +1493,14 @@ QuicSendFlush(
 
     QuicPacketBuilderCleanup(&Builder);
 
+    if (Builder.InitialKeysDiscarded && Send->SendFlags != 0) {
+        //
+        // Initial keys were discarded mid-flush, which may have freed
+        // send allowance. Schedule a new flush.
+        //
+        Result = QUIC_SEND_INCOMPLETE;
+    }
+
     QuicTraceLogConnVerbose(
         SendFlushComplete,
         Connection,
