@@ -30,7 +30,7 @@ on the provided configuration.
 
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 param (
     [Parameter(Mandatory = $false)]
@@ -233,10 +233,8 @@ function Install-Xdp-Driver {
 
     # The installer URL is architecture-agnostic; substitute the moniker for the
     # current OS architecture (e.g. x64, arm64). The XDP version to install is
-    # selected by $UseXdp (e.g. "1.1", "prerelease"); a single version-keyed
-    # xdp.json maps each version to its runtime package. When the driver is
-    # installed directly (-InstallXdpDriver) without a version, default to the
-    # latest official release.
+    # selected by $UseXdp (e.g. "xdp-v1.1", "xdp-prerelease"); a single
+    # version-keyed xdp.json maps each version to its runtime package.
     $XdpVersion = $UseXdp
     $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
     $XdpEntry = $XdpJson.$XdpVersion

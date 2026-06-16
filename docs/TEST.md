@@ -25,7 +25,7 @@ Then all the tests can be run with:
 
 Windows XDP datapath can be used unless a test explicitly specify loopback address by
 ```Powershell
-./scripts/test.ps1 -UseXdp 1.1
+./scripts/test.ps1 -UseXdp xdp-v1.1
 ```
 
 By default this will run all tests in series, with no log collection. To include log collection for failed tests, run:

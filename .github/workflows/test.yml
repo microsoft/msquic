@@ -141,25 +141,25 @@ jobs:
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", iouring: "-UseIoUring"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test"  },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test", log: "Full.Verbose" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "1.1", sanitize: "-SanitizeAddress", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "1.1", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "prerelease", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-prerelease", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", log: "Full.Verbose" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "1.1", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "1.1", qtip: "-UseQtip", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "1.1", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "1.1", qtip: "-UseQtip", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "xdp-v1.1", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "xdp-v1.1", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "1.1", sanitize: "-SanitizeAddress", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "1.1", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", xdp: "1.1", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", xdp: "1.1", qtip: "-UseQtip", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
         ]
-    runs-on: ${{ matrix.vec.xdp == 'prerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=windows-2022'']') || matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=bvt-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
+    runs-on: ${{ matrix.vec.xdp == 'xdp-prerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=windows-2022'']') || matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=bvt-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -270,7 +270,7 @@ jobs:
           { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test", xdp: "1.1" },
+          { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test", xdp: "xdp-v1.1" },
           { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
