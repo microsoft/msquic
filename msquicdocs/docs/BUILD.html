@@ -236,10 +236,10 @@ sudo dnf install libatomic
 </code></pre>
 <h2 id="generating-build-files">Generating Build Files</h2>
 <h3 id="windows">Windows</h3>
-<p>Ensure the corresponding &quot;MSVC v142 - VS 2019 (or 2022) C++ (<em>Arch</em>) build tools&quot; are installed for the target arch, e.g. selecting &quot;Desktop development with C++&quot; only includes x64/x86 but not ARM64 by default.</p>
-<p>VS 2019</p>
+<p>Ensure the corresponding &quot;MSVC v142 - VS 2026 (or 2022) C++ (<em>Arch</em>) build tools&quot; are installed for the target arch, e.g. selecting &quot;Desktop development with C++&quot; only includes x64/x86 but not ARM64 by default.
+VS 2026</p>
 <pre><code>mkdir build &amp;&amp; cd build
-cmake -G 'Visual Studio 16 2019' -A x64 ..
+cmake -G 'Visual Studio 18 2026' -A x64 ..
 </code></pre>
 <p>VS 2022</p>
 <pre><code>mkdir build &amp;&amp; cd build
