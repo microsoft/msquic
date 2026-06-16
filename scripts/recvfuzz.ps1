@@ -39,6 +39,9 @@ This script runs recvfuzz locally for a period of time.
 .Parameter AZP
     Runs in Azure Pipelines mode.
 
+.Parameter UseProcDump
+    Use ProcDump to capture crash dumps.
+
 #>
 
 param (
@@ -95,7 +98,10 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$UseXdp = ""
+    [string]$UseXdp = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseProcDump = $false
 )
 
 $env:ASAN_OPTIONS = "allocator_may_return_null=1"
@@ -175,6 +181,9 @@ if ($CodeCoverage) {
 }
 if ($AZP) {
     $Arguments += " -AZP"
+}
+if ($UseProcDump) {
+    $Arguments += " -UseProcDump"
 }
 
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {

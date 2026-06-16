@@ -27,7 +27,7 @@ fn cmake_build() {
     }
 
     let target = env::var("TARGET").unwrap().replace("\\", "/");
-    let out_dir = env::var("OUT_DIR").unwrap().replace("\\", "/");
+    let out_dir = env::var("OUT_DIR").unwrap();
     // The output directory for the native MsQuic library.
     let quic_output_dir = if cfg!(windows) {
         Path::new(&out_dir).join("lib")
@@ -39,7 +39,10 @@ fn cmake_build() {
     let mut config = Config::new(".");
     config
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
-        .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
+        .define(
+            "QUIC_OUTPUT_DIR",
+            quic_output_dir.to_str().unwrap().replace('\\', "/"),
+        );
 
     // Disable parallel builds on Windows, as they seems to break manifest builds.
     if cfg!(windows) {
