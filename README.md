@@ -56,7 +56,7 @@ MsQuic has several features that differentiates it from other QUIC implementatio
 # Documentation
 
   * For platform support details, see the [Platforms docs](./docs/Platforms.md).
-  * For release details, see the [Release docs](./docs/Release.md).
+  * For release details and supported versions, see the [Release docs](./docs/Release.md).
   * For performance data, see the [Performance dashboard](https://aka.ms/msquicperformance).
   * For building the library, see the [Build docs](./docs/BUILD.md).
   * For testing the library, see the [Testing docs](./docs/TEST.md).
@@ -65,7 +65,10 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * For deploying QUIC, see the [Deployment docs](./docs/Deployment.md).
   * For diagnosing issues, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TroubleShootingGuide.md).
   * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
+  * For contributor guides and internal design docs, see the [Contributor docs](./docs/contrib).
 
 # Contributing
 
-For information on contributing, please see our [contribution guidelines](./.github/CONTRIBUTING.md). Feel free to take a look at our [Good First Issues](https://github.com/microsoft/msquic/labels/good%20first%20issue) list if you're looking for somewhere to start. If you'd just like to talk, come chat with us [on Discord](https://discord.gg/YGAtCwTSsc).
+For information on contributing, please see our [contribution guidelines](./.github/CONTRIBUTING.md).
+Feel free to take a look at our [Good First Issues](https://github.com/microsoft/msquic/labels/good%20first%20issue) list if you're looking for somewhere to start.
+If you'd just like to talk, come chat with us [on Discord](https://discord.gg/YGAtCwTSsc).
