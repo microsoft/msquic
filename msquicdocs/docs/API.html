@@ -153,7 +153,7 @@
 <p><a href="#listener"><strong>Listener</strong></a> – Server side only, this object provides the interface for an app to accept incoming connections from clients. Once the connection has been accepted, it is independent of the listener. The app may create as many of these as necessary.</p>
 <p><a href="#connection"><strong>Connection</strong></a> – Represents the actual QUIC connection state between the client and server. The app may create (and/or accept) as many of these as necessary.</p>
 <p><a href="#stream"><strong>Stream</strong></a> – The layer at which application data is exchanged. Streams may be opened by either peer of a connection and may be unidirectional or bidirectional. For a single connection, as many streams as necessary may be created.</p>
-<p>(For more details on the inner design of MsQuic see: <a href="TLS.html">TLS</a>)</p>
+<p>(For more details on the inner design of MsQuic see: <a href="contrib/TLS.html">TLS</a>)</p>
 <h2 id="versioning">Versioning</h2>
 <p>MsQuic API follows <a href="https://semver.org/">semantic versioning</a> rules for updating the library version number (seen <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic.ver">here</a>).</p>
 <p>The <strong>MAJOR</strong> version <strong>must change</strong> when:</p>

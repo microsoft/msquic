@@ -62,30 +62,10 @@
     },
     {
       "type": "Conceptual",
-      "source_relative_path": "docs/CredScan.md",
-      "output": {
-        ".html": {
-          "relative_path": "docs/CredScan.html"
-        }
-      },
-      "version": ""
-    },
-    {
-      "type": "Conceptual",
       "source_relative_path": "docs/Deployment.md",
       "output": {
         ".html": {
           "relative_path": "docs/Deployment.html"
-        }
-      },
-      "version": ""
-    },
-    {
-      "type": "Conceptual",
-      "source_relative_path": "docs/Development.md",
-      "output": {
-        ".html": {
-          "relative_path": "docs/Development.html"
         }
       },
       "version": ""
@@ -192,16 +172,6 @@
     },
     {
       "type": "Conceptual",
-      "source_relative_path": "docs/ReceiveBuffer.md",
-      "output": {
-        ".html": {
-          "relative_path": "docs/ReceiveBuffer.html"
-        }
-      },
-      "version": ""
-    },
-    {
-      "type": "Conceptual",
       "source_relative_path": "docs/Release.md",
       "output": {
         ".html": {
@@ -246,16 +216,6 @@
       "output": {
         ".html": {
           "relative_path": "docs/TEST.html"
-        }
-      },
-      "version": ""
-    },
-    {
-      "type": "Conceptual",
-      "source_relative_path": "docs/TLS.md",
-      "output": {
-        ".html": {
-          "relative_path": "docs/TLS.html"
         }
       },
       "version": ""
@@ -849,6 +809,69 @@
         },
         ".json": {
           "relative_path": "docs/api/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/CredScan.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/CredScan.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/Development.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/Development.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/ReceiveBuffer.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/ReceiveBuffer.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/ReleaseGuide.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/ReleaseGuide.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/TLS.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/TLS.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/contrib/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/toc.html"
+        },
+        ".json": {
+          "relative_path": "docs/contrib/toc.json"
         }
       },
       "version": ""
