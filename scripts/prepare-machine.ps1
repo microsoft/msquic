@@ -265,13 +265,6 @@ function Install-Xdp-Driver {
     # See https://github.com/microsoft/xdp-for-windows/blob/main/docs/usage.md#installation
     Write-Host "Installing XDP driver"
     & (Join-Path $XdpRuntimeNativePath "xdp-setup.ps1") -Install xdp -Verbose
-
-    #
-    # NB: This is only needed for older XDP. xdpapi.dll is the (now deprecated)
-    # user-mode library required by XDP_API_VERSION_1/_2. Once the minimum XDP version we
-    # test against is >= v1.1.0, this copy can be removed.
-    Write-Host "Copying xdpapi.dll to System32"
-    Copy-Item -Force (Join-Path $XdpRuntimeNativePath "xdpapi.dll") (Join-Path $env:SystemRoot "System32\xdpapi.dll")
 }
 
 # Completely removes the XDP driver.
