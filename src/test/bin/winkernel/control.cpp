@@ -463,6 +463,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestTlsHandshakeInfo);
     RegisterTestFunction(QuicTestStreamParam);
     RegisterTestFunction(QuicTestGetPerfCounters);
+    RegisterTestFunction(QuicTestValidateEncryptDecryptPerfCounters);
     RegisterTestFunction(QuicTestValidateConfiguration);
     RegisterTestFunction(QuicTestValidateListener);
     RegisterTestFunction(QuicTestValidateConnection);

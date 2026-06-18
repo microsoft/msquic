@@ -390,6 +390,15 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
     }
 }
 
+TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
+    TestLogger Logger("QuicTestValidateEncryptDecryptPerfCounters");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateEncryptDecryptPerfCounters)));
+    } else {
+        QuicTestValidateEncryptDecryptPerfCounters();
+    }
+}
+
 TEST(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) {
