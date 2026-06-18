@@ -265,6 +265,9 @@ function Install-Xdp-Driver {
     # See https://github.com/microsoft/xdp-for-windows/blob/main/docs/usage.md#installation
     Write-Host "Installing XDP driver"
     & (Join-Path $XdpRuntimeNativePath "xdp-setup.ps1") -Install xdp -Verbose
+
+    Write-Host "Copying xdpapi.dll to System32"
+    Copy-Item -Force (Join-Path $XdpRuntimeNativePath "xdpapi.dll") (Join-Path $env:SystemRoot "System32\xdpapi.dll")
 }
 
 # Completely removes the XDP driver.
