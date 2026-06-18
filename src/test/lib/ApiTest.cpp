@@ -6047,6 +6047,7 @@ QuicTestGetPerfCounters()
     TEST_EQUAL(BufferLength, (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)));
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestValidateEncryptDecryptPerfCounters()
 {
@@ -6116,6 +6117,7 @@ QuicTestValidateEncryptDecryptPerfCounters()
     TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US]);
     TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_DECRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_DECRYPT_DURATION_US]);
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void

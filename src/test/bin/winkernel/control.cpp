@@ -463,7 +463,9 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestTlsHandshakeInfo);
     RegisterTestFunction(QuicTestStreamParam);
     RegisterTestFunction(QuicTestGetPerfCounters);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestValidateEncryptDecryptPerfCounters);
+#endif
     RegisterTestFunction(QuicTestValidateConfiguration);
     RegisterTestFunction(QuicTestValidateListener);
     RegisterTestFunction(QuicTestValidateConnection);

@@ -390,6 +390,7 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
     TestLogger Logger("QuicTestValidateEncryptDecryptPerfCounters");
     if (TestingKernelMode) {
@@ -398,6 +399,7 @@ TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
         QuicTestValidateEncryptDecryptPerfCounters();
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
