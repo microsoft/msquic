@@ -159,6 +159,10 @@ jobs:
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test", log: "Full.Verbose" },
         ]
+    # Runner selection:
+    #   xdp-prerelease      → self-hosted 1ES pool (Windows 2022 image)
+    #   WinServerPrerelease  → self-hosted 1ES pool (WinServerPrerelease image, with JobId)
+    #   everything else      → GitHub-hosted runner matching matrix.vec.os
     runs-on: ${{ matrix.vec.xdp == 'xdp-prerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=windows-2022'']') || matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=bvt-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
     steps:
     - name: Checkout repository
