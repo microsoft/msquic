@@ -47,7 +47,7 @@ jobs:
       matrix:
         vec: [
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", xdp: "xdp-v1.1" },
         ]
     runs-on:
      - self-hosted
@@ -55,7 +55,7 @@ jobs:
      - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
      - "JobId=cc-bvt-${{ matrix.vec.config }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       with:
         fetch-depth: 0
     - name: Download Build Artifacts
@@ -64,7 +64,7 @@ jobs:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -InstallCodeCoverage
       shell: pwsh
     - name: Install ETW Manifest
       shell: pwsh
@@ -77,7 +77,7 @@ jobs:
       shell: pwsh
       timeout-minutes: 120
       continue-on-error: true
-      run: scripts/test.ps1 -NoProgress -IsolationMode Batch -SkipUnitTests -CodeCoverage -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -LogProfile Full.Light ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+      run: scripts/test.ps1 -NoProgress -IsolationMode Batch -SkipUnitTests -CodeCoverage -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -LogProfile Full.Light ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Upload Results
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
@@ -107,7 +107,7 @@ jobs:
       pr-allocfail: 100
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -115,20 +115,20 @@ jobs:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -InstallCodeCoverage
       shell: pwsh
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
       continue-on-error: true
       shell: pwsh
-      run: scripts/spin.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
+      run: scripts/spin.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: spinquic (Official)
       if: github.event_name != 'pull_request'
       timeout-minutes: 65
       continue-on-error: true
       shell: pwsh
-      run: scripts/spin.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
+      run: scripts/spin.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: Upload Results
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
@@ -154,7 +154,7 @@ jobs:
       pr-timeout: 600000
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -162,20 +162,20 @@ jobs:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -InstallCodeCoverage
       shell: pwsh
     - name: recvfuzz (PR)
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
       continue-on-error: true
       shell: pwsh
-      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
+      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: recvfuzz (Official)
       if: github.event_name != 'pull_request'
       timeout-minutes: 65
       continue-on-error: true
       shell: pwsh
-      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
+      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: Upload Results
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
@@ -188,7 +188,7 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       with:
         fetch-depth: 0
     - name: Prepare Machine
@@ -237,13 +237,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       name: Download Merged Coverage Report
       with:
         name: merged
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
       with:
         fail_ci_if_error: true
         files: msquiccoverage.xml

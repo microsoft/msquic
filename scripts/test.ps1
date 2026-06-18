@@ -98,7 +98,7 @@ This script runs the MsQuic tests.
     test.ps1 -Filter ParameterValidation* -NumIterations 10
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 param (
     [Parameter(Mandatory = $false)]
@@ -185,7 +185,7 @@ param (
     [switch]$XdpMapMode = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false,
+    [string]$UseXdp = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$UseQtip = $false,
@@ -227,7 +227,7 @@ if ($CodeCoverage) {
             Write-Error "Code coverage tools are not installed";
     } elseif ($IsLinux -and !(Get-Command gcovr -ErrorAction SilentlyContinue)) {
         Write-Error "Code coverage tools for linux (gcovr) are not installed (missing 'gcovr')."
-    } 
+    }
 }
 
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
@@ -237,7 +237,8 @@ $Arch = $BuildConfig.Arch
 $RootArtifactDir = $BuildConfig.ArtifactsDir
 
 if ($UseXdp) {
-    # Helper for XDP usage
+    # Helper for XDP usage (every XDP version runs over the same datapath; only
+    # the installed driver differs).
     $DuoNic = $true
 }
 

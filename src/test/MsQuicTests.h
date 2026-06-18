@@ -590,6 +590,11 @@ QuicTestPathValidationTimeout(
     );
 
 void
+QuicTestPathValidationLastPathClose(
+    const FamilyArgs& Params
+    );
+
+void
 QuicTestChangeMaxStreamID(
     const FamilyArgs& Params
     );

@@ -904,6 +904,106 @@ QuicTestPathValidationTimeout(
     }
 }
 
+struct PathValidationContext {
+    bool Connected {false};
+    QUIC_STATUS TransportCloseStatus {QUIC_STATUS_SUCCESS};
+    CxPlatEvent HandshakeCompleteEvent;
+    CxPlatEvent ShutdownEvent;
+    static QUIC_STATUS ConnCallback(
+        _In_ MsQuicConnection*,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) {
+        auto This = static_cast<PathValidationContext*>(Context);
+        switch (Event->Type) {
+        case QUIC_CONNECTION_EVENT_CONNECTED:
+            This->Connected = true;
+            This->HandshakeCompleteEvent.Set();
+            break;
+        case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
+            This->TransportCloseStatus = Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status;
+            break;
+        case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+            This->ShutdownEvent.Set();
+            This->HandshakeCompleteEvent.Set();
+            break;
+        default:
+            break;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+//
+// Verifies that when all paths fail validation the connection closes with
+// QUIC_STATUS_UNREACHABLE.
+//
+void
+QuicTestPathValidationLastPathClose(
+    const FamilyArgs& Params
+    )
+{
+    const int Family = Params.Family;
+    PathValidationContext Context;
+
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000).SetInitialRttMs(100);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    MsQuicAutoAcceptListener Listener(
+        Registration, ServerConfiguration,
+        PathValidationContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily =
+        (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(
+        Connection.Start(
+            ClientConfiguration,
+            ServerLocalAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+            ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.Connected);
+
+    QuicAddr OrigLocalAddr;
+    TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
+    QuicAddr NewLocalAddr(OrigLocalAddr, 1);
+
+    //
+    // Rewrite the client's address then drop all traffic. Both
+    // old and new paths will fail validation.
+    //
+    ReplaceAddressThenDropHelper AddrHelper(
+        OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr, 1);
+    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
+
+    //
+    // The server should close with UNREACHABLE when the last
+    // path's validation fails.
+    //
+    TEST_TRUE(Context.ShutdownEvent.WaitTimeout(TestWaitTimeout));
+    TEST_EQUAL(Context.TransportCloseStatus, QUIC_STATUS_UNREACHABLE);
+
+    Connection.Shutdown(QUIC_TEST_NO_ERROR, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT);
+}
+
 void
 QuicTestChangeMaxStreamID(
     const FamilyArgs& Params

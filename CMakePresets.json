@@ -10,7 +10,7 @@
             "name": "win-base",
             "description": "Base settings for all windows builds",
             "hidden": true,
-            "generator": "Visual Studio 17 2022",
+            "generator": "Visual Studio 18 2026",
             "binaryDir": "${sourceDir}/build/windows",
             "cacheVariables": {
                 "QUIC_ENABLE_LOGGING": "on",

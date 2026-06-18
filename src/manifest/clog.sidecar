@@ -1831,6 +1831,94 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnPathActive": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
+      "UniqueId": "ConnPathActive",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnPathInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Initialized",
+      "UniqueId": "ConnPathInitialized",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnPathRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Removed",
+      "UniqueId": "ConnPathRemoved",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnPathValidated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Validated (%hhu)",
+      "UniqueId": "ConnPathValidated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnPathValidationTimeout": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] validation timed out",
+      "UniqueId": "ConnPathValidationTimeout",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnPersistentCongestion": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Persistent congestion event",
@@ -8206,6 +8294,26 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathActiveFallback": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] removed; falling back to Path[%hhu]",
+      "UniqueId": "PathActiveFallback",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "PathDiscarded": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Removing invalid path[%hhu]",
@@ -8337,6 +8445,46 @@
         },
         {
           "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathValidatedReason": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Validated (%s)",
+      "UniqueId": "PathValidatedReason",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathValidationFallback": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] failed; falling back to validated Path[%hhu]",
+      "UniqueId": "PathValidationFallback",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
           "MacroVariableName": "arg4"
         }
       ],
@@ -13671,6 +13819,31 @@
         "EncodingString": "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu"
       },
       {
+        "UniquenessHash": "0afbe643-9584-6130-adf3-9c1ec3825c5f",
+        "TraceID": "ConnPathActive",
+        "EncodingString": "[conn][%p] Path[%hhu] Set active (rebind=%hhu)"
+      },
+      {
+        "UniquenessHash": "a324b00e-cfc4-4104-a6cf-c8e9b9cb2b01",
+        "TraceID": "ConnPathInitialized",
+        "EncodingString": "[conn][%p] Path[%hhu] Initialized"
+      },
+      {
+        "UniquenessHash": "7d00aaa7-7a44-2e9b-2a9f-5cd3e73cc4f3",
+        "TraceID": "ConnPathRemoved",
+        "EncodingString": "[conn][%p] Path[%hhu] Removed"
+      },
+      {
+        "UniquenessHash": "6c9a8375-720d-7df9-6e6e-179e99ac49e0",
+        "TraceID": "ConnPathValidated",
+        "EncodingString": "[conn][%p] Path[%hhu] Validated (%hhu)"
+      },
+      {
+        "UniquenessHash": "6ef76f38-b4df-cf7d-3197-b7e4d86471da",
+        "TraceID": "ConnPathValidationTimeout",
+        "EncodingString": "[conn][%p] Path[%hhu] validation timed out"
+      },
+      {
         "UniquenessHash": "c339eadc-2eef-8e45-4a51-1fc84a3c198e",
         "TraceID": "ConnPersistentCongestion",
         "EncodingString": "[conn][%p] Persistent congestion event"
@@ -15566,6 +15739,11 @@
         "EncodingString": "[conn][%p] Path[%hhu] Set active (rebind=%hhu)"
       },
       {
+        "UniquenessHash": "dbe0fbfc-98b0-3033-000e-dd52c892d6e1",
+        "TraceID": "PathActiveFallback",
+        "EncodingString": "[conn][%p] Path[%hhu] removed; falling back to Path[%hhu]"
+      },
+      {
         "UniquenessHash": "8843a66a-349f-e5a2-a63c-5120fb187f69",
         "TraceID": "PathDiscarded",
         "EncodingString": "[conn][%p] Removing invalid path[%hhu]"
@@ -15604,6 +15782,16 @@
         "UniquenessHash": "4ce67714-4e7b-0004-8559-eee9a101fe4b",
         "TraceID": "PathValidated",
         "EncodingString": "[conn][%p] Path[%hhu] Validated (%s)"
+      },
+      {
+        "UniquenessHash": "0f6374a8-53c2-8e51-2920-00c6a333d228",
+        "TraceID": "PathValidatedReason",
+        "EncodingString": "[conn][%p] Path[%hhu] Validated (%s)"
+      },
+      {
+        "UniquenessHash": "cfd7dde2-9313-5a40-a873-3a101a438f35",
+        "TraceID": "PathValidationFallback",
+        "EncodingString": "[conn][%p] Path[%hhu] failed; falling back to validated Path[%hhu]"
       },
       {
         "UniquenessHash": "3ab19fcb-a837-77d2-82e3-a62d0361d98f",
