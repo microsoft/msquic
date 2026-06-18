@@ -61,6 +61,8 @@ jobs:
         vec: [
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls" },
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl" },
+          { plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls" },
+          { plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl" },
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -79,6 +81,7 @@ jobs:
       matrix:
         vec: [
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls" },
+          { plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
           { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl" },
