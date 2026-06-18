@@ -37,6 +37,7 @@ You will need to complete a Contributor License Agreement (CLA) for any code sub
 We accept fixes and features! Here are some resources to help you get started on how to contribute code or new content.
 
 * Look at the [documentation](../docs/) to get started on building the source code on your own.
+* See the [contributor documentation](../docs/contrib/) for contributor-focused documentation (processes and design)
 * ["Help wanted" issues](https://github.com/microsoft/msquic/labels/help%20wanted) - these issues are up for grabs. Comment on an issue if you want to create a fix.
 * ["Good first issue" issues](https://github.com/microsoft/msquic/labels/good%20first%20issue) - we think these are a good for newcomers.
 
