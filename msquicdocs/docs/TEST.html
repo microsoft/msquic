@@ -102,7 +102,7 @@ On Windows, <code>schannel</code> is the default TLS provider, but requires the 
 <pre><code class="lang-PowerShell">./scripts/test.ps1 -Tls openssl
 </code></pre>
 <p>Windows XDP datapath can be used unless a test explicitly specify loopback address by</p>
-<pre><code class="lang-Powershell">./scripts/test.ps1 -UseXdp
+<pre><code class="lang-Powershell">./scripts/test.ps1 -UseXdp xdp-v1.1
 </code></pre>
 <p>By default this will run all tests in series, with no log collection. To include log collection for failed tests, run:</p>
 <pre><code class="lang-PowerShell">./scripts/test.ps1 -LogProfile Full.Light
