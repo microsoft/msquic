@@ -1,3 +1,8 @@
 {
-    "installer": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.1.0/xdp-for-windows.x64.1.1.0.msi"
+    "xdp-v1.1": {
+        "installer": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.1.0/XDP-for-Windows-Runtime.{arch}.1.1.0.nupkg"
+    },
+    "xdp-prerelease": {
+        "installer": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.4.0-prerelease-testsigned-32d14f58/Microsoft.XDP-for-Windows.Runtime.{arch}.1.4.0-prerelease-testsigned-32d14f58.nupkg"
+    }
 }

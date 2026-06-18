@@ -6,7 +6,7 @@
 
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'

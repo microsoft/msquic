@@ -119,7 +119,7 @@ This script provides helpers for building msquic.
 
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 param (
     [Parameter(Mandatory = $false)]
