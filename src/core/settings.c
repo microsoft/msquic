@@ -720,7 +720,7 @@ QuicSettingApply(
     if (Source->IsSet.XdpEnabled && !Source->XdpEnabled && MsQuicLib.XdpMapConfigCount > 0) {
         QuicTraceLogError(
             SettingXdpDisabledInMapMode,
-            "[ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active.");
+            "[ lib] Error: Xdp must be enabled when an XDP map was configured.");
         return FALSE;
     }
 

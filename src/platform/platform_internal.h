@@ -263,7 +263,6 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
 
-
     //
     // The registration with WinSock Kernel.
     //
@@ -473,7 +472,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 //
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
-
 
     //
     // Function pointer to AcceptEx.
@@ -993,7 +991,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PARTITION {
 typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
 
-
     //
     // Synchronization mechanism for cleanup.
     //
@@ -1206,7 +1203,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
+    _In_ const CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** DataPath
     );
 
@@ -1234,6 +1231,15 @@ CxPlatDpRawInsertXskByMapConfigs(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
     _In_reads_(MapConfigCount) const QUIC_XDP_MAP_CONFIG* MapConfigs,
     _In_ uint32_t MapConfigCount
+    );
+
+//
+// Best-effort removal of XSK sockets from maps during cleanup.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawRemoveXskByMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -21,11 +21,11 @@ Abstract:
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 
-#include <iphlpapi.h>
 #define XDP_API_VERSION 3
 #define XDP_INCLUDE_WINCOMMON
 #include <xdp/wincommon.h>
 #include <xdpapi.h>
+#include <iphlpapi.h>
 
 extern const MsQuicApi* MsQuic;
 

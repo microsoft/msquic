@@ -478,16 +478,15 @@ typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     BOOLEAN EnableDscpOnRecv;
 
     //
-    // External XDP map configurations. When XdpMapConfigCount > 0 and
-    // XdpMapConfigs is non-NULL, the datapath operates in XDP map mode: the
-    // WinSock (normal) datapath is skipped, the raw (XDP) datapath is required
-    // to succeed, and XSK sockets are inserted into the provided XSKMAPs at
-    // init time.
-    // XdpMapConfigs is NULL if and only if XdpMapConfigCount == 0.
+    // External XDP map configurations. When XdpMapConfigCount > 0, the datapath
+    // inserts XSK sockets into the provided maps instead of configuring
+    // per-connection rules.
     // The map configs must remain valid for the lifetime of the datapath.
+    // XdpMapConfigs is non-NULL if and only if XdpMapConfigCount > 0.
     //
     // N.B. Currently only supported for Windows user-mode.
     //
+    _Field_size_(XdpMapConfigCount)
     const struct QUIC_XDP_MAP_CONFIG* XdpMapConfigs;
     uint32_t XdpMapConfigCount;
 } CXPLAT_DATAPATH_INIT_CONFIG;

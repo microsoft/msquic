@@ -56,7 +56,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
+    _In_ const CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** DataPath
     )
 {
@@ -113,13 +113,21 @@ CxPlatDpRawInsertXskByMapConfigs(
     )
 {
     //
-    // Stub for platforms without XDP support. Must return QUIC_STATUS_NOT_SUPPORTED
-    // so raw-only init fails gracefully on non-Windows platforms.
+    // Stub for platforms without XDP support.
     //
     UNREFERENCED_PARAMETER(RawDataPath);
     UNREFERENCED_PARAMETER(MapConfigs);
     UNREFERENCED_PARAMETER(MapConfigCount);
     return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawRemoveXskByMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

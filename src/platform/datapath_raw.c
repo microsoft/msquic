@@ -24,7 +24,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
+    _In_ const CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
@@ -32,6 +32,7 @@ RawDataPathInitialize(
     const size_t DatapathSize = CxPlatDpRawGetDatapathSize(WorkerPool);
     BOOLEAN DpRawInitialized = FALSE;
     BOOLEAN SockPoolInitialized = FALSE;
+    BOOLEAN RouteWorkerInitialized = FALSE;
 
     *NewDataPath = NULL;
 
@@ -64,6 +65,7 @@ RawDataPathInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
+    RouteWorkerInitialized = TRUE;
 
     if (InitConfig->XdpMapConfigCount > 0) {
         CXPLAT_DBG_ASSERT(InitConfig->XdpMapConfigs != NULL);
@@ -74,12 +76,14 @@ RawDataPathInitialize(
                 InitConfig->XdpMapConfigs,
                 InitConfig->XdpMapConfigCount);
         if (QUIC_FAILED(Status)) {
+            //
+            // Upon failure, CxPlatDpRawInsertXskByMapConfigs should already have attempted
+            // a best effort cleanup of XSKs inserted into the map.
+            //
             QuicTraceLogVerbose(
                 DatapathRawMapInsertFail,
                 "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
                 Status);
-            RawDataPathUninitialize(RawDataPath);
-            RawDataPath = NULL;
             goto Error;
         }
     }
@@ -94,6 +98,9 @@ Error:
 #if DEBUG
         RawDataPath->Uninitialized = TRUE;
 #endif
+        if (RouteWorkerInitialized) {
+            CxPlatDataPathRouteWorkerUninitialize(RawDataPath->RouteResolutionWorker);
+        }
         if (DpRawInitialized) {
             CxPlatDpRawUninitialize(RawDataPath);
         } else {
@@ -134,6 +141,7 @@ RawDataPathUninitialize(
         CXPLAT_DBG_ASSERT(!Datapath->Uninitialized);
         Datapath->Uninitialized = TRUE;
 #endif
+        CxPlatDpRawRemoveXskByMapConfigs(Datapath);
         CxPlatDataPathRouteWorkerUninitialize(Datapath->RouteResolutionWorker);
         CxPlatDpRawUninitialize(Datapath);
     }
