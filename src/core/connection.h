@@ -266,6 +266,12 @@ typedef struct QUIC_CONN_STATS {
         uint32_t LastQueueTime;         // Time the connection last entered the work queue.
         uint64_t DrainCount;            // Sum of drain calls
         uint64_t OperationCount;        // Sum of operations processed
+        uint32_t QueueDelayAvgUs;       // EWMA of connection queue delay
+        uint32_t QueueDelayMaxUs;       // Maximum connection queue delay
+        uint32_t SendQueueDelayAvgUs;   // EWMA of send queue delay
+        uint32_t SendQueueDelayMaxUs;   // Maximum send queue delay
+        uint32_t ReceiveQueueDelayAvgUs; // EWMA of receive queue delay
+        uint32_t ReceiveQueueDelayMaxUs; // Maximum receive queue delay
     } Schedule;
 
     struct {
@@ -1455,6 +1461,21 @@ QuicConnGetAckDelay(
         return (uint64_t)Connection->Settings.MaxAckDelayMs + (uint64_t)MsQuicLib.TimerResolutionMs;
     }
     return (uint64_t)Connection->Settings.MaxAckDelayMs;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_INLINE
+void
+QuicConnUpdateQueueDelay(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t TimeInQueueUs
+    )
+{
+    Connection->Stats.Schedule.QueueDelayAvgUs =
+        (7 * Connection->Stats.Schedule.QueueDelayAvgUs + TimeInQueueUs) / 8;
+    if (TimeInQueueUs > Connection->Stats.Schedule.QueueDelayMaxUs) {
+        Connection->Stats.Schedule.QueueDelayMaxUs = TimeInQueueUs;
+    }
 }
 
 //

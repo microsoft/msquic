@@ -7102,6 +7102,24 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, RttVariance)) {
         Stats->RttVariance = (uint32_t)Path->RttVariance;
     }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ConnectionQueueDelayAvgUs)) {
+        Stats->ConnectionQueueDelayAvgUs = Connection->Stats.Schedule.QueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ConnectionQueueDelayMaxUs)) {
+        Stats->ConnectionQueueDelayMaxUs = Connection->Stats.Schedule.QueueDelayMaxUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendQueueDelayAvgUs)) {
+        Stats->SendQueueDelayAvgUs = Connection->Stats.Schedule.SendQueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendQueueDelayMaxUs)) {
+        Stats->SendQueueDelayMaxUs = Connection->Stats.Schedule.SendQueueDelayMaxUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ReceiveQueueDelayAvgUs)) {
+        Stats->ReceiveQueueDelayAvgUs = Connection->Stats.Schedule.ReceiveQueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ReceiveQueueDelayMaxUs)) {
+        Stats->ReceiveQueueDelayMaxUs = Connection->Stats.Schedule.ReceiveQueueDelayMaxUs;
+    }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
 
@@ -7999,6 +8017,11 @@ QuicConnDrainOperations(
 
         BOOLEAN FreeOper = Oper->FreeAfterProcess;
 
+        uint32_t OperQueueDelayUs = CxPlatTimeDiff32(Oper->QueueTimeUs, CxPlatTimeUs32());
+        if (OperQueueDelayUs >= (UINT32_MAX >> 1)) {
+            OperQueueDelayUs = 0;
+        }
+
         switch (Oper->Type) {
 
         case QUIC_OPER_TYPE_API_CALL:
@@ -8011,6 +8034,11 @@ QuicConnDrainOperations(
         case QUIC_OPER_TYPE_FLUSH_RECV:
             if (Connection->State.ShutdownComplete) {
                 break; // Ignore if already shutdown
+            }
+            Connection->Stats.Schedule.ReceiveQueueDelayAvgUs =
+                (7 * Connection->Stats.Schedule.ReceiveQueueDelayAvgUs + OperQueueDelayUs) / 8;
+            if (OperQueueDelayUs > Connection->Stats.Schedule.ReceiveQueueDelayMaxUs) {
+                Connection->Stats.Schedule.ReceiveQueueDelayMaxUs = OperQueueDelayUs;
             }
             if (!QuicConnFlushRecv(Connection)) {
                 //
@@ -8041,6 +8069,11 @@ QuicConnDrainOperations(
         case QUIC_OPER_TYPE_FLUSH_SEND:
             if (Connection->State.ShutdownComplete) {
                 break; // Ignore if already shutdown
+            }
+            Connection->Stats.Schedule.SendQueueDelayAvgUs =
+                (7 * Connection->Stats.Schedule.SendQueueDelayAvgUs + OperQueueDelayUs) / 8;
+            if (OperQueueDelayUs > Connection->Stats.Schedule.SendQueueDelayMaxUs) {
+                Connection->Stats.Schedule.SendQueueDelayMaxUs = OperQueueDelayUs;
             }
             if (QuicSendFlush(&Connection->Send)) {
                 //

@@ -1212,10 +1212,16 @@ pub struct QUIC_STATISTICS_V2 {
     pub SendEcnCongestionCount: u32,
     pub HandshakeHopLimitTTL: u8,
     pub RttVariance: u32,
+    pub ConnectionQueueDelayAvgUs: u32,
+    pub ConnectionQueueDelayMaxUs: u32,
+    pub SendQueueDelayAvgUs: u32,
+    pub SendQueueDelayMaxUs: u32,
+    pub ReceiveQueueDelayAvgUs: u32,
+    pub ReceiveQueueDelayMaxUs: u32,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_STATISTICS_V2"][::std::mem::size_of::<QUIC_STATISTICS_V2>() - 208usize];
+    ["Size of QUIC_STATISTICS_V2"][::std::mem::size_of::<QUIC_STATISTICS_V2>() - 232usize];
     ["Alignment of QUIC_STATISTICS_V2"][::std::mem::align_of::<QUIC_STATISTICS_V2>() - 8usize];
     ["Offset of field: QUIC_STATISTICS_V2::CorrelationId"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, CorrelationId) - 0usize];
@@ -1283,6 +1289,18 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, HandshakeHopLimitTTL) - 200usize];
     ["Offset of field: QUIC_STATISTICS_V2::RttVariance"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, RttVariance) - 204usize];
+    ["Offset of field: QUIC_STATISTICS_V2::ConnectionQueueDelayAvgUs"]
+        [::std::mem::offset_of!(QUIC_STATISTICS_V2, ConnectionQueueDelayAvgUs) - 208usize];
+    ["Offset of field: QUIC_STATISTICS_V2::ConnectionQueueDelayMaxUs"]
+        [::std::mem::offset_of!(QUIC_STATISTICS_V2, ConnectionQueueDelayMaxUs) - 212usize];
+    ["Offset of field: QUIC_STATISTICS_V2::SendQueueDelayAvgUs"]
+        [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendQueueDelayAvgUs) - 216usize];
+    ["Offset of field: QUIC_STATISTICS_V2::SendQueueDelayMaxUs"]
+        [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendQueueDelayMaxUs) - 220usize];
+    ["Offset of field: QUIC_STATISTICS_V2::ReceiveQueueDelayAvgUs"]
+        [::std::mem::offset_of!(QUIC_STATISTICS_V2, ReceiveQueueDelayAvgUs) - 224usize];
+    ["Offset of field: QUIC_STATISTICS_V2::ReceiveQueueDelayMaxUs"]
+        [::std::mem::offset_of!(QUIC_STATISTICS_V2, ReceiveQueueDelayMaxUs) - 228usize];
 };
 impl QUIC_STATISTICS_V2 {
     #[inline]

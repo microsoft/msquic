@@ -617,6 +617,7 @@ QuicWorkerProcessConnection(
         }
 
         QuicWorkerUpdateQueueDelay(Worker, Delay);
+        QuicConnUpdateQueueDelay(Connection, Delay);
     }
 
     //
