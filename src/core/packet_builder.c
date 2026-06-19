@@ -359,8 +359,9 @@ QuicPacketBuilderPrepare(
         // are not limiting Handshake packets.
         //
         if (QuicConnIsClient(Connection) && NewPacketKeyType == QUIC_PACKET_KEY_HANDSHAKE) {
-            Builder->InitialKeysDiscarded =
-                QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
+            if (QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL)) {
+                Builder->InitialKeysDiscarded = TRUE;
+            }
             Builder->Key = NULL;
         }
 
