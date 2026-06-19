@@ -21,7 +21,7 @@ RawOnlyDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
+    _In_ const CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
