@@ -258,7 +258,9 @@ pub struct QuicPerformanceCounters {
     pub send_stateless_reset: i64,
     pub send_stateless_retry: i64,
     pub conn_load_reject: i64,
+    #[cfg(feature = "preview-api")]
     pub encrypt_duration_us: i64,
+    #[cfg(feature = "preview-api")]
     pub decrypt_duration_us: i64,
 }
 
@@ -530,9 +532,11 @@ impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
                     as usize],
             conn_load_reject: value
                 [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_LOAD_REJECT as usize],
+            #[cfg(feature = "preview-api")]
             encrypt_duration_us: value
                 [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_ENCRYPT_DURATION_US
                     as usize],
+            #[cfg(feature = "preview-api")]
             decrypt_duration_us: value
                 [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_DECRYPT_DURATION_US
                     as usize],
