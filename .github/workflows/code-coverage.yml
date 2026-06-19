@@ -206,7 +206,7 @@ jobs:
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       name: Download BVT (XDP) Coverage Results
       with:
-        name: BVT-Debug-windows-windows-2022-x64-quictls-UseXdp
+        name: BVT-Debug-windows-windows-2022-x64-quictlsxdp-v1.1
         path: artifacts\coverage\windows\x64_Debug_quictls
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       name: Download SpinQuic Coverage Results
