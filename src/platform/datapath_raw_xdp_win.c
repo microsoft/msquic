@@ -31,7 +31,6 @@ Abstract:
 
 #define XDP_MAX_SYNC_WAIT_TIMEOUT_MS 1000 // Used for querying XDP RSS capabilities.
 
-
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH_RAW;
     DECLSPEC_CACHEALIGN
@@ -55,6 +54,7 @@ typedef struct XDP_DATAPATH {
 typedef struct XDP_INTERFACE {
     XDP_INTERFACE_COMMON;
     HANDLE XdpHandle;
+    HANDLE XskMap;              // XSKMAP handle for best-effort cleanup (NULL if not using map mode).
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
@@ -2301,7 +2301,28 @@ CxPlatDpRawInsertXskInMap(
             return (QUIC_STATUS)Hr;
         }
     }
+    Interface->XskMap = XskMap;
     return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+void
+CxPlatDpRawRemoveXskFromMap(
+    _In_ XDP_INTERFACE* Interface
+    )
+{
+    if (Interface->XskMap == NULL) {
+        return;
+    }
+    for (uint32_t j = 0; j < Interface->QueueCount; j++) {
+        CXPLAT_QUEUE* Queue = &Interface->Queues[j];
+        if (Queue->RxXsk == NULL) {
+            continue;
+        }
+        (void)XdpMapDelete(Interface->XskMap, &j);
+    }
+    Interface->XskMap = NULL;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2324,6 +2345,7 @@ CxPlatDpRawInsertXskByMapConfigs(
                 HANDLE XskMap = (HANDLE)MapConfigs[i].MapHandle;
                 Status = CxPlatDpRawInsertXskInMap(Interface, XskMap);
                 if (QUIC_FAILED(Status)) {
+                    CxPlatDpRawRemoveXskByMapConfigs(RawDataPath);
                     goto Exit;
                 }
                 QuicTraceLogVerbose(
@@ -2340,4 +2362,19 @@ CxPlatDpRawInsertXskByMapConfigs(
 Exit:
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawRemoveXskByMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)RawDataPath;
+
+    CXPLAT_LIST_ENTRY* Entry;
+    for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+        CxPlatDpRawRemoveXskFromMap(Interface);
+    }
 }

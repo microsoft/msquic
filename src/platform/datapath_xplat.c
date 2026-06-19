@@ -15,6 +15,50 @@ Abstract:
 #include "datapath_xplat.c.clog.h"
 #endif
 
+static
+QUIC_STATUS
+RawOnlyDataPathInitialize(
+    _In_ uint32_t ClientRecvContextLength,
+    _In_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
+    _Out_ CXPLAT_DATAPATH** NewDataPath
+    )
+{
+    CXPLAT_DBG_ASSERT(InitConfig->XdpMapConfigs != NULL);
+
+    CXPLAT_DATAPATH* Datapath =
+        CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
+    if (Datapath == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH (raw-only)",
+            sizeof(CXPLAT_DATAPATH));
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    CxPlatZeroMemory(Datapath, sizeof(CXPLAT_DATAPATH));
+    Datapath->UdpHandlers = *UdpCallbacks;
+    Datapath->WorkerPool = WorkerPool;
+
+    RawDataPathInitialize(
+        ClientRecvContextLength,
+        Datapath,
+        WorkerPool,
+        InitConfig,
+        &Datapath->RawDataPath);
+    if (Datapath->RawDataPath == NULL) {
+        QuicTraceLogVerbose(
+            DatapathRawInitFailRawOnly,
+            "[  dp] Raw-only mode: raw datapath required but failed to initialize");
+        CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+        *NewDataPath = NULL;
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+    *NewDataPath = Datapath;
+    return QUIC_STATUS_SUCCESS;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
@@ -33,56 +77,22 @@ CxPlatDataPathInitialize(
     }
 
     if (InitConfig->XdpMapConfigCount > 0) {
-        //
-        // Raw-only datapath: the raw datapath must initialize successfully
-        // since we are skipping OS platform specific initializations.
-        //
-        CXPLAT_DBG_ASSERT(InitConfig->XdpMapConfigs != NULL);
-        if (NewDataPath == NULL) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-        if (UdpCallbacks != NULL) {
-            if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-        }
-        CXPLAT_DATAPATH* Datapath =
-            CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
-        if (Datapath == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH (raw-only)",
-                sizeof(CXPLAT_DATAPATH));
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
+        if (UdpCallbacks == NULL ||
+            UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
-        CxPlatZeroMemory(Datapath, sizeof(CXPLAT_DATAPATH));
-        if (UdpCallbacks) {
-            Datapath->UdpHandlers = *UdpCallbacks;
-        }
-        Datapath->WorkerPool = WorkerPool;
-
-        RawDataPathInitialize(
-            ClientRecvContextLength,
-            Datapath,
-            WorkerPool,
-            InitConfig,
-            &Datapath->RawDataPath);
-        if (Datapath->RawDataPath == NULL) {
-            QuicTraceLogVerbose(
-                DatapathRawInitFailRawOnly,
-                "[  dp] Raw-only mode: raw datapath required but failed to initialize");
-            CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-            *NewDataPath = NULL;
-            Status = QUIC_STATUS_NOT_SUPPORTED;
+        Status =
+            RawOnlyDataPathInitialize(
+                ClientRecvContextLength,
+                UdpCallbacks,
+                WorkerPool,
+                InitConfig,
+                NewDataPath);
+        if (QUIC_FAILED(Status)) {
             goto Error;
         }
-        *NewDataPath = Datapath;
     } else {
-        //
-        // OS platform-specific initializations.
-        //
         Status =
             DataPathInitialize(
                 ClientRecvContextLength,
@@ -190,9 +200,8 @@ CxPlatSocketCreateUdp(
     BOOLEAN IsRawDatapathOnly = CxPlatDpRawIsRawDatapathOnly(Datapath->RawDataPath);
 
     //
-    // In raw-only mode the raw (XDP) datapath is the only data path. Implicitly
-    // enable XDP for all sockets and treat any raw socket failure as fatal
-    // (no OS fallback, no QTIP TCP port retry).
+    // When the raw (XDP) datapath is the only datapath, create raw sockets for all cxplat sockets
+    // and treat any failure as fatal (no fallback to OS sockets, no QTIP TCP port retry).
     //
     BOOLEAN CreateRaw = IsRawDatapathOnly || (Config->Flags & CXPLAT_SOCKET_FLAG_XDP);
 
@@ -220,7 +229,7 @@ CxPlatSocketCreateUdp(
         BOOLEAN CibirRequested = (Config->CibirIdLength > 0);
 
         (*NewSocket)->RawSocketAvailable = 0;
-        CXPLAT_DBG_ASSERT((IsRawDatapathOnly && CreateRaw && Datapath->RawDataPath) || !IsRawDatapathOnly);
+        CXPLAT_DBG_ASSERT(!IsRawDatapathOnly || Datapath->RawDataPath);
         if (CreateRaw && Datapath->RawDataPath) {
             Status =
                 RawSocketCreateUdp(

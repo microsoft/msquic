@@ -1227,6 +1227,10 @@ SocketCreateUdp(
     int Result, Option;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
+    //
+    // In raw-only mode PartitionCount is 0 (no WinSock init), so skip the
+    // partition index bounds check.
+    //
     CXPLAT_DBG_ASSERT(CxPlatDpRawIsRawDatapathOnly(Datapath->RawDataPath) || IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
     CXPLAT_DBG_ASSERT(Config->CibirIdLength <= sizeof(Config->CibirId));
 
