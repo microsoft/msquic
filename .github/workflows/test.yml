@@ -166,7 +166,7 @@ jobs:
     runs-on: ${{ matrix.vec.xdp == 'xdp-prerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=windows-2022'']') || matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=bvt-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       with:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
@@ -229,7 +229,7 @@ jobs:
     runs-on: ${{ matrix.vec.plat == 'winkernel' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=bvt-kernel-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       with:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
@@ -281,7 +281,7 @@ jobs:
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=interop-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       with:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
