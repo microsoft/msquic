@@ -401,6 +401,24 @@ TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
+TEST(ParameterValidation, ValidateGetWorkerStatistics) {
+    TestLogger Logger("QuicTestGetWorkerStatistics");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGetWorkerStatistics)));
+    } else {
+        QuicTestGetWorkerStatistics();
+    }
+}
+
+TEST(ParameterValidation, ValidateWorkerStatistics) {
+    TestLogger Logger("QuicTestValidateWorkerStatistics");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateWorkerStatistics)));
+    } else {
+        QuicTestValidateWorkerStatistics();
+    }
+}
+
 TEST(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) {

@@ -92,6 +92,8 @@ void QuicTestGetPerfCounters();
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void QuicTestValidateEncryptDecryptPerfCounters();
 #endif
+void QuicTestGetWorkerStatistics();
+void QuicTestValidateWorkerStatistics();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config);
