@@ -450,20 +450,19 @@ Error:
         QUIC_CONNECTION* PoolConnection = *Connection;
         if (QUIC_FAILED(Status)) {
             //
-            // This connection has never left MsQuic back to the application.
-            // Mark it as internally owned so no notification is sent to the app,
-            // the closing logic will handle the owner deref.
+            // On failure, QuicConnStart has already marked this (internally
+            // owned) connection for silent teardown and self-cleanup on its
+            // worker thread. We must not touch the connection's state from this
+            // thread (that would race the worker); we only drop our handle to
+            // it here.
             //
-            PoolConnection->State.ExternalOwner = FALSE;
-            QuicConnPoolQueueConnectionClose(PoolConnection, FALSE);
             *Connection = NULL;
         }
         //
         // Release the create-scope reference taken after QuicConnAlloc. This is
-        // the last access to the connection on this thread, so the worker is now
-        // free to run (and, on failure, free) the connection without racing this
-        // function. On success the application retains ownership via the original
-        // owner reference.
+        // the last access to the connection on this thread. On failure the
+        // worker-side teardown performs the final owner deref; on success the
+        // application retains ownership via the original owner reference.
         //
         QuicConnRelease(PoolConnection, QUIC_CONN_REF_HANDLE_OWNER);
     }
