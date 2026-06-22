@@ -756,10 +756,10 @@ tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
 // Decoder Ring for FailedRouteResolution
 // [conn][%p] Route resolution failed on Path[%hhu]. Switching paths...
 // QuicTraceLogConnInfo(
-                    FailedRouteResolution,
-                    Connection,
-                    "Route resolution failed on Path[%hhu]. Switching paths...",
-                    PathId);
+            FailedRouteResolution,
+            Connection,
+            "Route resolution failed on Path[%hhu]. Switching paths...",
+            PathId);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = PathId = arg3
 ----------------------------------------------------------*/
@@ -2181,6 +2181,26 @@ tracepoint(CLOG_CONNECTION_C, ConnDelayCloseApplicationError , arg2);\
 #ifndef _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams
 #define _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ConnRecvUdpDatagrams , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathValidationTimeout
+// [conn][%p] Path[%hhu] validation timed out
+// QuicTraceEvent(
+            ConnPathValidationTimeout,
+            "[conn][%p] Path[%hhu] validation timed out",
+            Connection,
+            Path->ID);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPathValidationTimeout
+#define _clog_4_ARGS_TRACE_ConnPathValidationTimeout(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnPathValidationTimeout , arg2, arg3);\
 
 #endif
 

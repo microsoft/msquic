@@ -30,7 +30,7 @@ on the provided configuration.
 
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 param (
     [Parameter(Mandatory = $false)]
@@ -73,7 +73,7 @@ param (
     [switch]$InstallPerl,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp,
+    [string]$UseXdp = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
@@ -210,30 +210,74 @@ function Install-SigningCertificates {
     }
 }
 
+# Maps the current OS architecture to the XDP runtime package architecture moniker.
+function Get-XdpArch {
+    switch ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) {
+        ([System.Runtime.InteropServices.Architecture]::X64)   { return "x64" }
+        ([System.Runtime.InteropServices.Architecture]::Arm64) { return "arm64" }
+        default { Write-Error "Unsupported architecture for XDP: $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)" }
+    }
+}
+
+# The extracted runtime package lays its files out under "runtime\native".
+$XdpPath = Join-Path $ArtifactsPath "xdp"
+$XdpRuntimeNativePath = Join-Path $XdpPath "runtime\native"
+
 # Installs the XDP driver (for testing).
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
-    Write-Host "Downloading XDP msi"
-    $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
-    Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer -OutFile $MsiPath
+
+    # Remove any previous XDP installation to avoid netcfg "already exists" errors.
+    Uninstall-Xdp
+
+    # The installer URL is architecture-agnostic; substitute the moniker for the
+    # current OS architecture (e.g. x64, arm64). The XDP version to install is
+    # selected by $UseXdp (e.g. "xdp-v1.1", "xdp-prerelease"); a single
+    # version-keyed xdp.json maps each version to its runtime package.
+    $XdpVersion = $UseXdp
+    $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
+    $XdpEntry = $XdpJson.$XdpVersion
+    if ($null -eq $XdpEntry) {
+        Write-Error "Unknown XDP version '$XdpVersion'. Available versions: $($XdpJson.PSObject.Properties.Name -join ', ')"
+    }
+    $InstallerUrl = $XdpEntry.installer.Replace("{arch}", (Get-XdpArch))
+
+    $NupkgPath = Join-Path $ArtifactsPath "xdp.nupkg"
+    Write-Host "Downloading XDP runtime package from $InstallerUrl"
+    Invoke-WebRequest -Uri $InstallerUrl -OutFile $NupkgPath
+
+    # .nupkg files are zip archives and can be extracted with Expand-Archive.
+    Write-Host "Extracting XDP runtime package"
+    if (Test-Path $XdpPath) { Remove-Item -Recurse -Force $XdpPath }
+    Expand-Archive -Path $NupkgPath -DestinationPath $XdpPath -Force
+
+    # Install the driver's signing certificate so Windows trusts it during the
+    # silent (netcfg) install performed by xdp-setup.ps1.
     Write-Host "Installing XDP driver certificate"
-    $CertFileName = Join-Path $ArtifactsPath 'xdp.cer'
-    Get-AuthenticodeSignature $MsiPath | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
-    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\root'
-    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
+    $XdpCat = Join-Path $XdpRuntimeNativePath "xdp.cat"
+    $CertPath = Join-Path $ArtifactsPath "xdp.cer"
+    Get-AuthenticodeSignature $XdpCat | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertPath | Out-Null
+    Import-Certificate -FilePath $CertPath -CertStoreLocation 'cert:\localmachine\root'
+    Import-Certificate -FilePath $CertPath -CertStoreLocation 'cert:\localmachine\trustedpublisher'
+
+    # Install the driver using the official xdp-setup.ps1 that ships in the package.
+    # See https://github.com/microsoft/xdp-for-windows/blob/main/docs/usage.md#installation
     Write-Host "Installing XDP driver"
-    msiexec.exe /i $MsiPath /quiet | Out-Null
+    & (Join-Path $XdpRuntimeNativePath "xdp-setup.ps1") -Install xdp -Verbose
 }
 
-# Completely removes the XDP driver and SDK.
+# Completely removes the XDP driver.
 function Uninstall-Xdp {
     if (!$IsWindows) { return } # Windows only
-    $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
-    if (Test-Path $MsiPath) {
-        Write-Host "Uninstalling XDP driver"
-        try { msiexec.exe /x $MsiPath /quiet | Out-Null } catch {}
-    }
+
+    # The driver is uninstalled via the same xdp-setup.ps1 from the extracted
+    # package. If the package isn't present, there is nothing to uninstall.
+    $XdpSetup = Join-Path $XdpRuntimeNativePath "xdp-setup.ps1"
+    if (!(Test-Path $XdpSetup)) { return }
+
+    Write-Host "Uninstalling XDP driver"
+    & $XdpSetup -Uninstall xdp -Verbose
 }
 
 # Installs DuoNic from the CoreNet-CI repo.
@@ -352,7 +396,7 @@ function Install-CodeCoverage {
             sudo apt-get install -y pip
         }
         pip install gcovr==$GcovrVersion
-    } 
+    }
 }
 
 # Installs StrawberryPerl on Windows via Winget.

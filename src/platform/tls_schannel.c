@@ -2126,6 +2126,18 @@ CxPlatTlsWriteDataToSchannel(
         }
     }
 
+    //
+    // Some or all of the input data was processed. There may or may not be
+    // corresponding output data to send in response.
+    //
+    if (ExtraBuffer != NULL && ExtraBuffer->cbBuffer > 0) {
+        //
+        // Not all the input buffer was consumed. There is some 'extra' left over.
+        //
+        CXPLAT_DBG_ASSERT(ExtraBuffer->cbBuffer <= *InBufferLength);
+        *InBufferLength -= ExtraBuffer->cbBuffer;
+    }
+
     switch (SecStatus) {
     case SEC_E_BUFFER_TOO_SMALL: {
         //
@@ -2434,19 +2446,6 @@ CxPlatTlsWriteDataToSchannel(
             }
             Result |= CXPLAT_TLS_RESULT_ERROR;
             break;
-        }
-
-        //
-        // Some or all of the input data was processed. There may or may not be
-        // corresponding output data to send in response.
-        //
-
-        if (ExtraBuffer != NULL && ExtraBuffer->cbBuffer > 0) {
-            //
-            // Not all the input buffer was consumed. There is some 'extra' left over.
-            //
-            CXPLAT_DBG_ASSERT(InSecBuffers[1].cbBuffer <= *InBufferLength);
-            *InBufferLength -= InSecBuffers[1].cbBuffer;
         }
 
         QuicTraceLogConnInfo(

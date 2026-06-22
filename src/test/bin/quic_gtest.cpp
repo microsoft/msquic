@@ -1967,6 +1967,15 @@ TEST_P(WithFamilyArgs, PathValidationTimeout) {
         QuicTestPathValidationTimeout(GetParam());
     }
 }
+
+TEST_P(WithFamilyArgs, PathValidationLastPathClose) {
+    TestLoggerT<ParamType> Logger("QuicTestPathValidationLastPathClose", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestPathValidationLastPathClose), GetParam()));
+    } else {
+        QuicTestPathValidationLastPathClose(GetParam());
+    }
+}
 #endif
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
