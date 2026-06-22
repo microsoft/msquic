@@ -71,8 +71,8 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibirSockets );\
 // Decoder Ring for DatapathRawInitFailRawOnly
 // [  dp] Raw-only mode: raw datapath required but failed to initialize
 // QuicTraceLogVerbose(
-                DatapathRawInitFailRawOnly,
-                "[  dp] Raw-only mode: raw datapath required but failed to initialize");
+            DatapathRawInitFailRawOnly,
+            "[  dp] Raw-only mode: raw datapath required but failed to initialize");
 ----------------------------------------------------------*/
 #ifndef _clog_2_ARGS_TRACE_DatapathRawInitFailRawOnly
 #define _clog_2_ARGS_TRACE_DatapathRawInitFailRawOnly(uniqueId, encoded_arg_string)\
@@ -154,10 +154,10 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForQtip );\
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH (raw-only)",
-                sizeof(CXPLAT_DATAPATH));
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH (raw-only)",
+            sizeof(CXPLAT_DATAPATH));
 // arg2 = arg2 = "CXPLAT_DATAPATH (raw-only)" = arg2
 // arg3 = arg3 = sizeof(CXPLAT_DATAPATH) = arg3
 ----------------------------------------------------------*/
