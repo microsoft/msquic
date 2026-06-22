@@ -39,6 +39,7 @@ Environment:
 #include <stdint.h>
 
 #define QUIC_INLINE inline
+#define QUIC_INVALID_FILE_HANDLE         -1
 
 #define SUCCESS_HRESULT_FROM_WIN32(x) \
     ((HRESULT)(((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16)))
