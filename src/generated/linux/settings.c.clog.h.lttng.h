@@ -908,10 +908,10 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled,
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingXdpDisabledInMapMode
-// [ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active.
+// [ lib] Error: Xdp must be enabled when an XDP map was configured.
 // QuicTraceLogError(
             SettingXdpDisabledInMapMode,
-            "[ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active.");
+            "[ lib] Error: Xdp must be enabled when an XDP map was configured.");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingXdpDisabledInMapMode,
     TP_ARGS(

@@ -11167,7 +11167,7 @@
     },
     "SettingXdpDisabledInMapMode": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active.",
+      "TraceString": "[ lib] Error: Xdp must be enabled when an XDP map was configured.",
       "UniqueId": "SettingXdpDisabledInMapMode",
       "splitArgs": [],
       "macroName": "QuicTraceLogError"
@@ -16699,9 +16699,9 @@
         "EncodingString": "[sett] StreamMultiReceiveEnabled  = %hhu"
       },
       {
-        "UniquenessHash": "45180046-2197-4f5c-6e93-f5791314c245",
+        "UniquenessHash": "77ec384c-3da0-5126-8eaf-00b7b66431d6",
         "TraceID": "SettingXdpDisabledInMapMode",
-        "EncodingString": "[ lib] Error: XdpEnabled cannot be set to FALSE when XDP map mode is active."
+        "EncodingString": "[ lib] Error: Xdp must be enabled when an XDP map was configured."
       },
       {
         "UniquenessHash": "3bdc4807-1d2f-01f2-3c8c-043542720899",
