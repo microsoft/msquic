@@ -108,6 +108,7 @@ typedef struct QUIC_API_CONTEXT {
             const char* ServerName;
             uint16_t ServerPort;
             QUIC_ADDRESS_FAMILY Family;
+            BOOLEAN FailSilently;       // Don't notify the app on start failure.
         } CONN_START;
         struct {
             QUIC_CONFIGURATION* Configuration;
