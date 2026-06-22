@@ -236,14 +236,14 @@ $Tls = $BuildConfig.Tls
 $Arch = $BuildConfig.Arch
 $RootArtifactDir = $BuildConfig.ArtifactsDir
 
-if ($UseXdp) {
-    # Helper for XDP usage (every XDP version runs over the same datapath; only
-    # the installed driver differs).
-    $DuoNic = $true
+if ($XdpMapMode) {
+    if ([string]::IsNullOrEmpty($UseXdp)) {
+        Write-Error "-XdpMapMode requires -UseXdp to specify an XDP version (e.g. 'xdp-prerelease')."
+    }
 }
 
-if ($XdpMapMode) {
-    # Map mode implies DuoNic
+if ($UseXdp) {
+    # XDP usage (and map mode) implies DuoNic.
     $DuoNic = $true
 }
 
