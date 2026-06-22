@@ -136,6 +136,7 @@ where
         }
     }
 }
+pub const QUIC_INVALID_FILE_HANDLE: i32 = -1;
 pub const QUIC_ADDRESS_FAMILY_UNSPEC: u32 = 0;
 pub const QUIC_ADDRESS_FAMILY_INET: u32 = 2;
 pub const QUIC_ADDRESS_FAMILY_INET6: u32 = 10;
