@@ -272,13 +272,6 @@ QuicConnPoolQueueConnectionClose(
 //
 // Start the connection on its worker thread and wait for completion.
 //
-// QuicConnStart must NOT be called inline on the app thread: it adds the
-// connection's source CID to the binding lookup table partway through, after
-// which the receive datapath can deliver packets and the connection's worker
-// can begin processing it concurrently. Running start inline races the worker
-// over the connection's crypto send state (MaxSentLength / NextSendOffset).
-// Queue it as an operation so it is serialized with all other connection work.
-//
 static
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -357,6 +350,17 @@ QuicConnPoolTryCreateConnection(
     }
     (*Connection)->ClientCallbackHandler = Handler;
     (*Connection)->ClientContext = Context;
+
+    //
+    // Hold a create-scope reference across the rest of this function. The start
+    // operation is now processed on the connection's worker thread, which can
+    // drive the connection to shutdown-complete and release the owner reference
+    // (and free the connection) while this thread is still queuing or otherwise
+    // operating on it. This extra reference guarantees the connection stays
+    // alive until this function is done with it. It is released, balanced, on
+    // every path below.
+    //
+    QuicConnAddRef(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
     //
     // Set the calculated remote address and local address to get the desired
@@ -442,15 +446,26 @@ Error:
         CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
     }
 
-    if (QUIC_FAILED(Status) && *Connection != NULL) {
+    if (*Connection != NULL) {
+        QUIC_CONNECTION* PoolConnection = *Connection;
+        if (QUIC_FAILED(Status)) {
+            //
+            // This connection has never left MsQuic back to the application.
+            // Mark it as internally owned so no notification is sent to the app,
+            // the closing logic will handle the owner deref.
+            //
+            PoolConnection->State.ExternalOwner = FALSE;
+            QuicConnPoolQueueConnectionClose(PoolConnection, FALSE);
+            *Connection = NULL;
+        }
         //
-        // This connection has never left MsQuic back to the application.
-        // Mark it as internally owned so no notification is sent to the app,
-        // the closing logic will handle the final deref.
+        // Release the create-scope reference taken after QuicConnAlloc. This is
+        // the last access to the connection on this thread, so the worker is now
+        // free to run (and, on failure, free) the connection without racing this
+        // function. On success the application retains ownership via the original
+        // owner reference.
         //
-        (*Connection)->State.ExternalOwner = FALSE;
-        QuicConnPoolQueueConnectionClose(*Connection, FALSE);
-        *Connection = NULL;
+        QuicConnRelease(PoolConnection, QUIC_CONN_REF_HANDLE_OWNER);
     }
 
     return Status;
