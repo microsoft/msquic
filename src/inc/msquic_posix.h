@@ -39,6 +39,7 @@ Environment:
 #include "quic_sal_stub.h"
 
 #define QUIC_INLINE static inline
+#define QUIC_INVALID_FILE_HANDLE         -1
 
 #ifdef __cplusplus
 extern "C++" {

@@ -1465,7 +1465,7 @@ TEST_F(DataPathTest, XdpMapMode_InitFailsWithoutRawDatapath)
     }
 
     const uint32_t FakeIfIndex = 0xDEAD;
-    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)(intptr_t)-1;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
     QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
 
     QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
@@ -1507,7 +1507,7 @@ TEST_F(DataPathTest, XdpMapMode_InitSucceedsWithNonMatchingIfIndex)
     }
 
     const uint32_t FakeIfIndex = 0xDEAD;
-    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)(intptr_t)-1;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
     QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
 
     QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
@@ -1598,7 +1598,7 @@ TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
     }
 
     const uint32_t FakeIfIndex = 0xDEAD;
-    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)(intptr_t)-1;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
     QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
 
     QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
