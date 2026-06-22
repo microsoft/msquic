@@ -558,6 +558,17 @@ CxPlatWorkerPoolWorkerPoll(
     );
 
 //
+// Gets the statistics for all workers in the pool.
+//
+typedef struct QUIC_WORKER_STATISTICS QUIC_WORKER_STATISTICS; // Forward declaration
+void
+CxPlatWorkerPoolGetStatistics(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _Out_writes_(WorkerCount) QUIC_WORKER_STATISTICS* Stats,
+    _In_ uint32_t WorkerCount
+    );
+
+//
 // Supports more dynamic operations, but must be submitted to the platform worker
 // to manage.
 //

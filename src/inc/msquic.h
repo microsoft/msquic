@@ -370,6 +370,28 @@ typedef struct QUIC_XDP_MAP_CONFIG {
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+//
+// Per-worker statistics.
+//
+typedef struct QUIC_WORKER_STATISTICS {
+    uint16_t IdealProcessor;             // CPU the partition is affinitized to
+    uint8_t Reserved[6];                 // Padding for alignment
+    uint64_t CumulativeActiveTimeUs;     // total time IsActive == TRUE
+    uint64_t CumulativeWallTimeUs;       // wall time since worker was created
+
+    // -- append-only beyond this point --
+} QUIC_WORKER_STATISTICS;
+
+typedef struct QUIC_WORKER_STATISTICS_LIST {
+    uint32_t WorkerCount;        // number of QUIC_WORKER_STATISTICS entries that follow
+    uint32_t WorkerStatsSize;    // sizeof(QUIC_WORKER_STATISTICS) as written by this msquic
+    // QUIC_WORKER_STATISTICS Workers[WorkerCount];   // stride == WorkerStatsSize
+} QUIC_WORKER_STATISTICS_LIST;
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
     const char* AppName;
     QUIC_EXECUTION_PROFILE ExecutionProfile;
@@ -996,6 +1018,7 @@ void
 #define QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG        0x0100000D  // QUIC_STATELESS_RETRY_CONFIG
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG                0x0100000E  // QUIC_XDP_MAP_CONFIG[]
+#define QUIC_PARAM_GLOBAL_WORKER_STATISTICS             0x0100000F  // QUIC_WORKER_STATISTICS_LIST
 #endif
 
 //

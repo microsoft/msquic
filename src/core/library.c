@@ -1876,6 +1876,42 @@ QuicLibraryGetGlobalParam(
         break;
     }
 
+    case QUIC_PARAM_GLOBAL_WORKER_STATISTICS: {
+
+        if (MsQuicLib.WorkerPool == NULL) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        uint32_t WorkerCount = CxPlatWorkerPoolGetCount(MsQuicLib.WorkerPool);
+        uint32_t RequiredSize =
+            sizeof(QUIC_WORKER_STATISTICS_LIST) +
+            WorkerCount * sizeof(QUIC_WORKER_STATISTICS);
+
+        if (*BufferLength < RequiredSize) {
+            *BufferLength = RequiredSize;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QUIC_WORKER_STATISTICS_LIST* List = (QUIC_WORKER_STATISTICS_LIST*)Buffer;
+        List->WorkerCount = WorkerCount;
+        List->WorkerStatsSize = sizeof(QUIC_WORKER_STATISTICS);
+
+        QUIC_WORKER_STATISTICS* Stats =
+            (QUIC_WORKER_STATISTICS*)((uint8_t*)Buffer + sizeof(QUIC_WORKER_STATISTICS_LIST));
+        CxPlatWorkerPoolGetStatistics(MsQuicLib.WorkerPool, Stats, WorkerCount);
+
+        *BufferLength = RequiredSize;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
