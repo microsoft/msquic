@@ -6047,6 +6047,7 @@ QuicTestGetPerfCounters()
     TEST_EQUAL(BufferLength, (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)));
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestGetWorkerStatistics()
 {
@@ -6227,6 +6228,7 @@ QuicTestValidateWorkerStatistics()
     delete[] BeforeBuffer;
     delete[] AfterBuffer;
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void

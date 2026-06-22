@@ -399,7 +399,6 @@ TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
         QuicTestValidateEncryptDecryptPerfCounters();
     }
 }
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(ParameterValidation, ValidateGetWorkerStatistics) {
     TestLogger Logger("QuicTestGetWorkerStatistics");
@@ -418,6 +417,7 @@ TEST(ParameterValidation, ValidateWorkerStatistics) {
         QuicTestValidateWorkerStatistics();
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS

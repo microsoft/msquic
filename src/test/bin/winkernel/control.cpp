@@ -466,8 +466,10 @@ ExecuteTestRequest(
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestValidateEncryptDecryptPerfCounters);
 #endif
+#ifndef _KERNEL_MODE
     RegisterTestFunction(QuicTestGetWorkerStatistics);
     RegisterTestFunction(QuicTestValidateWorkerStatistics);
+#endif
     RegisterTestFunction(QuicTestValidateConfiguration);
     RegisterTestFunction(QuicTestValidateListener);
     RegisterTestFunction(QuicTestValidateConnection);

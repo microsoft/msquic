@@ -1876,6 +1876,7 @@ QuicLibraryGetGlobalParam(
         break;
     }
 
+#ifndef _KERNEL_MODE
     case QUIC_PARAM_GLOBAL_WORKER_STATISTICS: {
 
         if (MsQuicLib.WorkerPool == NULL) {
@@ -1911,6 +1912,7 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+#endif
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
