@@ -7682,7 +7682,8 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.Family,
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort,
-                QUIC_CONN_START_FLAG_NONE);
+                ApiCtx->CONN_START.FailSilently ?
+                    QUIC_CONN_START_FLAG_FAIL_SILENTLY : QUIC_CONN_START_FLAG_NONE);
         ApiCtx->CONN_START.ServerName = NULL;
         break;
 
