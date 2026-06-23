@@ -357,8 +357,7 @@ QuicConnPoolTryCreateConnection(
     // drive the connection to shutdown-complete and release the owner reference
     // (and free the connection) while this thread is still queuing or otherwise
     // operating on it. This extra reference guarantees the connection stays
-    // alive until this function is done with it. It is released, balanced, on
-    // every path below.
+    // alive until this function is done with it.
     //
     QuicConnAddRef(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
@@ -449,21 +448,8 @@ Error:
     if (*Connection != NULL) {
         QUIC_CONNECTION* PoolConnection = *Connection;
         if (QUIC_FAILED(Status)) {
-            //
-            // On failure, QuicConnStart has already marked this (internally
-            // owned) connection for silent teardown and self-cleanup on its
-            // worker thread. We must not touch the connection's state from this
-            // thread (that would race the worker); we only drop our handle to
-            // it here.
-            //
             *Connection = NULL;
         }
-        //
-        // Release the create-scope reference taken after QuicConnAlloc. This is
-        // the last access to the connection on this thread. On failure the
-        // worker-side teardown performs the final owner deref; on success the
-        // application retains ownership via the original owner reference.
-        //
         QuicConnRelease(PoolConnection, QUIC_CONN_REF_HANDLE_OWNER);
     }
 
