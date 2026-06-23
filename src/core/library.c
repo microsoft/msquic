@@ -1796,7 +1796,8 @@ QuicLibraryGetGlobalParam(
             QUIC_STATISTICS_V2_SIZE_1,
             QUIC_STATISTICS_V2_SIZE_2,
             QUIC_STATISTICS_V2_SIZE_3,
-            QUIC_STATISTICS_V2_SIZE_4
+            QUIC_STATISTICS_V2_SIZE_4,
+            QUIC_STATISTICS_V2_SIZE_5,
         };
         static const uint32_t NumStatSizes = ARRAYSIZE(StatSizes);
         uint32_t MaxSizes = *BufferLength / sizeof(uint32_t);

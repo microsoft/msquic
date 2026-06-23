@@ -924,6 +924,24 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint RttVariance;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ConnectionQueueDelayAvgUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ConnectionQueueDelayMaxUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendQueueDelayAvgUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendQueueDelayMaxUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ReceiveQueueDelayAvgUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ReceiveQueueDelayMaxUs;
     }
 
     internal partial struct QUIC_NETWORK_STATISTICS
@@ -3587,6 +3605,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
         internal const uint QUIC_MAX_TICKET_KEY_COUNT = 16;
+
+        [NativeTypeName("#define QUIC_STATISTICS_V2_SIZE_5 QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, ReceiveQueueDelayMaxUs)")]
+        internal static readonly ulong QUIC_STATISTICS_V2_SIZE_5 = unchecked(((int)(Marshal.OffsetOf<QUIC_STATISTICS_V2>("ReceiveQueueDelayMaxUs"))) + 4);
 
         [NativeTypeName("#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64")]
         internal const uint QUIC_TLS_SECRETS_MAX_SECRET_LEN = 64;
