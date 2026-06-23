@@ -353,11 +353,8 @@ QuicConnPoolTryCreateConnection(
 
     //
     // Hold a create-scope reference across the rest of this function. The start
-    // operation is now processed on the connection's worker thread, which can
-    // drive the connection to shutdown-complete and release the owner reference
-    // (and free the connection) while this thread is still queuing or otherwise
-    // operating on it. This extra reference guarantees the connection stays
-    // alive until this function is done with it.
+    // operation is processed on the connection's worker thread. This extra reference
+    // guarantees the connection stays alive until this function is done with it.
     //
     QuicConnAddRef(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
 

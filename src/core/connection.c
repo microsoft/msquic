@@ -1993,9 +1993,7 @@ Exit:
             // This connection was created internally (e.g. by the connection
             // pool) and was never returned to the application. Mark it
             // internally owned so that closing it locally below drives shutdown
-            // completion (and the final owner deref) to here, on the worker
-            // thread, instead of the creating thread having to flip ownership
-            // and queue a separate close while racing this teardown.
+            // completion.
             //
             Connection->State.ExternalOwner = FALSE;
         }
