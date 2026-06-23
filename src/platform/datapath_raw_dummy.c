@@ -108,7 +108,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInsertXskByMapConfigs(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
-    _In_reads_(MapConfigCount) const QUIC_XDP_MAP_CONFIG* MapConfigs,
+    _In_reads_(MapConfigCount) const CXPLAT_XDP_MAP_CONFIG* MapConfigs,
     _In_ uint32_t MapConfigCount
     )
 {

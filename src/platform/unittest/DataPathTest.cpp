@@ -1466,7 +1466,7 @@ TEST_F(DataPathTest, XdpMapMode_InitFailsWithoutRawDatapath)
 
     const uint32_t FakeIfIndex = 0xDEAD;
     const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
-    QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+    CXPLAT_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
 
     QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
     CXPLAT_WORKER_POOL* WorkerPool =
@@ -1508,7 +1508,7 @@ TEST_F(DataPathTest, XdpMapMode_InitSucceedsWithNonMatchingIfIndex)
 
     const uint32_t FakeIfIndex = 0xDEAD;
     const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
-    QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+    CXPLAT_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
 
     QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
     CXPLAT_WORKER_POOL* WorkerPool =
@@ -1551,7 +1551,7 @@ TEST_F(DataPathTest, XdpMapMode_MultipleNonMatchingConfigs)
         return;
     }
 
-    QUIC_XDP_MAP_CONFIG MapConfigs[3] = {
+    CXPLAT_XDP_MAP_CONFIG MapConfigs[3] = {
         { 0xDEAD, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1111 },
         { 0xBEEF, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x2222 },
         { 0xCAFE, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x3333 },
@@ -1599,7 +1599,7 @@ TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
 
     const uint32_t FakeIfIndex = 0xDEAD;
     const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
-    QUIC_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+    CXPLAT_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
 
     QUIC_GLOBAL_EXECUTION_CONFIG ExecConfig = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
     CXPLAT_WORKER_POOL* WorkerPool =
