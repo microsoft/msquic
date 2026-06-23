@@ -365,6 +365,24 @@ jobs:
             prod_url: "https://packages.microsoft.com/fedora/43/prod/Packages/l"
             testing_url: "https://packages.microsoft.com/fedora/43/testing/Packages/l"
 
+          # Fedora 44 (RPM)
+          - friendlyName: "Fedora 44 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "fedora:44"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/fedora/44/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/44/testing/Packages/l"
+          - friendlyName: "Fedora 44 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "fedora:44"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/fedora/44/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/44/testing/Packages/l"
+
           # openSUSE Leap 15.6 (RPM) - No arm32 support
           - friendlyName: "openSUSE 15.6 x64"
             arch: x64
