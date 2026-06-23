@@ -1248,8 +1248,11 @@ QuicSendFlush(
     //
     if (Connection->Settings.DestCidUpdateIdleTimeoutMs != 0 &&
         Send->LastFlushTimeValid &&
-        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs)) {
-        (void)QuicConnRetireCurrentDestCid(Connection, Path);
+        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs) &&
+        !Path->InitiatedCidUpdate) {
+        if (QuicConnRetireCurrentDestCid(Connection, Path)) {
+            Path->InitiatedCidUpdate = TRUE;
+        }
     }
 
     //
