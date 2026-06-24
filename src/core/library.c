@@ -1059,6 +1059,34 @@ QuicLibApplyLoadBalancingSetting(
         MsQuicLib.CidTotalLength);
 }
 
+static
+void
+QuicLibCopyXdpMapConfigs(
+    _Out_writes_(Count) CXPLAT_XDP_MAP_CONFIG* Dest,
+    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Src,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        Dest[i].InterfaceIndex = Src[i].InterfaceIndex;
+        Dest[i].MapHandle = Src[i].MapHandle;
+    }
+}
+
+static
+void
+QuicLibReadXdpMapConfigs(
+    _Out_writes_(Count) QUIC_XDP_MAP_CONFIG* Dest,
+    _In_reads_(Count) const CXPLAT_XDP_MAP_CONFIG* Src,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        Dest[i].InterfaceIndex = Src[i].InterfaceIndex;
+        Dest[i].MapHandle = Src[i].MapHandle;
+    }
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetGlobalParam(
@@ -1491,15 +1519,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-#pragma warning(push)
-#pragma warning(disable:6385) // Count is derived from BufferLength / sizeof.
-#pragma warning(disable:6101) 
-#pragma warning(disable:6386)
-        for (uint32_t i = 0; i < Count; i++) {
-            NewConfigs[i].InterfaceIndex = Configs[i].InterfaceIndex;
-            NewConfigs[i].MapHandle = Configs[i].MapHandle;
-        }
-#pragma warning(pop)
+        QuicLibCopyXdpMapConfigs(NewConfigs, Configs, Count);
 
         if (MsQuicLib.XdpMapConfigs != NULL) {
             CXPLAT_FREE(MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
@@ -1520,7 +1540,7 @@ QuicLibrarySetGlobalParam(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-#pragma warning(suppress:6101) // *Buffer is _Out_writes_bytes_opt_(*BufferLength); 0-length is valid.
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicLibraryGetGlobalParam(
     _In_ uint32_t Param,
@@ -1884,15 +1904,10 @@ QuicLibraryGetGlobalParam(
             break;
         }
         *BufferLength = RequiredLength;
-        QUIC_XDP_MAP_CONFIG* OutConfigs = (QUIC_XDP_MAP_CONFIG*)Buffer;
-#pragma warning(push)
-#pragma warning(disable:6385)
-#pragma warning(disable:6386)
-        for (uint32_t i = 0; i < MsQuicLib.XdpMapConfigCount; i++) {
-            OutConfigs[i].InterfaceIndex = MsQuicLib.XdpMapConfigs[i].InterfaceIndex;
-            OutConfigs[i].MapHandle = MsQuicLib.XdpMapConfigs[i].MapHandle;
-        }
-#pragma warning(pop)
+        QuicLibReadXdpMapConfigs(
+            (QUIC_XDP_MAP_CONFIG*)Buffer,
+            MsQuicLib.XdpMapConfigs,
+            MsQuicLib.XdpMapConfigCount);
         CxPlatLockRelease(&MsQuicLib.Lock);
         Status = QUIC_STATUS_SUCCESS;
         break;
