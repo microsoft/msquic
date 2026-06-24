@@ -91,7 +91,7 @@ This script provides helpers for building msquic.
     Enables telemetry asserts in release builds.
 
 .PARAMETER UseSystemOpenSSLCrypto
-    Use system provided OpenSSL libcrypto rather then statically linked. Only affects OpenSSL Linux builds
+    Use system provided OpenSSL libcrypto rather then statically linked. Used by quictls and ignored for openssl on Linux because openssl now uses system dynamic libssl/libcrypto by default.
 
 .PARAMETER EnableHighResolutionTimers
     Configures the system to use high resolution timers.
@@ -514,7 +514,12 @@ function CMake-Generate {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
     }
     if ($UseSystemOpenSSLCrypto) {
-        $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
+        # Linux openssl builds already use system dynamic libssl/libcrypto by default.
+        if ($Platform -eq "linux" -and $Tls -eq "openssl") {
+            Write-Warning "-UseSystemOpenSSLCrypto is ignored for Linux openssl builds because libssl/libcrypto are dynamically linked from system OpenSSL by default."
+        } else {
+            $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
+        }
     }
     if ($EnableHighResolutionTimers) {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
