@@ -468,9 +468,6 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
-//
-// N.B. This data structure must be a super-set of the struct in QUIC_XDP_MAP_CONFIG in msquic.h
-//
 typedef struct CXPLAT_XDP_MAP_CONFIG {
     uint32_t InterfaceIndex;
     QUIC_XDP_MAP_HANDLE MapHandle;
