@@ -4215,14 +4215,20 @@ QuicConnRecvDecryptAndAuthenticate(
             PacketDecrypt,
             "[pack][%llu] Decrypting",
             Packet->PacketId);
-        if (QUIC_FAILED(
+        uint64_t DecryptStart = CxPlatTimeUs64();
+        QUIC_STATUS DecryptStatus =
             CxPlatDecrypt(
                 Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->PacketKey,
                 Iv,
                 Packet->HeaderLength,   // HeaderLength
                 Packet->AvailBuffer,    // Header
                 Packet->PayloadLength,  // BufferLength
-                (uint8_t*)Payload))) {  // Buffer
+                (uint8_t*)Payload);     // Buffer
+        QuicPerfCounterAdd(
+            Connection->Partition,
+            QUIC_PERF_COUNTER_DECRYPT_DURATION_US,
+            (int64_t)CxPlatTimeDiff64(DecryptStart, CxPlatTimeUs64()));
+        if (QUIC_FAILED(DecryptStatus)) {
 
             //
             // Check for a stateless reset packet.
