@@ -1498,7 +1498,7 @@ TEST_F(DataPathTest, XdpMapMode_InitSucceedsWithNonMatchingIfIndex)
     //
     // On DuoNic machines, raw datapath initialization succeeds.
     // When the provided IfIndex doesn't match any real interface,
-    // CxPlatDpRawInsertXskByMapConfigs is a no-op and returns SUCCESS.
+    // CxPlatDpRawApplyMapConfigs is a no-op and returns SUCCESS.
     // The datapath should be created in XDP map mode.
     //
     if (!UseDuoNic) {
