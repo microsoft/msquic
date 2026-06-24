@@ -352,13 +352,6 @@ QuicConnPoolTryCreateConnection(
     (*Connection)->ClientContext = Context;
 
     //
-    // Hold a create-scope reference across the rest of this function. The start
-    // operation is processed on the connection's worker thread. This extra reference
-    // guarantees the connection stays alive until this function is done with it.
-    //
-    QuicConnAddRef(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
-
-    //
     // Set the calculated remote address and local address to get the desired
     // RSS CPU.
     //
@@ -442,12 +435,14 @@ Error:
         CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
     }
 
-    if (*Connection != NULL) {
-        QUIC_CONNECTION* PoolConnection = *Connection;
-        if (QUIC_FAILED(Status)) {
-            *Connection = NULL;
-        }
-        QuicConnRelease(PoolConnection, QUIC_CONN_REF_HANDLE_OWNER);
+    if (QUIC_FAILED(Status) && *Connection != NULL) {
+        //
+        // On failure, QuicConnStart has marked this internally-owned connection
+        // for silent teardown on its worker thread, which performs the final
+        // owner deref. The connection's initial reference therefore frees it; we
+        // only drop our handle here.
+        //
+        *Connection = NULL;
     }
 
     return Status;
