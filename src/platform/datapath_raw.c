@@ -71,15 +71,11 @@ RawDataPathInitialize(
         CXPLAT_DBG_ASSERT(InitConfig->XdpMapConfigs != NULL);
         CxPlatDpRawEnableRawDatapathOnly(RawDataPath);
         Status =
-            CxPlatDpRawInsertXskByMapConfigs(
+            CxPlatDpRawApplyMapConfigs(
                 RawDataPath,
                 InitConfig->XdpMapConfigs,
                 InitConfig->XdpMapConfigCount);
         if (QUIC_FAILED(Status)) {
-            //
-            // Upon failure, CxPlatDpRawInsertXskByMapConfigs should already have attempted
-            // a best effort cleanup of XSKs inserted into the map.
-            //
             QuicTraceLogVerbose(
                 DatapathRawMapInsertFail,
                 "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
@@ -141,7 +137,7 @@ RawDataPathUninitialize(
         CXPLAT_DBG_ASSERT(!Datapath->Uninitialized);
         Datapath->Uninitialized = TRUE;
 #endif
-        CxPlatDpRawRemoveXskByMapConfigs(Datapath);
+        CxPlatDpRawCleanupMapConfigs(Datapath);
         CxPlatDataPathRouteWorkerUninitialize(Datapath->RouteResolutionWorker);
         CxPlatDpRawUninitialize(Datapath);
     }

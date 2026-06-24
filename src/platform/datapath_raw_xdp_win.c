@@ -54,7 +54,7 @@ typedef struct XDP_DATAPATH {
 typedef struct XDP_INTERFACE {
     XDP_INTERFACE_COMMON;
     HANDLE XdpHandle;
-    HANDLE XskMap;              // XSKMAP handle for best-effort cleanup (NULL if not using map mode).
+    HANDLE XskMap;              // XSKMAP used by this interface (NULL if not using map mode).
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
@@ -1470,9 +1470,9 @@ CxPlatDpRawPlumbRulesOnSocket(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
 
     //
-    // In external map mode, the caller manages XDP rules; nothing to do here.
+    // In map mode, the application manages XDP rules.
     //
-    if (Xdp->RawDatapathOnly) {
+    if (CxPlatDpRawIsRawDatapathOnly((CXPLAT_DATAPATH_RAW*)Xdp)) {
         return QUIC_STATUS_SUCCESS;
     }
 
@@ -2335,7 +2335,7 @@ CxPlatDpRawRemoveXskFromMap(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDpRawInsertXskByMapConfigs(
+CxPlatDpRawApplyMapConfigs(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
     _In_reads_(MapConfigCount) const CXPLAT_XDP_MAP_CONFIG* MapConfigs,
     _In_ uint32_t MapConfigCount
@@ -2344,30 +2344,35 @@ CxPlatDpRawInsertXskByMapConfigs(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)RawDataPath;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    CXPLAT_LIST_ENTRY* Entry;
-    for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+    for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
 
+        HANDLE XskMap = NULL;
         for (uint32_t i = 0; i < MapConfigCount; i++) {
             if (MapConfigs[i].InterfaceIndex == Interface->IfIndex) {
-                HANDLE XskMap = (HANDLE)MapConfigs[i].MapHandle;
-                Status = CxPlatDpRawInsertXskInMap(Interface, XskMap);
-                if (QUIC_FAILED(Status)) {
-                    //
-                    // On failure, best-effort removal of all XSKs on all interfaces.
-                    //
-                    CxPlatDpRawRemoveXskByMapConfigs(RawDataPath);
-                    goto Exit;
-                }
-                QuicTraceLogVerbose(
-                    XdpMapModeConfigured,
-                    "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
-                    Interface,
-                    Interface->IfIndex,
-                    XskMap);
+                XskMap = (HANDLE)MapConfigs[i].MapHandle;
                 break;
             }
         }
+
+        if (XskMap == NULL) {
+            continue;
+        }
+
+        Status = CxPlatDpRawInsertXskInMap(Interface, XskMap);
+        if (QUIC_FAILED(Status)) {
+            //
+            // On failure, best-effort removal of all XSKs on all interfaces.
+            //
+            CxPlatDpRawCleanupMapConfigs(RawDataPath);
+            goto Exit;
+        }
+        QuicTraceLogVerbose(
+            XdpMapModeConfigured,
+            "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+            Interface,
+            Interface->IfIndex,
+            XskMap);
     }
 
 Exit:
@@ -2377,14 +2382,13 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawRemoveXskByMapConfigs(
+CxPlatDpRawCleanupMapConfigs(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)RawDataPath;
 
-    CXPLAT_LIST_ENTRY* Entry;
-    for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+    for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
         CxPlatDpRawRemoveXskFromMap(Interface);
     }

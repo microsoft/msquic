@@ -1475,9 +1475,10 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
+        const size_t AllocSize = Count * sizeof(CXPLAT_XDP_MAP_CONFIG);
         CXPLAT_XDP_MAP_CONFIG* NewConfigs =
             CXPLAT_ALLOC_NONPAGED(
-                Count * sizeof(CXPLAT_XDP_MAP_CONFIG),
+                AllocSize,
                 QUIC_POOL_XDP_MAP_CONFIG);
         if (NewConfigs == NULL) {
             CxPlatLockRelease(&MsQuicLib.Lock);
@@ -1485,7 +1486,7 @@ QuicLibrarySetGlobalParam(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "XDP map config",
-                Count * sizeof(CXPLAT_XDP_MAP_CONFIG));
+                AllocSize);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             break;
         }
