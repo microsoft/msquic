@@ -2298,6 +2298,14 @@ CxPlatDpRawInsertXskInMap(
                 j,
                 XskMap,
                 Queue->RxXsk);
+            //
+            // On failure, best-effort removal of XSKs already inserted for this interface.
+            //
+            for (uint32_t k = 0; k < j; k++) {
+                if (Interface->Queues[k].RxXsk != NULL) {
+                    (void)XdpMapDelete(XskMap, &k);
+                }
+            }
             return (QUIC_STATUS)Hr;
         }
     }
@@ -2345,6 +2353,9 @@ CxPlatDpRawInsertXskByMapConfigs(
                 HANDLE XskMap = (HANDLE)MapConfigs[i].MapHandle;
                 Status = CxPlatDpRawInsertXskInMap(Interface, XskMap);
                 if (QUIC_FAILED(Status)) {
+                    //
+                    // On failure, best-effort removal of all XSKs on all interfaces.
+                    //
                     CxPlatDpRawRemoveXskByMapConfigs(RawDataPath);
                     goto Exit;
                 }
