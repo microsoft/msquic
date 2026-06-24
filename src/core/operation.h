@@ -67,6 +67,11 @@ typedef enum QUIC_API_TYPE {
 
 } QUIC_API_TYPE;
 
+typedef enum QUIC_CONN_START_FLAGS {
+    QUIC_CONN_START_FLAG_NONE =              0x00000000U,
+    QUIC_CONN_START_FLAG_FAIL_SILENTLY =     0x00000001U // Don't send notification to API client
+} QUIC_CONN_START_FLAGS;
+
 //
 // Context for an API call. This is allocated separately from QUIC_OPERATION
 // so that non-API-call operations will take less space.
@@ -108,7 +113,7 @@ typedef struct QUIC_API_CONTEXT {
             const char* ServerName;
             uint16_t ServerPort;
             QUIC_ADDRESS_FAMILY Family;
-            BOOLEAN FailSilently;       // Don't notify the app on start failure.
+            QUIC_CONN_START_FLAGS Flags;
         } CONN_START;
         struct {
             QUIC_CONFIGURATION* Configuration;

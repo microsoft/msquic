@@ -300,7 +300,7 @@ QuicConnPoolStartConnection(
     ApiCtx.CONN_START.ServerName = ServerName;  // Ownership passes to QuicConnStart.
     ApiCtx.CONN_START.ServerPort = ServerPort;
     ApiCtx.CONN_START.Family = Family;
-    ApiCtx.CONN_START.FailSilently = TRUE;
+    ApiCtx.CONN_START.Flags = QUIC_CONN_START_FLAG_FAIL_SILENTLY;
 
     //
     // No op-level Configuration ref is needed: we block until the op completes

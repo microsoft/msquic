@@ -1219,11 +1219,6 @@ QuicConnQueueHighestPriorityOper(
     _In_ QUIC_OPERATION* Oper
     );
 
-typedef enum QUIC_CONN_START_FLAGS {
-    QUIC_CONN_START_FLAG_NONE =              0x00000000U,
-    QUIC_CONN_START_FLAG_FAIL_SILENTLY =     0x00000001U // Don't send notification to API client
-} QUIC_CONN_START_FLAGS;
-
 //
 // Starts the connection. Shouldn't be called directly in most instances.
 //
