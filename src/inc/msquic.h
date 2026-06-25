@@ -376,10 +376,9 @@ typedef struct QUIC_XDP_MAP_CONFIG {
 // Per-worker statistics.
 //
 typedef struct QUIC_WORKER_STATISTICS {
+    uint64_t CumulativeActiveTimeUs;     // total time the worker spent active (not idle)
+    uint64_t CumulativeWallTimeUs;       // wall time since the worker thread started
     uint16_t IdealProcessor;             // CPU the partition is affinitized to
-    uint8_t Reserved[6];                 // Padding for alignment
-    uint64_t CumulativeActiveTimeUs;     // total time IsActive == TRUE
-    uint64_t CumulativeWallTimeUs;       // wall time since worker was created
 
     // -- append-only beyond this point --
 } QUIC_WORKER_STATISTICS;

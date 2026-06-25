@@ -519,24 +519,21 @@ const _: () = {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_WORKER_STATISTICS {
-    pub IdealProcessor: u16,
-    pub Reserved: [u8; 6usize],
     pub CumulativeActiveTimeUs: u64,
     pub CumulativeWallTimeUs: u64,
+    pub IdealProcessor: u16,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of QUIC_WORKER_STATISTICS"][::std::mem::size_of::<QUIC_WORKER_STATISTICS>() - 24usize];
     ["Alignment of QUIC_WORKER_STATISTICS"]
         [::std::mem::align_of::<QUIC_WORKER_STATISTICS>() - 8usize];
-    ["Offset of field: QUIC_WORKER_STATISTICS::IdealProcessor"]
-        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, IdealProcessor) - 0usize];
-    ["Offset of field: QUIC_WORKER_STATISTICS::Reserved"]
-        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, Reserved) - 2usize];
     ["Offset of field: QUIC_WORKER_STATISTICS::CumulativeActiveTimeUs"]
-        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, CumulativeActiveTimeUs) - 8usize];
+        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, CumulativeActiveTimeUs) - 0usize];
     ["Offset of field: QUIC_WORKER_STATISTICS::CumulativeWallTimeUs"]
-        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, CumulativeWallTimeUs) - 16usize];
+        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, CumulativeWallTimeUs) - 8usize];
+    ["Offset of field: QUIC_WORKER_STATISTICS::IdealProcessor"]
+        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, IdealProcessor) - 16usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

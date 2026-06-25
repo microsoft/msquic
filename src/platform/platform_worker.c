@@ -890,8 +890,9 @@ CxPlatWorkerPoolGetStatistics(
     const uint64_t Now = CxPlatTimeUs64();
 
     //
-    // Note: The active time that as not been accumulated yet is ignored.
+    // Note: The active time that has not been accumulated yet is ignored.
     //
+    CxPlatZeroMemory(Stats, WorkerCount * sizeof(QUIC_WORKER_STATISTICS));
     for (uint32_t i = 0; i < WorkerCount; i++) {
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
         Stats[i].IdealProcessor = Worker->IdealProcessor;
