@@ -3192,27 +3192,19 @@ INSTANTIATE_TEST_SUITE_P(
 // Test matrix: {IPv4, IPv6} x {no CIBIR, CIBIR} x {no QTIP, QTIP}
 //
 
-struct XdpMapModeParams {
-    int Family;
-    bool UseCibir;
-    bool UseQtip;
+struct WithXdpMapModeArgs : public ::testing::TestWithParam<XdpMapModeParams> {
+
+    static ::std::vector<XdpMapModeParams> Generate() {
+        ::std::vector<XdpMapModeParams> list;
+        for (int Family : { 4, 6 })
+        for (bool UseCibir : { false, true })
+        for (bool UseQtip : { false, true })
+            list.push_back({ Family, UseCibir, UseQtip });
+        return list;
+    }
 };
 
-std::ostream& operator << (std::ostream& o, const XdpMapModeParams& p) {
-    o << (p.Family == 4 ? "v4" : "v6");
-    if (p.UseCibir) o << "/CIBIR";
-    if (p.UseQtip) o << "/QTIP";
-    if (!p.UseCibir && !p.UseQtip) o << "/Plain";
-    return o;
-}
-
-//
-// Struct needed for GTEST parameterization.
-//
-struct XdpMapMode : public ::testing::TestWithParam<XdpMapModeParams> {
-};
-
-TEST_P(XdpMapMode, Handshake) {
+TEST_P(WithXdpMapModeArgs, Handshake) {
     if (!UseXdpMapMode) {
         GTEST_SKIP() << "XDP Map Mode not enabled (use --xdpMapMode)";
     }
@@ -3224,19 +3216,10 @@ TEST_P(XdpMapMode, Handshake) {
         { Params.Family, Scope.GetServerPort(), Scope.GetClientPort(), Params.UseCibir });
 }
 
-static std::vector<XdpMapModeParams> GenerateXdpMapModeParams() {
-    std::vector<XdpMapModeParams> list;
-    for (int Family : { 4, 6 })
-    for (bool UseCibir : { false, true })
-    for (bool UseQtip : { false, true })
-        list.push_back({ Family, UseCibir, UseQtip });
-    return list;
-}
-
 INSTANTIATE_TEST_SUITE_P(
     XdpMapMode,
-    XdpMapMode,
-    ::testing::ValuesIn(GenerateXdpMapModeParams()),
+    WithXdpMapModeArgs,
+    ::testing::ValuesIn(WithXdpMapModeArgs::Generate()),
     [](const ::testing::TestParamInfo<XdpMapModeParams>& info) {
         std::string name = (info.param.Family == 4 ? "v4" : "v6");
         name += info.param.UseCibir ? "_CIBIR" : "_NoCIBIR";

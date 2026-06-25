@@ -55,28 +55,34 @@ DiscoverDuoNicInterfaces(
                   GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
     ULONG BufSize = 0;
     GetAdaptersAddresses(AF_INET, Flags, NULL, NULL, &BufSize);
-    if (BufSize == 0) return false;
+    if (BufSize == 0) {
+        return false;
+    }
 
     auto Adapters = (PIP_ADAPTER_ADDRESSES)malloc(BufSize);
-    if (!Adapters) return false;
+    if (!Adapters) {
+        return false;
+    }
 
     if (GetAdaptersAddresses(AF_INET, Flags, NULL, Adapters, &BufSize) != NO_ERROR) {
         free(Adapters);
         return false;
     }
 
+    IN_ADDR DuoNicServer;
+    IN_ADDR DuoNicClient;
+    inet_pton(AF_INET, "192.168.1.11", &DuoNicServer);
+    inet_pton(AF_INET, "192.168.1.12", &DuoNicClient);
+
     for (auto Adapter = Adapters; Adapter && *Count < XDP_MAP_MODE_MAX_INTERFACES; Adapter = Adapter->Next) {
         if (Adapter->IfType != IF_TYPE_ETHERNET_CSMACD ||
             Adapter->OperStatus != IfOperStatusUp) {
             continue;
         }
-        IN_ADDR DuoNicServer, DuoNicClient;
-        if (inet_pton(AF_INET, "192.168.1.11", &DuoNicServer) != 1 ||
-            inet_pton(AF_INET, "192.168.1.12", &DuoNicClient) != 1) {
-            break;
-        }
         for (auto Unicast = Adapter->FirstUnicastAddress; Unicast; Unicast = Unicast->Next) {
-            if (Unicast->Address.lpSockaddr->sa_family != AF_INET) continue;
+            if (Unicast->Address.lpSockaddr->sa_family != AF_INET) {
+                continue;
+            }
             auto* Sin = (SOCKADDR_IN*)Unicast->Address.lpSockaddr;
             if (Sin->sin_addr.s_addr == DuoNicServer.s_addr ||
                 Sin->sin_addr.s_addr == DuoNicClient.s_addr) {

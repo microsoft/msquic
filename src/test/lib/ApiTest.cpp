@@ -3178,20 +3178,21 @@ void QuicTestXdpMapConfigParam()
                     &OutConfig));
             TEST_EQUAL(OutLength, (uint32_t)sizeof(QUIC_XDP_MAP_CONFIG));
             TEST_EQUAL(OutConfig.InterfaceIndex, FakeIfIndex1);
-        }
 
-        //
-        // Setting after a registration is created should fail.
-        // Clear fake configs first so lazy init does not try to use them.
-        //
-        {
-            TestScopeLogger LogScope1("SetParam after registration fails");
+            // Clear configs so lazy init does not try to use them.
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
                     0,
                     nullptr));
+        }
+
+        //
+        // Setting after a registration is created should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam after registration fails");
             MsQuicRegistration Registration(true);
             TEST_TRUE(Registration.IsValid());
             QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
