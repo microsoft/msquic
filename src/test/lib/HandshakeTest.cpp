@@ -5057,8 +5057,8 @@ QuicTestXdpMapModeHandshake(
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    UniquePtr<TestConnection> Server;
-    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    TestConnection* ServerRaw = nullptr;
+    ServerAcceptContext ServerAcceptCtx(&ServerRaw);
     Listener.Context = &ServerAcceptCtx;
 
     TestConnection Client(Registration);
@@ -5091,11 +5091,13 @@ QuicTestXdpMapModeHandshake(
             ServerLocalAddr.GetPort()));
 
     if (!Client.WaitForConnectionComplete()) {
+        delete ServerRaw;
         return;
     }
     TEST_TRUE(Client.GetIsConnected());
 
-    TEST_NOT_EQUAL(nullptr, Server);
+    TEST_NOT_EQUAL(nullptr, ServerRaw);
+    UniquePtr<TestConnection> Server(ServerRaw);
     if (!Server->WaitForConnectionComplete()) {
         return;
     }

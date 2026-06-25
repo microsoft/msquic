@@ -44,37 +44,34 @@ constexpr uint8_t CibirCidOffset = 2; // CidServerIdLength(0) + 2
 
 } // namespace
 
-bool
-DiscoverDuoNicInterfaces(
-    _Out_writes_(XDP_MAP_MODE_MAX_INTERFACES) uint32_t* IfIndices,
-    _Out_ uint32_t* Count
-    )
+std::vector<uint32_t>
+DiscoverDuoNicInterfaces()
 {
-    *Count = 0;
+    std::vector<uint32_t> Result;
     ULONG Flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_ANYCAST |
                   GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
     ULONG BufSize = 0;
     GetAdaptersAddresses(AF_INET, Flags, NULL, NULL, &BufSize);
     if (BufSize == 0) {
-        return false;
+        return Result;
     }
 
     auto Adapters = (PIP_ADAPTER_ADDRESSES)malloc(BufSize);
     if (!Adapters) {
-        return false;
+        return Result;
     }
 
     if (GetAdaptersAddresses(AF_INET, Flags, NULL, Adapters, &BufSize) != NO_ERROR) {
         free(Adapters);
-        return false;
+        return Result;
     }
 
-    IN_ADDR DuoNicServer;
-    IN_ADDR DuoNicClient;
-    inet_pton(AF_INET, "192.168.1.11", &DuoNicServer);
-    inet_pton(AF_INET, "192.168.1.12", &DuoNicClient);
+    QUIC_ADDR DuoNicServer = {};
+    QUIC_ADDR DuoNicClient = {};
+    QuicAddrFromString("192.168.1.11", 0, &DuoNicServer);
+    QuicAddrFromString("192.168.1.12", 0, &DuoNicClient);
 
-    for (auto Adapter = Adapters; Adapter && *Count < XDP_MAP_MODE_MAX_INTERFACES; Adapter = Adapter->Next) {
+    for (auto Adapter = Adapters; Adapter && Result.size() < XDP_MAP_MODE_MAX_INTERFACES; Adapter = Adapter->Next) {
         if (Adapter->IfType != IF_TYPE_ETHERNET_CSMACD ||
             Adapter->OperStatus != IfOperStatusUp) {
             continue;
@@ -83,26 +80,26 @@ DiscoverDuoNicInterfaces(
             if (Unicast->Address.lpSockaddr->sa_family != AF_INET) {
                 continue;
             }
-            auto* Sin = (SOCKADDR_IN*)Unicast->Address.lpSockaddr;
-            if (Sin->sin_addr.s_addr == DuoNicServer.s_addr ||
-                Sin->sin_addr.s_addr == DuoNicClient.s_addr) {
-                IfIndices[*Count] = Adapter->IfIndex;
-                (*Count)++;
+            auto* Addr = (QUIC_ADDR*)Unicast->Address.lpSockaddr;
+            if (QuicAddrCompareIp(Addr, &DuoNicServer) ||
+                QuicAddrCompareIp(Addr, &DuoNicClient)) {
+                Result.push_back(Adapter->IfIndex);
                 break;
             }
         }
     }
     free(Adapters);
-    return *Count > 0;
+    return Result;
 }
 
-void
-XdpMapModeRuleScope::Setup(bool UseCibirParam, bool UseQtipParam)
+XdpMapModeRuleScope::XdpMapModeRuleScope(bool UseCibirParam, bool UseQtipParam)
 {
     UseQtip = UseQtipParam;
 
     WSADATA WsaData;
-    ASSERT_EQ(WSAStartup(MAKEWORD(2, 2), &WsaData), 0);
+    if (WSAStartup(MAKEWORD(2, 2), &WsaData) != 0) {
+        throw std::runtime_error("WSAStartup failed");
+    }
     WsaInitialized = true;
 
     //
@@ -116,15 +113,22 @@ XdpMapModeRuleScope::Setup(bool UseCibirParam, bool UseQtipParam)
         bool PortReserved = false;
         for (int Retry = 0; Retry < MaxPortRetries; Retry++) {
             PortSocksUdp[i] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-            ASSERT_NE(PortSocksUdp[i], INVALID_SOCKET)
-                << "Failed to create UDP socket: WSAGetLastError=" << WSAGetLastError();
+            if (PortSocksUdp[i] == INVALID_SOCKET) {
+                throw std::runtime_error("Failed to create UDP socket");
+            }
             struct sockaddr_in Addr = {};
             Addr.sin_family = AF_INET;
-            ASSERT_EQ(bind(PortSocksUdp[i], (struct sockaddr*)&Addr, sizeof(Addr)), 0);
+            if (bind(PortSocksUdp[i], (struct sockaddr*)&Addr, sizeof(Addr)) != 0) {
+                throw std::runtime_error("Failed to bind UDP socket");
+            }
             int AddrLen = sizeof(Addr);
-            ASSERT_EQ(getsockname(PortSocksUdp[i], (struct sockaddr*)&Addr, &AddrLen), 0);
+            if (getsockname(PortSocksUdp[i], (struct sockaddr*)&Addr, &AddrLen) != 0) {
+                throw std::runtime_error("getsockname failed");
+            }
             uint16_t Port = ntohs(Addr.sin_port);
-            ASSERT_NE(Port, (uint16_t)0);
+            if (Port == 0) {
+                throw std::runtime_error("OS assigned port 0");
+            }
 
             //
             // Reserve the same port number on TCP. This prevents another
@@ -132,8 +136,9 @@ XdpMapModeRuleScope::Setup(bool UseCibirParam, bool UseQtipParam)
             // required for QTIP (QUIC-over-TCP) tests.
             //
             PortSocksTcp[i] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-            ASSERT_NE(PortSocksTcp[i], INVALID_SOCKET)
-                << "Failed to create TCP socket: WSAGetLastError=" << WSAGetLastError();
+            if (PortSocksTcp[i] == INVALID_SOCKET) {
+                throw std::runtime_error("Failed to create TCP socket");
+            }
             struct sockaddr_in TcpAddr = {};
             TcpAddr.sin_family = AF_INET;
             TcpAddr.sin_port = htons(Port);
@@ -146,20 +151,18 @@ XdpMapModeRuleScope::Setup(bool UseCibirParam, bool UseQtipParam)
             // TCP port collision. Close both sockets and retry with a
             // new OS-assigned port.
             //
-            printf("XDP Map Mode: port %u TCP collision (attempt %d/%d), retrying\n",
-                Port, Retry + 1, MaxPortRetries);
             closesocket(PortSocksTcp[i]);
             PortSocksTcp[i] = INVALID_SOCKET;
             closesocket(PortSocksUdp[i]);
             PortSocksUdp[i] = INVALID_SOCKET;
         }
-        ASSERT_TRUE(PortReserved)
-            << "Failed to reserve a UDP+TCP port pair after "
-            << MaxPortRetries << " attempts";
+        if (!PortReserved) {
+            throw std::runtime_error(
+                "Failed to reserve a UDP+TCP port pair after max attempts");
+        }
     }
 
-    printf("XDP Map Mode [%s]: ports Server=%u Client=%u CIBIR=%d QTIP=%d\n",
-        ::testing::UnitTest::GetInstance()->current_test_info()->name(),
+    printf("XDP Map Mode: ports Server=%u Client=%u CIBIR=%d QTIP=%d\n",
         ServerPort, ClientPort, UseCibirParam, UseQtipParam);
 
     //
@@ -167,12 +170,10 @@ XdpMapModeRuleScope::Setup(bool UseCibirParam, bool UseQtipParam)
     //
     if (UseQtip) {
         MsQuicSettings Settings;
-        uint32_t SettingsSize = sizeof(Settings);
-        MsQuic->GetParam(nullptr, QUIC_PARAM_GLOBAL_SETTINGS, &SettingsSize, &Settings);
-        PreviousQtipSetting = Settings.QTIPEnabled;
-        if (!PreviousQtipSetting) {
-            Settings.SetQtipEnabled(true);
-            ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
+        Settings.SetQtipEnabled(true);
+        QUIC_STATUS Status = Settings.SetGlobal();
+        if (QUIC_FAILED(Status)) {
+            throw std::runtime_error("Failed to enable QTIP globally");
         }
     }
 
@@ -307,9 +308,10 @@ XdpMapModeRuleScope::Setup(bool UseCibirParam, bool UseQtipParam)
         }
         printf("XDP Map Mode: IfIndex=%u created %u per-queue programs\n",
             XdpMapState.IfIndices[i], QueueCounts[i]);
-        ASSERT_GT(QueueCounts[i], (uint32_t)0)
-            << "Failed to create any XDP programs for IfIndex="
-            << XdpMapState.IfIndices[i];
+        if (QueueCounts[i] == 0) {
+            throw std::runtime_error(
+                "Failed to create any XDP programs for interface");
+        }
     }
 }
 
@@ -333,10 +335,7 @@ XdpMapModeRuleScope::~XdpMapModeRuleScope()
             PortSocksTcp[i] = INVALID_SOCKET;
         }
     }
-    //
-    // Restore QTIP global setting.
-    //
-    if (UseQtip && !PreviousQtipSetting) {
+    if (UseQtip) {
         MsQuicSettings Settings;
         Settings.SetQtipEnabled(false);
         Settings.SetGlobal();
