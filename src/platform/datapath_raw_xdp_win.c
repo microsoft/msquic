@@ -2393,3 +2393,17 @@ CxPlatDpRawCleanupMapConfigs(
         CxPlatDpRawRemoveXskFromMap(Interface);
     }
 }
+
+uint32_t
+CxPlatDpRawGetTotalRuleCount(
+    _In_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    const XDP_DATAPATH* Xdp = (const XDP_DATAPATH*)RawDataPath;
+    uint32_t TotalRuleCount = 0;
+    for (const CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+        const XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+        TotalRuleCount += Interface->RuleCount;
+    }
+    return TotalRuleCount;
+}

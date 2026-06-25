@@ -1264,6 +1264,14 @@ CxPlatDpRawEnableRawDatapathOnly(
     _In_ CXPLAT_DATAPATH_RAW* RawDataPath
     );
 
+//
+// Returns the total number of XDP rules plumbed across all interfaces.
+//
+uint32_t
+CxPlatDpRawGetTotalRuleCount(
+    _In_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawSocketUpdateQeo(

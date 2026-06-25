@@ -510,6 +510,15 @@ CxPlatDataPathUninitialize(
     );
 
 //
+// Returns the total number of XDP rules plumbed across all interfaces.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+CxPlatDataPathGetXdpRuleCount(
+    _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+//
 // Updates the polling idle timeout of a datapath.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

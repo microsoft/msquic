@@ -146,6 +146,18 @@ CxPlatDataPathUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+CxPlatDataPathGetXdpRuleCount(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    if (Datapath->RawDataPath == NULL) {
+        return 0;
+    }
+    return CxPlatDpRawGetTotalRuleCount(Datapath->RawDataPath);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,

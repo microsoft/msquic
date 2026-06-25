@@ -130,6 +130,15 @@ CxPlatDpRawCleanupMapConfigs(
     UNREFERENCED_PARAMETER(RawDataPath);
 }
 
+uint32_t
+CxPlatDpRawGetTotalRuleCount(
+    _In_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
+    return 0;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(
