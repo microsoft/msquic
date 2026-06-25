@@ -7976,22 +7976,19 @@ QuicConnUpdateOperQueueDelay(
     )
 {
     uint32_t DelayUs = CxPlatTimeDiff32(Oper->QueueTimeUs, CxPlatTimeUs32());
-    if (DelayUs >= (UINT32_MAX >> 1)) {
-        DelayUs = 0;
-    }
 
     switch (Oper->Type) {
 
     case QUIC_OPER_TYPE_FLUSH_RECV:
         Connection->Stats.Schedule.ReceiveQueueDelayAvgUs =
-            (7 * Connection->Stats.Schedule.ReceiveQueueDelayAvgUs + DelayUs) / 8;
+            (7 * (uint64_t)Connection->Stats.Schedule.ReceiveQueueDelayAvgUs + DelayUs) / 8;
         if (DelayUs > Connection->Stats.Schedule.ReceiveQueueDelayMaxUs) {
             Connection->Stats.Schedule.ReceiveQueueDelayMaxUs = DelayUs;
         }
         break;
     case QUIC_OPER_TYPE_FLUSH_SEND:
         Connection->Stats.Schedule.SendQueueDelayAvgUs =
-            (7 * Connection->Stats.Schedule.SendQueueDelayAvgUs + DelayUs) / 8;
+            (7 * (uint64_t)Connection->Stats.Schedule.SendQueueDelayAvgUs + DelayUs) / 8;
         if (DelayUs > Connection->Stats.Schedule.SendQueueDelayMaxUs) {
             Connection->Stats.Schedule.SendQueueDelayMaxUs = DelayUs;
         }
