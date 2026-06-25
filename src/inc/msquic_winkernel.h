@@ -28,7 +28,6 @@ Environment:
 #include <ntintsafe.h>
 
 #define QUIC_INLINE inline
-#define QUIC_INVALID_FILE_HANDLE         -1
 
 typedef INT8 int8_t;
 typedef INT16 int16_t;
