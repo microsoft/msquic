@@ -1602,6 +1602,8 @@ TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, Datapath);
 
+    ASSERT_EQ(0u, CxPlatDataPathGetXdpRuleCount(Datapath));
+
     QuicAddr RemoteAddr = GetNewLocalIPv4();
     QuicAddr LocalAddr = GetNewLocalIPv4();
 
@@ -1614,6 +1616,8 @@ TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
     Status = CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, Socket);
+
+    ASSERT_EQ(0u, CxPlatDataPathGetXdpRuleCount(Datapath));
 
     CxPlatSocketDelete(Socket);
 
