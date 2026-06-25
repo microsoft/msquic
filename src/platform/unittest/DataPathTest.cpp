@@ -1443,6 +1443,14 @@ TEST_F(DataPathTest, XdpMapMode_ZeroConfigUsesNormalPath)
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, Datapath);
 
+    //
+    // Normal path initializes the platform datapath, which reports features.
+    // Raw-only mode skips platform init and features remain NONE.
+    //
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    ASSERT_NE(CXPLAT_DATAPATH_FEATURE_NONE, Features);
+
     CxPlatDataPathUninitialize(Datapath);
     CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
 }
@@ -1565,9 +1573,6 @@ TEST_F(DataPathTest, XdpMapMode_MultipleUnknownIfIndex)
 
 TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
 {
-    //
-    // Socket create/delete in map mode skips XDP rule plumbing.
-    //
     if (!UseDuoNic) {
         GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
         return;
