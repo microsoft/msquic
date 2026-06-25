@@ -6057,6 +6057,19 @@ QuicTestGetWorkerStatistics()
     MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
+#ifdef _KERNEL_MODE
+    //
+    // Worker statistics are not supported in kernel mode.
+    //
+    uint32_t UnsupportedLength = 0;
+    TEST_EQUAL(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_WORKER_STATISTICS,
+            &UnsupportedLength,
+            nullptr),
+        QUIC_STATUS_NOT_SUPPORTED);
+#else
     //
     // Test getting the required size with zero-length buffer.
     //
@@ -6130,6 +6143,7 @@ QuicTestGetWorkerStatistics()
     }
 
     delete[] Buffer;
+#endif // _KERNEL_MODE
 }
 
 void
@@ -6142,6 +6156,19 @@ QuicTestValidateWorkerStatistics()
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
+#ifdef _KERNEL_MODE
+    //
+    // Worker statistics are not supported in kernel mode.
+    //
+    uint32_t UnsupportedLength = 0;
+    TEST_EQUAL(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_WORKER_STATISTICS,
+            &UnsupportedLength,
+            nullptr),
+        QUIC_STATUS_NOT_SUPPORTED);
+#else
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
@@ -6227,6 +6254,7 @@ QuicTestValidateWorkerStatistics()
 
     delete[] BeforeBuffer;
     delete[] AfterBuffer;
+#endif // _KERNEL_MODE
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 

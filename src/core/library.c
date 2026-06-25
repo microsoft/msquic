@@ -1506,6 +1506,67 @@ QuicLibrarySetGlobalParam(
     return Status;
 }
 
+#ifndef _KERNEL_MODE
+//
+// Fills the caller's buffer with the per-worker statistics for the global
+// worker pool, mapping the platform's raw statistics into the public shape.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGetGlobalWorkerStatistics(
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    if (MsQuicLib.WorkerPool == NULL) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    uint32_t WorkerCount = CxPlatWorkerPoolGetCount(MsQuicLib.WorkerPool);
+    uint32_t RequiredSize =
+        sizeof(QUIC_WORKER_STATISTICS_LIST) +
+        WorkerCount * sizeof(QUIC_WORKER_STATISTICS);
+
+    if (*BufferLength < RequiredSize) {
+        *BufferLength = RequiredSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Buffer == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    QUIC_WORKER_STATISTICS_LIST* List = (QUIC_WORKER_STATISTICS_LIST*)Buffer;
+    List->WorkerCount = WorkerCount;
+    List->WorkerStatsSize = sizeof(QUIC_WORKER_STATISTICS);
+
+    QUIC_WORKER_STATISTICS* PublicStats =
+        (QUIC_WORKER_STATISTICS*)((uint8_t*)Buffer + sizeof(QUIC_WORKER_STATISTICS_LIST));
+    CxPlatZeroMemory(PublicStats, WorkerCount * sizeof(QUIC_WORKER_STATISTICS));
+
+    if (WorkerCount > 0) {
+        CXPLAT_WORKER_STATISTICS* RawStats =
+            CXPLAT_ALLOC_PAGED(
+                WorkerCount * sizeof(CXPLAT_WORKER_STATISTICS),
+                QUIC_POOL_GENERIC);
+        if (RawStats == NULL) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        CxPlatWorkerPoolGetStatistics(MsQuicLib.WorkerPool, RawStats, WorkerCount);
+        for (uint32_t i = 0; i < WorkerCount; i++) {
+            PublicStats[i].IdealProcessor = RawStats[i].IdealProcessor;
+            PublicStats[i].CumulativeActiveTimeUs = RawStats[i].CumulativeActiveTimeUs;
+            PublicStats[i].CumulativeWallTimeUs = RawStats[i].CumulativeWallTimeUs;
+        }
+        CXPLAT_FREE(RawStats, QUIC_POOL_GENERIC);
+    }
+
+    *BufferLength = RequiredSize;
+    return QUIC_STATUS_SUCCESS;
+}
+#endif // !_KERNEL_MODE
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetGlobalParam(
@@ -1876,43 +1937,18 @@ QuicLibraryGetGlobalParam(
         break;
     }
 
-#ifndef _KERNEL_MODE
     case QUIC_PARAM_GLOBAL_WORKER_STATISTICS: {
-
-        if (MsQuicLib.WorkerPool == NULL) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        uint32_t WorkerCount = CxPlatWorkerPoolGetCount(MsQuicLib.WorkerPool);
-        uint32_t RequiredSize =
-            sizeof(QUIC_WORKER_STATISTICS_LIST) +
-            WorkerCount * sizeof(QUIC_WORKER_STATISTICS);
-
-        if (*BufferLength < RequiredSize) {
-            *BufferLength = RequiredSize;
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        QUIC_WORKER_STATISTICS_LIST* List = (QUIC_WORKER_STATISTICS_LIST*)Buffer;
-        List->WorkerCount = WorkerCount;
-        List->WorkerStatsSize = sizeof(QUIC_WORKER_STATISTICS);
-
-        QUIC_WORKER_STATISTICS* Stats =
-            (QUIC_WORKER_STATISTICS*)((uint8_t*)Buffer + sizeof(QUIC_WORKER_STATISTICS_LIST));
-        CxPlatWorkerPoolGetStatistics(MsQuicLib.WorkerPool, Stats, WorkerCount);
-
-        *BufferLength = RequiredSize;
-        Status = QUIC_STATUS_SUCCESS;
+#ifdef _KERNEL_MODE
+        //
+        // Worker statistics are not supported in kernel mode, where the worker
+        // threads are not owned by the platform worker pool.
+        //
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+#else
+        Status = QuicLibraryGetGlobalWorkerStatistics(BufferLength, Buffer);
+#endif
         break;
     }
-#endif
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

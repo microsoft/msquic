@@ -881,7 +881,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 void
 CxPlatWorkerPoolGetStatistics(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Out_writes_(WorkerCount) QUIC_WORKER_STATISTICS* Stats,
+    _Out_writes_(WorkerCount) CXPLAT_WORKER_STATISTICS* Stats,
     _In_ uint32_t WorkerCount
     )
 {
@@ -892,7 +892,7 @@ CxPlatWorkerPoolGetStatistics(
     //
     // Note: The active time that has not been accumulated yet is ignored.
     //
-    CxPlatZeroMemory(Stats, WorkerCount * sizeof(QUIC_WORKER_STATISTICS));
+    CxPlatZeroMemory(Stats, WorkerCount * sizeof(CXPLAT_WORKER_STATISTICS));
     for (uint32_t i = 0; i < WorkerCount; i++) {
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
         Stats[i].IdealProcessor = Worker->IdealProcessor;
