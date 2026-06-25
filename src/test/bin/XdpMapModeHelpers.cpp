@@ -166,18 +166,6 @@ XdpMapModeRuleScope::XdpMapModeRuleScope(bool UseCibirParam, bool UseQtipParam)
         ServerPort, ClientPort, UseCibirParam, UseQtipParam);
 
     //
-    // If QTIP is needed, enable it globally before creating XDP programs.
-    //
-    if (UseQtip) {
-        MsQuicSettings Settings;
-        Settings.SetQtipEnabled(true);
-        QUIC_STATUS Status = Settings.SetGlobal();
-        if (QUIC_FAILED(Status)) {
-            throw std::runtime_error("Failed to enable QTIP globally");
-        }
-    }
-
-    //
     // Build XDP rules based on CIBIR/QTIP mode.
     //
     // Server (listener/wildcard) rules:
@@ -334,11 +322,6 @@ XdpMapModeRuleScope::~XdpMapModeRuleScope()
             closesocket(PortSocksTcp[i]);
             PortSocksTcp[i] = INVALID_SOCKET;
         }
-    }
-    if (UseQtip) {
-        MsQuicSettings Settings;
-        Settings.SetQtipEnabled(false);
-        Settings.SetGlobal();
     }
     if (WsaInitialized) {
         WSACleanup();
