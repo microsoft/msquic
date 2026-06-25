@@ -354,25 +354,32 @@ else()
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
-    target_link_libraries(
-        OpenSSLQuic
-        INTERFACE
-        ${LIBSSL_PATH}
-    )
-
     if (QUIC_USE_SYSTEM_LIBCRYPTO)
         include(FindOpenSSL)
         if (OPENSSL_FOUND)
             # Get Major.Minor so 3.0 can match 3.0.2.
             # We cannot use VERSION_GREATER as 3.0 would work for 1.1.1 but they are not compatible.
             string(FIND ${OPENSSL_VERSION} "." VERSIONLEN REVERSE)
-            string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJORMINOR)
+            string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN} OPENSSL_MAJORMINOR)
             string(FIND ${OPENSSL_VERSION} "." VERSIONLEN)
-            string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJOR)
+            string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN} OPENSSL_MAJOR)
+
             if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR
                 # 3.1 is compatible with 3.0, 3.2 and beyond maybe as well.
                 (EXPECTED_OPENSSL_VERSION VERSION_EQUAL "3.0" AND OPENSSL_MAJOR EQUAL "3"))
                 target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto)
+
+                if (CX_PLATFORM STREQUAL "linux" AND QUIC_TLS_LIB STREQUAL "openssl")
+                    # Linux openssl uses libssl and libcrypto system libraries dynamically.
+                    if (OPENSSL_VERSION VERSION_GREATER_EQUAL "3.5.0")
+                        target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::SSL)
+                    else()
+                        message(FATAL_ERROR "OpenSSL 3.5.0 or later required for openssl TLS provider on Linux, found ${OPENSSL_VERSION}")
+                    endif()
+                else()
+                    # Preserve existing hybrid behavior everywhere else.
+                    target_link_libraries(OpenSSLQuic INTERFACE ${LIBSSL_PATH})
+                endif()
             else()
                 message(FATAL_ERROR "OpenSSL ${EXPECTED_OPENSSL_VERSION} not found, found ${OPENSSL_VERSION}")
             endif()
@@ -383,6 +390,7 @@ else()
         target_link_libraries(
             OpenSSLQuic
             INTERFACE
+            ${LIBSSL_PATH}
             ${LIBCRYPTO_PATH}
         )
     endif()
