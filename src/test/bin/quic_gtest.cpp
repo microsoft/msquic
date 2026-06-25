@@ -138,10 +138,11 @@ public:
                 //
                 // Discover DuoNic interfaces and create XSKMAPs.
                 //
-                ASSERT_TRUE(
-                    DiscoverDuoNicInterfaces(
-                        XdpMapState.IfIndices,
-                        &XdpMapState.InterfaceCount));
+                auto IfIndices = DiscoverDuoNicInterfaces();
+                ASSERT_FALSE(IfIndices.empty());
+                XdpMapState.InterfaceCount = (uint32_t)IfIndices.size();
+                memcpy(XdpMapState.IfIndices, IfIndices.data(),
+                    sizeof(uint32_t) * IfIndices.size());
                 printf("XDP Map Mode: discovered %u DuoNic interface(s)\n",
                     XdpMapState.InterfaceCount);
 
@@ -3209,8 +3210,7 @@ TEST_P(WithXdpMapModeArgs, Handshake) {
         GTEST_SKIP() << "XDP Map Mode not enabled (use --xdpMapMode)";
     }
     auto Params = GetParam();
-    XdpMapModeRuleScope Scope;
-    ASSERT_NO_FATAL_FAILURE(Scope.Setup(Params.UseCibir, Params.UseQtip));
+    XdpMapModeRuleScope Scope(Params.UseCibir, Params.UseQtip);
     TestLogger Logger("QuicTestXdpMapModeHandshake");
     QuicTestXdpMapModeHandshake(
         { Params.Family, Scope.GetServerPort(), Scope.GetClientPort(), Params.UseCibir });

@@ -18,6 +18,7 @@ Abstract:
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 
 #include <vector>
+#include <stdexcept>
 
 #define XDP_MAP_MODE_MAX_INTERFACES 2
 #define XDP_MAP_MODE_MAX_QUEUES 64
@@ -40,32 +41,24 @@ extern XdpMapModeState XdpMapState;
 // Discover DuoNic interface indices by enumerating Ethernet adapters with
 // known DuoNic IPv4 addresses (192.168.1.11 and 192.168.1.12).
 //
-bool
-DiscoverDuoNicInterfaces(
-    _Out_writes_(XDP_MAP_MODE_MAX_INTERFACES) uint32_t* IfIndices,
-    _Out_ uint32_t* Count
-    );
+std::vector<uint32_t>
+DiscoverDuoNicInterfaces();
 
 //
 // RAII helper that reserves the server/client ports and installs the per-queue
 // XDP redirect programs for a single XDP map mode test. Construct it at the
-// start of the test body and call Setup() via ASSERT_NO_FATAL_FAILURE(...) so
-// the setup is visible; the destructor tears everything back down.
+// start of the test body; the constructor performs all setup (throws on
+// failure) and the destructor tears everything back down.
 //
 class XdpMapModeRuleScope {
 public:
-    XdpMapModeRuleScope() = default;
+    XdpMapModeRuleScope(bool UseCibir, bool UseQtip);
     ~XdpMapModeRuleScope();
 
     XdpMapModeRuleScope(const XdpMapModeRuleScope&) = delete;
     XdpMapModeRuleScope& operator=(const XdpMapModeRuleScope&) = delete;
     XdpMapModeRuleScope(XdpMapModeRuleScope&&) = delete;
     XdpMapModeRuleScope& operator=(XdpMapModeRuleScope&&) = delete;
-
-    //
-    // Reserves the ports and creates the XDP programs for the given mode.
-    //
-    void Setup(bool UseCibir, bool UseQtip);
 
     uint16_t GetServerPort() const { return ServerPort; }
     uint16_t GetClientPort() const { return ClientPort; }
@@ -80,7 +73,6 @@ private:
     uint32_t QueueCounts[XDP_MAP_MODE_MAX_INTERFACES] = {};
     bool WsaInitialized = false;
     bool UseQtip = false;
-    bool PreviousQtipSetting = false;
 };
 
 #endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
