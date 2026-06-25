@@ -399,6 +399,24 @@ TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
         QuicTestValidateEncryptDecryptPerfCounters();
     }
 }
+
+TEST(ParameterValidation, ValidateGetWorkerStatistics) {
+    TestLogger Logger("QuicTestGetWorkerStatistics");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGetWorkerStatistics)));
+    } else {
+        QuicTestGetWorkerStatistics();
+    }
+}
+
+TEST(ParameterValidation, ValidateWorkerStatistics) {
+    TestLogger Logger("QuicTestValidateWorkerStatistics");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateWorkerStatistics)));
+    } else {
+        QuicTestValidateWorkerStatistics();
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(ParameterValidation, ValidateConfiguration) {

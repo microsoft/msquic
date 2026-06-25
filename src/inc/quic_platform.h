@@ -558,6 +558,27 @@ CxPlatWorkerPoolWorkerPoll(
     );
 
 //
+// Raw per-worker statistics owned by the platform layer. The core layer maps
+// these into the public QUIC_WORKER_STATISTICS shape, keeping the platform
+// layer free of any dependency on core/public types.
+//
+typedef struct CXPLAT_WORKER_STATISTICS {
+    uint64_t CumulativeActiveTimeUs;    // Time the worker spent active (not idle).
+    uint64_t CumulativeWallTimeUs;      // Wall time since the worker thread started.
+    uint16_t IdealProcessor;            // CPU the worker is affinitized to.
+} CXPLAT_WORKER_STATISTICS;
+
+//
+// Gets the statistics for all workers in the pool.
+//
+void
+CxPlatWorkerPoolGetStatistics(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _Out_writes_(WorkerCount) CXPLAT_WORKER_STATISTICS* Stats,
+    _In_ uint32_t WorkerCount
+    );
+
+//
 // Supports more dynamic operations, but must be submitted to the platform worker
 // to manage.
 //
