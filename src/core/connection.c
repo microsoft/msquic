@@ -7965,6 +7965,42 @@ QuicConnProcessExpiredTimer(
     }
 }
 
+//
+// Update a connection operation delay statistics
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnUpdateOperQueueDelay(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_OPERATION* Oper
+    )
+{
+    uint32_t DelayUs = CxPlatTimeDiff32(Oper->QueueTimeUs, CxPlatTimeUs32());
+    if (DelayUs >= (UINT32_MAX >> 1)) {
+        DelayUs = 0;
+    }
+
+    switch (Oper->Type) {
+
+    case QUIC_OPER_TYPE_FLUSH_RECV:
+        Connection->Stats.Schedule.ReceiveQueueDelayAvgUs =
+            (7 * Connection->Stats.Schedule.ReceiveQueueDelayAvgUs + DelayUs) / 8;
+        if (DelayUs > Connection->Stats.Schedule.ReceiveQueueDelayMaxUs) {
+            Connection->Stats.Schedule.ReceiveQueueDelayMaxUs = DelayUs;
+        }
+        break;
+    case QUIC_OPER_TYPE_FLUSH_SEND:
+        Connection->Stats.Schedule.SendQueueDelayAvgUs =
+            (7 * Connection->Stats.Schedule.SendQueueDelayAvgUs + DelayUs) / 8;
+        if (DelayUs > Connection->Stats.Schedule.SendQueueDelayMaxUs) {
+            Connection->Stats.Schedule.SendQueueDelayMaxUs = DelayUs;
+        }
+        break;
+    default:
+        break;
+    }
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
@@ -8014,13 +8050,9 @@ QuicConnDrainOperations(
         }
 
         QuicOperLog(Connection, Oper);
+        QuicConnUpdateOperQueueDelay(Connection, Oper);
 
         BOOLEAN FreeOper = Oper->FreeAfterProcess;
-
-        uint32_t OperQueueDelayUs = CxPlatTimeDiff32(Oper->QueueTimeUs, CxPlatTimeUs32());
-        if (OperQueueDelayUs >= (UINT32_MAX >> 1)) {
-            OperQueueDelayUs = 0;
-        }
 
         switch (Oper->Type) {
 
@@ -8034,11 +8066,6 @@ QuicConnDrainOperations(
         case QUIC_OPER_TYPE_FLUSH_RECV:
             if (Connection->State.ShutdownComplete) {
                 break; // Ignore if already shutdown
-            }
-            Connection->Stats.Schedule.ReceiveQueueDelayAvgUs =
-                (7 * Connection->Stats.Schedule.ReceiveQueueDelayAvgUs + OperQueueDelayUs) / 8;
-            if (OperQueueDelayUs > Connection->Stats.Schedule.ReceiveQueueDelayMaxUs) {
-                Connection->Stats.Schedule.ReceiveQueueDelayMaxUs = OperQueueDelayUs;
             }
             if (!QuicConnFlushRecv(Connection)) {
                 //
@@ -8069,11 +8096,6 @@ QuicConnDrainOperations(
         case QUIC_OPER_TYPE_FLUSH_SEND:
             if (Connection->State.ShutdownComplete) {
                 break; // Ignore if already shutdown
-            }
-            Connection->Stats.Schedule.SendQueueDelayAvgUs =
-                (7 * Connection->Stats.Schedule.SendQueueDelayAvgUs + OperQueueDelayUs) / 8;
-            if (OperQueueDelayUs > Connection->Stats.Schedule.SendQueueDelayMaxUs) {
-                Connection->Stats.Schedule.SendQueueDelayMaxUs = OperQueueDelayUs;
             }
             if (QuicSendFlush(&Connection->Send)) {
                 //

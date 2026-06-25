@@ -2899,7 +2899,9 @@ void QuicTestGlobalParam()
             QUIC_STATISTICS_V2_SIZE_2,
             QUIC_STATISTICS_V2_SIZE_3,
             QUIC_STATISTICS_V2_SIZE_4,
-            QUIC_STATISTICS_V2_SIZE_5
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            QUIC_STATISTICS_V2_SIZE_5,
+#endif
         };
 
         //
