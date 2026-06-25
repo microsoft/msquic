@@ -3210,6 +3210,9 @@ TEST_P(WithXdpMapModeArgs, Handshake) {
         GTEST_SKIP() << "XDP Map Mode not enabled (use --xdpMapMode)";
     }
     auto Params = GetParam();
+    if (Params.UseQtip != UseQTIP) {
+        GTEST_SKIP() << "QTIP settings do not match";
+    }
     XdpMapModeRuleScope Scope(Params.UseCibir, Params.UseQtip);
     TestLogger Logger("QuicTestXdpMapModeHandshake");
     QuicTestXdpMapModeHandshake(
