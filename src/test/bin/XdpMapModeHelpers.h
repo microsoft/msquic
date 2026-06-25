@@ -17,8 +17,16 @@ Abstract:
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 
+#include <vector>
+
 #define XDP_MAP_MODE_MAX_INTERFACES 2
 #define XDP_MAP_MODE_MAX_QUEUES 64
+
+struct XdpMapModeParams {
+    int Family;
+    bool UseCibir;
+    bool UseQtip;
+};
 
 struct XdpMapModeState {
     uint32_t InterfaceCount;
@@ -51,6 +59,8 @@ public:
 
     XdpMapModeRuleScope(const XdpMapModeRuleScope&) = delete;
     XdpMapModeRuleScope& operator=(const XdpMapModeRuleScope&) = delete;
+    XdpMapModeRuleScope(XdpMapModeRuleScope&&) = delete;
+    XdpMapModeRuleScope& operator=(XdpMapModeRuleScope&&) = delete;
 
     //
     // Reserves the ports and creates the XDP programs for the given mode.
