@@ -362,11 +362,11 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapInsertFailed , arg2, arg3, arg4, a
 // Decoder Ring for XdpMapModeConfigured
 // [ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)
 // QuicTraceLogVerbose(
-                    XdpMapModeConfigured,
-                    "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
-                    Interface,
-                    Interface->IfIndex,
-                    XskMap);
+            XdpMapModeConfigured,
+            "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+            Interface,
+            Interface->IfIndex,
+            XskMap);
 // arg2 = arg2 = Interface = arg2
 // arg3 = arg3 = Interface->IfIndex = arg3
 // arg4 = arg4 = XskMap = arg4
