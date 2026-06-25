@@ -448,7 +448,8 @@ QuicWorkerUpdateQueueDelay(
     _In_ uint32_t TimeInQueueUs
     )
 {
-    Worker->AverageQueueDelay = (7 * Worker->AverageQueueDelay + TimeInQueueUs) / 8;
+    Worker->AverageQueueDelay =
+        (uint32_t)CxPlatEwma(Worker->AverageQueueDelay, TimeInQueueUs, 8);
     QuicTraceEvent(
         WorkerQueueDelayUpdated,
         "[wrkr][%p] QueueDelay = %u",

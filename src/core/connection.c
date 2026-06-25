@@ -827,11 +827,11 @@ QuicConnUpdateRtt(
 
     } else {
         if (Path->SmoothedRtt > LatestRtt) {
-            Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
+            Path->RttVariance = CxPlatEwma(Path->RttVariance, Path->SmoothedRtt - LatestRtt, 4);
         } else {
-            Path->RttVariance = (3 * Path->RttVariance + LatestRtt - Path->SmoothedRtt) / 4;
+            Path->RttVariance = CxPlatEwma(Path->RttVariance, LatestRtt - Path->SmoothedRtt, 4);
         }
-        Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
+        Path->SmoothedRtt = CxPlatEwma(Path->SmoothedRtt, LatestRtt, 8);
     }
 
     if (OurSendTimestamp != UINT64_MAX) {
@@ -847,7 +847,7 @@ QuicConnUpdateRtt(
         } else {
             Path->OneWayDelayLatest =
                 (uint64_t)((int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - Connection->Stats.Timing.PhaseShift);
-            Path->OneWayDelay = (7 * Path->OneWayDelay + Path->OneWayDelayLatest) / 8;
+            Path->OneWayDelay = CxPlatEwma(Path->OneWayDelay, Path->OneWayDelayLatest, 8);
         }
     }
 
@@ -7981,17 +7981,15 @@ QuicConnUpdateOperQueueDelay(
 
     case QUIC_OPER_TYPE_FLUSH_RECV:
         Connection->Stats.Schedule.ReceiveQueueDelayAvgUs =
-            (7 * (uint64_t)Connection->Stats.Schedule.ReceiveQueueDelayAvgUs + DelayUs) / 8;
-        if (DelayUs > Connection->Stats.Schedule.ReceiveQueueDelayMaxUs) {
-            Connection->Stats.Schedule.ReceiveQueueDelayMaxUs = DelayUs;
-        }
+            (uint32_t)CxPlatEwma(Connection->Stats.Schedule.ReceiveQueueDelayAvgUs, DelayUs, 8);
+        Connection->Stats.Schedule.ReceiveQueueDelayMaxUs =
+            CXPLAT_MAX(Connection->Stats.Schedule.ReceiveQueueDelayMaxUs, DelayUs);
         break;
     case QUIC_OPER_TYPE_FLUSH_SEND:
         Connection->Stats.Schedule.SendQueueDelayAvgUs =
-            (7 * (uint64_t)Connection->Stats.Schedule.SendQueueDelayAvgUs + DelayUs) / 8;
-        if (DelayUs > Connection->Stats.Schedule.SendQueueDelayMaxUs) {
-            Connection->Stats.Schedule.SendQueueDelayMaxUs = DelayUs;
-        }
+            (uint32_t)CxPlatEwma(Connection->Stats.Schedule.SendQueueDelayAvgUs, DelayUs, 8);
+        Connection->Stats.Schedule.SendQueueDelayMaxUs =
+            CXPLAT_MAX(Connection->Stats.Schedule.SendQueueDelayMaxUs, DelayUs);
         break;
     default:
         break;
