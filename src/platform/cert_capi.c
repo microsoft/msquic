@@ -527,6 +527,14 @@ Exit:
     return Status;
 }
 
+_Success_(return != 0)
+static
+QUIC_STATUS
+CxPlatGetPkcs12Certificate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _Out_ QUIC_CERTIFICATE** NewCertificate
+    );
+
 QUIC_STATUS
 CxPlatCertCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
@@ -565,6 +573,8 @@ CxPlatCertCreate(
             Status = QUIC_STATUS_SUCCESS;
         }
 
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+        Status = CxPlatGetPkcs12Certificate(CredConfig, NewCertificate);
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -708,6 +718,159 @@ Exit:
     }
 
     return (QUIC_CERTIFICATE*)LeafCertCtx;
+}
+
+static
+BOOLEAN
+CxPLatEnumerateCertificatesInStore(
+    HCERTSTORE CertStore,
+    PCCERT_CONTEXT* CertContext
+    )
+{
+    PCCERT_CONTEXT PrevCertContext = NULL;
+    if (*CertContext != NULL) {
+        PrevCertContext = *CertContext;
+        *CertContext = NULL;
+    }
+
+    *CertContext = CertEnumCertificatesInStore(CertStore, PrevCertContext);
+
+    return *CertContext != NULL;
+}
+
+_Success_(return != 0)
+static
+QUIC_STATUS
+CxPlatGetPkcs12Certificate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _Out_ QUIC_CERTIFICATE** NewCertificate
+    )
+{
+    DWORD ObjectType = CERT_QUERY_OBJECT_BLOB;
+    HCERTSTORE CertStore = NULL;
+    HCRYPTMSG Msg = NULL;
+    PCCERT_CONTEXT CertContext = NULL;
+    PCCERT_CONTEXT EnumContext = NULL;
+    BOOL CertHasPrivateKey = FALSE;
+    PWSTR WidePassword = NULL;
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    *NewCertificate = NULL;
+
+    if (CredConfig->CertificatePkcs12->Asn1Blob == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    CRYPT_DATA_BLOB BlobData = {
+        .pbData = (BYTE*)CredConfig->CertificatePkcs12->Asn1Blob,
+        .cbData = CredConfig->CertificatePkcs12->Asn1BlobLength
+    };
+
+    DWORD MsgAndCertEncodingType;
+    DWORD ContentType;
+    DWORD FormatType;
+
+    if (!CryptQueryObject(
+        ObjectType,
+        &BlobData,
+        CERT_QUERY_CONTENT_FLAG_PFX,
+        CERT_QUERY_FORMAT_FLAG_ALL,
+        0,
+        &MsgAndCertEncodingType,
+        &ContentType,
+        &FormatType,
+        &CertStore,
+        &Msg,
+        &CertContext)) {
+        DWORD LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CryptQueryObject failed");
+        goto Exit;
+    }
+
+    CXPLAT_DBG_ASSERT(CertContext == NULL);
+    CXPLAT_DBG_ASSERT(CertStore == NULL);
+    CXPLAT_DBG_ASSERT(Msg == NULL);
+
+    if (ContentType != CERT_QUERY_CONTENT_PFX) {
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+
+    if (CredConfig->CertificatePkcs12->PrivateKeyPassword) {
+        Status =
+            CxPlatUtf8ToWideChar(
+                CredConfig->CertificatePkcs12->PrivateKeyPassword,
+                QUIC_POOL_PLATFORM_TMP_ALLOC,
+                &WidePassword);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Convert PrivateKeyPassword to unicode");
+            goto Exit;
+        }
+    }
+
+    CertStore =
+        PFXImportCertStore(
+            &BlobData,
+            WidePassword,
+            PKCS12_IMPORT_SILENT);
+    if (CertStore == NULL) {
+        DWORD LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "PFXImportCertStore failed");
+        goto Exit;
+    }
+
+    // Find the first cert with a private key. If none then take the first cert
+
+    while (CxPLatEnumerateCertificatesInStore(CertStore, &EnumContext)) {
+        DWORD PropSize = 0;
+        BOOL HasPrivateKey = CertGetCertificateContextProperty(EnumContext, CERT_KEY_PROV_INFO_PROP_ID, NULL, &PropSize);
+        if (HasPrivateKey) {
+            if (CertContext == NULL || !CertHasPrivateKey) {
+                if (CertContext != NULL) {
+                    CertFreeCertificateContext(CertContext);
+                }
+                CertContext = CertDuplicateCertificateContext(EnumContext);
+                CertHasPrivateKey = TRUE;
+            }
+        } else {
+            if (CertContext == NULL) {
+                CertContext = CertDuplicateCertificateContext(EnumContext);
+            }
+        }
+    }
+
+    if (CertContext == NULL) {
+        // TODO Maybe better error
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    *NewCertificate = (QUIC_CERTIFICATE*)CertContext;
+
+Exit:
+    if (CertStore != NULL) {
+        //CertCloseStore(CertStore, 0);
+    }
+
+    if (WidePassword != NULL) {
+        CXPLAT_FREE(WidePassword, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
+
+    return Status;
 }
 
 _Success_(return != 0)
