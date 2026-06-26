@@ -4215,14 +4215,20 @@ QuicConnRecvDecryptAndAuthenticate(
             PacketDecrypt,
             "[pack][%llu] Decrypting",
             Packet->PacketId);
-        if (QUIC_FAILED(
+        uint64_t DecryptStart = CxPlatTimeUs64();
+        QUIC_STATUS DecryptStatus =
             CxPlatDecrypt(
                 Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->PacketKey,
                 Iv,
                 Packet->HeaderLength,   // HeaderLength
                 Packet->AvailBuffer,    // Header
                 Packet->PayloadLength,  // BufferLength
-                (uint8_t*)Payload))) {  // Buffer
+                (uint8_t*)Payload);     // Buffer
+        QuicPerfCounterAdd(
+            Connection->Partition,
+            QUIC_PERF_COUNTER_DECRYPT_DURATION_US,
+            (int64_t)CxPlatTimeDiff64(DecryptStart, CxPlatTimeUs64()));
+        if (QUIC_FAILED(DecryptStatus)) {
 
             //
             // Check for a stateless reset packet.
@@ -5516,6 +5522,12 @@ QuicConnRecvPostProcessing(
             QuicSendSetSendFlag(
                 &Connection->Send,
                 QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+
+            //
+            // (Re-)arm the path validation timer for whichever of the now
+            // in-progress validations has the earliest deadline.
+            //
+            QuicConnPathValidationTimerUpdate(Connection);
         }
 
     } else if (PeerUpdatedCid) {
@@ -5913,17 +5925,16 @@ QuicConnRecvDatagrams(
     // NB: Traversing the array backwards is simpler and more efficient here due
     // to the array shifting that happens in QuicPathRemove.
     //
-    for (uint8_t i = Connection->PathsCount - 1; i > 0; --i) {
+    for (int i = Connection->PathsCount - 1; i > 0; --i) {
         if (!Connection->Paths[i].GotValidPacket) {
             QuicTraceLogConnInfo(
                 PathDiscarded,
                 Connection,
                 "Removing invalid path[%hhu]",
                 Connection->Paths[i].ID);
-            QuicPathRemove(Connection, i);
+            QuicPathRemove(Connection, (uint8_t)i);
         }
     }
-
     if (!Connection->State.UpdateWorker && Connection->State.Connected &&
         !Connection->State.ShutdownComplete && RecvState.UpdatePartitionId) {
         //
@@ -6101,42 +6112,27 @@ QuicConnProcessRouteCompletion(
 {
     uint8_t PathIndex;
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
-    if (Path != NULL) {
-        if (Succeeded) {
-            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
-            if (!QuicSendFlush(&Connection->Send)) {
-                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
-            }
-        } else {
-            //
-            // Kill the path that failed route resolution and make the next path active if possible.
-            //
-            if (Path->IsActive && Connection->PathsCount > 1) {
-                QuicTraceLogConnInfo(
-                    FailedRouteResolution,
-                    Connection,
-                    "Route resolution failed on Path[%hhu]. Switching paths...",
-                    PathId);
-                QuicPathSetActive(Connection, &Connection->Paths[1]);
-                QuicPathRemove(Connection, 1);
-                if (!QuicSendFlush(&Connection->Send)) {
-                    QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
-                }
-            } else {
-                QuicPathRemove(Connection, PathIndex);
-            }
-        }
+    if (Path == NULL) {
+        return;
     }
 
-    if (Connection->PathsCount == 0) {
+    if (Succeeded) {
+        CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
+    } else {
         //
-        // Close the connection since the peer is unreachable.
+        // Remove the path that failed route resolution, fallback to another path if possible.
         //
-        QuicConnCloseLocally(
+        QuicTraceLogConnInfo(
+            FailedRouteResolution,
             Connection,
-            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-            (uint64_t)QUIC_STATUS_UNREACHABLE,
-            NULL);
+            "Route resolution failed on Path[%hhu]. Switching paths...",
+            PathId);
+
+        QuicPathRemove(Connection, PathIndex);
+    }
+
+    if (!QuicSendFlush(&Connection->Send)) {
+        QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
     }
 }
 
@@ -6229,6 +6225,117 @@ QuicConnProcessKeepAliveOperation(
         Connection,
         QUIC_CONN_TIMER_KEEP_ALIVE,
         MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
+}
+
+//
+// Returns the path validation timeout (in microseconds) for the given path.
+// Per RFC 9000 section 8.2.4 we use the larger of:
+//   - a multiple of the current PTO on the path
+//   - a multiple of the connection's configured initial RTT
+//       (a floor for paths with no RTT samples yet).
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+uint64_t
+QuicConnPathValidationTimeoutUs(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_PATH* Path
+    )
+{
+    return
+        CXPLAT_MAX(
+            QuicLossDetectionComputeProbeTimeout(
+                &Connection->LossDetection, Path, QUIC_PATH_VALIDATION_PTO_COUNT),
+            QUIC_PATH_VALIDATION_MIN_INITIAL_RTT_MULTIPLE *
+                MS_TO_US(Connection->Settings.InitialRttMs));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnPathValidationTimerUpdate(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    //
+    // Find the earliest validation deadline across all paths that currently
+    // have a validation in progress and arm (or cancel) the timer accordingly.
+    //
+    const uint64_t TimeNow = CxPlatTimeUs64();
+    uint64_t EarliestDeadline = UINT64_MAX;
+
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+        const QUIC_PATH* Path = &Connection->Paths[i];
+        if (Path->IsPeerValidated || Path->PathValidationStartTime == 0) {
+            continue;
+        }
+        const uint64_t Deadline =
+            Path->PathValidationStartTime + QuicConnPathValidationTimeoutUs(Connection, Path);
+        EarliestDeadline = CXPLAT_MIN(Deadline, EarliestDeadline);
+    }
+
+    if (EarliestDeadline == UINT64_MAX) {
+        QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PATH_VALIDATION);
+        return;
+    }
+
+    const uint64_t Delay =
+        (EarliestDeadline > TimeNow) ? (EarliestDeadline - TimeNow) : 0;
+    QuicConnTimerSetEx(
+        Connection,
+        QUIC_CONN_TIMER_PATH_VALIDATION,
+        Delay,
+        TimeNow);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnProcessPathValidationTimerOperation(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    //
+    // Abandon any path whose validation timed-out.
+    //
+    const uint64_t TimeNow = CxPlatTimeUs64();
+    uint8_t i = 0;
+    while (i < Connection->PathsCount) {
+        QUIC_PATH* Path = &Connection->Paths[i];
+        if (Path->IsPeerValidated || Path->PathValidationStartTime == 0) {
+            ++i;
+            continue;
+        }
+        const uint64_t Timeout = QuicConnPathValidationTimeoutUs(Connection, Path);
+        if (CxPlatTimeDiff64(Path->PathValidationStartTime, TimeNow) <= Timeout) {
+            ++i;
+            continue;
+        }
+
+        QuicTraceEvent(
+            ConnPathValidationTimeout,
+            "[conn][%p] Path[%hhu] validation timed out",
+            Connection,
+            Path->ID);
+        QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
+        if (QuicPathRemove(Connection, i)) {
+            //
+            // Do not increase i: paths have been shifted with the removal.
+            //
+            continue;
+        }
+
+        //
+        // QuicPathRemove returned FALSE: this was the last path and the
+        // connection is closing. Clear the validation start time so
+        // QuicConnPathValidationTimerUpdate won't re-arm the timer.
+        //
+        Connection->Paths[i].PathValidationStartTime = 0;
+        ++i;
+    }
+
+    //
+    // Re-arm the timer for whichever (if any) validation is now the earliest.
+    //
+    QuicConnPathValidationTimerUpdate(Connection);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -7827,6 +7934,9 @@ QuicConnProcessExpiredTimer(
         break;
     case QUIC_CONN_TIMER_KEEP_ALIVE:
         QuicConnProcessKeepAliveOperation(Connection);
+        break;
+    case QUIC_CONN_TIMER_PATH_VALIDATION:
+        QuicConnProcessPathValidationTimerOperation(Connection);
         break;
     case QUIC_CONN_TIMER_SHUTDOWN:
         QuicConnProcessShutdownTimerOperation(Connection);

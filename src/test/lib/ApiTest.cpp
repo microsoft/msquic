@@ -1147,13 +1147,15 @@ ListenerAcceptCallback(
     _In_ HQUIC ConnectionHandle
     )
 {
-    TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ServerApiTestNewStream);
-    if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
+    TestConnection* NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ServerApiTestNewStream);
+    if (NewConnection == nullptr || !NewConnection->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
-        delete *NewConnection;
+        delete NewConnection;
         return false;
     }
+
+    auto* Output = static_cast<UniquePtr<TestConnection>*>(Listener->Context);
+    Output->reset(NewConnection);
     return true;
 }
 
@@ -1372,10 +1374,10 @@ void QuicTestValidateStream(const bool& Connect)
     // Force the Client, Server, and Listener to clean up before the Registration.
     //
     {
+        UniquePtr<TestConnection> Server;
+
         TestListener MyListener(Registration, ListenerAcceptCallback, ServerConfiguration);
         TEST_TRUE(MyListener.IsValid());
-
-        UniquePtr<TestConnection> Server;
         MyListener.Context = &Server;
 
         {
@@ -6044,6 +6046,78 @@ QuicTestGetPerfCounters()
 
     TEST_EQUAL(BufferLength, (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)));
 }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestValidateEncryptDecryptPerfCounters()
+{
+    uint64_t CountersBefore[QUIC_PERF_COUNTER_MAX] = {};
+    uint32_t BufferLength = sizeof(CountersBefore);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            &BufferLength,
+            CountersBefore));
+
+    //
+    // Establish a connection to generate encrypt/decrypt activity.
+    //
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    UniquePtr<TestConnection> Server;
+    TestListener Listener(Registration, ListenerAcceptCallback, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length()));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+    Listener.Context = &Server;
+
+    {
+        TestConnection Client(Registration);
+        TEST_TRUE(Client.IsValid());
+
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                ClientConfiguration,
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                QUIC_TEST_LOOPBACK_FOR_AF(
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                ServerLocalAddr.GetPort()));
+
+        TEST_TRUE(Client.WaitForConnectionComplete());
+        TEST_TRUE(Client.GetIsConnected());
+
+        TEST_NOT_EQUAL(nullptr, Server);
+        TEST_TRUE(Server->WaitForConnectionComplete());
+        TEST_TRUE(Server->GetIsConnected());
+    }
+
+    uint64_t CountersAfter[QUIC_PERF_COUNTER_MAX] = {};
+    BufferLength = sizeof(CountersAfter);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            &BufferLength,
+            CountersAfter));
+
+    TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US]);
+    TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_DECRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_DECRYPT_DURATION_US]);
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void

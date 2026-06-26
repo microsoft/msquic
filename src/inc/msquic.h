@@ -720,6 +720,10 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_SEND_STATELESS_RETRY, // Total stateless retry packets sent ever.
     QUIC_PERF_COUNTER_CONN_LOAD_REJECT,     // Total connections rejected due to worker load.
     QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH,   // Current listeners queued for processing.
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_PERF_COUNTER_ENCRYPT_DURATION_US,  // Total time spent on encryption in microseconds.
+    QUIC_PERF_COUNTER_DECRYPT_DURATION_US,  // Total time spent on decryption in microseconds.
+#endif
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 

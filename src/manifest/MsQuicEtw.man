@@ -280,6 +280,24 @@
                 message="$(string.Enum.QUIC_CONN_TIMER_TYPE.SHUTDOWN)"
                 value="5"
                 />
+            <map
+                message="$(string.Enum.QUIC_CONN_TIMER_TYPE.PATH_VALIDATION)"
+                value="6"
+                />
+          </valueMap>
+          <valueMap name="map_QUIC_PATH_VALID_REASON">
+            <map
+                message="$(string.Enum.QUIC_PATH_VALID_REASON.INITIAL_TOKEN)"
+                value="0"
+                />
+            <map
+                message="$(string.Enum.QUIC_PATH_VALID_REASON.HANDSHAKE_PACKET)"
+                value="1"
+                />
+            <map
+                message="$(string.Enum.QUIC_PATH_VALID_REASON.PATH_RESPONSE)"
+                value="2"
+                />
           </valueMap>
           <valueMap name="map_QUIC_LOSS_TIMER_TYPE">
             <map
@@ -2186,6 +2204,45 @@
                 name="IsEcn"
                 />
           </template>
+          <template tid="tid_CONN_PATH">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt8"
+                name="PathID"
+                />
+          </template>
+          <template tid="tid_CONN_PATH_ACTIVE">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt8"
+                name="PathID"
+                />
+            <data
+                inType="win:UInt8"
+                name="IsRebind"
+                />
+          </template>
+          <template tid="tid_CONN_PATH_VALIDATED">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt8"
+                name="PathID"
+                />
+            <data
+                inType="win:UInt8"
+                map="map_QUIC_PATH_VALID_REASON"
+                name="Reason"
+                />
+          </template>
           <template tid="tid_CONN_STATISTICS_V2">
             <data
                 inType="win:Pointer"
@@ -3449,6 +3506,51 @@
               template="tid_CONN"
               value="5195"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnPathInitialized)"
+              opcode="Connection"
+              symbol="QuicConnPathInitialized"
+              template="tid_CONN_PATH"
+              value="5196"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnPathRemoved)"
+              opcode="Connection"
+              symbol="QuicConnPathRemoved"
+              template="tid_CONN_PATH"
+              value="5197"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnPathActive)"
+              opcode="Connection"
+              symbol="QuicConnPathActive"
+              template="tid_CONN_PATH_ACTIVE"
+              value="5198"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnPathValidated)"
+              opcode="Connection"
+              symbol="QuicConnPathValidated"
+              template="tid_CONN_PATH_VALIDATED"
+              value="5199"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnPathValidationTimeout)"
+              opcode="Connection"
+              symbol="QuicConnPathValidationTimeout"
+              template="tid_CONN_PATH"
+              value="5200"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume ut:RPS"
@@ -4709,6 +4811,22 @@
             value="TIMER.SHUTDOWN"
             />
         <string
+            id="Enum.QUIC_CONN_TIMER_TYPE.PATH_VALIDATION"
+            value="TIMER.PATH_VALIDATION"
+            />
+        <string
+            id="Enum.QUIC_PATH_VALID_REASON.INITIAL_TOKEN"
+            value="Initial Token"
+            />
+        <string
+            id="Enum.QUIC_PATH_VALID_REASON.HANDSHAKE_PACKET"
+            value="Handshake Packet"
+            />
+        <string
+            id="Enum.QUIC_PATH_VALID_REASON.PATH_RESPONSE"
+            value="Path Response"
+            />
+        <string
             id="Enum.QUIC_LOSS_TIMER_TYPE.INITIAL"
             value="INITIAL"
             />
@@ -5079,6 +5197,26 @@
         <string
             id="Etw.ConnDelayCloseApplicationError"
             value="[conn][%1] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame."
+            />
+        <string
+            id="Etw.ConnPathInitialized"
+            value="[conn][%1] Path[%2] Initialized"
+            />
+        <string
+            id="Etw.ConnPathRemoved"
+            value="[conn][%1] Path[%2] Removed"
+            />
+        <string
+            id="Etw.ConnPathActive"
+            value="[conn][%1] Path[%2] Set active (rebind=%3)"
+            />
+        <string
+            id="Etw.ConnPathValidated"
+            value="[conn][%1] Path[%2] Validated (%3)"
+            />
+        <string
+            id="Etw.ConnPathValidationTimeout"
+            value="[conn][%1] Path[%2] Validation timed out"
             />
       </stringTable>
     </resources>

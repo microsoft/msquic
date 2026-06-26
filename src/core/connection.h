@@ -1427,6 +1427,16 @@ QuicConnTimerExpired(
     _In_ uint64_t TimeNow
     );
 
+//
+// Re-arms (or cancels) the path validation timer based on the earliest
+// in-progress path validation deadline across all paths.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnPathValidationTimerUpdate(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_INLINE
 uint64_t

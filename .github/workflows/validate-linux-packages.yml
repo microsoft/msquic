@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout msquic Repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           repository: microsoft/msquic
           ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
@@ -365,6 +365,24 @@ jobs:
             prod_url: "https://packages.microsoft.com/fedora/43/prod/Packages/l"
             testing_url: "https://packages.microsoft.com/fedora/43/testing/Packages/l"
 
+          # Fedora 44 (RPM)
+          - friendlyName: "Fedora 44 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "fedora:44"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/fedora/44/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/44/testing/Packages/l"
+          - friendlyName: "Fedora 44 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "fedora:44"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/fedora/44/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/44/testing/Packages/l"
+
           # openSUSE Leap 15.6 (RPM) - No arm32 support
           - friendlyName: "openSUSE 15.6 x64"
             arch: x64
@@ -457,7 +475,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
       - name: Set up QEMU
         if: matrix.arch != 'x64'

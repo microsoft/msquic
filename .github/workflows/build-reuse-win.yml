@@ -31,7 +31,7 @@ on:
       os:
         required: false
         type: string
-        default: 'windows-2022'
+        default: 'windows-2025'
         # options:
         #   - windows-2022
         #   - windows-2025
@@ -78,14 +78,10 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       with:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
-    - name: Install Perl
-      uses: shogo82148/actions-setup-perl@a198315ec4e9244f206879ea7b63078003aec8a6
-      with:
-        perl-version: '5.34'
     - name: Install NASM
       uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Prepare Machine
@@ -94,22 +90,22 @@ jobs:
     - name: Build For Test
       if: inputs.build == '-Test'
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.sanitize }}
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.sanitize }} ${{ inputs.os == 'windows-2022' && '-Generator "Visual Studio 17 2022"' || '' }}
     - name: Build External Platform Test
       if: inputs.build == '-Test'
       shell: pwsh
       run: |
         cmake --install build\${{ inputs.plat }}\${{ inputs.arch }}_${{ inputs.tls }} --config ${{ inputs.config }}
-        cmake src/platform/unittest/external -G "Visual Studio 17 2022" -A ${{ inputs.arch }} -B build_external "-DCMAKE_INSTALL_PREFIX:PATH=C:/Program Files/msquic"
+        cmake src/platform/unittest/external -G "${{ inputs.os == 'windows-2022' && 'Visual Studio 17 2022' || 'Visual Studio 18 2026' }}" -A ${{ inputs.arch }} -B build_external "-DCMAKE_INSTALL_PREFIX:PATH=C:/Program Files/msquic"
         cmake --build build_external --config ${{ inputs.config }}
     - name: Build For Perf
       if: inputs.build == '-Perf'
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest ${{ inputs.sanitize }}
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest ${{ inputs.sanitize }} ${{ inputs.os == 'windows-2022' && '-Generator "Visual Studio 17 2022"' || '' }}
     - name: Build
       if: inputs.build == ''
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.sanitize }} ${{ inputs.static }} ${{ inputs.official }}
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.sanitize }} ${{ inputs.static }} ${{ inputs.official }} ${{ inputs.os == 'windows-2022' && '-Generator "Visual Studio 17 2022"' || '' }}
     - name: Filter Build Artifacts
       shell: pwsh
       run: |

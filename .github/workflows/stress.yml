@@ -105,9 +105,9 @@ jobs:
           { config: "Debug", plat: "macos", os: "macos-15", arch: "x64", tls: "openssl", build: "-Test" },
 
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=stress-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
@@ -120,7 +120,7 @@ jobs:
       pr-allocfail: 100
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       if: matrix.vec.plat == 'windows'
       with:
@@ -136,18 +136,18 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
       shell: pwsh
-      run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }} -LogProfile ${{ inputs.logprofile || 'None' }} -UseProcDump
+      run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -LogProfile ${{ inputs.logprofile || 'None' }} -UseProcDump
     - name: spinquic (Official)
       if: github.event_name != 'pull_request'
       timeout-minutes: 65
       shell: pwsh
-      run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }} -LogProfile ${{ inputs.logprofile || 'None' }} -UseProcDump
+      run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -LogProfile ${{ inputs.logprofile || 'None' }} -UseProcDump
     - name: Upload on Failure
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       if: failure()
@@ -163,11 +163,11 @@ jobs:
       matrix:
         vec: [
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "xdp-v1.1", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson(format('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'', ''JobId=recvfuzz-{0}-{1}-{2}-{3}-{4}-{5}'']', matrix.vec.config, matrix.vec.arch, matrix.vec.tls, github.run_id, github.run_number, github.run_attempt)) || matrix.vec.os }}
@@ -176,7 +176,7 @@ jobs:
       pr-timeout: 600000
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       if: matrix.vec.plat == 'windows'
       with:
@@ -192,18 +192,18 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: recvfuzz (PR)
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
       shell: pwsh
-      run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp }} -UseProcDump
+      run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -UseProcDump
     - name: recvfuzz (Official)
       if: github.event_name != 'pull_request'
       timeout-minutes: 65
       shell: pwsh
-      run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }} -UseProcDump
+      run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} -UseProcDump
     - name: Upload on Failure
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       if: failure()

@@ -390,6 +390,17 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
+    TestLogger Logger("QuicTestValidateEncryptDecryptPerfCounters");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateEncryptDecryptPerfCounters)));
+    } else {
+        QuicTestValidateEncryptDecryptPerfCounters();
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 TEST(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) {
@@ -1965,6 +1976,15 @@ TEST_P(WithFamilyArgs, PathValidationTimeout) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestPathValidationTimeout), GetParam()));
     } else {
         QuicTestPathValidationTimeout(GetParam());
+    }
+}
+
+TEST_P(WithFamilyArgs, PathValidationLastPathClose) {
+    TestLoggerT<ParamType> Logger("QuicTestPathValidationLastPathClose", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestPathValidationLastPathClose), GetParam()));
+    } else {
+        QuicTestPathValidationLastPathClose(GetParam());
     }
 }
 #endif

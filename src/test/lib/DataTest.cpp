@@ -1724,12 +1724,13 @@ QuicCancelOnLossSend(
         &ClientContext);
     TEST_TRUE(ClientContext.Stream->IsValid());
     TEST_QUIC_SUCCEEDED(ClientContext.Stream->Start());
-    TEST_QUIC_SUCCEEDED(ClientContext.Stream->Send(&MessageBuffer, 1, QUIC_SEND_FLAG_CANCEL_ON_LOSS));
-
-    // If requested, drop packets.
+    // Arm the loss helper to drop one packet from the send operation.
+    // There is a small chance the wrong packet is dropped if a timer triggers a send flush just at the wrong time,
+    // but it should be infrequent enough the test stays stable.
     if (DropPackets) {
         LossHelper.DropPackets(1);
     }
+    TEST_QUIC_SUCCEEDED(ClientContext.Stream->Send(&MessageBuffer, 1, QUIC_SEND_FLAG_CANCEL_ON_LOSS));
 
     // Wait for the send phase to conclude.
     if (!ClientContext.SendPhaseEndedEvent.WaitTimeout(EventWaitTimeoutMs)) {

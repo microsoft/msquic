@@ -89,6 +89,9 @@ void QuicTestTlsParam();
 void QuicTestTlsHandshakeInfo(const bool& EnableResumption);
 void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestValidateEncryptDecryptPerfCounters();
+#endif
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config);
@@ -579,6 +582,11 @@ QuicTestNatAddrRebind(
 
 void
 QuicTestPathValidationTimeout(
+    const FamilyArgs& Params
+    );
+
+void
+QuicTestPathValidationLastPathClose(
     const FamilyArgs& Params
     );
 
