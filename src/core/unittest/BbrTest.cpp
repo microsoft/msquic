@@ -17,6 +17,7 @@ Abstract:
 extern "C" {
 void BbrCongestionControlInitialize(QUIC_CONGESTION_CONTROL* Cc, const QUIC_SETTINGS_INTERNAL* Settings);
 uint64_t BbrCongestionControlGetBandwidth(const QUIC_CONGESTION_CONTROL* Cc);
+uint32_t BbrCongestionControlGetTargetCwnd(QUIC_CONGESTION_CONTROL* Cc, uint32_t Gain);
 }
 
 //
@@ -1266,27 +1267,60 @@ TEST_F(BbrTest_DeepTest, OnDataInvalidated_BecomesUnblocked)
 //====================================================================
 
 //
-// Test: GetSendAllowance - MinRtt at UINT64_MAX With Pacing
-// Scenario: Initializes with PacingEnabled=TRUE. MinRtt starts at UINT64_MAX (no RTT
-// sample yet). The sentinel check in bbr.c compares MinRtt to UINT32_MAX, so
-// UINT64_MAX != UINT32_MAX causes pacing to fall through to the STARTUP formula:
-// max(BW*PacingGain*Time, CW*PacingGain/GAIN_UNIT - BIF). With BW=0, the first term
-// is 0; the second is large (12320*739/256 - 1000 = 34564). This is capped first to
-// CW-BIF=11320, then to CW>>2=3080.
+// Test: GetSendAllowance - no pacing before a valid MinRtt sample
+// Scenario: Initializes with PacingEnabled=TRUE. MinRtt starts at UINT64_MAX and
+// MinRttTimestampValid=FALSE. Without a valid RTT sample BBR should not use paced
+// send allowance calculations; it should fall back to the available congestion window.
 //
 TEST_F(BbrTest_DeepTest, GetSendAllowance_MinRttMax)
 {
     InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
     CC->QuicCongestionControlOnDataSent(CC, 1000);
 
-    // MinRtt is UINT64_MAX initially. The sentinel check compares to UINT32_MAX,
-    // so it falls through to pacing code.
-    // STARTUP formula: max(BW*PacingGain*Time/GAIN_UNIT, CW*PacingGain/GAIN_UNIT - BIF)
-    // With BW=0, first term=0. Second term is large but capped to CW>>2.
+    ASSERT_FALSE(Bbr->MinRttTimestampValid);
+    ASSERT_EQ(Bbr->MinRtt, UINT64_MAX);
+
     uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 50000, TRUE);
-    uint32_t CW = Bbr->CongestionWindow; // 10 * 1232 = 12320
-    uint32_t Expected = CW >> 2; // 3080
+    uint32_t Expected = Bbr->CongestionWindow - Bbr->BytesInFlight;
     ASSERT_EQ(Allowance, Expected);
+}
+
+//
+// Test: GetTargetCwnd - no MinRtt sample uses the initial congestion window
+// Scenario: Establishes a bandwidth sample while the ACK's RTT sample is marked invalid.
+// Even with a valid bandwidth estimate, target cwnd must not use UINT64_MAX as MinRtt.
+//
+TEST_F(BbrTest_DeepTest, GetTargetCwnd_NoMinRttSample)
+{
+    InitializeWithDefaults(10, 1280, true);
+
+    auto PacketBuf = MakeBbrPacket(
+        1200, TRUE, FALSE,
+        20000, 1000000,
+        10000, 984000,
+        5000, 1034000, 1034000);
+    auto& Packet = PacketBuf.Metadata;
+
+    CC->QuicCongestionControlOnDataSent(CC, 1200);
+
+    QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1050000, 5, 10, 1200, 50000, 45000, FALSE);
+    Ack.AckedPackets = &Packet;
+    Ack.AdjustedAckTime = 1050000;
+    Ack.NumTotalAckedRetransmittableBytes = 15000;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+
+    ASSERT_GT(BbrCongestionControlGetBandwidth(CC), 0u);
+    ASSERT_FALSE(Bbr->MinRttTimestampValid);
+    ASSERT_EQ(Bbr->MinRtt, UINT64_MAX);
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_STARTUP);
+
+    const uint32_t HighGain = 739; // kHighGain, mirrored from bbr.c.
+    const uint32_t GainUnit = 256;
+    const uint32_t ExpectedTargetCwnd =
+        (uint32_t)((uint64_t)HighGain * Bbr->InitialCongestionWindow / GainUnit);
+    ASSERT_EQ(
+        BbrCongestionControlGetTargetCwnd(CC, HighGain),
+        ExpectedTargetCwnd);
 }
 
 //
