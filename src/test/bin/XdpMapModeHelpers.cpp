@@ -16,7 +16,7 @@ Abstract:
 #include "msquichelper.h"
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
-#include "gtest/gtest.h"
+#include "gtest/gtest.h" // TODO: remove
 #include "XdpMapModeHelpers.h"
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
