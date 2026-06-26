@@ -1991,11 +1991,12 @@ Exit:
         if (StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY) {
             //
             // This connection was created internally (e.g. by the connection
-            // pool) and was never returned to the application. Mark it
-            // internally owned so that closing it locally below drives shutdown
-            // completion.
+            // pool) and was never returned to the application. Suppress the
+            // shutdown-complete notification by clearing the callback handler.
+            // The connection stays externally owned; the creating context is
+            // responsible for closing it and releasing the owner reference.
             //
-            Connection->State.ExternalOwner = FALSE;
+            Connection->ClientCallbackHandler = NULL;
         }
         QuicConnCloseLocally(
             Connection,

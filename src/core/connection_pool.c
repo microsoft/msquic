@@ -437,11 +437,14 @@ Error:
 
     if (QUIC_FAILED(Status) && *Connection != NULL) {
         //
-        // On failure, QuicConnStart has marked this internally-owned connection
-        // for silent teardown on its worker thread, which performs the final
-        // owner deref. The connection's initial reference therefore frees it; we
-        // only drop our handle here.
+        // This connection was never returned to the application. Close it (its
+        // callback handler was already cleared by QuicConnStart, so no shutdown
+        // notification is raised) and release our owner reference so it is
+        // freed. This matches the cleanup path for successfully created pool
+        // connections below.
         //
+        QuicConnPoolQueueConnectionClose(*Connection, FALSE);
+        QuicConnRelease(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
         *Connection = NULL;
     }
 
