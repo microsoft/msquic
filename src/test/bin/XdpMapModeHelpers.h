@@ -23,12 +23,6 @@ Abstract:
 #define XDP_MAP_MODE_MAX_INTERFACES 2
 #define XDP_MAP_MODE_MAX_QUEUES 64
 
-struct XdpMapModeParams {
-    int Family;
-    bool UseCibir;
-    bool UseQtip;
-};
-
 struct XdpMapModeState {
     uint32_t InterfaceCount;
     uint32_t IfIndices[XDP_MAP_MODE_MAX_INTERFACES];

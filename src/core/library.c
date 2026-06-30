@@ -1061,7 +1061,7 @@ QuicLibApplyLoadBalancingSetting(
 
 static
 void
-QuicLibCopyXdpMapConfigs(
+QuicLibXdpMapConfigToPlat(
     _Out_writes_(Count) CXPLAT_XDP_MAP_CONFIG* Dest,
     _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Src,
     _In_ uint32_t Count
@@ -1075,7 +1075,7 @@ QuicLibCopyXdpMapConfigs(
 
 static
 void
-QuicLibReadXdpMapConfigs(
+QuicLibXdpMapConfigFromPlat(
     _Out_writes_(Count) QUIC_XDP_MAP_CONFIG* Dest,
     _In_reads_(Count) const CXPLAT_XDP_MAP_CONFIG* Src,
     _In_ uint32_t Count
@@ -1519,7 +1519,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        QuicLibCopyXdpMapConfigs(NewConfigs, Configs, Count);
+        QuicLibXdpMapConfigToPlat(NewConfigs, Configs, Count);
 
         if (MsQuicLib.XdpMapConfigs != NULL) {
             CXPLAT_FREE(MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
@@ -1905,7 +1905,7 @@ QuicLibraryGetGlobalParam(
             break;
         }
         *BufferLength = RequiredLength;
-        QuicLibReadXdpMapConfigs(
+        QuicLibXdpMapConfigFromPlat(
             (QUIC_XDP_MAP_CONFIG*)Buffer,
             MsQuicLib.XdpMapConfigs,
             MsQuicLib.XdpMapConfigCount);

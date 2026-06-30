@@ -79,13 +79,6 @@ void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void QuicTestXdpMapConfigParam();
-struct XdpMapModeArgs {
-    int Family;
-    uint16_t ServerPort;
-    uint16_t ClientPort;
-    bool UseCibir;
-};
-void QuicTestXdpMapModeHandshake(const XdpMapModeArgs& Params);
 #endif
 void QuicTestCommonParam();
 void QuicTestRegistrationParam();
@@ -452,6 +445,14 @@ void
 QuicTestShutdownDuringHandshake(
     const ShutdownDuringHandshakeArgs& Params
     );
+
+struct XdpMapModeArgs {
+    int Family;
+    uint16_t ServerPort;
+    uint16_t ClientPort;
+    bool UseCibir;
+};
+void QuicTestXdpMapModeHandshake(const XdpMapModeArgs& Params);
 
 //
 // Negative Handshake Tests
