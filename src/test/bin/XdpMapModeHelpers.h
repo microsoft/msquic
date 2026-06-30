@@ -18,7 +18,6 @@ Abstract:
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 
 #include <vector>
-#include <stdexcept>
 
 #define XDP_MAP_MODE_MAX_INTERFACES 2
 #define XDP_MAP_MODE_MAX_QUEUES 64

@@ -5044,9 +5044,14 @@ QuicTestXdpMapModeHandshake(
     const uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 1 };
     const uint8_t CibirIdLength = sizeof(CibirId);
 
+    UniquePtr<TestConnection> Server;
+    // TODO guhetier: Fix this
+    // ServerAcceptContext ServerAcceptCtx(&Server);
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
     TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
     TEST_TRUE(Listener.IsValid());
 
+    Listener.Context = &ServerAcceptCtx;
     if (Params.UseCibir) {
         TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
     }
@@ -5055,10 +5060,6 @@ QuicTestXdpMapModeHandshake(
     QuicAddrSetPort(&ServerLocalAddr.SockAddr, Params.ServerPort);
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-    TestConnection* ServerRaw = nullptr;
-    ServerAcceptContext ServerAcceptCtx(&ServerRaw);
-    Listener.Context = &ServerAcceptCtx;
 
     TestConnection Client(Registration);
     TEST_TRUE(Client.IsValid());
@@ -5090,13 +5091,11 @@ QuicTestXdpMapModeHandshake(
             ServerLocalAddr.GetPort()));
 
     if (!Client.WaitForConnectionComplete()) {
-        delete ServerRaw;
         return;
     }
     TEST_TRUE(Client.GetIsConnected());
 
-    TEST_NOT_EQUAL(nullptr, ServerRaw);
-    UniquePtr<TestConnection> Server(ServerRaw);
+    TEST_NOT_EQUAL(nullptr, Server);
     if (!Server->WaitForConnectionComplete()) {
         return;
     }

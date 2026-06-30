@@ -14,10 +14,9 @@ Abstract:
 #include "quic_platform.h"
 #include "MsQuicTests.h"
 #include "msquichelper.h"
-#undef min // gtest headers conflict with previous definitions of min/max.
-#undef max
-#include "gtest/gtest.h"
 #include "XdpMapModeHelpers.h"
+
+#include <stdexcept>
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 
@@ -56,13 +55,10 @@ DiscoverDuoNicInterfaces()
         return Result;
     }
 
-    auto Adapters = (PIP_ADAPTER_ADDRESSES)malloc(BufSize);
-    if (!Adapters) {
-        return Result;
-    }
+    std::vector<uint8_t> Buffer(BufSize);
+    auto* Adapters = (IP_ADAPTER_ADDRESSES*)Buffer.data();
 
     if (GetAdaptersAddresses(AF_INET, Flags, NULL, Adapters, &BufSize) != NO_ERROR) {
-        free(Adapters);
         return Result;
     }
 
@@ -71,12 +67,15 @@ DiscoverDuoNicInterfaces()
     QuicAddrFromString("192.168.1.11", 0, &DuoNicServer);
     QuicAddrFromString("192.168.1.12", 0, &DuoNicClient);
 
-    for (auto Adapter = Adapters; Adapter && Result.size() < XDP_MAP_MODE_MAX_INTERFACES; Adapter = Adapter->Next) {
+    for (auto* Adapter = Adapters;
+         Adapter != nullptr && Result.size() < XDP_MAP_MODE_MAX_INTERFACES;
+         Adapter = Adapter->Next) {
+
         if (Adapter->IfType != IF_TYPE_ETHERNET_CSMACD ||
             Adapter->OperStatus != IfOperStatusUp) {
             continue;
         }
-        for (auto Unicast = Adapter->FirstUnicastAddress; Unicast; Unicast = Unicast->Next) {
+        for (auto* Unicast = Adapter->FirstUnicastAddress; Unicast != nullptr; Unicast = Unicast->Next) {
             if (Unicast->Address.lpSockaddr->sa_family != AF_INET) {
                 continue;
             }
@@ -88,7 +87,6 @@ DiscoverDuoNicInterfaces()
             }
         }
     }
-    free(Adapters);
     return Result;
 }
 
