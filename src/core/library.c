@@ -1506,6 +1506,56 @@ QuicLibrarySetGlobalParam(
     return Status;
 }
 
+#ifndef _KERNEL_MODE
+//
+// Fills the caller's buffer with the per-worker statistics from the worker pool.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGetGlobalWorkerStatistics(
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    if (MsQuicLib.WorkerPool == NULL) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    uint32_t WorkerCount = CxPlatWorkerPoolGetCount(MsQuicLib.WorkerPool);
+    uint32_t RequiredSize =
+        sizeof(QUIC_WORKER_STATISTICS_LIST) +
+        WorkerCount * sizeof(QUIC_WORKER_STATISTICS);
+
+    if (*BufferLength < RequiredSize) {
+        *BufferLength = RequiredSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Buffer == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    QUIC_WORKER_STATISTICS_LIST* List = (QUIC_WORKER_STATISTICS_LIST*)Buffer;
+    List->WorkerCount = WorkerCount;
+    List->WorkerStatsSize = sizeof(QUIC_WORKER_STATISTICS);
+
+    QUIC_WORKER_STATISTICS* Stats =
+        (QUIC_WORKER_STATISTICS*)((uint8_t*)Buffer + sizeof(QUIC_WORKER_STATISTICS_LIST));
+
+    for (uint32_t i = 0; i < WorkerCount; i++) {
+        CXPLAT_WORKER_STATISTICS WorkerStats = {0};
+        CxPlatWorkerPoolGetStatistics(MsQuicLib.WorkerPool, i, &WorkerStats);
+        Stats[i].IdealProcessor = WorkerStats.IdealProcessor;
+        Stats[i].CumulativeActiveTimeUs = WorkerStats.CumulativeActiveTimeUs;
+        Stats[i].CumulativeWallTimeUs = WorkerStats.CumulativeWallTimeUs;
+    }
+
+    *BufferLength = RequiredSize;
+    return QUIC_STATUS_SUCCESS;
+}
+#endif // !_KERNEL_MODE
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetGlobalParam(
@@ -1873,6 +1923,19 @@ QuicLibraryGetGlobalParam(
         CxPlatCopyMemory(Buffer, MsQuicLib.XdpMapConfigs, RequiredLength);
         CxPlatLockRelease(&MsQuicLib.Lock);
         Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_GLOBAL_WORKER_STATISTICS: {
+#ifdef _KERNEL_MODE
+        //
+        // Worker statistics are not supported in kernel mode, where the worker
+        // threads are not owned by the platform worker pool.
+        //
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+#else
+        Status = QuicLibraryGetGlobalWorkerStatistics(BufferLength, Buffer);
+#endif
         break;
     }
 
