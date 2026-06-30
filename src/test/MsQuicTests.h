@@ -489,6 +489,20 @@ QuicTestConnectValidServerCertificate(
     const QUIC_CREDENTIAL_BLOB& Config
     );
 
+typedef struct {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedCertAlgs;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash[2];
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore[2];
+    };
+} QUIC_RUN_CERT_ALG_VALIDATION;
+
+void
+QuicTestConnectValidServerCertificateAlgorithms(
+    _In_ const QUIC_RUN_CERT_ALG_VALIDATION& Params
+    );
+
 void
 QuicTestConnectValidClientCertificate(
     const QUIC_CREDENTIAL_BLOB& Config
