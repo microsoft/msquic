@@ -302,11 +302,6 @@ QuicConnPoolStartConnection(
     ApiCtx.CONN_START.Family = Family;
     ApiCtx.CONN_START.Flags = QUIC_CONN_START_FLAG_FAIL_SILENTLY;
 
-    //
-    // No op-level Configuration ref is needed: we block until the op completes
-    // and the caller keeps the Configuration alive; QuicConnSetConfiguration
-    // takes its own QUIC_CONF_REF_CONNECTION ref.
-    //
     QuicConnQueueOper(Connection, &Oper);
     CxPlatEventWaitForever(CompletionEvent);
     CxPlatEventUninitialize(CompletionEvent);
@@ -437,11 +432,9 @@ Error:
 
     if (QUIC_FAILED(Status) && *Connection != NULL) {
         //
-        // This connection was never returned to the application. Close it (its
-        // callback handler was already cleared by QuicConnStart, so no shutdown
-        // notification is raised) and release our owner reference so it is
-        // freed. This matches the cleanup path for successfully created pool
-        // connections below.
+        // This connection was never returned to the application. QuicConnStart
+        // cleared the callback handler and closed it on the worker, so we just
+        // need to release our owner reference to free it.
         //
         QuicConnPoolQueueConnectionClose(*Connection, FALSE);
         QuicConnRelease(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
