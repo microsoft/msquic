@@ -399,6 +399,15 @@ TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
         QuicTestValidateEncryptDecryptPerfCounters();
     }
 }
+
+TEST(ParameterValidation, ConnQueueDelayStatistics) {
+    TestLogger Logger("QuicTestConnQueueDelayStatistics");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnQueueDelayStatistics)));
+    } else {
+        QuicTestConnQueueDelayStatistics();
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(ParameterValidation, ValidateConfiguration) {

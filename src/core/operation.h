@@ -219,6 +219,11 @@ typedef struct QUIC_OPERATION {
     //
     BOOLEAN FreeAfterProcess;
 
+    //
+    // Timestamp (us) when the operation was enqueued.
+    //
+    uint32_t QueueTimeUs;
+
     union {
         struct {
             void* Reserved; // Nothing.

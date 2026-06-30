@@ -827,11 +827,11 @@ QuicConnUpdateRtt(
 
     } else {
         if (Path->SmoothedRtt > LatestRtt) {
-            Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
+            Path->RttVariance = CxPlatEwma(Path->RttVariance, Path->SmoothedRtt - LatestRtt, 4);
         } else {
-            Path->RttVariance = (3 * Path->RttVariance + LatestRtt - Path->SmoothedRtt) / 4;
+            Path->RttVariance = CxPlatEwma(Path->RttVariance, LatestRtt - Path->SmoothedRtt, 4);
         }
-        Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
+        Path->SmoothedRtt = CxPlatEwma(Path->SmoothedRtt, LatestRtt, 8);
     }
 
     if (OurSendTimestamp != UINT64_MAX) {
@@ -847,7 +847,7 @@ QuicConnUpdateRtt(
         } else {
             Path->OneWayDelayLatest =
                 (uint64_t)((int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - Connection->Stats.Timing.PhaseShift);
-            Path->OneWayDelay = (7 * Path->OneWayDelay + Path->OneWayDelayLatest) / 8;
+            Path->OneWayDelay = CxPlatEwma(Path->OneWayDelay, Path->OneWayDelayLatest, 8);
         }
     }
 
@@ -7102,6 +7102,24 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, RttVariance)) {
         Stats->RttVariance = (uint32_t)Path->RttVariance;
     }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ConnectionQueueDelayAvgUs)) {
+        Stats->ConnectionQueueDelayAvgUs = Connection->Stats.Schedule.QueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ConnectionQueueDelayMaxUs)) {
+        Stats->ConnectionQueueDelayMaxUs = Connection->Stats.Schedule.QueueDelayMaxUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendQueueDelayAvgUs)) {
+        Stats->SendQueueDelayAvgUs = Connection->Stats.Schedule.SendQueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendQueueDelayMaxUs)) {
+        Stats->SendQueueDelayMaxUs = Connection->Stats.Schedule.SendQueueDelayMaxUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ReceiveQueueDelayAvgUs)) {
+        Stats->ReceiveQueueDelayAvgUs = Connection->Stats.Schedule.ReceiveQueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ReceiveQueueDelayMaxUs)) {
+        Stats->ReceiveQueueDelayMaxUs = Connection->Stats.Schedule.ReceiveQueueDelayMaxUs;
+    }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
 
@@ -7947,6 +7965,37 @@ QuicConnProcessExpiredTimer(
     }
 }
 
+//
+// Update a connection operation delay statistics
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnUpdateOperQueueDelay(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_OPERATION* Oper
+    )
+{
+    uint32_t DelayUs = CxPlatTimeDiff32(Oper->QueueTimeUs, CxPlatTimeUs32());
+
+    switch (Oper->Type) {
+
+    case QUIC_OPER_TYPE_FLUSH_RECV:
+        Connection->Stats.Schedule.ReceiveQueueDelayAvgUs =
+            (uint32_t)CxPlatEwma(Connection->Stats.Schedule.ReceiveQueueDelayAvgUs, DelayUs, 8);
+        Connection->Stats.Schedule.ReceiveQueueDelayMaxUs =
+            CXPLAT_MAX(Connection->Stats.Schedule.ReceiveQueueDelayMaxUs, DelayUs);
+        break;
+    case QUIC_OPER_TYPE_FLUSH_SEND:
+        Connection->Stats.Schedule.SendQueueDelayAvgUs =
+            (uint32_t)CxPlatEwma(Connection->Stats.Schedule.SendQueueDelayAvgUs, DelayUs, 8);
+        Connection->Stats.Schedule.SendQueueDelayMaxUs =
+            CXPLAT_MAX(Connection->Stats.Schedule.SendQueueDelayMaxUs, DelayUs);
+        break;
+    default:
+        break;
+    }
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
@@ -7996,6 +8045,7 @@ QuicConnDrainOperations(
         }
 
         QuicOperLog(Connection, Oper);
+        QuicConnUpdateOperQueueDelay(Connection, Oper);
 
         BOOLEAN FreeOper = Oper->FreeAfterProcess;
 

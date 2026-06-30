@@ -924,6 +924,24 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint RttVariance;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ConnectionQueueDelayAvgUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ConnectionQueueDelayMaxUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendQueueDelayAvgUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendQueueDelayMaxUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ReceiveQueueDelayAvgUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ReceiveQueueDelayMaxUs;
     }
 
     internal partial struct QUIC_NETWORK_STATISTICS

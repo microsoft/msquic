@@ -2898,7 +2898,10 @@ void QuicTestGlobalParam()
             QUIC_STATISTICS_V2_SIZE_1,
             QUIC_STATISTICS_V2_SIZE_2,
             QUIC_STATISTICS_V2_SIZE_3,
-            QUIC_STATISTICS_V2_SIZE_4
+            QUIC_STATISTICS_V2_SIZE_4,
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            QUIC_STATISTICS_V2_SIZE_5,
+#endif
         };
 
         //
@@ -6080,10 +6083,10 @@ QuicTestValidateEncryptDecryptPerfCounters()
     UniquePtr<TestConnection> Server;
     TestListener Listener(Registration, ListenerAcceptCallback, ServerConfiguration);
     TEST_TRUE(Listener.IsValid());
+    Listener.Context = &Server;
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length()));
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-    Listener.Context = &Server;
 
     {
         TestConnection Client(Registration);
@@ -6116,6 +6119,88 @@ QuicTestValidateEncryptDecryptPerfCounters()
 
     TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US]);
     TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_DECRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_DECRYPT_DURATION_US]);
+}
+
+void
+QuicTestConnQueueDelayStatistics()
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+    Settings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    UniquePtr<TestConnection> Server;
+    TestListener Listener(Registration, ListenerAcceptCallback, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    Listener.Context = &Server;
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length()));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    {
+        TestConnection Client(Registration);
+        TEST_TRUE(Client.IsValid());
+
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                ClientConfiguration,
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                QUIC_TEST_LOOPBACK_FOR_AF(
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                ServerLocalAddr.GetPort()));
+
+        TEST_TRUE(Client.WaitForConnectionComplete());
+        TEST_TRUE(Client.GetIsConnected());
+
+        TEST_NOT_EQUAL(nullptr, Server);
+        TEST_TRUE(Server->WaitForConnectionComplete());
+        TEST_TRUE(Server->GetIsConnected());
+
+        //
+        // Send and receive some data.
+        //
+        UniquePtr<TestStream> Stream(
+            Client.NewStream(
+                nullptr,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                NEW_STREAM_START_SYNC));
+        TEST_NOT_EQUAL(nullptr, Stream.get());
+        TEST_TRUE(Stream->IsValid());
+        TEST_TRUE(Stream->StartPing(100 * 1024));
+        TEST_TRUE(Stream->WaitForSendShutdownComplete());
+
+        //
+        // Read the full V2 statistics and verify the new per-connection queue
+        // delay fields are reported (i.e. the returned buffer covers them).
+        //
+        QUIC_STATISTICS_V2 Stats = {};
+        uint32_t BufferLength = sizeof(Stats);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                Client.GetConnection(),
+                QUIC_PARAM_CONN_STATISTICS_V2,
+                &BufferLength,
+                &Stats));
+        TEST_TRUE(BufferLength >= QUIC_STATISTICS_V2_SIZE_5);
+
+        //
+        // The sliding average can never exceed the observed maximum for any of
+        // the queue delay metrics. This invariant holds regardless of timing.
+        //
+        TEST_TRUE(Stats.ConnectionQueueDelayAvgUs <= Stats.ConnectionQueueDelayMaxUs);
+        TEST_TRUE(Stats.SendQueueDelayAvgUs <= Stats.SendQueueDelayMaxUs);
+        TEST_TRUE(Stats.ReceiveQueueDelayAvgUs <= Stats.ReceiveQueueDelayMaxUs);
+    }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
