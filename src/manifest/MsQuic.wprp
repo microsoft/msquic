@@ -97,7 +97,7 @@
     </EventProvider>
     <EventProvider Id="EP_NCryptWpp" Name="A74EFE00-14BE-4ef9-9DA9-1484D5473301" Level="5">
       <Keywords>
-        <Keyword Value="0x7FFFFF"/>
+        <Keyword Value="0xFFFFFFFF"/>
       </Keywords>
     </EventProvider>
     <EventProvider Id="EP_BCryptWpp" Name="A74EFE00-14BE-4ef9-9DA9-1484D5473302" Level="5">
@@ -116,6 +116,16 @@
       </Keywords>
     </EventProvider>
     <EventProvider Id="EP_XdpEtwPerFrame" Name="Microsoft-XDP" Level="25" />
+    <EventProvider Id="EP_Capi2" Name="Microsoft-Windows-CAPI2" Level="4">
+      <Keywords>
+        <Keyword Value="0x7ff" />
+      </Keywords>
+    </EventProvider>
+    <EventProvider Id="EP_Capi2Wpp" Name="5bbca4a8-b209-48dc-a8c7-b23d3e5216fb" Level="5">
+      <Keywords>
+        <Keyword Value="0xFFFFFFFF"/>
+      </Keywords>
+    </EventProvider>
 
     <Profile Id="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
@@ -279,6 +289,9 @@
             <EventProviderId Value="EP_NCryptWpp" />
             <EventProviderId Value="EP_XdpEtwPerFrame" />
             <EventProviderId Value="EP_XdpWpp" />
+            <EventProviderId Value="EP_Capi2" />
+            <EventProviderId Value="EP_Capi2Wpp" />
+            <EventProviderId Value="EP_BCryptWpp" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
