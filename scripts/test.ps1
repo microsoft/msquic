@@ -185,7 +185,7 @@ param (
     [switch]$XdpMapMode = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = "",
+    [string]$UseXdp = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$UseQtip = $false,
