@@ -6118,6 +6118,107 @@ QuicTestGetPerfCounters()
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
+QuicTestGetWorkerStatistics()
+{
+    //
+    // A registration must exist to ensure the global worker pool is created.
+    //
+    MsQuicRegistration Registration;
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+#ifdef _KERNEL_MODE
+    //
+    // Worker statistics are not supported in kernel mode.
+    //
+    uint32_t UnsupportedLength = 0;
+    TEST_EQUAL(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_WORKER_STATISTICS,
+            &UnsupportedLength,
+            nullptr),
+        QUIC_STATUS_NOT_SUPPORTED);
+#else
+    //
+    // Test getting the required size with zero-length buffer.
+    //
+    uint32_t BufferLength = 0;
+    TEST_EQUAL(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_WORKER_STATISTICS,
+            &BufferLength,
+            nullptr),
+        QUIC_STATUS_BUFFER_TOO_SMALL);
+
+    TEST_TRUE(BufferLength >= sizeof(QUIC_WORKER_STATISTICS_LIST));
+
+    //
+    // Test with a buffer that is too small (only the header).
+    //
+    QUIC_WORKER_STATISTICS_LIST SmallBuffer = {0};
+    uint32_t SmallLength = sizeof(QUIC_WORKER_STATISTICS_LIST);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_WORKER_STATISTICS,
+            &SmallLength,
+            &SmallBuffer);
+    if (SmallLength > sizeof(QUIC_WORKER_STATISTICS_LIST)) {
+        //
+        // More than one worker, so the header-only buffer is too small.
+        //
+        TEST_EQUAL(Status, QUIC_STATUS_BUFFER_TOO_SMALL);
+    }
+
+    //
+    // Allocate the correct size and get all stats.
+    //
+    BufferLength = 0;
+    MsQuic->GetParam(
+        nullptr,
+        QUIC_PARAM_GLOBAL_WORKER_STATISTICS,
+        &BufferLength,
+        nullptr);
+
+    uint8_t* Buffer = new(std::nothrow) uint8_t[BufferLength];
+    TEST_NOT_EQUAL(Buffer, nullptr);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_WORKER_STATISTICS,
+            &BufferLength,
+            Buffer));
+
+    QUIC_WORKER_STATISTICS_LIST* List = (QUIC_WORKER_STATISTICS_LIST*)Buffer;
+    TEST_TRUE(List->WorkerCount > 0);
+    TEST_EQUAL(List->WorkerStatsSize, sizeof(QUIC_WORKER_STATISTICS));
+    TEST_EQUAL(
+        BufferLength,
+        sizeof(QUIC_WORKER_STATISTICS_LIST) + List->WorkerCount * sizeof(QUIC_WORKER_STATISTICS));
+
+    //
+    // Validate each worker's statistics.
+    //
+    QUIC_WORKER_STATISTICS* Stats =
+        (QUIC_WORKER_STATISTICS*)(Buffer + sizeof(QUIC_WORKER_STATISTICS_LIST));
+    for (uint32_t i = 0; i < List->WorkerCount; i++) {
+        TEST_TRUE(Stats[i].CumulativeWallTimeUs > 0);
+        //
+        // Active time must not exceed wall time.
+        //
+        TEST_TRUE(Stats[i].CumulativeActiveTimeUs <= Stats[i].CumulativeWallTimeUs);
+    }
+
+    delete[] Buffer;
+#endif // _KERNEL_MODE
+}
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
 QuicTestValidateEncryptDecryptPerfCounters()
 {
     uint64_t CountersBefore[QUIC_PERF_COUNTER_MAX] = {};

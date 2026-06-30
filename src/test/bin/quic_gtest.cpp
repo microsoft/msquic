@@ -462,6 +462,15 @@ TEST(ParameterValidation, ConnQueueDelayStatistics) {
         QuicTestConnQueueDelayStatistics();
     }
 }
+
+TEST(ParameterValidation, ValidateGetWorkerStatistics) {
+    TestLogger Logger("QuicTestGetWorkerStatistics");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGetWorkerStatistics)));
+    } else {
+        QuicTestGetWorkerStatistics();
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(ParameterValidation, ValidateConfiguration) {
