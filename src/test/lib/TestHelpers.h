@@ -240,7 +240,7 @@ class TestConnection;
 
 struct ServerAcceptContext {
     CXPLAT_EVENT NewConnectionReady;
-    TestConnection** NewConnection;
+    UniquePtr<TestConnection>* NewConnection;
     void* NewStreamHandler{nullptr};
     QUIC_TLS_SECRETS* TlsSecrets{nullptr};
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
@@ -253,7 +253,7 @@ struct ServerAcceptContext {
     bool AsyncCustomCertValidation{false};
     bool IsCustomCertValidationResultSet{false};
     bool CustomCertValidationResult{false};
-    ServerAcceptContext(TestConnection** _NewConnection) :
+    ServerAcceptContext(UniquePtr<TestConnection>* _NewConnection) :
         NewConnection(_NewConnection) {
         CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
     }
