@@ -12521,9 +12521,41 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpMapDeleteFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+      "UniqueId": "XdpMapDeleteFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpMapInsertFailed": {
       "ModuleProperites": {},
-      "TraceString": "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p",
+      "TraceString": "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
       "UniqueId": "XdpMapInsertFailed",
       "splitArgs": [
         {
@@ -12545,6 +12577,10 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg7"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -17189,9 +17225,14 @@
         "EncodingString": "[ixdp][%p] Initializing %u queues on interface"
       },
       {
-        "UniquenessHash": "c69cd3d4-9f76-1bd6-efc3-ccc85d8b3f9d",
+        "UniquenessHash": "f15093c1-9052-6a07-7f1a-0d881ff33991",
+        "TraceID": "XdpMapDeleteFailed",
+        "EncodingString": "[ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x"
+      },
+      {
+        "UniquenessHash": "86ae4b93-f160-aff5-a035-42f7997a856c",
         "TraceID": "XdpMapInsertFailed",
-        "EncodingString": "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p"
+        "EncodingString": "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x"
       },
       {
         "UniquenessHash": "005c527e-db63-8dde-7829-b589b84080d9",

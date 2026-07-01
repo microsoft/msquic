@@ -2292,18 +2292,30 @@ CxPlatDpRawInsertXskInMap(
         if (FAILED(Hr)) {
             QuicTraceLogVerbose(
                 XdpMapInsertFailed,
-                "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p",
+                "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
                 Interface,
                 Interface->IfIndex,
                 j,
                 XskMap,
-                Queue->RxXsk);
+                Queue->RxXsk,
+                Hr);
             //
             // On failure, best-effort removal of XSKs already inserted for this interface.
             //
             for (uint32_t k = 0; k < j; k++) {
                 if (Interface->Queues[k].RxXsk != NULL) {
-                    (void)XdpMapDelete(XskMap, &k);
+                    HRESULT DeleteHr = XdpMapDelete(XskMap, &k);
+                    if (FAILED(DeleteHr)) {
+                        QuicTraceLogVerbose(
+                            XdpMapDeleteFailed,
+                            "[ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                            Interface,
+                            Interface->IfIndex,
+                            k,
+                            XskMap,
+                            Interface->Queues[k].RxXsk,
+                            DeleteHr);
+                    }
                 }
             }
             return (QUIC_STATUS)Hr;
@@ -2328,7 +2340,18 @@ CxPlatDpRawRemoveXskFromMap(
         if (Queue->RxXsk == NULL) {
             continue;
         }
-        (void)XdpMapDelete(Interface->XskMap, &j);
+        HRESULT DeleteHr = XdpMapDelete(Interface->XskMap, &j);
+        if (FAILED(DeleteHr)) {
+            QuicTraceLogVerbose(
+                XdpMapDeleteFailed,
+                "[ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                Interface,
+                Interface->IfIndex,
+                j,
+                Interface->XskMap,
+                Queue->RxXsk,
+                DeleteHr);
+        }
     }
     Interface->XskMap = NULL;
 }
