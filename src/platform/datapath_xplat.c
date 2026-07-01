@@ -136,8 +136,7 @@ CxPlatDataPathUninitialize(
     }
     if (IsRawDatapathOnly) {
         //
-        // Raw-only mode: no platform (WinSock) datapath was initialized,
-        // so free directly without platform uninit.
+        // The base datapath was not initialized, free directly.
         //
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     } else {
