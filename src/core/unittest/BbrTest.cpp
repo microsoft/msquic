@@ -1288,7 +1288,7 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_MinRttMax)
 //
 // Test: GetTargetCwnd - no MinRtt sample uses the initial congestion window
 // Scenario: Establishes a bandwidth sample while the ACK's RTT sample is marked invalid.
-// Even with a valid bandwidth estimate, target cwnd must not use UINT64_MAX as MinRtt.
+// Even with a valid bandwidth estimate, target cwnd must use the InitialCongestionWindow until a valid minRTT is established.
 //
 TEST_F(BbrTest_DeepTest, GetTargetCwnd_NoMinRttSample)
 {
