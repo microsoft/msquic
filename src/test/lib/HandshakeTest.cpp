@@ -5045,9 +5045,7 @@ QuicTestXdpMapModeHandshake(
     const uint8_t CibirIdLength = sizeof(CibirId);
 
     UniquePtr<TestConnection> Server;
-    // TODO guhetier: Fix this
-    // ServerAcceptContext ServerAcceptCtx(&Server);
-    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    ServerAcceptContext ServerAcceptCtx(&Server);
     TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
     TEST_TRUE(Listener.IsValid());
 
