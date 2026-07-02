@@ -446,6 +446,14 @@ QuicTestShutdownDuringHandshake(
     const ShutdownDuringHandshakeArgs& Params
     );
 
+struct XdpMapModeArgs {
+    int Family;
+    uint16_t ServerPort;
+    uint16_t ClientPort;
+    bool UseCibir;
+};
+void QuicTestXdpMapModeHandshake(const XdpMapModeArgs& Params);
+
 //
 // Negative Handshake Tests
 //

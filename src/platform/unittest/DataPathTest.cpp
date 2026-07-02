@@ -19,6 +19,8 @@ Abstract:
 #include "DataPathTest.cpp.clog.h"
 #endif
 
+#define QUIC_INVALID_FILE_HANDLE (-1)
+
 extern bool UseDuoNic;
 
 //
@@ -1407,5 +1409,261 @@ TEST_F(DataPathTest, XdpRuleAddOomCleanup)
     CxPlatSetAllocFailDenominator(0);
 }
 #endif // DEBUG
+
+//
+// XDP Map Mode Tests
+//
+// These tests exercise the XDP map mode initialization path in
+// CxPlatDataPathInitialize (datapath_xplat.c). In map mode the platform
+// (WinSock/epoll) datapath is bypassed and only the raw (XDP) datapath is
+// used. Map mode is triggered when XdpMapConfigCount > 0 and
+// XdpMapConfigs != NULL in the init config.
+//
+
+TEST_F(DataPathTest, XdpMapMode_ZeroConfigUsesNormalPath)
+{
+    //
+    // XdpMapConfigCount == 0 falls through to the normal initialization path.
+    //
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.XdpMapConfigs = nullptr;
+    InitConfig.XdpMapConfigCount = 0;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    //
+    // Normal path initializes the platform datapath, which reports features.
+    // Raw-only mode skips platform init and features remain NONE.
+    //
+    CXPLAT_DATAPATH_FEATURES Features =
+        CxPlatDataPathGetSupportedFeatures(Datapath, CXPLAT_SOCKET_FLAG_NONE);
+    ASSERT_NE(CXPLAT_DATAPATH_FEATURE_NONE, Features);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+
+TEST_F(DataPathTest, XdpMapMode_InitFailsWithoutRawDatapath)
+{
+    //
+    // Map mode is a hard failure without XDP/DuoNic (raw datapath required).
+    //
+    if (UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("DuoNic is available; raw datapath will succeed");
+        return;
+    }
+
+    const uint32_t FakeIfIndex = 0xDEAD;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
+    CXPLAT_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.XdpMapConfigs = &MapConfig;
+    InitConfig.XdpMapConfigCount = 1;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    ASSERT_TRUE(QUIC_FAILED(Status));
+    ASSERT_EQ(nullptr, Datapath);
+
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_InitSucceedsWithRawDatapath)
+{
+    //
+    // 1-map config succeeds when DuoNic/XDP (raw datapath) is
+    // available.
+    //
+    if (!UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
+        return;
+    }
+
+    const uint32_t FakeIfIndex = 0xDEAD;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
+    CXPLAT_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.XdpMapConfigs = &MapConfig;
+    InitConfig.XdpMapConfigCount = 1;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_SingleUnknownIfIndex)
+{
+    //
+    // Unknown interface index in map config is silently ignored during init.
+    //
+    if (!UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
+        return;
+    }
+
+    const uint32_t FakeIfIndex = 0xDEAD;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
+    CXPLAT_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.XdpMapConfigs = &MapConfig;
+    InitConfig.XdpMapConfigCount = 1;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_MultipleUnknownIfIndex)
+{
+    //
+    // Multiple unknown interface indices in map configs are silently ignored.
+    //
+    if (!UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
+        return;
+    }
+
+    CXPLAT_XDP_MAP_CONFIG MapConfigs[3] = {
+        { 0xDEAD, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1111 },
+        { 0xBEEF, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x2222 },
+        { 0xCAFE, (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x3333 },
+    };
+
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.XdpMapConfigs = MapConfigs;
+    InitConfig.XdpMapConfigCount = 3;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
+
+TEST_F(DataPathTest, XdpMapMode_SocketSkipsRulePlumbing)
+{
+    if (!UseDuoNic) {
+        GTEST_SKIP_NO_RETURN_("Requires DuoNic/XDP for raw datapath init");
+        return;
+    }
+
+    const uint32_t FakeIfIndex = 0xDEAD;
+    const QUIC_XDP_MAP_HANDLE FakeHandle = (QUIC_XDP_MAP_HANDLE)QUIC_INVALID_FILE_HANDLE;
+    CXPLAT_XDP_MAP_CONFIG MapConfig = { FakeIfIndex, FakeHandle };
+
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CxPlatWorkerPoolCreate(nullptr, CXPLAT_WORKER_POOL_REF_TOOL);
+    ASSERT_NE(nullptr, WorkerPool);
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.XdpMapConfigs = &MapConfig;
+    InitConfig.XdpMapConfigCount = 1;
+
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            WorkerPool,
+            &InitConfig,
+            &Datapath);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Datapath);
+
+    ASSERT_EQ(0u, CxPlatDataPathGetXdpRuleCount(Datapath));
+
+    QuicAddr RemoteAddr = GetNewLocalIPv4();
+    QuicAddr LocalAddr = GetNewLocalIPv4();
+
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.RemoteAddress = &RemoteAddr.SockAddr;
+    UdpConfig.LocalAddress = &LocalAddr.SockAddr;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_XDP;
+
+    CXPLAT_SOCKET* Socket = nullptr;
+    Status = CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Socket);
+
+    ASSERT_EQ(0u, CxPlatDataPathGetXdpRuleCount(Datapath));
+
+    CxPlatSocketDelete(Socket);
+
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_TOOL);
+}
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());

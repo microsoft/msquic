@@ -853,11 +853,10 @@ ListenerAcceptConnectionAndStreams(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ConnectionAcceptAndIgnoreStream);
+    AcceptContext->NewConnection->reset(new(std::nothrow) TestConnection(ConnectionHandle, ConnectionAcceptAndIgnoreStream));
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
-        delete *AcceptContext->NewConnection;
-        *AcceptContext->NewConnection = nullptr;
+        AcceptContext->NewConnection->reset(nullptr);
         return false;
     }
     CxPlatEventSet(AcceptContext->NewConnectionReady);
@@ -898,6 +897,7 @@ QuicTestClientDisconnect(
     TEST_TRUE(ClientConfiguration.IsValid());
 
     {
+        UniquePtr<TestConnection> Server;
         TestListener Listener(Registration, ListenerAcceptConnectionAndStreams, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
@@ -906,8 +906,7 @@ QuicTestClientDisconnect(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptContext ServerAcceptCtx(&Server);
             Listener.Context = &ServerAcceptCtx;
 
             TestConnection* Client =
@@ -996,6 +995,7 @@ QuicTestStatelessResetKey(
     TEST_TRUE(ClientConfiguration.IsValid());
 
     {
+        UniquePtr<TestConnection> Server;
         TestListener Listener(Registration, ListenerAcceptConnectionAndStreams, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
@@ -1004,8 +1004,7 @@ QuicTestStatelessResetKey(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptContext ServerAcceptCtx(&Server);
             Listener.Context = &ServerAcceptCtx;
 
             TestConnection* Client =
@@ -4248,6 +4247,7 @@ QuicTestConnectAndIdleForDestCidChange(
     TEST_TRUE(ClientConfiguration.IsValid());
 
     {
+        UniquePtr<TestConnection> Server;
         TestListener Listener(Registration, ListenerAcceptConnectionAndStreams, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
@@ -4256,8 +4256,7 @@ QuicTestConnectAndIdleForDestCidChange(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptContext ServerAcceptCtx(&Server);
             Listener.Context = &ServerAcceptCtx;
 
             {
