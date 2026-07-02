@@ -1484,20 +1484,125 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE &&
+    if ((CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) &&
         CredConfig->CaCertificateFile) {
+        X509_STORE* CertStore = SSL_CTX_get_cert_store(SecurityConfig->SSLCtx);
+        if (CertStore == NULL) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_get_cert_store failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
         Ret =
-            SSL_CTX_load_verify_locations(
-                SecurityConfig->SSLCtx,
-                CredConfig->CaCertificateFile,
-                NULL);
+            X509_STORE_load_file(
+                CertStore,
+                CredConfig->CaCertificateFile);
         if (Ret != 1) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 ERR_get_error(),
-                "SSL_CTX_load_verify_locations failed");
+                "X509_STORE_load_file failed");
             Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+    }
+
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_BLOB &&
+        CredConfig->CaCertificateBlob) {
+        X509_STORE* CertStore = NULL;
+        BIO* CertBio = NULL;
+        STACK_OF(X509_INFO)* CertStack = NULL;
+
+        Status = QUIC_STATUS_TLS_ERROR;
+
+        // BIO_new_mem_buf() takes 'int' length
+        if (CredConfig->CaCertificateBlobLength > (unsigned)INT_MAX) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "CaCertificateBlobLength too large");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto BlobExit;
+        }
+
+        CertStore = SSL_CTX_get_cert_store(SecurityConfig->SSLCtx);
+        if (CertStore == NULL) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_get_cert_store failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto BlobExit;
+        }
+
+        CertBio = BIO_new_mem_buf(CredConfig->CaCertificateBlob, (int)CredConfig->CaCertificateBlobLength);
+        if (CertBio == NULL) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "BIO_new_mem_buf failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto BlobExit;
+        }
+
+        CertStack = PEM_X509_INFO_read_bio(CertBio, NULL, NULL, NULL);
+        if (!CertStack) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "PEM_X509_INFO_read_bio failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto BlobExit;
+        }
+
+        for (int i = 0, max = sk_X509_INFO_num(CertStack); i < max; i++) {
+            X509_INFO* CertInfo = sk_X509_INFO_value(CertStack, i);
+            if (CertInfo->x509) {
+                Ret = X509_STORE_add_cert(CertStore, CertInfo->x509);
+                if (!Ret) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        ERR_get_error(),
+                        "X509_STORE_add_cert failed");
+                    Status = QUIC_STATUS_TLS_ERROR;
+                    goto BlobExit;
+                }
+            }
+            if (CertInfo->crl) {
+                Ret = X509_STORE_add_crl(CertStore, CertInfo->crl);
+                if (!Ret) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        ERR_get_error(),
+                        "X509_STORE_add_crl failed");
+                    Status = QUIC_STATUS_TLS_ERROR;
+                    goto BlobExit;
+                }
+            }
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+
+    BlobExit:
+        if (CertStack != NULL) {
+            sk_X509_INFO_pop_free(CertStack, X509_INFO_free);
+        }
+        if (CertBio != NULL) {
+            BIO_free(CertBio);
+        }
+
+        if (!QUIC_SUCCEEDED(Status)) {
             goto Exit;
         }
     }
