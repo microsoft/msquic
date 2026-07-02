@@ -11,7 +11,7 @@ categories = ["network-programming", "asynchronous"]
 keywords = ["quic", "network", "secure"]
 build = "scripts/build.rs"
 include = [
-    "*/*.md",
+    "/README.md",
     "/*.toml",
     "/cmake",
     "/CMakeLists.txt",
