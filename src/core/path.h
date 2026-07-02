@@ -238,8 +238,14 @@ QuicPathInitialize(
     _In_ QUIC_PATH* Path
     );
 
+//
+// Remove a path from the connection.
+// If the path is the last path on the connection,
+// keep the path and silently close the connection.
+// Returns TRUE if a path was removed.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicPathRemove(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t Index

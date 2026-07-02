@@ -865,34 +865,11 @@ QuicLossDetectionRetransmitFrames(
             uint8_t PathIndex;
             QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
             if (Path != NULL && !Path->IsPeerValidated) {
-                uint64_t TimeNow = CxPlatTimeUs64();
-                CXPLAT_DBG_ASSERT(Connection->Configuration != NULL);
-                uint64_t ValidationTimeout =
-                    CXPLAT_MAX(QuicLossDetectionComputeProbeTimeout(LossDetection, Path, 3),
-                        6 * MS_TO_US(Connection->Settings.InitialRttMs));
-                if (CxPlatTimeDiff64(Path->PathValidationStartTime, TimeNow) > ValidationTimeout) {
-                    QuicTraceLogConnInfo(
-                        PathValidationTimeout,
-                        Connection,
-                        "Path[%hhu] validation timed out",
-                        Path->ID);
-                    QuicPerfCounterIncrement(
-                        Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
-                    CXPLAT_DBG_ASSERT(Connection->Paths[PathIndex].Binding != NULL);
-                    if (Connection->Paths[PathIndex].Binding->Connected) {
-                        QuicBindingRemoveAllSourceConnectionIDs(
-                            Connection->Paths[PathIndex].Binding,
-                            Connection);
-                    }
-                    QuicLibraryReleaseBinding(Connection->Paths[PathIndex].Binding);
-                    Connection->Paths[PathIndex].Binding = NULL;
-                    QuicPathRemove(Connection, PathIndex);
-                } else {
-                    Path->SendChallenge = TRUE;
+                Path->SendChallenge = TRUE;
+                NewDataQueued |=
                     QuicSendSetSendFlag(
                         &Connection->Send,
                         QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
-                }
             }
             break;
         }

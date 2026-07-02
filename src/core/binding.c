@@ -1081,12 +1081,17 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
+        uint64_t EncryptStart = CxPlatTimeUs64();
         QUIC_STATUS Status =
             CxPlatEncrypt(
                 StatelessRetryKey,
                 Iv,
                 sizeof(Token.Authenticated), (uint8_t*) &Token.Authenticated,
                 sizeof(Token.Encrypted) + sizeof(Token.EncryptionTag), (uint8_t*)&(Token.Encrypted));
+        QuicPerfCounterAdd(
+            Partition,
+            QUIC_PERF_COUNTER_ENCRYPT_DURATION_US,
+            (int64_t)CxPlatTimeDiff64(EncryptStart, CxPlatTimeUs64()));
 
         CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
         if (QUIC_FAILED(Status)) {

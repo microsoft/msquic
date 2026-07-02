@@ -95,7 +95,7 @@ This script runs the MsQuic tests.
     test.ps1 -Filter ParameterValidation* -NumIterations 10
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 param (
     [Parameter(Mandatory = $false)]
@@ -179,7 +179,7 @@ param (
     [switch]$DuoNic = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false,
+    [string]$UseXdp = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$UseQtip = $false,
@@ -231,7 +231,8 @@ $Arch = $BuildConfig.Arch
 $RootArtifactDir = $BuildConfig.ArtifactsDir
 
 if ($UseXdp) {
-    # Helper for XDP usage
+    # Helper for XDP usage (every XDP version runs over the same datapath; only
+    # the installed driver differs).
     $DuoNic = $true
 }
 

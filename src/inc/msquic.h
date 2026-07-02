@@ -361,6 +361,23 @@ uint32_t
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+//
+// XDP Maps configured for external XDP programs.
+// Passed via SetParam (QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG) after
+// MsQuicOpenVersion but before opening any registrations.
+// QUIC_XDP_MAP_HANDLE is defined per-platform in msquic_winuser.h,
+// msquic_winkernel.h, and msquic_posix.h.
+//
+
+typedef struct QUIC_XDP_MAP_CONFIG {
+    uint32_t InterfaceIndex;        // Network interface this map applies to.
+    QUIC_XDP_MAP_HANDLE MapHandle;  // XDP map handle.
+} QUIC_XDP_MAP_CONFIG;
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
     const char* AppName;
     QUIC_EXECUTION_PROFILE ExecutionProfile;
@@ -645,6 +662,15 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t RttVariance;                   // In microseconds
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    uint32_t ConnectionQueueDelayAvgUs;     // Sliding average connection queue delay in microseconds
+    uint32_t ConnectionQueueDelayMaxUs;     // Maximum connection queue delay in microseconds
+    uint32_t SendQueueDelayAvgUs;           // Sliding average send queue delay in microseconds
+    uint32_t SendQueueDelayMaxUs;           // Maximum send queue delay in microseconds
+    uint32_t ReceiveQueueDelayAvgUs;        // Sliding average receive queue delay in microseconds
+    uint32_t ReceiveQueueDelayMaxUs;        // Maximum receive queue delay in microseconds
+#endif
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -667,6 +693,9 @@ typedef struct QUIC_NETWORK_STATISTICS
 #define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, DestCidUpdateCount)     // MsQuic v2.1 final size
 #define QUIC_STATISTICS_V2_SIZE_3   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendEcnCongestionCount) // MsQuic v2.2 final size
 #define QUIC_STATISTICS_V2_SIZE_4   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, RttVariance)            // MsQuic v2.5 final size
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_STATISTICS_V2_SIZE_5   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, ReceiveQueueDelayMaxUs) // MsQuic v2.6 preview size
+#endif
 
 typedef struct QUIC_ADD_OBSERVED_ADDRESS {
     QUIC_ADDR* LocalAddress;
@@ -726,6 +755,10 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_SEND_STATELESS_RETRY, // Total stateless retry packets sent ever.
     QUIC_PERF_COUNTER_CONN_LOAD_REJECT,     // Total connections rejected due to worker load.
     QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH,   // Current listeners queued for processing.
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_PERF_COUNTER_ENCRYPT_DURATION_US,  // Total time spent on encryption in microseconds.
+    QUIC_PERF_COUNTER_DECRYPT_DURATION_US,  // Total time spent on decryption in microseconds.
+#endif
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 
@@ -1002,6 +1035,9 @@ void
 #define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH
 #define QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES           0x0100000C  // uint32_t[] - Array of sizes for each QUIC_STATISTICS_V2 version. Get-only. Pass a buffer of uint32_t, output count is variable. See documentation for details.
 #define QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG        0x0100000D  // QUIC_STATELESS_RETRY_CONFIG
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG                0x0100000E  // QUIC_XDP_MAP_CONFIG[]
+#endif
 
 //
 // Parameters for Registration.

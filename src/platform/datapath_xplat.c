@@ -162,17 +162,18 @@ CxPlatSocketCreateUdp(
                 QuicTraceLogVerbose(
                     RawSockCreateFail,
                     "[sock] Failed to create raw socket, status:%d", Status);
-                BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
-                if (IsWildcardAddr && RequiresQtip) {
+                BOOLEAN IsServerSocket = !(*NewSocket)->HasFixedRemoteAddress;
+                if (IsServerSocket && RequiresQtip) {
                     //
                     // This retry loop is purely for QTIP listener sockets that try to reserve both a UDP/TCP port,
                     // which may run into a port collision for TCP if the UDP ephemeral port collides with something
                     // in the TCP pool. So just try it again.
                     //
                     CxPlatSocketDelete(*NewSocket);
+                    *NewSocket = NULL;
                     continue;
                 }
-                if ((!RequiresQtip && !CibirRequested) || ((*NewSocket)->HasFixedRemoteAddress && CibirRequested && !RequiresQtip)) {
+                if ((!RequiresQtip && !CibirRequested) || (!IsServerSocket && CibirRequested && !RequiresQtip)) {
                     //
                     // Allow fallback to OS UDP sockets in these 2 cases only:
                     //  - XDP with no QTIP and no CIBIR.
@@ -187,6 +188,7 @@ CxPlatSocketCreateUdp(
                     Status = QUIC_STATUS_SUCCESS;
                 } else {
                     CxPlatSocketDelete(*NewSocket);
+                    *NewSocket = NULL;
                 }
                 goto Error;
             }
@@ -195,6 +197,7 @@ CxPlatSocketCreateUdp(
                 ErrNoXdpForQtip,
                 "[sock] Error: app requested QTIP but XDP not enabled/available/initialized.");
             CxPlatSocketDelete(*NewSocket);
+            *NewSocket = NULL;
             Status = QUIC_STATUS_INVALID_STATE;
             goto Error;
         } else if (CibirRequested) {

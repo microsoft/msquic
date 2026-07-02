@@ -34,18 +34,13 @@ jobs:
     name: Cargo
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-    - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForBuild -InstallTestCertificates
-      shell: pwsh
-    - name: Install Perl
-      if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@922d4ec780f14b8ff6d6e09c15d5eaee240b23a0
-      with:
-        perl-version: '5.34'
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
     - name: Install NASM
       if: runner.os == 'Windows'
       uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForBuild -InstallTestCertificates
+      shell: pwsh
     - name: Install Rust
       uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
       with:
@@ -136,7 +131,7 @@ jobs:
     name: Cargo-Preinstall
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
     - name: Install Rust
       uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
       with:

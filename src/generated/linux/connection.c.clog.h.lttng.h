@@ -800,10 +800,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Unreachable,
 // Decoder Ring for FailedRouteResolution
 // [conn][%p] Route resolution failed on Path[%hhu]. Switching paths...
 // QuicTraceLogConnInfo(
-                    FailedRouteResolution,
-                    Connection,
-                    "Route resolution failed on Path[%hhu]. Switching paths...",
-                    PathId);
+            FailedRouteResolution,
+            Connection,
+            "Route resolution failed on Path[%hhu]. Switching paths...",
+            PathId);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = PathId = arg3
 ----------------------------------------------------------*/
@@ -2599,6 +2599,30 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnObservedAddrAdded,
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
         ctf_integer(unsigned int, arg4_len, arg4_len)
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
+    )
+)
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathValidationTimeout
+// [conn][%p] Path[%hhu] validation timed out
+// QuicTraceEvent(
+            ConnPathValidationTimeout,
+            "[conn][%p] Path[%hhu] validation timed out",
+            Connection,
+            Path->ID);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPathValidationTimeout,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned char, arg3, arg3)
     )
 )
 

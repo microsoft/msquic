@@ -283,6 +283,12 @@ typedef struct QUIC_CONN_STATS {
         uint32_t LastQueueTime;         // Time the connection last entered the work queue.
         uint64_t DrainCount;            // Sum of drain calls
         uint64_t OperationCount;        // Sum of operations processed
+        uint32_t QueueDelayAvgUs;       // EWMA of connection queue delay
+        uint32_t QueueDelayMaxUs;       // Maximum connection queue delay
+        uint32_t SendQueueDelayAvgUs;   // EWMA of send queue delay
+        uint32_t SendQueueDelayMaxUs;   // Maximum send queue delay
+        uint32_t ReceiveQueueDelayAvgUs; // EWMA of receive queue delay
+        uint32_t ReceiveQueueDelayMaxUs; // Maximum receive queue delay
     } Schedule;
 
     struct {
@@ -1289,11 +1295,6 @@ QuicConnQueueHighestPriorityOper(
     _In_ QUIC_OPERATION* Oper
     );
 
-typedef enum QUIC_CONN_START_FLAGS {
-    QUIC_CONN_START_FLAG_NONE =              0x00000000U,
-    QUIC_CONN_START_FLAG_FAIL_SILENTLY =     0x00000001U // Don't send notification to API client
-} QUIC_CONN_START_FLAGS;
-
 //
 // Starts the connection. Shouldn't be called directly in most instances.
 //
@@ -1505,6 +1506,16 @@ QuicConnTimerExpired(
     _In_ uint64_t TimeNow
     );
 
+//
+// Re-arms (or cancels) the path validation timer based on the earliest
+// in-progress path validation deadline across all paths.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnPathValidationTimerUpdate(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_INLINE
 uint64_t
@@ -1523,6 +1534,21 @@ QuicConnGetAckDelay(
         return (uint64_t)Connection->Settings.MaxAckDelayMs + (uint64_t)MsQuicLib.TimerResolutionMs;
     }
     return (uint64_t)Connection->Settings.MaxAckDelayMs;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_INLINE
+void
+QuicConnUpdateQueueDelay(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t TimeInQueueUs
+    )
+{
+    Connection->Stats.Schedule.QueueDelayAvgUs =
+        (7 * Connection->Stats.Schedule.QueueDelayAvgUs + TimeInQueueUs) / 8;
+    if (TimeInQueueUs > Connection->Stats.Schedule.QueueDelayMaxUs) {
+        Connection->Stats.Schedule.QueueDelayMaxUs = TimeInQueueUs;
+    }
 }
 
 //

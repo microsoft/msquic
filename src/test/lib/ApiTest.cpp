@@ -1147,13 +1147,15 @@ ListenerAcceptCallback(
     _In_ HQUIC ConnectionHandle
     )
 {
-    TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ServerApiTestNewStream);
-    if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
+    TestConnection* NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ServerApiTestNewStream);
+    if (NewConnection == nullptr || !NewConnection->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
-        delete *NewConnection;
+        delete NewConnection;
         return false;
     }
+
+    auto* Output = static_cast<UniquePtr<TestConnection>*>(Listener->Context);
+    Output->reset(NewConnection);
     return true;
 }
 
@@ -1372,10 +1374,10 @@ void QuicTestValidateStream(const bool& Connect)
     // Force the Client, Server, and Listener to clean up before the Registration.
     //
     {
+        UniquePtr<TestConnection> Server;
+
         TestListener MyListener(Registration, ListenerAcceptCallback, ServerConfiguration);
         TEST_TRUE(MyListener.IsValid());
-
-        UniquePtr<TestConnection> Server;
         MyListener.Context = &Server;
 
         {
@@ -2899,7 +2901,10 @@ void QuicTestGlobalParam()
             QUIC_STATISTICS_V2_SIZE_1,
             QUIC_STATISTICS_V2_SIZE_2,
             QUIC_STATISTICS_V2_SIZE_3,
-            QUIC_STATISTICS_V2_SIZE_4
+            QUIC_STATISTICS_V2_SIZE_4,
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            QUIC_STATISTICS_V2_SIZE_5,
+#endif
         };
 
         //
@@ -2988,6 +2993,231 @@ void QuicTestGlobalParam()
 
     QuicTestStatefulGlobalSetParam();
 }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestXdpMapConfigParam()
+{
+    const QUIC_XDP_MAP_HANDLE FakeHandle1 = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x1234;
+    const QUIC_XDP_MAP_HANDLE FakeHandle2 = (QUIC_XDP_MAP_HANDLE)(uintptr_t)0x5678;
+    const uint32_t FakeIfIndex1 = 3;
+    const uint32_t FakeIfIndex2 = 7;
+
+    //
+    // QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG");
+
+        //
+        // Get when nothing is set should return length 0.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam empty");
+            uint32_t OutLength = sizeof(QUIC_XDP_MAP_CONFIG);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, 0u);
+        }
+
+        //
+        // Set with NULL buffer and non-zero length should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam NULL buffer");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(QUIC_XDP_MAP_CONFIG),
+                    nullptr));
+        }
+
+        //
+        // Set with buffer length not a multiple of struct size should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam bad length");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(QUIC_XDP_MAP_CONFIG) - 1,
+                    &Config));
+        }
+
+        //
+        // Set with zero-length should clear the config.
+        // (First set something, then clear, then verify empty.)
+        //
+        {
+            TestScopeLogger LogScope1("SetParam clear");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+
+            // Clear by setting zero length.
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    0,
+                    nullptr));
+
+            // Verify cleared.
+            uint32_t OutLength = sizeof(QUIC_XDP_MAP_CONFIG);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, 0u);
+        }
+
+        //
+        // N.B. The following SetParam call modifies global library state.
+        // XDP map config can be updated multiple times before the first
+        // registration, so subsequent tests see this configured state.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam valid");
+            QUIC_XDP_MAP_CONFIG Configs[2] = {
+                { FakeIfIndex1, FakeHandle1 },
+                { FakeIfIndex2, FakeHandle2 }
+            };
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Configs),
+                    Configs));
+        }
+
+        //
+        // Get should return the config we set.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam round-trip");
+            QUIC_XDP_MAP_CONFIG OutConfigs[2] = {};
+            uint32_t OutLength = sizeof(OutConfigs);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    OutConfigs));
+            TEST_EQUAL(OutLength, (uint32_t)sizeof(OutConfigs));
+            TEST_EQUAL(OutConfigs[0].InterfaceIndex, FakeIfIndex1);
+            TEST_EQUAL(OutConfigs[1].InterfaceIndex, FakeIfIndex2);
+        }
+
+        //
+        // Get with too-small buffer should return BUFFER_TOO_SMALL.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam buffer too small");
+            uint32_t OutLength = 1;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    nullptr));
+            TEST_EQUAL(OutLength, (uint32_t)(2 * sizeof(QUIC_XDP_MAP_CONFIG)));
+        }
+
+        //
+        // Get with buffer bigger than needed should succeed and report
+        // actual size.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam buffer bigger than needed");
+            QUIC_XDP_MAP_CONFIG OutConfigs[4] = {};
+            uint32_t OutLength = sizeof(OutConfigs);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    OutConfigs));
+            TEST_EQUAL(OutLength, (uint32_t)(2 * sizeof(QUIC_XDP_MAP_CONFIG)));
+            TEST_EQUAL(OutConfigs[0].InterfaceIndex, FakeIfIndex1);
+            TEST_EQUAL(OutConfigs[1].InterfaceIndex, FakeIfIndex2);
+        }
+
+        //
+        // Setting again should succeed (replaces previous config).
+        //
+        {
+            TestScopeLogger LogScope1("SetParam twice succeeds");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+
+            // Verify it was replaced.
+            QUIC_XDP_MAP_CONFIG OutConfig = {};
+            uint32_t OutLength = sizeof(OutConfig);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    &OutLength,
+                    &OutConfig));
+            TEST_EQUAL(OutLength, (uint32_t)sizeof(QUIC_XDP_MAP_CONFIG));
+            TEST_EQUAL(OutConfig.InterfaceIndex, FakeIfIndex1);
+        }
+
+        //
+        // Setting after a registration is created should fail.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam after registration fails");
+            MsQuicRegistration Registration(true);
+            TEST_TRUE(Registration.IsValid());
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+        }
+
+        //
+        // Setting after a registration is closed should still fail
+        // (datapath was already initialized).
+        //
+        {
+            TestScopeLogger LogScope1("SetParam after registration closed fails");
+            QUIC_XDP_MAP_CONFIG Config = { FakeIfIndex1, FakeHandle1 };
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    sizeof(Config),
+                    &Config));
+        }
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void QuicTestCommonParam()
 {
@@ -6202,6 +6432,160 @@ QuicTestGetPerfCounters()
 
     TEST_EQUAL(BufferLength, (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)));
 }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestValidateEncryptDecryptPerfCounters()
+{
+    uint64_t CountersBefore[QUIC_PERF_COUNTER_MAX] = {};
+    uint32_t BufferLength = sizeof(CountersBefore);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            &BufferLength,
+            CountersBefore));
+
+    //
+    // Establish a connection to generate encrypt/decrypt activity.
+    //
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    UniquePtr<TestConnection> Server;
+    TestListener Listener(Registration, ListenerAcceptCallback, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    Listener.Context = &Server;
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length()));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    {
+        TestConnection Client(Registration);
+        TEST_TRUE(Client.IsValid());
+
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                ClientConfiguration,
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                QUIC_TEST_LOOPBACK_FOR_AF(
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                ServerLocalAddr.GetPort()));
+
+        TEST_TRUE(Client.WaitForConnectionComplete());
+        TEST_TRUE(Client.GetIsConnected());
+
+        TEST_NOT_EQUAL(nullptr, Server);
+        TEST_TRUE(Server->WaitForConnectionComplete());
+        TEST_TRUE(Server->GetIsConnected());
+    }
+
+    uint64_t CountersAfter[QUIC_PERF_COUNTER_MAX] = {};
+    BufferLength = sizeof(CountersAfter);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            &BufferLength,
+            CountersAfter));
+
+    TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US]);
+    TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_DECRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_DECRYPT_DURATION_US]);
+}
+
+void
+QuicTestConnQueueDelayStatistics()
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+    Settings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    UniquePtr<TestConnection> Server;
+    TestListener Listener(Registration, ListenerAcceptCallback, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    Listener.Context = &Server;
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length()));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    {
+        TestConnection Client(Registration);
+        TEST_TRUE(Client.IsValid());
+
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                ClientConfiguration,
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                QUIC_TEST_LOOPBACK_FOR_AF(
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                ServerLocalAddr.GetPort()));
+
+        TEST_TRUE(Client.WaitForConnectionComplete());
+        TEST_TRUE(Client.GetIsConnected());
+
+        TEST_NOT_EQUAL(nullptr, Server);
+        TEST_TRUE(Server->WaitForConnectionComplete());
+        TEST_TRUE(Server->GetIsConnected());
+
+        //
+        // Send and receive some data.
+        //
+        UniquePtr<TestStream> Stream(
+            Client.NewStream(
+                nullptr,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                NEW_STREAM_START_SYNC));
+        TEST_NOT_EQUAL(nullptr, Stream.get());
+        TEST_TRUE(Stream->IsValid());
+        TEST_TRUE(Stream->StartPing(100 * 1024));
+        TEST_TRUE(Stream->WaitForSendShutdownComplete());
+
+        //
+        // Read the full V2 statistics and verify the new per-connection queue
+        // delay fields are reported (i.e. the returned buffer covers them).
+        //
+        QUIC_STATISTICS_V2 Stats = {};
+        uint32_t BufferLength = sizeof(Stats);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                Client.GetConnection(),
+                QUIC_PARAM_CONN_STATISTICS_V2,
+                &BufferLength,
+                &Stats));
+        TEST_TRUE(BufferLength >= QUIC_STATISTICS_V2_SIZE_5);
+
+        //
+        // The sliding average can never exceed the observed maximum for any of
+        // the queue delay metrics. This invariant holds regardless of timing.
+        //
+        TEST_TRUE(Stats.ConnectionQueueDelayAvgUs <= Stats.ConnectionQueueDelayMaxUs);
+        TEST_TRUE(Stats.SendQueueDelayAvgUs <= Stats.SendQueueDelayMaxUs);
+        TEST_TRUE(Stats.ReceiveQueueDelayAvgUs <= Stats.ReceiveQueueDelayMaxUs);
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void

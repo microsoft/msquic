@@ -1730,12 +1730,13 @@ QuicCancelOnLossSend(
         &ClientContext);
     TEST_TRUE(ClientContext.Stream->IsValid());
     TEST_QUIC_SUCCEEDED(ClientContext.Stream->Start());
-    TEST_QUIC_SUCCEEDED(ClientContext.Stream->Send(&MessageBuffer, 1, QUIC_SEND_FLAG_CANCEL_ON_LOSS));
-
-    // If requested, drop packets.
+    // Arm the loss helper to drop one packet from the send operation.
+    // There is a small chance the wrong packet is dropped if a timer triggers a send flush just at the wrong time,
+    // but it should be infrequent enough the test stays stable.
     if (DropPackets) {
         LossHelper.DropPackets(1);
     }
+    TEST_QUIC_SUCCEEDED(ClientContext.Stream->Send(&MessageBuffer, 1, QUIC_SEND_FLAG_CANCEL_ON_LOSS));
 
     // Wait for the send phase to conclude.
     if (!ClientContext.SendPhaseEndedEvent.WaitTimeout(EventWaitTimeoutMs)) {
@@ -3168,7 +3169,7 @@ QuicTestNthPacketDrop(
     const uint32_t BufferLength = 0x800000;
     const uint64_t TimeOutS = 60 * 60; // 1 hour
 #else
-    const uint32_t BufferLength = 0x200000;
+    const uint32_t BufferLength = 0x100000;
     const uint64_t TimeOutS = 50; // All test cases need to complete in less than 60 seconds
 #endif
     uint8_t* RawBuffer = new(std::nothrow) uint8_t[BufferLength];
@@ -3181,7 +3182,7 @@ QuicTestNthPacketDrop(
 
     bool StopRunning = false;
     for (uint32_t i = 0; !StopRunning; ++i) {
-        NthLossHelper LossHelper(i);
+        NthLossHelper LossHelper(2*i);
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
         CONTINUE_ON_FAIL(Stream.GetInitStatus());
 

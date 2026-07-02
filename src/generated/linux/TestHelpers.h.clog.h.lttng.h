@@ -88,6 +88,29 @@ TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookUnregistered,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for TestPortReservation
+// [test] Port reservation: port=%u, attempts=%d
+// QuicTraceLogVerbose(
+                TestPortReservation,
+                "[test] Port reservation: port=%u, attempts=%d",
+                Port,
+                Attempt + 1);
+// arg2 = arg2 = Port = arg2
+// arg3 = arg3 = Attempt + 1 = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestPortReservation,
+    TP_ARGS(
+        unsigned int, arg2,
+        int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for TestHookDropPacketRandom
 // [test][hook] Random packet drop
 // QuicTraceLogVerbose(
