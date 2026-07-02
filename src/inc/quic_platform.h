@@ -197,6 +197,25 @@ extern "C" {
 #endif
 
 //
+// Small Computation Helpers
+//
+
+//
+// Exponentially weighted moving average
+//
+QUIC_INLINE
+uint64_t
+CxPlatEwma(
+    _In_ uint64_t Average,
+    _In_ uint64_t Sample,
+    _In_ uint64_t Weight
+    )
+{
+    CXPLAT_DBG_ASSERT(Weight > 0);
+    return ((Weight - 1) * Average + Sample) / Weight;
+}
+
+//
 // Library Initialization
 //
 

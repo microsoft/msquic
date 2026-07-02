@@ -915,6 +915,8 @@ QuicLibraryLazyInitialize(
 
     CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
     InitConfig.EnableDscpOnRecv = MsQuicLib.EnableDscpOnRecv;
+    InitConfig.XdpMapConfigs = MsQuicLib.XdpMapConfigs;
+    InitConfig.XdpMapConfigCount = MsQuicLib.XdpMapConfigCount;
 
     Status =
         CxPlatDataPathInitialize(
@@ -1055,6 +1057,34 @@ QuicLibApplyLoadBalancingSetting(
         LibraryCidLengthSet,
         "[ lib] CID Length = %hhu",
         MsQuicLib.CidTotalLength);
+}
+
+static
+void
+QuicLibXdpMapConfigToPlat(
+    _Out_writes_(Count) CXPLAT_XDP_MAP_CONFIG* Dest,
+    _In_reads_(Count) const QUIC_XDP_MAP_CONFIG* Src,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        Dest[i].InterfaceIndex = Src[i].InterfaceIndex;
+        Dest[i].MapHandle = Src[i].MapHandle;
+    }
+}
+
+static
+void
+QuicLibXdpMapConfigFromPlat(
+    _Out_writes_(Count) QUIC_XDP_MAP_CONFIG* Dest,
+    _In_reads_(Count) const CXPLAT_XDP_MAP_CONFIG* Src,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        Dest[i].InterfaceIndex = Src[i].InterfaceIndex;
+        Dest[i].MapHandle = Src[i].MapHandle;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1473,20 +1503,23 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        QUIC_XDP_MAP_CONFIG* NewConfigs =
-            CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_XDP_MAP_CONFIG);
+        const size_t AllocSize = Count * sizeof(CXPLAT_XDP_MAP_CONFIG);
+        CXPLAT_XDP_MAP_CONFIG* NewConfigs =
+            CXPLAT_ALLOC_NONPAGED(
+                AllocSize,
+                QUIC_POOL_XDP_MAP_CONFIG);
         if (NewConfigs == NULL) {
             CxPlatLockRelease(&MsQuicLib.Lock);
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "XDP map config",
-                BufferLength);
+                AllocSize);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             break;
         }
 
-        CxPlatCopyMemory(NewConfigs, Configs, BufferLength);
+        QuicLibXdpMapConfigToPlat(NewConfigs, Configs, Count);
 
         if (MsQuicLib.XdpMapConfigs != NULL) {
             CXPLAT_FREE(MsQuicLib.XdpMapConfigs, QUIC_POOL_XDP_MAP_CONFIG);
@@ -1507,6 +1540,7 @@ QuicLibrarySetGlobalParam(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicLibraryGetGlobalParam(
     _In_ uint32_t Param,
@@ -1796,7 +1830,8 @@ QuicLibraryGetGlobalParam(
             QUIC_STATISTICS_V2_SIZE_1,
             QUIC_STATISTICS_V2_SIZE_2,
             QUIC_STATISTICS_V2_SIZE_3,
-            QUIC_STATISTICS_V2_SIZE_4
+            QUIC_STATISTICS_V2_SIZE_4,
+            QUIC_STATISTICS_V2_SIZE_5,
         };
         static const uint32_t NumStatSizes = ARRAYSIZE(StatSizes);
         uint32_t MaxSizes = *BufferLength / sizeof(uint32_t);
@@ -1870,7 +1905,10 @@ QuicLibraryGetGlobalParam(
             break;
         }
         *BufferLength = RequiredLength;
-        CxPlatCopyMemory(Buffer, MsQuicLib.XdpMapConfigs, RequiredLength);
+        QuicLibXdpMapConfigFromPlat(
+            (QUIC_XDP_MAP_CONFIG*)Buffer,
+            MsQuicLib.XdpMapConfigs,
+            MsQuicLib.XdpMapConfigCount);
         CxPlatLockRelease(&MsQuicLib.Lock);
         Status = QUIC_STATUS_SUCCESS;
         break;

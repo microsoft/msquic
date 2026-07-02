@@ -654,6 +654,15 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t RttVariance;                   // In microseconds
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    uint32_t ConnectionQueueDelayAvgUs;     // Sliding average connection queue delay in microseconds
+    uint32_t ConnectionQueueDelayMaxUs;     // Maximum connection queue delay in microseconds
+    uint32_t SendQueueDelayAvgUs;           // Sliding average send queue delay in microseconds
+    uint32_t SendQueueDelayMaxUs;           // Maximum send queue delay in microseconds
+    uint32_t ReceiveQueueDelayAvgUs;        // Sliding average receive queue delay in microseconds
+    uint32_t ReceiveQueueDelayMaxUs;        // Maximum receive queue delay in microseconds
+#endif
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -676,6 +685,9 @@ typedef struct QUIC_NETWORK_STATISTICS
 #define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, DestCidUpdateCount)     // MsQuic v2.1 final size
 #define QUIC_STATISTICS_V2_SIZE_3   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendEcnCongestionCount) // MsQuic v2.2 final size
 #define QUIC_STATISTICS_V2_SIZE_4   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, RttVariance)            // MsQuic v2.5 final size
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_STATISTICS_V2_SIZE_5   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, ReceiveQueueDelayMaxUs) // MsQuic v2.6 preview size
+#endif
 
 typedef struct QUIC_LISTENER_STATISTICS {
 
@@ -720,6 +732,10 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_SEND_STATELESS_RETRY, // Total stateless retry packets sent ever.
     QUIC_PERF_COUNTER_CONN_LOAD_REJECT,     // Total connections rejected due to worker load.
     QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH,   // Current listeners queued for processing.
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_PERF_COUNTER_ENCRYPT_DURATION_US,  // Total time spent on encryption in microseconds.
+    QUIC_PERF_COUNTER_DECRYPT_DURATION_US,  // Total time spent on decryption in microseconds.
+#endif
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 

@@ -100,6 +100,22 @@ TestListener::GetStatistics(
             &stats);
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+QUIC_STATUS
+TestListener::SetCibirId(
+    _In_reads_(Length) const uint8_t* CibirId,
+    _In_ uint8_t Length
+    )
+{
+    return
+        MsQuic->SetParam(
+            QuicListener,
+            QUIC_PARAM_LISTENER_CIBIR_ID,
+            Length,
+            CibirId);
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 QUIC_STATUS
 TestListener::HandleListenerEvent(
     _Inout_ QUIC_LISTENER_EVENT* Event

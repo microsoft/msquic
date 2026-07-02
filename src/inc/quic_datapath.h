@@ -468,6 +468,10 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
+typedef struct CXPLAT_XDP_MAP_CONFIG {
+    uint32_t InterfaceIndex;
+    QUIC_XDP_MAP_HANDLE MapHandle;
+} CXPLAT_XDP_MAP_CONFIG;
 
 typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     //
@@ -476,6 +480,10 @@ typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     // the Windows fast path causing a large performance regression.
     //
     BOOLEAN EnableDscpOnRecv;
+
+    _Field_size_(XdpMapConfigCount)
+    const CXPLAT_XDP_MAP_CONFIG* XdpMapConfigs;
+    uint32_t XdpMapConfigCount;
 } CXPLAT_DATAPATH_INIT_CONFIG;
 
 //
@@ -498,6 +506,15 @@ CxPlatDataPathInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUninitialize(
+    _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+//
+// Returns the total number of XDP rules plumbed across all interfaces.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+CxPlatDataPathGetXdpRuleCount(
     _In_ CXPLAT_DATAPATH* Datapath
     );
 
