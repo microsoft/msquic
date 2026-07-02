@@ -1203,6 +1203,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ const CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** DataPath
     );
 
@@ -1219,6 +1220,28 @@ RawDataPathUpdatePollingIdleTimeout(
     _In_ uint32_t PollingIdleTimeoutUs
     );
 
+//
+// Inserts each interface's RX XSK sockets into the matching XSKMAP from the
+// provided map configs. Uses an O(Interfaces * MapConfigCount) search to match
+// each config to its interface by IfIndex.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDpRawApplyMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
+    _In_reads_(MapConfigCount) const CXPLAT_XDP_MAP_CONFIG* MapConfigs,
+    _In_ uint32_t MapConfigCount
+    );
+
+//
+// Best-effort removal of XSK sockets from maps during cleanup.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawCleanupMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(
@@ -1229,6 +1252,24 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 RawDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+BOOLEAN
+CxPlatDpRawIsRawDatapathOnly(
+    _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    );
+
+void
+CxPlatDpRawEnableRawDatapathOnly(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    );
+
+//
+// Returns the total number of XDP rules plumbed across all interfaces.
+//
+uint32_t
+CxPlatDpRawGetTotalRuleCount(
+    _In_ const CXPLAT_DATAPATH_RAW* RawDataPath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -3178,6 +3178,14 @@ void QuicTestXdpMapConfigParam()
                     &OutConfig));
             TEST_EQUAL(OutLength, (uint32_t)sizeof(QUIC_XDP_MAP_CONFIG));
             TEST_EQUAL(OutConfig.InterfaceIndex, FakeIfIndex1);
+
+            // Clear configs so lazy init does not try to use them.
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    0,
+                    nullptr));
         }
 
         //

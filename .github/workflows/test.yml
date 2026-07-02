@@ -144,6 +144,7 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-prerelease", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-prerelease", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", log: "Full.Verbose" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "xdp-v1.1", qtip: "-UseQtip", build: "-Test" },
@@ -202,16 +203,21 @@ jobs:
       shell: pwsh
       timeout-minutes: 120
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+    - name: Test (Map Mode Tests Only)
+      if: matrix.vec.xdp == 'xdp-prerelease'
+      shell: pwsh
+      timeout-minutes: 120
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} -Filter '*XdpMapMode*' -XdpMapMode
     - name: Test
       if: matrix.vec.os != 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ matrix.vec.xdpmapmode }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
     - name: Upload on Failure or Cancellation
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       if: failure() || cancelled()
       with:
-        name: BVT-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.iouring }}${{ matrix.vec.qtip }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}
+        name: BVT-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.iouring }}${{ matrix.vec.qtip }}${{ matrix.vec.xdpmapmode }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}
         path: artifacts
 
   bvt-kernel:
