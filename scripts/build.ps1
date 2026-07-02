@@ -91,7 +91,7 @@ This script provides helpers for building msquic.
     Enables telemetry asserts in release builds.
 
 .PARAMETER UseSystemOpenSSLCrypto
-    Use system provided OpenSSL libcrypto rather then statically linked. Only affects OpenSSL Linux builds
+    Use system provided OpenSSL crypto libraries. On Linux OpenSSL builds, both libssl and libcrypto are dynamically linked.
 
 .PARAMETER EnableHighResolutionTimers
     Configures the system to use high resolution timers.
@@ -514,6 +514,9 @@ function CMake-Generate {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
     }
     if ($UseSystemOpenSSLCrypto) {
+        if ($IsWindows -or $Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
+            Write-Error "-UseSystemOpenSSLCrypto is currently not supported on Windows platforms."
+        }
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
     if ($EnableHighResolutionTimers) {
