@@ -320,11 +320,11 @@ else()
         COMMENT "OpenSSL build"
     )
 
-    if (QUIC_USE_SYSTEM_LIBCRYPTO AND NOT (CX_PLATFORM STREQUAL "linux"))
+    if (QUIC_USE_SYSTEM_LIBCRYPTO AND NOT (CX_PLATFORM STREQUAL "linux" AND QUIC_TLS_LIB STREQUAL "openssl"))
         # OpenSSL 3 uses different sources for static and dynamic libraries.
         # That is ok if you use either one consistently but it fails to link when we use dynamic crypto with static ssl.
-        # To fix that we need little hackery - see quictls/ssl/build.info
-        # On Linux, this is not needed because we link both libssl and libcrypto dynamically.
+        # To fix that we need little hackery - see quictls/ssl/build.info.
+        # Skip only linux+openssl where both libssl and libcrypto are linked dynamically.
         add_custom_command(
             OUTPUT ${LIBSSL_PATH}
             OUTPUT ${LIBCRYPTO_PATH}
