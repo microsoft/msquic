@@ -463,6 +463,10 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestTlsHandshakeInfo);
     RegisterTestFunction(QuicTestStreamParam);
     RegisterTestFunction(QuicTestGetPerfCounters);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestValidateEncryptDecryptPerfCounters);
+    RegisterTestFunction(QuicTestConnQueueDelayStatistics);
+#endif
     RegisterTestFunction(QuicTestValidateConfiguration);
     RegisterTestFunction(QuicTestValidateListener);
     RegisterTestFunction(QuicTestValidateConnection);
@@ -567,10 +571,12 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnectInvalidAddress);
     RegisterTestFunction(QuicTestConnectBadAlpn);
     RegisterTestFunction(QuicTestConnectBadSni);
+    RegisterTestFunction(QuicTestConnectIpSni);
     RegisterTestFunction(QuicTestConnectServerRejected);
     RegisterTestFunction(QuicTestClientBlockedSourcePort);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestPathValidationTimeout);
+    RegisterTestFunction(QuicTestPathValidationLastPathClose);
     RegisterTestFunction(QuicTestNatPortRebind_NoPadding);
     RegisterTestFunction(QuicTestNatPortRebind_WithPadding);
     RegisterTestFunction(QuicTestNatAddrRebind_NoPadding);
@@ -613,6 +619,7 @@ ExecuteTestRequest(
 #ifndef QUIC_DISABLE_0RTT_TESTS
     RegisterTestFunction(QuicTestConnectAndPing_Send0Rtt);
     RegisterTestFunction(QuicTestConnectAndPing_Reject0Rtt);
+    RegisterTestFunction(QuicTestCustomTicketValidationAfterShutdown);
 #endif // QUIC_DISABLE_0RTT_TESTS
     RegisterTestFunction(QuicTestConnectAndPing_SendLarge);
     RegisterTestFunction(QuicTestConnectAndPing_SendIntermittently);

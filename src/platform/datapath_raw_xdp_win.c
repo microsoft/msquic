@@ -11,6 +11,8 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 #define XDP_API_VERSION 3
+#define XDP_MINIMUM_MAJOR_VER 1
+#define XDP_MINIMUM_MINOR_VER 1
 #define XDP_INCLUDE_WINCOMMON
 
 #include <xdp/wincommon.h>
@@ -52,6 +54,7 @@ typedef struct XDP_DATAPATH {
 typedef struct XDP_INTERFACE {
     XDP_INTERFACE_COMMON;
     HANDLE XdpHandle;
+    HANDLE XskMap;              // XSKMAP used by this interface (NULL if not using map mode).
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
@@ -1465,6 +1468,14 @@ CxPlatDpRawPlumbRulesOnSocket(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
+
+    //
+    // In map mode, the application manages XDP rules.
+    //
+    if (CxPlatDpRawIsRawDatapathOnly((CXPLAT_DATAPATH_RAW*)Xdp)) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
     if (Socket->Wildcard) {
         XDP_RULE Rules[5] = {0};
         uint8_t RulesSize = 0;
@@ -2262,4 +2273,160 @@ CxPlatDataPathRssConfigFree(
     )
 {
     CXPLAT_FREE(RssConfig, QUIC_POOL_DATAPATH_RSS_CONFIG);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+QUIC_STATUS
+CxPlatDpRawInsertXskInMap(
+    _In_ XDP_INTERFACE* Interface,
+    _In_ HANDLE XskMap
+    )
+{
+    for (uint32_t j = 0; j < Interface->QueueCount; j++) {
+        CXPLAT_QUEUE* Queue = &Interface->Queues[j];
+        if (Queue->RxXsk == NULL) {
+            continue;
+        }
+        HRESULT Hr = XdpMapInsert(XskMap, &j, &Queue->RxXsk);
+        if (FAILED(Hr)) {
+            QuicTraceLogVerbose(
+                XdpMapInsertFailed,
+                "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                Interface,
+                Interface->IfIndex,
+                j,
+                XskMap,
+                Queue->RxXsk,
+                Hr);
+            //
+            // On failure, best-effort removal of XSKs already inserted for this interface.
+            //
+            for (uint32_t k = 0; k < j; k++) {
+                if (Interface->Queues[k].RxXsk != NULL) {
+                    HRESULT DeleteHr = XdpMapDelete(XskMap, &k);
+                    if (FAILED(DeleteHr)) {
+                        QuicTraceLogVerbose(
+                            XdpMapDeleteFailed,
+                            "[ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                            Interface,
+                            Interface->IfIndex,
+                            k,
+                            XskMap,
+                            Interface->Queues[k].RxXsk,
+                            DeleteHr);
+                    }
+                }
+            }
+            return (QUIC_STATUS)Hr;
+        }
+    }
+    Interface->XskMap = XskMap;
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+void
+CxPlatDpRawRemoveXskFromMap(
+    _In_ XDP_INTERFACE* Interface
+    )
+{
+    if (Interface->XskMap == NULL) {
+        return;
+    }
+    for (uint32_t j = 0; j < Interface->QueueCount; j++) {
+        CXPLAT_QUEUE* Queue = &Interface->Queues[j];
+        if (Queue->RxXsk == NULL) {
+            continue;
+        }
+        HRESULT DeleteHr = XdpMapDelete(Interface->XskMap, &j);
+        if (FAILED(DeleteHr)) {
+            QuicTraceLogVerbose(
+                XdpMapDeleteFailed,
+                "[ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                Interface,
+                Interface->IfIndex,
+                j,
+                Interface->XskMap,
+                Queue->RxXsk,
+                DeleteHr);
+        }
+    }
+    Interface->XskMap = NULL;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDpRawApplyMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
+    _In_reads_(MapConfigCount) const CXPLAT_XDP_MAP_CONFIG* MapConfigs,
+    _In_ uint32_t MapConfigCount
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)RawDataPath;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+
+        HANDLE XskMap = NULL;
+        for (uint32_t i = 0; i < MapConfigCount; i++) {
+            if (MapConfigs[i].InterfaceIndex == Interface->IfIndex) {
+                XskMap = (HANDLE)MapConfigs[i].MapHandle;
+                break;
+            }
+        }
+
+        if (XskMap == NULL) {
+            continue;
+        }
+
+        Status = CxPlatDpRawInsertXskInMap(Interface, XskMap);
+        if (QUIC_FAILED(Status)) {
+            //
+            // On failure, best-effort removal of all XSKs on all interfaces.
+            //
+            CxPlatDpRawCleanupMapConfigs(RawDataPath);
+            goto Exit;
+        }
+        QuicTraceLogVerbose(
+            XdpMapModeConfigured,
+            "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+            Interface,
+            Interface->IfIndex,
+            XskMap);
+    }
+
+Exit:
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawCleanupMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)RawDataPath;
+
+    for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+        CxPlatDpRawRemoveXskFromMap(Interface);
+    }
+}
+
+uint32_t
+CxPlatDpRawGetTotalRuleCount(
+    _In_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    const XDP_DATAPATH* Xdp = (const XDP_DATAPATH*)RawDataPath;
+    uint32_t TotalRuleCount = 0;
+    for (const CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+        const XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+        TotalRuleCount += Interface->RuleCount;
+    }
+    return TotalRuleCount;
 }

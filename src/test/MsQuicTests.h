@@ -77,6 +77,9 @@ void QuicTestValidateConnection();
 void QuicTestValidateStream(const bool& Connect);
 void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestXdpMapConfigParam();
+#endif
 void QuicTestCommonParam();
 void QuicTestRegistrationParam();
 void QuicTestConfigurationParam();
@@ -86,6 +89,10 @@ void QuicTestTlsParam();
 void QuicTestTlsHandshakeInfo(const bool& EnableResumption);
 void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestValidateEncryptDecryptPerfCounters();
+void QuicTestConnQueueDelayStatistics();
+#endif
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_BLOB& Config);
@@ -357,6 +364,11 @@ QuicTestCustomServerCertValidationAfterShutdown();
 void
 QuicTestCustomClientCertValidationAfterShutdown();
 
+void
+QuicTestCustomTicketValidationAfterShutdown(
+    bool AcceptTicket
+    );
+
 struct ClientCertificateArgs {
     int Family;
     bool UseClientCertificate;
@@ -434,6 +446,14 @@ QuicTestShutdownDuringHandshake(
     const ShutdownDuringHandshakeArgs& Params
     );
 
+struct XdpMapModeArgs {
+    int Family;
+    uint16_t ServerPort;
+    uint16_t ClientPort;
+    bool UseCibir;
+};
+void QuicTestXdpMapModeHandshake(const XdpMapModeArgs& Params);
+
 //
 // Negative Handshake Tests
 //
@@ -454,6 +474,11 @@ QuicTestConnectBadAlpn(
 
 void
 QuicTestConnectBadSni(
+    const FamilyArgs& Params
+    );
+
+void
+QuicTestConnectIpSni(
     const FamilyArgs& Params
     );
 
@@ -566,6 +591,11 @@ QuicTestNatAddrRebind(
 
 void
 QuicTestPathValidationTimeout(
+    const FamilyArgs& Params
+    );
+
+void
+QuicTestPathValidationLastPathClose(
     const FamilyArgs& Params
     );
 

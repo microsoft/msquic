@@ -13,6 +13,15 @@
 #include <MsQuicTests.h>
 
 #include <array>
+#include <vector>
+
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#define XDP_API_VERSION 3
+#define XDP_INCLUDE_WINCOMMON
+#include <xdp/wincommon.h>
+#include <xdpapi.h>
+#include "XdpMapModeHelpers.h"
+#endif
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 #pragma message("Test compiled with datapath hooks enabled")
@@ -25,6 +34,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
+bool UseXdpMapMode = false;
 CXPLAT_WORKER_POOL* WorkerPool;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
@@ -123,7 +133,41 @@ public:
                 Settings.SetQtipEnabled(true);
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
-#endif
+#if defined(_WIN32)
+            if (UseXdpMapMode) {
+                //
+                // Discover DuoNic interfaces and create XSKMAPs.
+                //
+                auto IfIndices = DiscoverDuoNicInterfaces();
+                ASSERT_FALSE(IfIndices.empty());
+                XdpMapState.InterfaceCount = (uint32_t)IfIndices.size();
+                memcpy(XdpMapState.IfIndices, IfIndices.data(),
+                    sizeof(uint32_t) * IfIndices.size());
+                printf("XDP Map Mode: discovered %u DuoNic interface(s)\n",
+                    XdpMapState.InterfaceCount);
+
+                QUIC_XDP_MAP_CONFIG MapConfigs[XDP_MAP_MODE_MAX_INTERFACES];
+                for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+                    ASSERT_TRUE(SUCCEEDED(
+                        XdpMapCreate(&XdpMapState.XskMaps[i], XDP_MAP_TYPE_XSKMAP)));
+                    MapConfigs[i].InterfaceIndex = XdpMapState.IfIndices[i];
+                    MapConfigs[i].MapHandle = (QUIC_XDP_MAP_HANDLE)XdpMapState.XskMaps[i];
+                    printf("  IfIndex=%u, XskMap=%p\n",
+                        XdpMapState.IfIndices[i], XdpMapState.XskMaps[i]);
+                }
+
+                //
+                // Set the XDP map config before any registration is opened.
+                // This must happen before LazyInitComplete.
+                //
+                ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    XdpMapState.InterfaceCount * sizeof(QUIC_XDP_MAP_CONFIG),
+                    MapConfigs)));
+            }
+#endif // _WIN32
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
             //
             // Enable DSCP on the receive path. This is needed to test DSCP Send path.
             //
@@ -158,6 +202,16 @@ public:
             QuicTestUninitialize();
             delete MsQuic;
         }
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        if (UseXdpMapMode) {
+            for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+                if (XdpMapState.XskMaps[i]) {
+                    CloseHandle(XdpMapState.XskMaps[i]);
+                    XdpMapState.XskMaps[i] = nullptr;
+                }
+            }
+        }
+#endif
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatFreeSelfSignedCert(ClientCertParams);
 
@@ -289,6 +343,23 @@ TEST(ParameterValidation, ValidateGlobalParam) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(ParameterValidation, ValidateXdpMapConfigParam) {
+    //
+    // User-mode only: QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG is set-once before the
+    // library's lazy initialization. In kernel mode the test driver shares one
+    // MsQuicLib across all tests in the run, so earlier tests have already
+    // triggered lazy init and this test cannot exercise the success paths.
+    // This is a test harness limitation today.
+    //
+    if (TestingKernelMode) {
+        GTEST_SKIP() << "QuicTestXdpMapConfigParam is user-mode only.";
+    }
+    TestLogger Logger("QuicTestValidateXdpMapConfigParam");
+    QuicTestXdpMapConfigParam();
+}
+#endif
+
 TEST(ParameterValidation, ValidateCommonParam) {
     TestLogger Logger("QuicTestValidateCommonParam");
     if (TestingKernelMode) {
@@ -372,6 +443,26 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
         QuicTestGetPerfCounters();
     }
 }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
+    TestLogger Logger("QuicTestValidateEncryptDecryptPerfCounters");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateEncryptDecryptPerfCounters)));
+    } else {
+        QuicTestValidateEncryptDecryptPerfCounters();
+    }
+}
+
+TEST(ParameterValidation, ConnQueueDelayStatistics) {
+    TestLogger Logger("QuicTestConnQueueDelayStatistics");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnQueueDelayStatistics)));
+    } else {
+        QuicTestConnQueueDelayStatistics();
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
@@ -1346,7 +1437,31 @@ INSTANTIATE_TEST_SUITE_P(
     WithCustomCertificateValidationArgs,
     testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
 
-struct WithClientCertificateArgs : 
+struct WithAcceptTicket :
+    public testing::TestWithParam<bool> {
+};
+
+TEST_P(WithAcceptTicket, CustomTicketValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomTicketValidationAfterShutdown");
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomTicketValidationAfterShutdown), GetParam()));
+    } else {
+        QuicTestCustomTicketValidationAfterShutdown(GetParam());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithAcceptTicket,
+    testing::Values(true, false),
+    [](const testing::TestParamInfo<bool>& info) {
+        return info.param ? "Accept" : "Reject";
+    });
+
+struct WithClientCertificateArgs :
     public testing::TestWithParam<ClientCertificateArgs> {
 
     static ::std::vector<ClientCertificateArgs> Generate() {
@@ -1785,6 +1900,15 @@ TEST_P(WithFamilyArgs, BadSNI) {
     }
 }
 
+TEST_P(WithFamilyArgs, IpSNI) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectIpSni", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectIpSni), GetParam()));
+    } else {
+        QuicTestConnectIpSni(GetParam());
+    }
+}
+
 TEST_P(WithFamilyArgs, ServerRejected) {
     TestLoggerT<ParamType> Logger("QuicTestConnectServerRejected", GetParam());
     if (TestingKernelMode) {
@@ -1915,6 +2039,15 @@ TEST_P(WithFamilyArgs, PathValidationTimeout) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestPathValidationTimeout), GetParam()));
     } else {
         QuicTestPathValidationTimeout(GetParam());
+    }
+}
+
+TEST_P(WithFamilyArgs, PathValidationLastPathClose) {
+    TestLoggerT<ParamType> Logger("QuicTestPathValidationLastPathClose", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestPathValidationLastPathClose), GetParam()));
+    } else {
+        QuicTestPathValidationLastPathClose(GetParam());
     }
 }
 #endif
@@ -2710,8 +2843,6 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 TEST(Misc, StreamMultiReceive) {
     TestLogger Logger("StreamMultiReceive");
     if (TestingKernelMode) {
-        // TODO: Why?? This should be enabled.
-        GTEST_SKIP();
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamMultiReceive)));
     } else {
         QuicTestStreamMultiReceive();
@@ -3053,6 +3184,58 @@ INSTANTIATE_TEST_SUITE_P(
     WithFamilyArgs,
     ::testing::ValuesIn(WithFamilyArgs::Generate()));
 
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+//
+// XDP Map Mode tests. These only run when --xdpMapMode is passed.
+// Each test reserves its own ports (keeping OS sockets open to prevent
+// reuse), creates XDP programs for those ports, and tears them down.
+//
+
+struct WithXdpMapModeArgs : public ::testing::TestWithParam<XdpMapModeArgs> {
+
+    static ::std::vector<XdpMapModeArgs> Generate() {
+        ::std::vector<XdpMapModeArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool UseCibir : { false, true })
+            list.push_back({ Family, 0, 0, UseCibir });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const XdpMapModeArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.UseCibir ? "Cibir" : "NoCibir") << "/" <<
+        "ServerPort:" << (args.ServerPort) << "/" <<
+        "ClientPort:" << (args.ClientPort);
+}
+
+TEST_P(WithXdpMapModeArgs, Handshake) {
+
+    if (TestingKernelMode) {
+        GTEST_SKIP() << "QuicTestXdpMapModeHandshake doesn't apply to kernel mode.";
+    }
+
+    if (!UseXdpMapMode) {
+        GTEST_SKIP() << "QuicTestXdpMapModeHandshake: XDP Map Mode not enabled (use --xdpMapMode)";
+    }
+
+    auto Params = GetParam();
+    XdpMapModeRuleScope Scope(Params.UseCibir, UseQTIP);
+    Params.ClientPort = Scope.GetClientPort();
+    Params.ServerPort = Scope.GetServerPort();
+
+    TestLoggerT<ParamType> Logger("QuicTestXdpMapModeHandshake", Params);
+
+    QuicTestXdpMapModeHandshake(Params);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    XdpMapMode,
+    WithXdpMapModeArgs,
+    ::testing::ValuesIn(WithXdpMapModeArgs::Generate()));
+#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
+
 int main(int argc, char** argv) {
 #ifdef _WIN32
     //
@@ -3076,6 +3259,14 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
+        } else if (strcmp("--xdpMapMode", argv[i]) == 0) {
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            UseXdpMapMode = true;
+            UseDuoNic = true; // Map mode implies DuoNic
+#else
+            printf("XDP Map Mode is only supported on Windows with preview features.\n");
+            return -1;
+#endif
         } else if (strcmp("--useQTIP", argv[i]) == 0) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             UseQTIP = true;

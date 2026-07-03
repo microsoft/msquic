@@ -90,13 +90,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout msquic Repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           repository: microsoft/msquic
           ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
         with:
           dotnet-version: 10.0.x
 
@@ -169,6 +169,29 @@ jobs:
             type: deb
             pkg_arch: armhf
             prod_url: "https://packages.microsoft.com/ubuntu/24.04/prod/pool/main/libm/libmsquic"
+
+          # Ubuntu 26.04 (DEB)
+          - friendlyName: "Ubuntu 26.04 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "ubuntu:26.04"
+            type: deb
+            pkg_arch: amd64
+            prod_url: "https://packages.microsoft.com/ubuntu/26.04/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Ubuntu 26.04 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "ubuntu:26.04"
+            type: deb
+            pkg_arch: arm64
+            prod_url: "https://packages.microsoft.com/ubuntu/26.04/prod/pool/main/libm/libmsquic"
+          - friendlyName: "Ubuntu 26.04 arm32"
+            arch: arm
+            platform: "linux/arm/v7"
+            image: "ubuntu:26.04"
+            type: deb
+            pkg_arch: armhf
+            prod_url: "https://packages.microsoft.com/ubuntu/26.04/prod/pool/main/libm/libmsquic"
 
           # Debian 12 (DEB)
           - friendlyName: "Debian 12 x64"
@@ -342,6 +365,24 @@ jobs:
             prod_url: "https://packages.microsoft.com/fedora/43/prod/Packages/l"
             testing_url: "https://packages.microsoft.com/fedora/43/testing/Packages/l"
 
+          # Fedora 44 (RPM)
+          - friendlyName: "Fedora 44 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "fedora:44"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/fedora/44/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/44/testing/Packages/l"
+          - friendlyName: "Fedora 44 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "fedora:44"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/fedora/44/prod/Packages/l"
+            testing_url: "https://packages.microsoft.com/fedora/44/testing/Packages/l"
+
           # openSUSE Leap 15.6 (RPM) - No arm32 support
           - friendlyName: "openSUSE 15.6 x64"
             arch: x64
@@ -434,11 +475,11 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
       - name: Set up QEMU
         if: matrix.arch != 'x64'
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3
 
       - name: Download Test Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c

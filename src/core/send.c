@@ -663,11 +663,20 @@ QuicSendWriteFrames(
             Builder->WrittenConnectionCloseFrame = TRUE;
 
             //
-            // We potentially send the close frame on multiple protection levels.
-            // We send in increasing encryption level so clear the flag only once
-            // we send on the current protection level.
+            // We potentially send the close frame on multiple protection
+            // levels, in increasing encryption order, so clear the flag only
+            // once we send on the current protection level. CONNECTION_CLOSE
+            // is not allowed in 0-RTT packets (RFC 9000 §12.5), so when
+            // WriteKey is 0-RTT, the frame just got written at Initial and
+            // that is the only level it can ever go out at.
             //
-            if (QuicConnIsQMux(Connection) || Builder->Key->Type == Connection->Crypto.TlsState.WriteKey) {
+            if (QuicConnIsQMux(Connection) || 
+                Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT ||
+                Builder->Key->Type == Connection->Crypto.TlsState.WriteKey) {
+                CXPLAT_DBG_ASSERT(
+                   QuicConnIsQMux(Connection) || 
+                   Connection->Crypto.TlsState.WriteKey != QUIC_PACKET_KEY_0_RTT ||
+                   Builder->Key->Type == QUIC_PACKET_KEY_INITIAL);
                 Send->SendFlags &= ~(QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
             }
 
@@ -1336,8 +1345,11 @@ QuicSendFlush(
     if (!QuicConnIsQMux(Connection) && 
         Connection->Settings.DestCidUpdateIdleTimeoutMs != 0 &&
         Send->LastFlushTimeValid &&
-        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs)) {
-        (void)QuicConnRetireCurrentDestCid(Connection, Path);
+        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs) &&
+        !Path->InitiatedCidUpdate) {
+        if (QuicConnRetireCurrentDestCid(Connection, Path)) {
+            Path->InitiatedCidUpdate = TRUE;
+        }
     }
 
     //

@@ -40,12 +40,7 @@ jobs:
     name: Test
     steps:
     - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-    - name: Install Perl
-      if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@9f8c263975569ff3b4e510cb1f8813115749e146
-      with:
-        perl-version: '5.34'
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
     - name: Install NASM
       if: runner.os == 'Windows'
       uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
@@ -54,7 +49,7 @@ jobs:
       shell: pwsh
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf ${{ matrix.vec.os == 'windows-2022' && '-Generator "Visual Studio 17 2022"' || '' }}
     - name: Download Tests
       shell: pwsh
       run: |

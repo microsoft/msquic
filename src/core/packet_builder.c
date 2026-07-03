@@ -370,6 +370,19 @@ QuicPacketBuilderPrepare(
     }
 
     if (NewQuicPacket) {
+        //
+        // Per RFC 9001 s4.9.1, a client MUST discard Initial keys when it first
+        // sends a Handshake packet. It must be done on ANY Handshake packet, to
+        // ensure the congestion control state is cleared and Initial bytes in flight
+        // are not limiting Handshake packets.
+        //
+        if (QuicConnIsClient(Connection) && NewPacketKeyType == QUIC_PACKET_KEY_HANDSHAKE) {
+            QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
+            //
+            // Ensure we don't keep a dangling pointer to the freed INITIAL keys.
+            //
+            Builder->Key = NULL;
+        }
 
         //
         // Initialize the new QUIC packet state.
@@ -1024,16 +1037,20 @@ QuicPacketBuilderFinalize(
         uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
         QuicCryptoCombineIvAndPacketNumber(Builder->Key->Iv, (uint8_t*) &Builder->Metadata->PacketNumber, Iv);
 
-        QUIC_STATUS Status;
-        if (QUIC_FAILED(
-            Status =
+        uint64_t EncryptStart = CxPlatTimeUs64();
+        QUIC_STATUS Status =
             CxPlatEncrypt(
                 Builder->Key->PacketKey,
                 Iv,
                 Builder->HeaderLength,
                 Header,
                 PayloadLength,
-                Payload))) {
+                Payload);
+        QuicPerfCounterAdd(
+            Connection->Partition,
+            QUIC_PERF_COUNTER_ENCRYPT_DURATION_US,
+            (int64_t)CxPlatTimeDiff64(EncryptStart, CxPlatTimeUs64()));
+        if (QUIC_FAILED(Status)) {
             QuicConnFatalError(Connection, Status, "Encryption failure");
             goto Exit;
         }
@@ -1158,17 +1175,6 @@ QuicPacketBuilderFinalize(
         &Connection->LossDetection,
         Builder->Path,
         Builder->Metadata);
-
-    //
-    // Per RFC 9001 s4.9.1, a client MUST discard Initial keys when it first
-    // sends a Handshake packet. It must be done on ANY Handshake packet, to
-    // ensure the congestion control state is cleared and Initial bytes in flight
-    // are not limiting Handshake packets.
-    //
-    if (QuicConnIsClient(Connection) &&
-        Builder->Key->Type == QUIC_PACKET_KEY_HANDSHAKE) {
-        QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
-    }
 
     Builder->Metadata->FrameCount = 0;
 

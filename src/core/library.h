@@ -204,6 +204,14 @@ typedef struct QUIC_LIBRARY {
     QUIC_GLOBAL_EXECUTION_CONFIG* ExecutionConfig;
 
     //
+    // Optional XDP map configurations.
+    // Set via QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG before any registration.
+    // May be updated multiple times before the first registration is opened.
+    //
+    const CXPLAT_XDP_MAP_CONFIG* XdpMapConfigs;
+    uint32_t XdpMapConfigCount;
+
+    //
     // Datapath instance for the library.
     //
     CXPLAT_DATAPATH* Datapath;
@@ -530,6 +538,7 @@ QuicLibrarySetGlobalParam(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicLibraryGetGlobalParam(
     _In_ uint32_t Param,

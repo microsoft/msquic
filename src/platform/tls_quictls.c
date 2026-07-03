@@ -1866,18 +1866,20 @@ CxPlatTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
-            if (TlsContext->SNI == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "SNI",
-                    ServerNameLength + 1);
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                goto Exit;
-            }
+            if (!CxPlatIsIpLiteral(Config->ServerName)) {
+                TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
+                if (TlsContext->SNI == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "SNI",
+                        ServerNameLength + 1);
+                    Status = QUIC_STATUS_OUT_OF_MEMORY;
+                    goto Exit;
+                }
 
-            memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
+                memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
+            }
         }
     }
 

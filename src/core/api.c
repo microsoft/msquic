@@ -566,6 +566,7 @@ MsQuicConnectionStart(
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;
+    Oper->API_CALL.Context->CONN_START.Flags = QUIC_CONN_START_FLAG_NONE;
     ServerNameCopy = NULL;
 
     //

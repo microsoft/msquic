@@ -489,6 +489,21 @@ QuicAddrFromString(
         QuicAddr6FromString(AddrStr, Addr);
 }
 
+typedef int QUIC_XDP_MAP_HANDLE;
+
+QUIC_INLINE
+BOOLEAN
+CxPlatIsIpLiteral(
+    _In_z_ const char* AddrStr
+    )
+{
+    IN_ADDR Ipv4Addr = {0};
+    IN6_ADDR Ipv6Addr = {0};
+    return
+        inet_pton(AF_INET, AddrStr, &Ipv4Addr) == 1 ||
+        inet_pton(AF_INET6, AddrStr, &Ipv6Addr) == 1;
+}
+
 //
 // Represents an IP address and (optionally) port number as a string.
 //

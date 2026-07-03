@@ -70,6 +70,9 @@ This script runs the MsQuic tests.
 .Parameter DuoNic
     Uses DuoNic instead of loopback (DuoNic must already be installed via 'prepare-machine.ps1 -InstallDuoNic').
 
+.Parameter XdpMapMode
+    Uses XDP map mode with DuoNic (Windows user-mode only, requires XDP + DuoNic).
+
 .Parameter NumIterations
     Number of times to run this particular command. Catches tricky edge cases due to random nature of networks.
 
@@ -95,7 +98,7 @@ This script runs the MsQuic tests.
     test.ps1 -Filter ParameterValidation* -NumIterations 10
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 param (
     [Parameter(Mandatory = $false)]
@@ -179,7 +182,10 @@ param (
     [switch]$DuoNic = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false,
+    [switch]$XdpMapMode = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$UseXdp = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$UseQtip = $false,
@@ -230,8 +236,14 @@ $Tls = $BuildConfig.Tls
 $Arch = $BuildConfig.Arch
 $RootArtifactDir = $BuildConfig.ArtifactsDir
 
+if ($XdpMapMode) {
+    if ([string]::IsNullOrEmpty($UseXdp)) {
+        Write-Error "-XdpMapMode requires -UseXdp to specify an XDP version (e.g. 'xdp-prerelease')."
+    }
+}
+
 if ($UseXdp) {
-    # Helper for XDP usage
+    # XDP usage (and map mode) implies DuoNic.
     $DuoNic = $true
 }
 
@@ -297,6 +309,9 @@ $TestArguments =  "-IsolationMode $IsolationMode -PfxPath $PfxFile"
 
 if ($DuoNic) {
     $TestArguments += " -DuoNic"
+}
+if ($XdpMapMode) {
+    $TestArguments += " -XdpMapMode"
 }
 if ($Kernel) {
     $TestArguments += " -Kernel $KernelPath"

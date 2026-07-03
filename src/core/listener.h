@@ -311,3 +311,12 @@ BOOLEAN
 QuicListenerDrainOperations(
     _In_ QUIC_LISTENER* Listener
     );
+
+//
+// Stops the listener asynchronously.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerStopAsync(
+    _In_ QUIC_LISTENER* Listener
+    );

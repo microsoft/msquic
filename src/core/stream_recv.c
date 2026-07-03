@@ -805,12 +805,9 @@ QuicStreamOnBytesDelivered(
 
         //
         // Limit stream FC window growth by the connection FC window size.
-        // When using app-owned buffers, skip this: the virtual buffer length is entirely based
-        // on the amount of buffer space provided by the app.
         //
         if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
             Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
-
             uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
             if (CxPlatTimeDiff64(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
@@ -834,15 +831,18 @@ QuicStreamOnBytesDelivered(
                 // low.
                 //
 
+                uint64_t NewLength = (uint64_t)Stream->RecvBuffer.VirtualBufferLength * 2;
+                NewLength = CXPLAT_MIN(NewLength, UINT32_MAX);
+
                 QuicRecvBufferIncreaseVirtualBufferLength(
                     &Stream->RecvBuffer,
-                    Stream->RecvBuffer.VirtualBufferLength * 2);
+                    (uint32_t)NewLength);
 
                 QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
                     "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
-                    Stream->RecvBuffer.VirtualBufferLength * 2,
+                    (uint32_t)NewLength,
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,
                     Stream->RecvWindowLastUpdate);

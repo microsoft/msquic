@@ -14,12 +14,6 @@ Abstract:
 #include "listener.c.clog.h"
 #endif
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicListenerStopAsync(
-    _In_ QUIC_LISTENER* Listener
-    );
-
 BOOLEAN
 QuicListenerIsOnWorker(
     _In_ QUIC_LISTENER* Listener
