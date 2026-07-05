@@ -46,10 +46,10 @@ QuicPathIDSetGetPathIDs(
     uint8_t Count = 0;
     CxPlatDispatchRwLockAcquireExclusive(&PathIDSet->RwLock, PrevIrql);
     if (!PathIDSet->Flags.HashTableInitialized) {
-        if (Count < *PathIDCount) {
+        if (Count < *PathIDCount && PathIDSet->SINGLE.PathID != NULL) {
             QuicPathIDAddRef(PathIDSet->SINGLE.PathID, QUIC_PATHID_REF_LOOKUP);
             PathIDs[Count++] = PathIDSet->SINGLE.PathID;
-        } else {
+        } else if (PathIDSet->SINGLE.PathID != NULL) {
             Within = FALSE;
         }
         *PathIDCount = Count;
