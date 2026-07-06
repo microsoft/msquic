@@ -604,7 +604,7 @@ BbrCongestionControlGetTargetCwnd(
 
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
 
-    if (!BandwidthEst || Bbr->MinRtt == UINT32_MAX) {
+    if (!BandwidthEst || !Bbr->MinRttTimestampValid) {
         return (uint64_t)(Gain) * Bbr->InitialCongestionWindow / GAIN_UNIT;
     }
 
@@ -638,7 +638,7 @@ BbrCongestionControlGetSendAllowance(
     } else if (
         !TimeSinceLastSendValid ||
         !Connection->Settings.PacingEnabled ||
-        Bbr->MinRtt == UINT32_MAX ||
+        !Bbr->MinRttTimestampValid ||
         Bbr->MinRtt < QUIC_SEND_PACING_INTERVAL) {
         //
         // We're not in the necessary state to pace.
@@ -881,6 +881,7 @@ BbrCongestionControlOnDataAcknowledged(
 
     if (Bbr->BbrState != BBR_STATE_PROBE_RTT &&
         !Bbr->ExitingQuiescence &&
+        Bbr->MinRttTimestampValid &&
         Bbr->RttSampleExpired) {
         BbrCongestionControlTransitToProbeRtt(Cc, AckEvent->LargestSentPacketNumber);
     }
