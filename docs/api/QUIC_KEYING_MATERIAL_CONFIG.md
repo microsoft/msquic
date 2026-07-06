@@ -3,7 +3,7 @@ QUIC_KEYING_MATERIAL_CONFIG structure
 
 The structure used to configure a call to [ConnectionExportKeyingMaterial](ConnectionExportKeyingMaterial.md).
 
-> **Note** - This is a preview structure and is only available when the library is built with `QUIC_API_ENABLE_PREVIEW_FEATURES`. It is available from v2.6.
+> **Note** - This API is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
 
 # Syntax
 

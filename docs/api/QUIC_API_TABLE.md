@@ -47,10 +47,29 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
 
+    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
+    QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
+
+    QUIC_CONNECTION_OPEN_IN_PARTITION_FN
+                                        ConnectionOpenInPartition;   // Available from v2.5
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
+                                        StreamProvideReceiveBuffers; // Available from v2.5
+
+    QUIC_CONN_POOL_CREATE_FN            ConnectionPoolCreate;        // Available from v2.5
+
+#ifndef _KERNEL_MODE
+#define QUIC_API_EXECUTION_CONTEXT
+    QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
+    QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
+    QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
+#endif // _KERNEL_MODE
+    QUIC_REGISTRATION_CLOSE2_FN         RegistrationClose2; // Available from v2.6
+
     QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN
                                         ConnectionExportKeyingMaterial; // Available from v2.6
-#endif
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;
 ```
@@ -177,9 +196,41 @@ See [StreamReceiveSetEnabled](StreamReceiveSetEnabled.md)
 
 See [DatagramSend](DatagramSend.md)
 
+`ConnectionResumptionTicketValidationComplete`
+
+See [ConnectionResumptionTicketValidationComplete](ConnectionResumptionTicketValidationComplete.md)
+
+`ConnectionCertificateValidationComplete`
+
+See [ConnectionCertificateValidationComplete](ConnectionCertificateValidationComplete.md)
+
+`ConnectionOpenInPartition`
+
+See [ConnectionOpenInPartition](ConnectionOpenInPartition.md)
+
+`StreamProvideReceiveBuffers`
+
+See (Preview) [StreamProvideReceiveBuffers](StreamProvideReceiveBuffers.md)
+
+`ConnectionPoolCreate`
+
+See (Preview) [ConnectionPoolCreate](ConnectionPoolCreate.md)
+
+`ExecutionCreate`
+
+See (Preview) [ExecutionCreate](ExecutionCreate.md)
+
+`ExecutionDelete`
+
+See (Preview) [ExecutionDelete](ExecutionDelete.md)
+
+`ExecutionPoll`
+
+See (Preview) [ExecutionPoll](ExecutionPoll.md)
+
 `ConnectionExportKeyingMaterial`
 
-See [ConnectionExportKeyingMaterial](ConnectionExportKeyingMaterial.md)
+See (Preview) [ConnectionExportKeyingMaterial](ConnectionExportKeyingMaterial.md)
 
 # See Also
 
