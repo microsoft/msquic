@@ -47,6 +47,11 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN
+                                        ConnectionExportKeyingMaterial; // Available from v2.6
+#endif
+
 } QUIC_API_TABLE;
 ```
 
@@ -171,6 +176,10 @@ See [StreamReceiveSetEnabled](StreamReceiveSetEnabled.md)
 `DatagramSend`
 
 See [DatagramSend](DatagramSend.md)
+
+`ConnectionExportKeyingMaterial`
+
+See [ConnectionExportKeyingMaterial](ConnectionExportKeyingMaterial.md)
 
 # See Also
 
