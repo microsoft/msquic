@@ -958,6 +958,10 @@ QuicStreamFrameSkip(
         QUIC_STOP_SENDING_EX Frame;
         return QuicStopSendingFrameDecode(BufferLength, Buffer, Offset, &Frame);
     }
+    case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+        QUIC_RELIABLE_RESET_STREAM_EX Frame;
+        return QuicReliableResetFrameDecode(BufferLength, Buffer, Offset, &Frame);
+    }
     default: { // QUIC_FRAME_STREAM*
         QUIC_STREAM_EX Frame;
         return QuicStreamFrameDecode(FrameType, BufferLength, Buffer, Offset, &Frame);
