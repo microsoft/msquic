@@ -247,6 +247,7 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 //
 #define QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE    0x1000  // 4096
 
+#define QX_DEFAULT_SEND_BUFFER_SIZE             (0x4000 - 2) // 16382
 //
 // The default connection flow control window value, in bytes.
 //
@@ -636,6 +637,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED                 0x01000000
 #define QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED                 0x02000000
 #define QUIC_TP_FLAG_TIMESTAMP_SHIFT                        24
+#define QX_TP_FLAG_MAX_RECORD_SIZE                          0x20000000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
@@ -651,6 +653,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT          2
 #define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN              2
 
+#define QX_TP_MAX_RECORD_SIZE_DEFAULT                      (0x4000 - 2)
 //
 // Max allowed value of a MAX_STREAMS frame or transport parameter.
 // Any larger value would allow a max stream ID that cannot be expressed

@@ -6713,10 +6713,13 @@ pub struct QUIC_API_TABLE {
     pub ExecutionDelete: QUIC_EXECUTION_DELETE_FN,
     pub ExecutionPoll: QUIC_EXECUTION_POLL_FN,
     pub RegistrationClose2: QUIC_REGISTRATION_CLOSE2_FN,
+    pub ConnectionQmuxOpen: QUIC_CONNECTION_OPEN_FN,
+    pub ConnectionQmuxOpenInPartition: QUIC_CONNECTION_OPEN_IN_PARTITION_FN,
+    pub ListenerQmuxOpen: QUIC_LISTENER_OPEN_FN,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 304usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 328usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
@@ -6798,6 +6801,12 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionPoll) - 288usize];
     ["Offset of field: QUIC_API_TABLE::RegistrationClose2"]
         [::std::mem::offset_of!(QUIC_API_TABLE, RegistrationClose2) - 296usize];
+    ["Offset of field: QUIC_API_TABLE::ConnectionQmuxOpen"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionQmuxOpen) - 304usize];
+    ["Offset of field: QUIC_API_TABLE::ConnectionQmuxOpenInPartition"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionQmuxOpenInPartition) - 312usize];
+    ["Offset of field: QUIC_API_TABLE::ListenerQmuxOpen"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ListenerQmuxOpen) - 320usize];
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 459749;

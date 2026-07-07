@@ -1676,6 +1676,122 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogReliableResetStream,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FrameLogQxTransportParametersInvalid
+// [%c][%cX][%llu]   QX TRANSPORT_PARAMETERS [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogQxTransportParametersInvalid,
+                "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogQxTransportParametersInvalid,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogQxTransportParameters
+// [%c][%cX][%llu]   QX TRANSPORT_PARAMETERS
+// QuicTraceLogVerbose(
+            FrameLogQxTransportParameters,
+            "[%c][%cX][%llu]   QX TRANSPORT_PARAMETERS",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogQxTransportParameters,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogQxPingInvalid
+// [%c][%cX][%llu]   QX PING [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogQxPingInvalid,
+                "[%c][%cX][%llu]   QX PING [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogQxPingInvalid,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogQxPing
+// [%c][%cX][%llu]   QX PING %hu %llu
+// QuicTraceLogVerbose(
+            FrameLogQxPing,
+            "[%c][%cX][%llu]   QX PING %hu %llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.IsResponse,
+            Frame.SequenceNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.IsResponse = arg5
+// arg6 = arg6 = Frame.SequenceNumber = arg6
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogQxPing,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4,
+        unsigned short, arg5,
+        unsigned long long, arg6), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(unsigned short, arg5, arg5)
+        ctf_integer(uint64_t, arg6, arg6)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(

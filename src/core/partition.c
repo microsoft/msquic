@@ -34,6 +34,7 @@ QuicPartitionInitialize(
     Partition->Index = Index;
     Partition->Processor = Processor;
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_CONNECTION), QUIC_POOL_CONN, &Partition->ConnectionPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_QMUX), QUIC_POOL_CONN_QMUX, &Partition->ConnectionQMuxPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_TRANSPORT_PARAMETERS), QUIC_POOL_TP, &Partition->TransportParamPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_PACKET_SPACE), QUIC_POOL_TP, &Partition->PacketSpacePool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Partition->StreamPool);
@@ -59,6 +60,7 @@ QuicPartitionUninitialize(
         CxPlatKeyFree(Partition->StatelessRetryKeys[i].Key);
     }
     CxPlatPoolUninitialize(&Partition->ConnectionPool);
+    CxPlatPoolUninitialize(&Partition->ConnectionQMuxPool);
     CxPlatPoolUninitialize(&Partition->TransportParamPool);
     CxPlatPoolUninitialize(&Partition->PacketSpacePool);
     CxPlatPoolUninitialize(&Partition->StreamPool);

@@ -545,6 +545,7 @@ typedef struct _SEC_BUFFER_WORKSPACE {
 
 typedef struct CXPLAT_TLS {
 
+    BOOLEAN IsQMux : 1;
     BOOLEAN IsServer : 1;
     BOOLEAN GeneratedFirstPayload : 1;
     BOOLEAN PeerTransportParamsReceived : 1;
@@ -611,6 +612,16 @@ typedef struct CXPLAT_TLS {
     // Only non-null when the connection is configured to log these.
     //
     QUIC_TLS_SECRETS* TlsSecrets;
+
+    _Field_size_bytes_(InputBufferAllocLength)
+    uint8_t* InputBuffer;
+    uint32_t InputBufferLength;
+    uint32_t InputBufferAllocLength;
+
+    _Field_size_bytes_(OutputBufferAllocLength)
+    uint8_t* OutputBuffer;
+    uint32_t OutputBufferLength;
+    uint32_t OutputBufferAllocLength;
 
 } CXPLAT_TLS;
 
@@ -1541,7 +1552,11 @@ CxPlatTlsInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_TLS* TlsContext = NULL;
 
-    CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+    if (!Config->IsQMux) {
+        CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+    } else {
+        CxPlatTlsTPHeaderSize = 0;
+    }
 
     if (Config->IsServer != !(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         QuicTraceEvent(
@@ -1568,6 +1583,7 @@ CxPlatTlsInitialize(
     RtlZeroMemory(TlsContext, sizeof(*TlsContext));
     SecInvalidateHandle(&TlsContext->SchannelContext);
 
+    TlsContext->IsQMux = Config->IsQMux;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->Connection = Config->Connection;
     TlsContext->HkdfLabels = Config->HkdfLabels;
@@ -1591,13 +1607,15 @@ CxPlatTlsInitialize(
     AlpnList->ProtocolListSize = Config->AlpnBufferLength;
     memcpy(&AlpnList->ProtocolList, Config->AlpnBuffer, Config->AlpnBufferLength);
 
-    TlsContext->TransportParams = (SEND_GENERIC_TLS_EXTENSION*)Config->LocalTPBuffer;
-    TlsContext->TransportParams->ExtensionType = Config->TPType;
-    TlsContext->TransportParams->HandshakeType =
-        Config->IsServer ? TlsHandshake_EncryptedExtensions : TlsHandshake_ClientHello;
-    TlsContext->TransportParams->Flags = 0;
-    TlsContext->TransportParams->BufferSize =
-        (uint16_t)(Config->LocalTPLength - FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer));
+    if (!Config->IsQMux) {
+        TlsContext->TransportParams = (SEND_GENERIC_TLS_EXTENSION*)Config->LocalTPBuffer;
+        TlsContext->TransportParams->ExtensionType = Config->TPType;
+        TlsContext->TransportParams->HandshakeType =
+            Config->IsServer ? TlsHandshake_EncryptedExtensions : TlsHandshake_ClientHello;
+        TlsContext->TransportParams->Flags = 0;
+        TlsContext->TransportParams->BufferSize =
+            (uint16_t)(Config->LocalTPLength - FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer));
+    }
 
     State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
     if (Config->ResumptionTicketBuffer != NULL) {
@@ -1664,6 +1682,12 @@ CxPlatTlsUninitialize(
             CXPLAT_FREE(TlsContext->PeerTransportParams, QUIC_POOL_TLS_TMP_TP);
             TlsContext->PeerTransportParams = NULL;
             TlsContext->PeerTransportParamsLength = 0;
+        }
+        if (TlsContext->InputBuffer != NULL) {
+            CXPLAT_FREE(TlsContext->InputBuffer, QUIC_POOL_TLS_BUFFER);
+            TlsContext->InputBuffer = NULL;
+            TlsContext->InputBufferLength = 0;
+            TlsContext->InputBufferAllocLength = 0;
         }
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
@@ -2892,6 +2916,1235 @@ CxPlatTlsProcessData(
 Error:
 
     return Result;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsHandshake(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
+    _In_reads_bytes_(*InputBufferLength)
+        const uint8_t * InputBuffer,
+    _Inout_ uint32_t * InputBufferLength,
+    _Inout_ QUIC_BUFFER* OutputBuffers,
+    _Inout_ uint32_t OutputBuffersCount,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
+    )
+{
+#ifdef _KERNEL_MODE
+    UNREFERENCED_PARAMETER(DataType);
+    UNREFERENCED_PARAMETER(InputBuffer);
+    UNREFERENCED_PARAMETER(InputBufferLength);
+    UNREFERENCED_PARAMETER(OutputBuffers);
+    UNREFERENCED_PARAMETER(OutputBuffersCount);
+    UNREFERENCED_PARAMETER(State);
+
+    QuicTraceEvent(
+        TlsError,
+        "[ tls][%p] ERROR, %s.",
+        TlsContext->Connection,
+        "Handshake not supported in kernel mode");
+    return CXPLAT_TLS_RESULT_ERROR;
+#else
+    if (DataType == CXPLAT_TLS_TICKET_DATA) {
+        QuicTraceLogConnVerbose(
+            SchannelIgnoringTicket,
+            TlsContext->Connection,
+            "Ignoring %u ticket bytes",
+            *InputBufferLength);
+        return CXPLAT_TLS_RESULT_ERROR;
+    }
+
+    SEC_WCHAR* TargetServerName = NULL;
+
+    SecBuffer* InSecBuffers = TlsContext->Workspace.InSecBuffers;
+    SecBuffer* OutSecBuffers = TlsContext->Workspace.OutSecBuffers;
+
+    SecBufferDesc InSecBufferDesc;
+    InSecBufferDesc.ulVersion = SECBUFFER_VERSION;
+    InSecBufferDesc.pBuffers = InSecBuffers;
+    InSecBufferDesc.cBuffers = 0;
+
+    SecBufferDesc OutSecBufferDesc;
+    OutSecBufferDesc.ulVersion = SECBUFFER_VERSION;
+    OutSecBufferDesc.pBuffers = OutSecBuffers;
+    OutSecBufferDesc.cBuffers = 0;
+
+    uint8_t AlertBufferRaw[2];
+
+    if (*InputBufferLength == 0) {
+
+        //
+        // If the input length is zero, then we are initializing the client
+        // side, and have a few special differences in this code path.
+        //
+        CXPLAT_DBG_ASSERT(TlsContext->IsServer == FALSE);
+
+        if (TlsContext->SNI != NULL) {
+            QUIC_STATUS Status = CxPlatUtf8ToWideChar(TlsContext->SNI, QUIC_POOL_TLS_SNI, &TargetServerName);
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    Status,
+                    "Convert SNI to unicode");
+                return CXPLAT_TLS_RESULT_ERROR;
+            }
+        }
+
+        //
+        // The first (input) secbuffer holds the ALPN for client initials.
+        //
+        InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_APPLICATION_PROTOCOLS;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->AppProtocolsSize;
+        InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->ApplicationProtocols;
+        InSecBufferDesc.cBuffers++;
+
+    } else {
+
+        //
+        // The first (input) secbuffer holds the received TLS data.
+        //
+        InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_TOKEN;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = *InputBufferLength;
+        InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = (void*)InputBuffer;
+        InSecBufferDesc.cBuffers++;
+    }
+
+    //
+    // More (input) secbuffers to allow Schannel to signal to if any data is
+    // extra or missing.
+    // N.B. These must always immediately follow the SECBUFFER_TOKEN. Nothing
+    // is allowed to be before them.
+    //
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = 0;
+    InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = NULL;
+    InSecBufferDesc.cBuffers++;
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = 0;
+    InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = NULL;
+    InSecBufferDesc.cBuffers++;
+
+    //
+    // If this is the first server call to ASC, populate the ALPN extension.
+    //
+    if (TlsContext->IsServer && !TlsContext->GeneratedFirstPayload) {
+        //
+        // The last (input) secbuffer contains the ALPN on server.
+        //
+        InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_APPLICATION_PROTOCOLS;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->AppProtocolsSize;
+        InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->ApplicationProtocols;
+        InSecBufferDesc.cBuffers++;
+    }
+
+    //
+    // The first (output) secbuffer is the buffer for Schannel to write any
+    // TLS payload to send back out.
+    //
+    for (uint32_t i = 0; i < OutputBuffersCount; ++i) {
+        if (OutputBuffers[i].Length == 0 || OutputBuffers[i].Buffer == NULL) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Invalid output buffer");
+            return CXPLAT_TLS_RESULT_ERROR;
+        }
+        OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_TOKEN;
+        OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = OutputBuffers[i].Length;
+        OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = OutputBuffers[i].Buffer;
+        OutSecBufferDesc.cBuffers++;
+    }
+
+    //
+    // Another (output) secbuffer is for any TLS alerts.
+    //
+    OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_ALERT;
+    OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = sizeof(AlertBufferRaw);
+    OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = AlertBufferRaw;
+    OutSecBufferDesc.cBuffers++;
+
+    //
+    // Four more output secbuffers for any traffic secrets generated.
+    //
+    for (uint8_t i = 0; i < SEC_TRAFFIC_SECRETS_COUNT; ++i) {
+        OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_TRAFFIC_SECRETS;
+        OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = MAX_SEC_TRAFFIC_SECRETS_SIZE;
+        OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer =
+            TlsContext->Workspace.OutTrafSecBuf + i * MAX_SEC_TRAFFIC_SECRETS_SIZE;
+        OutSecBufferDesc.cBuffers++;
+    }
+
+    CXPLAT_STATIC_ASSERT(ISC_REQ_SEQUENCE_DETECT == ASC_REQ_SEQUENCE_DETECT, "These are assumed to match");
+    CXPLAT_STATIC_ASSERT(ISC_REQ_CONFIDENTIALITY == ASC_REQ_CONFIDENTIALITY, "These are assumed to match");
+    ULONG ContextReq = ISC_REQ_SEQUENCE_DETECT | ISC_REQ_CONFIDENTIALITY;
+    if (TlsContext->IsServer) {
+        ContextReq |= ASC_REQ_EXTENDED_ERROR | ASC_REQ_STREAM |
+            ASC_REQ_SESSION_TICKET; // Always use session tickets for resumption
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            ContextReq |= ASC_REQ_MUTUAL_AUTH;
+        }
+    } else {
+        ContextReq |= ISC_REQ_EXTENDED_ERROR | ISC_REQ_STREAM;
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+            ContextReq |= ISC_REQ_USE_SUPPLIED_CREDS;
+        }
+    }
+    ULONG ContextAttr;
+    SECURITY_STATUS SecStatus;
+
+    if (TlsContext->IsServer) {
+        CXPLAT_DBG_ASSERT(!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
+
+        SecStatus =
+            AcceptSecurityContext(
+                &TlsContext->SecConfig->CredentialHandle,
+                SecIsValidHandle(&TlsContext->SchannelContext) ? &TlsContext->SchannelContext : NULL,
+                &InSecBufferDesc,
+                ContextReq,
+                0,
+                &(TlsContext->SchannelContext),
+                &OutSecBufferDesc,
+                &ContextAttr,
+                NULL); // FYI, used for client authentication certificate.
+
+    } else {
+        CXPLAT_DBG_ASSERT(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT);
+
+        SecStatus =
+            InitializeSecurityContextW(
+                &TlsContext->SecConfig->CredentialHandle,
+                SecIsValidHandle(&TlsContext->SchannelContext) ? &TlsContext->SchannelContext : NULL,
+                TargetServerName, // Only set to non-null on client initial.
+                ContextReq,
+                0,
+                SECURITY_NATIVE_DREP,
+                &InSecBufferDesc,
+                0,
+                &TlsContext->SchannelContext,
+                &OutSecBufferDesc,
+                &ContextAttr,
+                NULL);
+    }
+
+    CXPLAT_TLS_RESULT_FLAGS Result = 0;
+
+    SecBuffer* ExtraBuffer = NULL;
+    SecBuffer* MissingBuffer = NULL;
+    for (uint32_t i = 0; i < InSecBufferDesc.cBuffers; ++i) {
+        if (ExtraBuffer == NULL &&
+            InSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_EXTRA) {
+            ExtraBuffer = &InSecBufferDesc.pBuffers[i];
+        } else if (MissingBuffer == NULL &&
+            InSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_MISSING) {
+            MissingBuffer = &InSecBufferDesc.pBuffers[i];
+        }
+    }
+
+    SecBuffer* OutputTokenBuffer = NULL;
+    SecBuffer* AlertBuffer = NULL;
+    SEC_TRAFFIC_SECRETS* NewPeerTrafficSecrets[2] = {0};
+    SEC_TRAFFIC_SECRETS* NewOwnTrafficSecrets[2] = {0};
+    uint8_t NewPeerTrafficSecretsCount = 0;
+    uint8_t NewOwnTrafficSecretsCount = 0;
+
+    for (uint32_t i = 0; i < OutSecBufferDesc.cBuffers; ++i) {
+        if (OutputTokenBuffer == NULL &&
+            OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_TOKEN) {
+            OutputTokenBuffer = &OutSecBufferDesc.pBuffers[i];
+        } else if (AlertBuffer == NULL &&
+            OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_ALERT &&
+            OutSecBufferDesc.pBuffers[i].cbBuffer > 0) {
+            AlertBuffer = &OutSecBufferDesc.pBuffers[i];
+        } else if (OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_TRAFFIC_SECRETS) {
+            SEC_TRAFFIC_SECRETS* TrafficSecret =
+                (SEC_TRAFFIC_SECRETS*)OutSecBufferDesc.pBuffers[i].pvBuffer;
+            if (TrafficSecret->TrafficSecretType == SecTrafficSecret_None) {
+                continue;
+            }
+            QuicTraceLogConnVerbose(
+                SchannelKeyReady,
+                TlsContext->Connection,
+                "Key Ready Type, %u [%hu to %hu]",
+                (uint32_t)TrafficSecret->TrafficSecretType,
+                TrafficSecret->MsgSequenceStart,
+                TrafficSecret->MsgSequenceEnd);
+            if (TlsContext->IsServer) {
+                if (TrafficSecret->TrafficSecretType == SecTrafficSecret_Server) {
+                    NewOwnTrafficSecrets[NewOwnTrafficSecretsCount++] = TrafficSecret;
+                } else {
+                    NewPeerTrafficSecrets[NewPeerTrafficSecretsCount++] = TrafficSecret;
+                }
+            } else {
+                if (TrafficSecret->TrafficSecretType == SecTrafficSecret_Server) {
+                    NewPeerTrafficSecrets[NewPeerTrafficSecretsCount++] = TrafficSecret;
+                } else {
+                    NewOwnTrafficSecrets[NewOwnTrafficSecretsCount++] = TrafficSecret;
+                }
+            }
+        }
+    }
+
+    switch (SecStatus) {
+    case SEC_E_BUFFER_TOO_SMALL: {
+        //
+        // The output buffer for the TLS response is too small. We need to grow
+        // the buffer and try again.
+        //
+        QuicTraceLogConnInfo(
+            SchannelOutBufferTooSmall,
+            TlsContext->Connection,
+            "Notified Schannel output buffer too small");
+        Result |= CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL;
+        break;
+    }
+
+    case SEC_E_OK:
+
+        //
+        // The handshake has completed. This may or may not result in more data
+        // that needs to be sent back in response (depending on client/server).
+        //
+
+        if (!State->HandshakeComplete) {
+            SecPkgContext_ApplicationProtocol NegotiatedAlpn;
+            SecStatus =
+                QueryContextAttributesW(
+                    &TlsContext->SchannelContext,
+                    SECPKG_ATTR_APPLICATION_PROTOCOL,
+                    &NegotiatedAlpn);
+            if (SecStatus != SEC_E_OK) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    SecStatus,
+                    "query negotiated ALPN");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                break;
+            }
+            if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    NegotiatedAlpn.ProtoNegoStatus,
+                    "ALPN negotiation status");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                break;
+            }
+            const SEC_APPLICATION_PROTOCOL_LIST* AlpnList =
+                &TlsContext->ApplicationProtocols->ProtocolLists[0];
+            State->NegotiatedAlpn =
+                CxPlatTlsAlpnFindInList(
+                    AlpnList->ProtocolListSize,
+                    AlpnList->ProtocolList,
+                    NegotiatedAlpn.ProtocolIdSize,
+                    NegotiatedAlpn.ProtocolId);
+            if (State->NegotiatedAlpn == NULL) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "ALPN Mismatch");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                break;
+            }
+            SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
+
+            SecPkgContext_SessionInfo SessionInfo;
+            SecStatus =
+                QueryContextAttributesW(
+                    &TlsContext->SchannelContext,
+                    SECPKG_ATTR_SESSION_INFO,
+                    &SessionInfo);
+            if (SecStatus != SEC_E_OK) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    SecStatus,
+                    "query session info");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                break;
+            }
+            if (SessionInfo.dwFlags & SSL_SESSION_RECONNECT) {
+                State->SessionResumed = TRUE;
+            }
+
+            const BOOLEAN RequirePeerCert =
+                !TlsContext->IsServer ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+
+            QUIC_CERT_BLOB PeerCertBlob;
+            CxPlatZeroMemory(&PeerCertBlob, sizeof(PeerCertBlob));
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
+                PeerCertBlob.Type = QUIC_CERT_BLOB_SERIALIZED;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC,
+                        (PVOID)&(PeerCertBlob.Serialized));
+            } else {
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+                        (PVOID)&PeerCertBlob.Context);
+                PeerCertBlob.Type =
+                    PeerCertBlob.Context ?
+                        QUIC_CERT_BLOB_CONTEXT : QUIC_CERT_BLOB_NONE;
+            }
+            if ((SecStatus == SEC_E_NO_CREDENTIALS || SecStatus == SEC_E_INTERNAL_ERROR) &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
+                //
+                // Certificate validation is being deferred to the application:
+                // indicate no certificate is present but let the application decide if this is a
+                // failure.
+                // SEC_E_INTERNAL_ERROR can be returned on SECPKG_ATTR_REMOTE_CERT_CONTEXT if no
+                // certificate is found, normalize to SEC_E_NO_CREDENTIALS.
+                //
+                PeerCertBlob.Type = QUIC_CERT_BLOB_NONE;
+                CertValidationResult.hrVerifyChainStatus = SEC_E_NO_CREDENTIALS;
+            } else if (SecStatus == SEC_E_OK &&
+                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
+                //
+                // Collect the client cert validation result
+                //
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
+                        &CertValidationResult);
+                if (SecStatus == SEC_E_NO_CREDENTIALS) {
+                    CertValidationResult.hrVerifyChainStatus = SecStatus;
+                } else if (SecStatus != SEC_E_OK) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        SecStatus,
+                        "query cert validation result");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    break;
+                }
+            } else if (SecStatus != SEC_E_OK && RequirePeerCert &&
+                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    SecStatus,
+                    "Query peer cert");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                break;
+            }
+
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
+                Result |=
+                     CxPlatTlsIndicateCertificateReceived(
+                        TlsContext,
+                        State,
+                        &CertValidationResult,
+                        &PeerCertBlob);
+            }
+
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
+                if (PeerCertBlob.Serialized.pbData != NULL) {
+                    FreeContextBuffer(PeerCertBlob.Serialized.pbData);
+                }
+            } else {
+                if (PeerCertBlob.Context != NULL) {
+                    CertFreeCertificateContext(PeerCertBlob.Context);
+                }
+            }
+
+            if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
+                break;
+            }
+
+            if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
+                CertValidationResult.hrVerifyChainStatus != QUIC_STATUS_SUCCESS) {
+                //
+                // If the server has configured client authentication but not deferred validation,
+                // fail the handshake if the client cert doesn't pass validation
+                //
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    CertValidationResult.hrVerifyChainStatus,
+                    "Certificate validation failed");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                break;
+            }
+
+            QuicTraceLogConnInfo(
+                SchannelHandshakeComplete,
+                TlsContext->Connection,
+                "Handshake complete (resume=%hu)",
+                State->SessionResumed);
+            State->HandshakeComplete = TRUE;
+            Result |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
+        }
+
+        __fallthrough;
+
+    case SEC_I_CONTINUE_NEEDED:
+    case SEC_I_CONTINUE_NEEDED_MESSAGE_OK:
+
+        if (AlertBuffer != NULL) {
+            if (AlertBuffer->cbBuffer < 2) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS alert message received (invalid)");
+            } else {
+                State->AlertCode = ((uint8_t*)AlertBuffer->pvBuffer)[1];
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    State->AlertCode,
+                    "TLS alert message received");
+            }
+            Result |= CXPLAT_TLS_RESULT_ERROR;
+            break;
+        }
+
+        //
+        // Some or all of the input data was processed. There may or may not be
+        // corresponding output data to send in response.
+        //
+
+        if (ExtraBuffer != NULL && ExtraBuffer->cbBuffer > 0) {
+            //
+            // Not all the input buffer was consumed. There is some 'extra' left over.
+            //
+            CXPLAT_DBG_ASSERT(ExtraBuffer->cbBuffer <= *InputBufferLength);
+            *InputBufferLength -= ExtraBuffer->cbBuffer;
+        }
+
+        QuicTraceLogConnInfo(
+            SchannelConsumedBytes,
+            TlsContext->Connection,
+            "Consumed %u bytes",
+            *InputBufferLength);
+
+        //
+        // Update our "read" key state based on any new peer keys being available.
+        //
+        for (uint8_t i = 0; i < NewPeerTrafficSecretsCount; ++i) {
+            Result |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
+            if (NewPeerTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
+                CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
+                CXPLAT_FRE_ASSERT(TlsContext->IsServer);
+                if (TlsContext->TlsSecrets != NULL) {
+                    TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
+                    memcpy(
+                        TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
+                        NewPeerTrafficSecrets[i]->TrafficSecret,
+                        NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                    TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+                }
+            } else {
+                if (State->ReadKey == QUIC_PACKET_KEY_INITIAL) {
+                    if (!QuicPacketKeyCreate(
+                            TlsContext,
+                            QUIC_PACKET_KEY_HANDSHAKE,
+                            "peer handshake traffic secret",
+                            NewPeerTrafficSecrets[i],
+                            &State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE])) {
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        break;
+                    }
+                    State->ReadKey = QUIC_PACKET_KEY_HANDSHAKE;
+                    QuicTraceLogConnInfo(
+                        SchannelReadHandshakeStart,
+                        TlsContext->Connection,
+                        "Reading Handshake data starts now");
+                    if (TlsContext->TlsSecrets != NULL) {
+                        TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
+                        if (TlsContext->IsServer) {
+                            memcpy(
+                                TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+                        } else {
+                            memcpy(
+                                TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+                        }
+                    }
+                } else if (State->ReadKey == QUIC_PACKET_KEY_HANDSHAKE) {
+                    if (!QuicPacketKeyCreate(
+                            TlsContext,
+                            QUIC_PACKET_KEY_1_RTT,
+                            "peer application traffic secret",
+                            NewPeerTrafficSecrets[i],
+                            &State->ReadKeys[QUIC_PACKET_KEY_1_RTT])) {
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        break;
+                    }
+                    State->ReadKey = QUIC_PACKET_KEY_1_RTT;
+                    QuicTraceLogConnInfo(
+                        SchannelRead1RttStart,
+                        TlsContext->Connection,
+                        "Reading 1-RTT data starts now");
+                    if (TlsContext->TlsSecrets != NULL) {
+                        TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
+                        if (TlsContext->IsServer) {
+                            memcpy(
+                                TlsContext->TlsSecrets->ClientTrafficSecret0,
+                                NewPeerTrafficSecrets[i]->TrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                        } else {
+                            memcpy(
+                                TlsContext->TlsSecrets->ServerTrafficSecret0,
+                                NewPeerTrafficSecrets[i]->TrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                        }
+                    }
+                }
+            }
+        }
+
+        //
+        // Update our "write" state based on any of our own keys being available
+        //
+        for (uint8_t i = 0; i < NewOwnTrafficSecretsCount; ++i) {
+            Result |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
+            if (NewOwnTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
+                CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
+                CXPLAT_FRE_ASSERT(!TlsContext->IsServer);
+                if (TlsContext->TlsSecrets != NULL) {
+                    TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
+                    memcpy(
+                        TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
+                        NewOwnTrafficSecrets[i]->TrafficSecret,
+                        NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                    TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+                }
+            } else {
+                if (State->WriteKey == QUIC_PACKET_KEY_INITIAL) {
+                    if (!QuicPacketKeyCreate(
+                            TlsContext,
+                            QUIC_PACKET_KEY_HANDSHAKE,
+                            "own handshake traffic secret",
+                            NewOwnTrafficSecrets[i],
+                            &State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE])) {
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        break;
+                    }
+                    State->BufferOffsetHandshake =
+                        State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceStart;
+                    State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
+                        State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceEnd;
+                    State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
+                    QuicTraceLogConnInfo(
+                        SchannelWriteHandshakeStart,
+                        TlsContext->Connection,
+                        "Writing Handshake data starts at %u",
+                        State->BufferOffsetHandshake);
+                    if (TlsContext->TlsSecrets != NULL) {
+                        TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
+                        if (TlsContext->IsServer) {
+                            memcpy(
+                                TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
+                                NewOwnTrafficSecrets[i]->TrafficSecret,
+                                NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+                        } else {
+                            memcpy(
+                                TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
+                                NewOwnTrafficSecrets[i]->TrafficSecret,
+                                NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+                        }
+                    }
+                } else if (State->WriteKey == QUIC_PACKET_KEY_HANDSHAKE) {
+                    if (!TlsContext->IsServer && State->BufferOffsetHandshake == State->BufferOffset1Rtt) {
+                        State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
+                            State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceEnd;
+                    } else {
+                        if (!QuicPacketKeyCreate(
+                                TlsContext,
+                                QUIC_PACKET_KEY_1_RTT,
+                                "own application traffic secret",
+                                NewOwnTrafficSecrets[i],
+                                &State->WriteKeys[QUIC_PACKET_KEY_1_RTT])) {
+                            Result |= CXPLAT_TLS_RESULT_ERROR;
+                            break;
+                        }
+                        //State->BufferOffset1Rtt = // Currently have to get the offset from the Handshake "end"
+                        //    State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceStart;
+                        State->WriteKey = QUIC_PACKET_KEY_1_RTT;
+                        QuicTraceLogConnInfo(
+                            SchannelWrite1RttStart,
+                            TlsContext->Connection,
+                            "Writing 1-RTT data starts at %u",
+                            State->BufferOffset1Rtt);
+                        if (TlsContext->TlsSecrets != NULL) {
+                            TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
+                            if (TlsContext->IsServer) {
+                                memcpy(
+                                    TlsContext->TlsSecrets->ServerTrafficSecret0,
+                                    NewOwnTrafficSecrets[i]->TrafficSecret,
+                                    NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                                TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                            } else {
+                                memcpy(
+                                    TlsContext->TlsSecrets->ClientTrafficSecret0,
+                                    NewOwnTrafficSecrets[i]->TrafficSecret,
+                                    NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                                TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (SecStatus == SEC_E_OK) {
+            //
+            // We're done with the TlsSecrets.
+            //
+            TlsContext->TlsSecrets = NULL;
+        }
+
+        if (OutputTokenBuffer != NULL && OutputTokenBuffer->cbBuffer > 0) {
+            //
+            // There is output data to send back.
+            //
+            Result |= CXPLAT_TLS_RESULT_DATA;
+            uint32_t OutputTokenBuffersCount = 0;
+            for (uint32_t i = 0; i < OutSecBufferDesc.cBuffers; ++i) {
+                if (OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_TOKEN) {
+                    CXPLAT_DBG_ASSERT(OutputTokenBuffersCount < OutputBuffersCount);
+                    CXPLAT_DBG_ASSERT(OutputBuffers[OutputTokenBuffersCount].Buffer == (uint8_t*)OutSecBufferDesc.pBuffers[i].pvBuffer);
+                    OutputBuffers[OutputTokenBuffersCount++].Length = OutSecBufferDesc.pBuffers[i].cbBuffer;
+                    QuicTraceLogConnInfo(
+                        SchannelProducedData,
+                        TlsContext->Connection,
+                        "Produced %u bytes",
+                        OutSecBufferDesc.pBuffers[i].cbBuffer);
+
+                }
+            }
+                
+            TlsContext->GeneratedFirstPayload = TRUE;
+
+        }
+
+        break;
+
+    case SEC_E_INCOMPLETE_MESSAGE:
+
+        //
+        // None of the input buffer was consumed. There wasn't a complete TLS
+        // record for Schannel to process. Check to see if Schannel indicated
+        // how much more data they expect.
+        //
+        *InputBufferLength = 0;
+
+        if (MissingBuffer != NULL && MissingBuffer->cbBuffer != 0) {
+            QuicTraceLogConnInfo(
+                SchannelMissingData,
+                TlsContext->Connection,
+                "TLS message missing %u bytes of data",
+                MissingBuffer->cbBuffer);
+        }
+
+        break;
+
+        //
+        // Fall through here in other cases when we don't expect this.
+        //
+        __fallthrough;
+
+    default:
+        //
+        // Some other error occurred and we should indicate no data could be
+        // processed successfully.
+        //
+        if (AlertBuffer != NULL) {
+            if (AlertBuffer->cbBuffer < 2) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS alert message received (invalid)");
+            } else {
+                State->AlertCode = ((uint8_t*)AlertBuffer->pvBuffer)[1];
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    State->AlertCode,
+                    "TLS alert message received");
+            }
+            Result |= CXPLAT_TLS_RESULT_ERROR;
+        }
+        if (SecStatus == SEC_I_INCOMPLETE_CREDENTIALS &&
+            State->AlertCode == TLS1_ALERT_CLOSE_NOTIFY) {
+            //
+            // Work-around for Schannel sending the wrong TLS alert.
+            //
+            State->AlertCode = TLS1_ALERT_CERTIFICATE_REQUIRED;
+        }
+        *InputBufferLength = 0;
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "Accept/InitializeSecurityContext");
+        Result |= CXPLAT_TLS_RESULT_ERROR;
+        break;
+    }
+
+    if (TargetServerName != NULL) {
+        CXPLAT_FREE(TargetServerName, QUIC_POOL_TLS_SNI);
+    }
+
+    return Result;
+#endif
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatTlsWriteEarlyData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(*InputBufferLength)
+        const uint8_t * InputBuffer,
+    _Inout_ size_t * InputBufferLength
+    )
+{
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(InputBuffer);
+    UNREFERENCED_PARAMETER(InputBufferLength);
+    return FALSE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatTlsEncrypt(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Inout_ CXPLAT_TLS_ENCRYPT_BUFFER* Buffer
+    )
+{
+#ifdef _KERNEL_MODE
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(Buffer);
+    QuicTraceEvent(
+        TlsError,
+        "[ tls][%p] ERROR, %s.",
+        TlsContext->Connection,
+        "Encrypt not supported in kernel mode");
+    return FALSE;
+#else
+    SecBuffer* InSecBuffers = TlsContext->Workspace.InSecBuffers;
+    CXPLAT_TLS_RECORD_OVERHEAD Overhead;
+    CxPlatTlsGetRecordOverhead(TlsContext, &Overhead);
+
+    if (Buffer->Capacity < Overhead.MaxHeader + Buffer->DataLength + Overhead.MaxTrailer) {
+        return FALSE;
+    }
+    if (Buffer->DataOffset != Overhead.MaxHeader) {
+        return FALSE;
+    }
+
+    SecBufferDesc InSecBufferDesc;
+    InSecBufferDesc.ulVersion = SECBUFFER_VERSION;
+    InSecBufferDesc.pBuffers = InSecBuffers;
+    InSecBufferDesc.cBuffers = 0;
+
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_STREAM_HEADER;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = (uint32_t)Overhead.MaxHeader;
+    InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = Buffer->Base;
+
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_DATA;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = (uint32_t)Buffer->DataLength;
+    InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = Buffer->Base + Buffer->DataOffset;
+
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_STREAM_TRAILER;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = (uint32_t)Overhead.MaxTrailer;
+    InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer =
+        Buffer->Base + Buffer->DataOffset + Buffer->DataLength;
+
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = 0;
+    InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = NULL;
+
+    SECURITY_STATUS SecStatus =
+        EncryptMessage(
+            &TlsContext->SchannelContext,
+            0,
+            &InSecBufferDesc,
+            0);
+
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "EncryptMessage");
+        return FALSE;
+    }
+
+    Buffer->DataLength =
+        InSecBuffers[0].cbBuffer +
+        InSecBuffers[1].cbBuffer +
+        InSecBuffers[2].cbBuffer;
+    return TRUE;
+#endif
+}
+
+#ifndef _KERNEL_MODE
+static
+BOOLEAN 
+CopyInputToInternalBuffer(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(InputLength) const uint8_t* Input,
+    _In_ uint32_t InputLength
+    )
+{
+    if (TlsContext->InputBuffer == NULL || TlsContext->InputBufferAllocLength == 0) {
+        TlsContext->InputBufferAllocLength = 65536;
+        TlsContext->InputBufferLength = 0;
+        TlsContext->InputBuffer = CXPLAT_ALLOC_NONPAGED(TlsContext->InputBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        if (TlsContext->InputBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "TLS input Buffer",
+                TlsContext->InputBufferAllocLength);
+            TlsContext->InputBufferAllocLength = 0;
+            return FALSE;
+        }
+    }
+
+    CXPLAT_DBG_ASSERT(TlsContext->InputBuffer != NULL);
+    CXPLAT_DBG_ASSERT(TlsContext->InputBufferAllocLength >= TlsContext->InputBufferLength);
+
+    uint8_t* CurrentInputBuffer = TlsContext->InputBuffer;
+    uint32_t CurrentInputBufferLength = TlsContext->InputBufferLength;
+    uint32_t CurrentInputBufferAllocLength = TlsContext->InputBufferAllocLength;
+
+    if (InputLength > UINT32_MAX - CurrentInputBufferLength) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "TLS input buffer too large");
+        return FALSE;
+    }
+
+    uint32_t RequiredLength = CurrentInputBufferLength + InputLength;
+    if (RequiredLength > CurrentInputBufferAllocLength) {
+        uint32_t NewInputBufferAllocLength = CurrentInputBufferAllocLength;
+        while (RequiredLength > NewInputBufferAllocLength) {
+            if (NewInputBufferAllocLength > UINT32_MAX / 2) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS input buffer too large");
+                return FALSE;
+            }
+            NewInputBufferAllocLength *= 2;
+        }
+
+        uint8_t* NewInputBuffer = CXPLAT_ALLOC_NONPAGED(NewInputBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        if (NewInputBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "TLS input Buffer",
+                NewInputBufferAllocLength);
+            return FALSE;
+        }
+
+        if (CurrentInputBufferLength > 0) {
+            CXPLAT_ANALYSIS_ASSUME(CurrentInputBufferLength <= CurrentInputBufferAllocLength);
+            CXPLAT_ANALYSIS_ASSUME(CurrentInputBufferLength <= NewInputBufferAllocLength);
+#pragma warning(suppress:6385) // Bounds validated above; static analysis loses the relation here.
+            CxPlatCopyMemory(NewInputBuffer, CurrentInputBuffer, CurrentInputBufferLength);
+        }
+
+        CXPLAT_FREE(CurrentInputBuffer, QUIC_POOL_TLS_BUFFER);
+        TlsContext->InputBuffer = NewInputBuffer;
+        TlsContext->InputBufferAllocLength = NewInputBufferAllocLength;
+    }
+
+    CXPLAT_DBG_ASSERT(InputLength <= TlsContext->InputBufferAllocLength - TlsContext->InputBufferLength);
+    CxPlatCopyMemory(TlsContext->InputBuffer + TlsContext->InputBufferLength, Input, InputLength);
+    TlsContext->InputBufferLength += InputLength;
+    return TRUE;
+}
+
+static
+BOOLEAN 
+CopyOutputToInternalBuffer(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(OutputLength) const uint8_t* Output,
+    _In_ uint32_t OutputLength
+    )
+{
+    if (TlsContext->OutputBuffer == NULL || TlsContext->OutputBufferAllocLength == 0) {
+        TlsContext->OutputBufferAllocLength = 65536;
+        TlsContext->OutputBufferLength = 0;
+        TlsContext->OutputBuffer = CXPLAT_ALLOC_NONPAGED(TlsContext->OutputBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        if (TlsContext->OutputBuffer == NULL) {
+            TlsContext->OutputBufferAllocLength = 0;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "TLS output Buffer",
+                TlsContext->OutputBufferAllocLength);
+            return FALSE;
+        }
+    }
+
+    CXPLAT_DBG_ASSERT(TlsContext->OutputBuffer != NULL);
+    CXPLAT_DBG_ASSERT(TlsContext->OutputBufferAllocLength >= TlsContext->OutputBufferLength);
+
+    uint8_t* CurrentOutputBuffer = TlsContext->OutputBuffer;
+    uint32_t CurrentOutputBufferLength = TlsContext->OutputBufferLength;
+    uint32_t CurrentOutputBufferAllocLength = TlsContext->OutputBufferAllocLength;
+
+    if (OutputLength > UINT32_MAX - CurrentOutputBufferLength) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "TLS output buffer too large");
+        return FALSE;
+    }
+
+    uint32_t RequiredLength = CurrentOutputBufferLength + OutputLength;
+    if (RequiredLength > CurrentOutputBufferAllocLength) {
+        uint32_t NewOutputBufferAllocLength = CurrentOutputBufferAllocLength;
+        while (RequiredLength > NewOutputBufferAllocLength) {
+            if (NewOutputBufferAllocLength > UINT32_MAX / 2) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS output buffer too large");
+                return FALSE;
+            }
+            NewOutputBufferAllocLength *= 2;
+        }
+
+        uint8_t* NewOutputBuffer = CXPLAT_ALLOC_NONPAGED(NewOutputBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        if (NewOutputBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "TLS output Buffer",
+                NewOutputBufferAllocLength);
+            return FALSE;
+        }
+
+        if (CurrentOutputBufferLength > 0) {
+            CXPLAT_ANALYSIS_ASSUME(CurrentOutputBufferLength <= CurrentOutputBufferAllocLength);
+            CXPLAT_ANALYSIS_ASSUME(CurrentOutputBufferLength <= NewOutputBufferAllocLength);
+#pragma warning(suppress:6385) // Bounds validated above; static analysis loses the relation here.
+            CxPlatCopyMemory(NewOutputBuffer, CurrentOutputBuffer, CurrentOutputBufferLength);
+        }
+
+        CXPLAT_FREE(CurrentOutputBuffer, QUIC_POOL_TLS_BUFFER);
+        TlsContext->OutputBuffer = NewOutputBuffer;
+        TlsContext->OutputBufferAllocLength = NewOutputBufferAllocLength;
+    }
+
+    CXPLAT_DBG_ASSERT(OutputLength <= TlsContext->OutputBufferAllocLength - TlsContext->OutputBufferLength);
+    CxPlatCopyMemory(TlsContext->OutputBuffer + TlsContext->OutputBufferLength, Output, OutputLength);
+    TlsContext->OutputBufferLength += OutputLength;
+    return TRUE;
+}
+#endif
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsDecrypt(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_reads_bytes_(*InputBufferLength)
+        const uint8_t * InputBuffer,
+    _Inout_ uint32_t* InputBufferLength,
+    _Inout_updates_bytes_opt_(*OutputBufferLength)
+        uint8_t* OutputBuffer,
+    _Inout_ uint32_t* OutputBufferLength
+    )
+{
+#ifdef _KERNEL_MODE
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(InputBuffer);
+    UNREFERENCED_PARAMETER(InputBufferLength);
+    UNREFERENCED_PARAMETER(OutputBuffer);
+    UNREFERENCED_PARAMETER(OutputBufferLength);
+    QuicTraceEvent(
+        TlsError,
+        "[ tls][%p] ERROR, %s.",
+        TlsContext->Connection,
+        "Decrypt not supported in kernel mode");
+    return CXPLAT_TLS_RESULT_ERROR;
+#else
+    CXPLAT_TLS_RESULT_FLAGS Result = 0;
+    uint32_t OutputBufferCapacity = *OutputBufferLength;
+    SecBuffer* InSecBuffers = TlsContext->Workspace.InSecBuffers;
+    SecBufferDesc InSecBufferDesc;
+    BOOLEAN Copied = FALSE;
+    InSecBufferDesc.ulVersion = SECBUFFER_VERSION;
+    InSecBufferDesc.pBuffers = InSecBuffers;
+    InSecBufferDesc.cBuffers = 0;
+
+    if (TlsContext->OutputBufferLength > 0) {
+        if (OutputBuffer == NULL || OutputBufferCapacity < TlsContext->OutputBufferLength) {
+            *OutputBufferLength = TlsContext->OutputBufferLength;
+            Result |= CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL;
+            return Result;
+        }
+        CxPlatCopyMemory(OutputBuffer, TlsContext->OutputBuffer, TlsContext->OutputBufferLength);
+        *OutputBufferLength = TlsContext->OutputBufferLength;
+        TlsContext->OutputBufferLength = 0;
+        return Result;
+    }
+
+    if (*InputBufferLength == 0 && TlsContext->InputBufferLength == 0) {
+        *OutputBufferLength = 0;
+        return Result;
+    }
+    if (TlsContext->InputBufferLength > 0) {
+        if (!CopyInputToInternalBuffer(TlsContext, InputBuffer, *InputBufferLength)) {
+            *OutputBufferLength = 0;
+            return Result;
+        }
+        Copied = TRUE;
+        InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_DATA;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->InputBufferLength;
+        InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = (void *)TlsContext->InputBuffer;
+    } else {
+        InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_DATA;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = *InputBufferLength;
+        InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = (void *)InputBuffer;
+    }
+
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = 0;
+    InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = NULL;
+
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = 0;
+    InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = NULL;
+
+    InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
+    InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = 0;
+    InSecBuffers[InSecBufferDesc.cBuffers++].pvBuffer = NULL;
+
+    SECURITY_STATUS SecStatus =
+        DecryptMessage(
+            &TlsContext->SchannelContext,
+            &InSecBufferDesc,
+            0,
+            NULL);
+
+    SecBuffer* OutputDataBuffer = NULL;
+    SecBuffer* ExtraBuffer = NULL;
+    switch (SecStatus) {
+    case SEC_E_OK:
+        for (uint32_t i = 0; i < InSecBufferDesc.cBuffers; ++i) {
+            if (InSecBuffers[i].BufferType == SECBUFFER_DATA) {
+                OutputDataBuffer = &InSecBuffers[i];
+            } else if (InSecBuffers[i].BufferType == SECBUFFER_EXTRA) {
+                ExtraBuffer = &InSecBuffers[i];
+            }
+        }
+        break;
+    case SEC_I_RENEGOTIATE:
+        Result |= CXPLAT_TLS_RESULT_RENEGOTIATE;
+        *InputBufferLength = 0;
+        *OutputBufferLength = 0;
+        break;
+    case SEC_E_INCOMPLETE_MESSAGE:
+        if (!Copied) {
+             if (!CopyInputToInternalBuffer(TlsContext, InputBuffer, *InputBufferLength)) {
+                *OutputBufferLength = 0;
+                return Result;
+            }
+        }
+        *OutputBufferLength = 0;
+        break;
+    default:
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "DecryptMessage");
+        *InputBufferLength = 0;
+        *OutputBufferLength = 0;
+        break;
+    }
+
+    if (SecStatus == SEC_E_OK && OutputDataBuffer != NULL) {
+        if (OutputBuffer == NULL || OutputBufferCapacity < OutputDataBuffer->cbBuffer) {
+            if (!CopyOutputToInternalBuffer(TlsContext,
+                (const uint8_t*)OutputDataBuffer->pvBuffer,
+                OutputDataBuffer->cbBuffer)) {
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                *OutputBufferLength = 0;
+                return Result;
+            }
+            *OutputBufferLength = OutputDataBuffer->cbBuffer;
+            Result |= CXPLAT_TLS_RESULT_BUFFER_TOO_SMALL;
+            return Result;
+        }
+        CxPlatCopyMemory(OutputBuffer, OutputDataBuffer->pvBuffer, OutputDataBuffer->cbBuffer);
+        *OutputBufferLength = OutputDataBuffer->cbBuffer;
+        TlsContext->InputBufferLength = 0; // Clear the recv buffer since we've consumed it all
+    }
+
+    if (SecStatus == SEC_E_OK && ExtraBuffer != NULL && ExtraBuffer->cbBuffer > 0) {
+        CxPlatMoveMemory(
+            (uint8_t*)InputBuffer + (*InputBufferLength - ExtraBuffer->cbBuffer),
+            ExtraBuffer->pvBuffer,
+            ExtraBuffer->cbBuffer);
+        *InputBufferLength -= ExtraBuffer->cbBuffer;
+    }
+    if (!(SecStatus == SEC_E_OK && OutputDataBuffer != NULL)) {
+        *OutputBufferLength = 0;
+    }
+    return Result;
+#endif
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsGetRecordOverhead(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_ CXPLAT_TLS_RECORD_OVERHEAD* Overhead
+    )
+{
+    SecPkgContext_StreamSizes Sizes;
+    QueryContextAttributes(&TlsContext->SchannelContext, SECPKG_ATTR_STREAM_SIZES, &Sizes);
+    Overhead->MaxHeader = Sizes.cbHeader;
+    Overhead->MaxTrailer = Sizes.cbTrailer;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

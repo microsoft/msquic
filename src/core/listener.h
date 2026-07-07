@@ -58,6 +58,7 @@ typedef struct QUIC_LISTENER {
     //
     BOOLEAN Partitioned : 1;
 
+    BOOLEAN IsQmux : 1;
     //
     // The thread ID that the listener is actively indicating a stop compelete
     // callback on.
@@ -135,6 +136,7 @@ typedef struct QUIC_LISTENER {
     //
     QUIC_BINDING* Binding;
 
+    CXPLAT_SOCKET* Socket;
     //
     // The handler for the API client's callbacks.
     //
@@ -193,6 +195,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerTraceRundown(
     _In_ QUIC_LISTENER* Listener
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicListenerIndicateEvent(
+    _In_ QUIC_LISTENER* Listener,
+    _Inout_ QUIC_LISTENER_EVENT* Event
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

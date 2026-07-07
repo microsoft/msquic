@@ -5,9 +5,9 @@
 // Decoder Ring for NoSrcCidAvailable
 // [conn][%p] No src CID to send with
 // QuicTraceLogConnWarning(
-            NoSrcCidAvailable,
-            Connection,
-            "No src CID to send with");
+                NoSrcCidAvailable,
+                Connection,
+                "No src CID to send with");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, NoSrcCidAvailable,
@@ -84,6 +84,33 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketBuilderQMuxSendBatch
+// [conn][%p] Sending batch. %hu datagrams %u bytes
+// QuicTraceLogConnVerbose(
+        PacketBuilderQMuxSendBatch,
+        Builder->Connection,
+        "Sending batch. %hu datagrams %u bytes",
+        (uint16_t)Builder->TotalCountDatagrams,
+        Builder->TotalDatagramsLength);
+// arg1 = arg1 = Builder->Connection = arg1
+// arg3 = arg3 = (uint16_t)Builder->TotalCountDatagrams = arg3
+// arg4 = arg4 = Builder->TotalDatagramsLength = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderQMuxSendBatch,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned short, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned short, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 

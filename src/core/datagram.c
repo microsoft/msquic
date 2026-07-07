@@ -263,23 +263,35 @@ QuicDatagramOnSendStateChanged(
     }
 
     if (SendEnabled) {
-        uint16_t MtuMaxSendLength;
-        if (!Connection->State.Started) {
-            MtuMaxSendLength =
-                QuicCalculateDatagramLength(
-                    QUIC_ADDRESS_FAMILY_INET6,
-                    QUIC_DPLPMTUD_MIN_MTU,
-                    QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+        if (!QuicConnIsQMux(Connection)) {
+            uint16_t MtuMaxSendLength;
+            if (!Connection->State.Started) {
+                MtuMaxSendLength =
+                    QuicCalculateDatagramLength(
+                        QUIC_ADDRESS_FAMILY_INET6,
+                        QUIC_DPLPMTUD_MIN_MTU,
+                        QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+            } else {
+                const QUIC_PATH* Path = &Connection->Paths[0];
+                MtuMaxSendLength =
+                    QuicCalculateDatagramLength(
+                        QuicAddrGetFamily(&Path->Route.RemoteAddress),
+                        Path->Mtu,
+                        Path->DestCid->CID.Length);
+            }
+            if (NewMaxSendLength > MtuMaxSendLength) {
+                NewMaxSendLength = MtuMaxSendLength;
+            }
         } else {
-            const QUIC_PATH* Path = &Connection->Paths[0];
-            MtuMaxSendLength =
-                QuicCalculateDatagramLength(
-                    QuicAddrGetFamily(&Path->Route.RemoteAddress),
-                    Path->Mtu,
-                    Path->DestCid->CID.Length);
-        }
-        if (NewMaxSendLength > MtuMaxSendLength) {
-            NewMaxSendLength = MtuMaxSendLength;
+            uint16_t RecordMaxSendLength = UINT16_MAX;
+            if (!(Connection->PeerTransportParams.Flags & QX_TP_FLAG_MAX_RECORD_SIZE)) {
+                RecordMaxSendLength = QX_TP_MAX_RECORD_SIZE_DEFAULT - DATAGRAM_FRAME_HEADER_LENGTH;
+            } else if (Connection->PeerTransportParams.MaxRecordSize <= UINT16_MAX + DATAGRAM_FRAME_HEADER_LENGTH) {
+                RecordMaxSendLength = (uint16_t)(Connection->PeerTransportParams.MaxRecordSize - DATAGRAM_FRAME_HEADER_LENGTH);
+            }
+            if (NewMaxSendLength > RecordMaxSendLength) {
+                NewMaxSendLength = RecordMaxSendLength;
+            }
         }
     }
 
@@ -551,7 +563,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicDatagramProcessFrame(
     _In_ QUIC_DATAGRAM* Datagram,
-    _In_ const QUIC_RX_PACKET* const Packet,
+    _In_opt_ const QUIC_RX_PACKET* const Packet,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -574,7 +586,7 @@ QuicDatagramProcessFrame(
     QUIC_CONNECTION_EVENT Event;
     Event.Type = QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED;
     Event.DATAGRAM_RECEIVED.Buffer = &QuicBuffer;
-    if (Packet->EncryptedWith0Rtt) {
+    if (Packet != NULL && Packet->EncryptedWith0Rtt) {
         Event.DATAGRAM_RECEIVED.Flags = QUIC_RECEIVE_FLAG_0_RTT;
     } else {
         Event.DATAGRAM_RECEIVED.Flags = 0;

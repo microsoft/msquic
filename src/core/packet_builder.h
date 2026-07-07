@@ -92,7 +92,7 @@ typedef struct QUIC_PACKET_BUILDER {
     // The size of the encryption AEAD tag at the end of the current QUIC
     // packet.
     //
-    uint8_t EncryptionOverhead;
+    uint16_t EncryptionOverhead;
 
     //
     // The encryption level for the current QUIC packet.
@@ -224,6 +224,13 @@ QuicPacketBuilderFinalize(
     _In_ BOOLEAN FlushBatchedDatagrams
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicPacketBuilderQMuxFinalize(
+    _Inout_ QUIC_PACKET_BUILDER* Builder,
+    _In_ BOOLEAN FlushBatchedDatagrams
+    );
+
 //
 // Returns TRUE if congestion control isn't currently blocking sends.
 //
@@ -247,7 +254,7 @@ QUIC_INLINE
 BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ uint8_t FrameType,
+    _In_ uint64_t FrameType,
     _In_ BOOLEAN IsAckEliciting
     )
 {

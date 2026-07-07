@@ -83,6 +83,7 @@ typedef struct QUIC_CACHEALIGN QUIC_PARTITION {
     // Pools for allocations.
     //
     CXPLAT_POOL ConnectionPool;             // QUIC_CONNECTION
+    CXPLAT_POOL ConnectionQMuxPool;         // QUIC_CONNECTION_QMUX
     CXPLAT_POOL TransportParamPool;         // QUIC_TRANSPORT_PARAMETER
     CXPLAT_POOL PacketSpacePool;            // QUIC_PACKET_SPACE
     CXPLAT_POOL StreamPool;                 // QUIC_STREAM
