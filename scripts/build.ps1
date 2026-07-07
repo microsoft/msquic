@@ -514,9 +514,6 @@ function CMake-Generate {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
     }
     if ($UseSystemOpenSSLCrypto) {
-        if ($IsWindows -or $Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
-            Write-Error "-UseSystemOpenSSLCrypto is currently not supported on Windows platforms."
-        }
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
     if ($EnableHighResolutionTimers) {
