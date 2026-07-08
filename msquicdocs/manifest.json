@@ -322,6 +322,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionExportKeyingMaterial.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionExportKeyingMaterial.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/api/ConnectionOpen.md",
       "output": {
         ".html": {
@@ -406,6 +416,36 @@
       "output": {
         ".html": {
           "relative_path": "docs/api/DatagramSend.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ExecutionCreate.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ExecutionCreate.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ExecutionDelete.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ExecutionDelete.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ExecutionPoll.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ExecutionPoll.html"
         }
       },
       "version": ""
@@ -556,6 +596,16 @@
       "output": {
         ".html": {
           "relative_path": "docs/api/QUIC_HANDSHAKE_INFO.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_KEYING_MATERIAL_CONFIG.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_KEYING_MATERIAL_CONFIG.html"
         }
       },
       "version": ""

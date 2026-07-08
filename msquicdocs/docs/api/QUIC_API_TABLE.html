@@ -130,6 +130,30 @@
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
 
+    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
+    QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
+
+    QUIC_CONNECTION_OPEN_IN_PARTITION_FN
+                                        ConnectionOpenInPartition;   // Available from v2.5
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
+                                        StreamProvideReceiveBuffers; // Available from v2.5
+
+    QUIC_CONN_POOL_CREATE_FN            ConnectionPoolCreate;        // Available from v2.5
+
+#ifndef _KERNEL_MODE
+#define QUIC_API_EXECUTION_CONTEXT
+    QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
+    QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
+    QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
+#endif // _KERNEL_MODE
+    QUIC_REGISTRATION_CLOSE2_FN         RegistrationClose2; // Available from v2.6
+
+    QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN
+                                        ConnectionExportKeyingMaterial; // Available from v2.6
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 } QUIC_API_TABLE;
 </code></pre>
 <h1 id="members">Members</h1>
@@ -193,6 +217,24 @@
 <p>See <a href="StreamReceiveSetEnabled.html">StreamReceiveSetEnabled</a></p>
 <p><code>DatagramSend</code></p>
 <p>See <a href="DatagramSend.html">DatagramSend</a></p>
+<p><code>ConnectionResumptionTicketValidationComplete</code></p>
+<p>See <a href="ConnectionResumptionTicketValidationComplete.html">ConnectionResumptionTicketValidationComplete</a></p>
+<p><code>ConnectionCertificateValidationComplete</code></p>
+<p>See <a href="ConnectionCertificateValidationComplete.html">ConnectionCertificateValidationComplete</a></p>
+<p><code>ConnectionOpenInPartition</code></p>
+<p>See <a href="ConnectionOpenInPartition.html">ConnectionOpenInPartition</a></p>
+<p><code>StreamProvideReceiveBuffers</code></p>
+<p>See (Preview) <a href="StreamProvideReceiveBuffers.html">StreamProvideReceiveBuffers</a></p>
+<p><code>ConnectionPoolCreate</code></p>
+<p>See (Preview) <a href="ConnectionPoolCreate.html">ConnectionPoolCreate</a></p>
+<p><code>ExecutionCreate</code></p>
+<p>See (Preview) <a href="ExecutionCreate.html">ExecutionCreate</a></p>
+<p><code>ExecutionDelete</code></p>
+<p>See (Preview) <a href="ExecutionDelete.html">ExecutionDelete</a></p>
+<p><code>ExecutionPoll</code></p>
+<p>See (Preview) <a href="ExecutionPoll.html">ExecutionPoll</a></p>
+<p><code>ConnectionExportKeyingMaterial</code></p>
+<p>See (Preview) <a href="ConnectionExportKeyingMaterial.html">ConnectionExportKeyingMaterial</a></p>
 <h1 id="see-also">See Also</h1>
 <p><a href="MsQuicOpen2.html">MsQuicOpen2</a><br></p>
 
