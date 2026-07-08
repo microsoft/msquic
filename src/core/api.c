@@ -712,14 +712,6 @@ MsQuicConnectionExportKeyingMaterial(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    //
-    // Nothing to do if the TLS context is already gone.
-    //
-    if (Connection->Crypto.TLS == NULL) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
-
     if (MsQuicLib.CustomExecutions ||
         Connection->WorkerThreadID == CxPlatCurThreadID()) {
         //
