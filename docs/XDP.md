@@ -157,7 +157,7 @@ XDP map mode is a feature introduced in XDP v1.4 to de-couple AF_XDP socket
 usage from privileged XDP rule setters.
 
 MsQuic version v2.5 (and below) currently serves 2 simultaneous roles:
-- AF_XDP socket consumer
+- AF_XDP socket creator and user
 - Privileged XDP rule setter
 
 MsQuic version v2.6 (and beyond) will begin to leverage the XDP map mode
