@@ -755,7 +755,6 @@ MsQuicConnectionExportKeyingMaterial(
     Oper.FreeAfterProcess = FALSE;
     Oper.API_CALL.Context = &ApiCtx;
 
-
     QuicConnQueueOper(Connection, &Oper);
     QuicTraceEvent(
         ApiWaitOperation,

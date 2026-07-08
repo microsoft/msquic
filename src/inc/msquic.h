@@ -1605,8 +1605,7 @@ typedef struct QUIC_KEYING_MATERIAL_CONFIG {
 
 //
 // Exports keying material derived from the connection's TLS session.
-// The connection's handshake must be complete and the TLS context still alive
-// (best called when handling connection complete notifications).
+// The connection's handshake must be complete and the TLS context still alive.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
