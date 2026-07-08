@@ -153,32 +153,29 @@ BIND --> LIST2
 
 ## Using XDP maps
 
-<<<<<<< Updated upstream
-XDP map mode is a feature introduced in XDP v1.4 to de-couple AF_XDP socket
-usage from privileged XDP rule setters.
-=======
-xdp-for-windows introduced support for maps in xdp v1.4 to de-couple AF_XDP socket
-consumers from privileged XDP rule setters.
->>>>>>> Stashed changes
+The XDP maps feature is introduced in XDP v1.4 to de-couple AF_XDP socket
+users from privileged XDP rule setters.
 
 MsQuic version v2.5 (and below) currently serves 2 simultaneous roles:
 - AF_XDP socket creator and user
 - Privileged XDP rule setter
 
-MsQuic version v2.6 (and beyond) will begin to leverage the XDP map mode
-feature, and expose APIs for applications wishing to harden their security
+MsQuic version v2.6 (and beyond) will begin to leverage XDP maps, and expose APIs for applications wishing to harden their security
 posture and reduce their threat surface by de-coupling.
 
 The intention with de-coupling is to have a trusted process create rules and maps, isolating the untrusted process(es) from each other and the rest of the system.
 
 ### API
 
-Map mode is configured via a global `SetParam` call using the
+Using XDP maps is configured via a global `SetParam` call using the
 `QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG` parameter.
-It is also listed in the central [Global Parameters](./Settings.md#global-parameters) table.
+Find it in the [Global Parameters](./Settings.md#global-parameters) table.
 
 
 ### Usage example
+
+Below is the general skeleton for XDP map usage with MsQuic.
+For a detailed comprehensive example, see [this sample](https://TODO_jackhe_fix_this) 
 
 ```c
 //
@@ -186,7 +183,7 @@ It is also listed in the central [Global Parameters](./Settings.md#global-parame
 //
 
 HANDLE XskMap;
-XdpMapCreate(&XskMap, XDP_MAP_TYPE_XSKMAP);
+if (FAILED(XdpMapCreate(&XskMap, XDP_MAP_TYPE_XSKMAP))) { exit(-1) };
 XDP_RULE Rule = {
     .Match = XDP_MATCH_UDP_DST,
     .Pattern.Port = htons(ServerPort),
