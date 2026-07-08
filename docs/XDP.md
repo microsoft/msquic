@@ -151,10 +151,15 @@ BIND --> LIST1
 BIND --> LIST2
 ```
 
-## Map Mode
+## Using XDP maps
 
+<<<<<<< Updated upstream
 XDP map mode is a feature introduced in XDP v1.4 to de-couple AF_XDP socket
 usage from privileged XDP rule setters.
+=======
+xdp-for-windows introduced support for maps in xdp v1.4 to de-couple AF_XDP socket
+consumers from privileged XDP rule setters.
+>>>>>>> Stashed changes
 
 MsQuic version v2.5 (and below) currently serves 2 simultaneous roles:
 - AF_XDP socket creator and user
@@ -164,29 +169,14 @@ MsQuic version v2.6 (and beyond) will begin to leverage the XDP map mode
 feature, and expose APIs for applications wishing to harden their security
 posture and reduce their threat surface by de-coupling.
 
-For instance, having a separate trusted process create maps and set rules,
-and just have the MsQuic process consuming the maps / rules for AF_XDP.
+The intention with de-coupling is to have a trusted process create rules and maps, isolating the untrusted process(es) from each other and the rest of the system.
 
-### API: `QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG`
+### API
 
 Map mode is configured via a global `SetParam` call using the
 `QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG` parameter.
+It is also listed in the central [Global Parameters](./Settings.md#global-parameters) table.
 
-```c
-#define QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG  0x0100000E  // QUIC_XDP_MAP_CONFIG[]
-
-typedef struct QUIC_XDP_MAP_CONFIG {
-    uint32_t InterfaceIndex;        // Network interface this map applies to.
-    QUIC_XDP_MAP_HANDLE MapHandle;  // XDP map handle (HANDLE on Windows).
-} QUIC_XDP_MAP_CONFIG;
-```
-
-**Timing constraint:** This parameter must be set **after** `MsQuicOpenVersion`
-but **before** any registration is opened. Attempting to set it after the datapath is
-initialized returns `QUIC_STATUS_INVALID_STATE`.
-
-The parameter may be updated (overwritten) multiple times before the first
-registration, and can be cleared by passing `BufferLength = 0`.
 
 ### Usage example
 
