@@ -153,7 +153,7 @@ BIND --> LIST2
 
 ## Map Mode
 
-XDP map mode is a feature introduced in xdp v1.4 to de-couple AF_XDP socket
+XDP map mode is a feature introduced in XDP v1.4 to de-couple AF_XDP socket
 consumers from privileged XDP rule setters.
 
 MsQuic version v2.5 (and below) currently serves 2 simultaneous roles:
