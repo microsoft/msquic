@@ -1110,6 +1110,64 @@ void QuicTestValidateConnection()
 #endif
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+//
+// Validates the parameter and state checks for ConnectionExportKeyingMaterial.
+// All of these are rejected before reaching the TLS provider, so the behavior
+// is identical in user and kernel mode. The functional export flow lives in
+// QuicTestConnectionExportKeyingMaterial (HandshakeTest.cpp) and the RFC 5705
+// keying-material properties are covered by TlsTest.ExportKeyingMaterial.
+//
+void QuicTestValidateConnectionExportKeyingMaterial()
+{
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    const uint32_t OutputLength = 32;
+    uint8_t Output[OutputLength];
+    QUIC_KEYING_MATERIAL_CONFIG Config;
+    Config.Label = "EXPORTER-MsQuicTest";
+    Config.Context = nullptr;
+    Config.ContextLength = 0;
+    Config.OutputLength = OutputLength;
+
+    //
+    // Not connected yet -> INVALID_STATE (arguments are otherwise valid).
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_STATE,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, Output));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, nullptr, Output));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, nullptr));
+
+    Config.Label = nullptr;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, Output));
+    Config.Label = "EXPORTER-MsQuicTest";
+
+    Config.OutputLength = 0;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, Output));
+    Config.OutputLength = OutputLength;
+
+    Config.ContextLength = 4; // Non-zero length with NULL context.
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, Output));
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 _Function_class_(STREAM_SHUTDOWN_CALLBACK)
 static
 void

@@ -4257,6 +4257,30 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "ExportKeyingMaterialInvalidState": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Cannot export keying material [Connected=%hhu, HandshakeComplete=%hhu, HasTls=%hhu]",
+      "UniqueId": "ExportKeyingMaterialInvalidState",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnWarning"
+    },
     "FailedRouteResolution": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Route resolution failed on Path[%hhu]. Switching paths...",
@@ -14628,6 +14652,11 @@
         "UniquenessHash": "21a2e517-42a5-1d18-885f-8b57b79a2fba",
         "TraceID": "EventSilentDiscard",
         "EncodingString": "[strm][%p] Event silently discarded"
+      },
+      {
+        "UniquenessHash": "aaafbd66-499b-3438-5492-a1cacf8ae2c6",
+        "TraceID": "ExportKeyingMaterialInvalidState",
+        "EncodingString": "[conn][%p] Cannot export keying material [Connected=%hhu, HandshakeComplete=%hhu, HasTls=%hhu]"
       },
       {
         "UniquenessHash": "fff5ef57-9005-a7ec-fcbc-d630c6c812fa",

@@ -1240,6 +1240,19 @@ QuicConnStart(
     );
 
 //
+// Exports keying material derived from the connection's TLS session
+// (RFC 5705 / RFC 8446 section 7.5).
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnExportKeyingMaterial(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_KEYING_MATERIAL_CONFIG* Config,
+    _Out_writes_bytes_(Config->OutputLength)
+        uint8_t* Output
+    );
+
+//
 // Generates a new source connection ID.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

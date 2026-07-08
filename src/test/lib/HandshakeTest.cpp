@@ -38,6 +38,149 @@ void QuicTestUninitialize()
     DatapathHooks::Instance = nullptr;
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct ExportKeyingMaterialServerContext {
+    //
+    // Label, context, and length shared between the server's inline export and
+    // the client export so both peers derive comparable material.
+    //
+    static constexpr uint32_t KmLength = 32;
+    static constexpr const char* KmLabel = "EXPORTER-MsQuicTest";
+    static constexpr uint8_t KmContext[] = { 1, 2, 3, 4, 5 };
+
+    MsQuicConfiguration* ServerConfiguration;
+    UniquePtr<MsQuicConnection>* Server;
+    //
+    // Signaled once the keying material export completed.
+    //
+    CxPlatEvent ExportComplete;
+    QUIC_STATUS ExportStatus;
+    uint8_t Km[KmLength];
+};
+
+static
+QUIC_STATUS
+ExportKeyingMaterialListenerCallback(
+    _In_ MsQuicListener* /* Listener */,
+    _In_opt_ void* ListenerContext,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    ExportKeyingMaterialServerContext* Context =
+        (ExportKeyingMaterialServerContext*)ListenerContext;
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        Context->Server->reset(new(std::nothrow) MsQuicConnection(
+            Event->NEW_CONNECTION.Connection,
+            CleanUpManual,
+            [](MsQuicConnection* Connection, void* ConnContext, QUIC_CONNECTION_EVENT* Event) {
+                if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                    ExportKeyingMaterialServerContext* Context =
+                        (ExportKeyingMaterialServerContext*)ConnContext;
+
+                    //
+                    // Server must export its keying material while its TLS context is still
+                    // alive. The server releases the TLS context immediately after the handshake
+                    // completes unless resumption is enabled.
+                    //
+                    QUIC_KEYING_MATERIAL_CONFIG Config;
+                    Config.Label = Context->KmLabel;
+                    Config.Context = Context->KmContext;
+                    Config.ContextLength = sizeof(Context->KmContext);
+                    Config.OutputLength = Context->KmLength;
+                    Context->ExportStatus =
+                        MsQuic->ConnectionExportKeyingMaterial(
+                            *Connection, &Config, Context->Km);
+                    Context->ExportComplete.Set();
+                }
+                return QUIC_STATUS_SUCCESS;
+            },
+            Context));
+        (*Context->Server)->SetConfiguration(*Context->ServerConfiguration);
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+//
+// Validate peers can export matching keying material after a successful connection.
+//
+void QuicTestConnectionExportKeyingMaterial()
+{
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    //
+    // Establish a connection. The server exports its keying material inline in
+    // the CONNECTED callback (see ExportKeyingMaterialListenerCallback).
+    //
+    ExportKeyingMaterialServerContext ServerContext = {};
+    ServerContext.ServerConfiguration = &ServerConfiguration;
+    ServerContext.ExportStatus = QUIC_STATUS_INVALID_STATE;
+
+    UniquePtr<MsQuicConnection> Server;
+    ServerContext.Server = &Server;
+
+    MsQuicListener Listener(
+        Registration, CleanUpManual, ExportKeyingMaterialListenerCallback, &ServerContext);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+
+    QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Client(Registration);
+    TEST_QUIC_SUCCEEDED(Client.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Client.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+    TEST_TRUE(Client.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Client.HandshakeComplete);
+    TEST_TRUE(Server);
+    TEST_TRUE(Server->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Server->HandshakeComplete);
+
+    //
+    // Wait for the server's inline export (which runs after the connection's
+    // HandshakeCompleteEvent is signaled) to complete before reading results.
+    //
+    TEST_TRUE(ServerContext.ExportComplete.WaitTimeout(TestWaitTimeout));
+
+    //
+    // The client retains its TLS context after the handshake, so it can export
+    // from the app thread. The no-context case and the label/context variations
+    // are covered at the TLS layer in TlsTest.ExportKeyingMaterial.
+    //
+    uint8_t ClientKm[ExportKeyingMaterialServerContext::KmLength];
+    QUIC_KEYING_MATERIAL_CONFIG Config;
+    Config.Label = ExportKeyingMaterialServerContext::KmLabel;
+    Config.Context = ExportKeyingMaterialServerContext::KmContext;
+    Config.ContextLength = sizeof(ExportKeyingMaterialServerContext::KmContext);
+    Config.OutputLength = ExportKeyingMaterialServerContext::KmLength;
+
+    const QUIC_STATUS ClientExportStatus =
+        MsQuic->ConnectionExportKeyingMaterial(Client.Handle, &Config, ClientKm);
+
+#ifdef _KERNEL_MODE
+    TEST_QUIC_STATUS(QUIC_STATUS_NOT_SUPPORTED, ServerContext.ExportStatus);
+    TEST_QUIC_STATUS(QUIC_STATUS_NOT_SUPPORTED, ClientExportStatus);
+#else
+    TEST_QUIC_STATUS(QUIC_STATUS_SUCCESS, ServerContext.ExportStatus);
+    TEST_QUIC_STATUS(QUIC_STATUS_SUCCESS, ClientExportStatus);
+    TEST_EQUAL(
+        0,
+        memcmp(ClientKm, ServerContext.Km, ExportKeyingMaterialServerContext::KmLength));
+#endif
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 void
 QuicTestPrimeResumption(
     _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,

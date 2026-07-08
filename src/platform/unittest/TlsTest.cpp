@@ -890,6 +890,75 @@ TEST_F(TlsTest, Handshake)
     ASSERT_FALSE(ServerContext.State.SessionResumed);
 }
 
+TEST_F(TlsTest, ExportKeyingMaterial)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext);
+
+    const char* Label = "EXPORTER-MsQuicTest";
+    const char* OtherLabel = "EXPORTER-Other";
+    const uint8_t Context[] = { 1, 2, 3, 4, 5 };
+    const uint8_t OtherContext[] = { 9, 8, 7, 6, 5 };
+    const uint32_t Length = 32;
+
+    uint8_t ServerKm[Length];
+    uint8_t ClientKm[Length];
+
+    //
+    // Both peers derive identical material for the same label with no context.
+    //
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatTlsExportKeyingMaterial(
+            ServerContext.Ptr, Label, nullptr, 0, ServerKm, Length));
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatTlsExportKeyingMaterial(
+            ClientContext.Ptr, Label, nullptr, 0, ClientKm, Length));
+    ASSERT_EQ(0, memcmp(ServerKm, ClientKm, Length));
+
+    //
+    // Both peers derive identical material for the same label with a context,
+    // and that material differs from the no-context result.
+    //
+    uint8_t ServerCtxKm[Length];
+    uint8_t ClientCtxKm[Length];
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatTlsExportKeyingMaterial(
+            ServerContext.Ptr, Label, Context, sizeof(Context), ServerCtxKm, Length));
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatTlsExportKeyingMaterial(
+            ClientContext.Ptr, Label, Context, sizeof(Context), ClientCtxKm, Length));
+    ASSERT_EQ(0, memcmp(ServerCtxKm, ClientCtxKm, Length));
+    ASSERT_NE(0, memcmp(ClientKm, ClientCtxKm, Length));
+
+    //
+    // A different label yields different material.
+    //
+    uint8_t OtherKm[Length];
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatTlsExportKeyingMaterial(
+            ClientContext.Ptr, OtherLabel, nullptr, 0, OtherKm, Length));
+    ASSERT_NE(0, memcmp(ClientKm, OtherKm, Length));
+
+    //
+    // A different context yields different material.
+    //
+    uint8_t OtherCtxKm[Length];
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatTlsExportKeyingMaterial(
+            ClientContext.Ptr, Label, OtherContext, sizeof(OtherContext), OtherCtxKm, Length));
+    ASSERT_NE(0, memcmp(ClientCtxKm, OtherCtxKm, Length));
+}
+
 #ifndef QUIC_DISABLE_PFX_TESTS
 TEST_F(TlsTest, HandshakeCertFromFile)
 {
