@@ -5,24 +5,24 @@
 
 Abstract:
 
-    Creates an XSKMAP, duplicates the handle into a QUIC server process, and
-    attaches an XDP program with QUIC-aware match rules once the consumer
-    signals it has inserted its XSKs.
-
-    This tool is the "creator" half of the XSKMAP creator/consumer pattern
-    for MsQuic. The consumer is typically quicsample running with
-    -xdp -xdp_map_ifindex (Phase 2) or the MsQuic datapath itself (Phase 3).
+    This sample application serves as a trusted process which can create XDP maps and set XDP rules.
+    
+    The goal is to demonstrate how to use XDP maps to de-couple the trusted XDP rule setters and the
+    untrusted AF_XDP socket users.
 
     Usage:
-        1. Start the QUIC server:
-           quicsample -server -cert_hash:<hash> -xdp -xdp_map_ifindex:<N>
-        2. Run this tool:
-           quicxskmapcreator -TargetPid <PID> -IfIndex <N> -UdpPort <port>
-        3. Paste the printed handle value into the consumer's stdin
-        4. Press Enter here to attach the XDP program
+        1. Start the untrusted QUIC server:
+            quicxdpmappeer.exe -xdp_map_ifindex:<N> -cert_hash:<hash>
+            (will print to stdout the PID)
 
-    The creator owns the map and the XDP program lifetime.
+        2. On a separate terminal, run the trusted orchestrator:
+            orchestrator.exe -TargetPid <PID> -IfIndex <N> -UdpPort <port>
+            (will print the duplicated XSKMAP handle value to stdout)
 
+        3. Paste the printed handle value into the quicxdpmappeer's stdin
+        4. Press Enter in the orchestrator terminal to attach the XDP program
+        5. The quicxdpmappeer process can now start accepting QUIC connections from other quicxdpmappeers via XDP maps.
+    
 --*/
 
 #define _CRT_SECURE_NO_WARNINGS 1
@@ -38,6 +38,8 @@ Abstract:
 
 #include <xdpapi.h>
 
+#include "xdpmap_common.h"
+
 #define LOGERR(...) \
     fprintf(stderr, "ERR: "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
 
@@ -52,19 +54,8 @@ static UINT32 IfIndex;
 static UINT16 UdpPort;
 static UINT8 CidServerIdLength;
 static BOOLEAN HasCibirId;
-static UINT8 CibirIdData[6];
+static UINT8 CibirIdData[XDPMAP_CIBIR_MAX_DATA_LEN];
 static UINT8 CibirIdLength;
-
-static UINT8
-DecodeHexChar(
-    char c
-    )
-{
-    if (c >= '0' && c <= '9') return (UINT8)(c - '0');
-    if (c >= 'A' && c <= 'F') return (UINT8)(10 + c - 'A');
-    if (c >= 'a' && c <= 'f') return (UINT8)(10 + c - 'a');
-    return 0;
-}
 
 static UINT32
 DecodeHexBuffer(
@@ -78,7 +69,7 @@ DecodeHexBuffer(
         Len = OutLen;
     }
     for (UINT32 i = 0; i < Len; i++) {
-        Out[i] = (DecodeHexChar(Hex[i * 2]) << 4) | DecodeHexChar(Hex[i * 2 + 1]);
+        Out[i] = (XdpMapDecodeHexChar(Hex[i * 2]) << 4) | XdpMapDecodeHexChar(Hex[i * 2 + 1]);
     }
     return Len;
 }
@@ -87,7 +78,7 @@ static void
 PrintUsage(void)
 {
     printf(
-        "quicxskmapcreator.exe -TargetPid <PID> -IfIndex <N> -UdpPort <port> [OPTIONS]\n"
+        "orchestrator.exe -TargetPid <PID> -IfIndex <N> -UdpPort <port> [OPTIONS]\n"
         "\n"
         "Creates an XSKMAP, duplicates it into the target QUIC server process, and\n"
         "attaches an XDP program with QUIC-aware match rules.\n"
@@ -148,7 +139,7 @@ ParseArgs(
                 LOGERR("Missing CibirId value");
                 return FALSE;
             }
-            UINT8 CibirRaw[7]; // offset (1 byte) + max 6 bytes CID
+            UINT8 CibirRaw[XDPMAP_CIBIR_RAW_MAX_LEN]; // offset (1 byte) + max CID bytes
             UINT32 CibirRawLen = DecodeHexBuffer(ArgV[i], sizeof(CibirRaw), CibirRaw);
             if (CibirRawLen < 2) {
                 LOGERR("CIBIR ID too short (need at least offset + 1 byte CID)");
