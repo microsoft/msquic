@@ -160,7 +160,7 @@ MsQuic version v2.5 (and below) currently serves 2 simultaneous roles:
 - AF_XDP socket creator and user
 - Privileged XDP rule setter
 
-MsQuic version v2.6 (and beyond) will begin to leverage XDP maps, and expose APIs for applications wishing to harden their security
+MsQuic version v2.6 (and beyond) implements integration of XDP maps, and expose APIs for applications wishing to harden their security
 posture and reduce their threat surface by de-coupling.
 
 The intention with de-coupling is to have a trusted process create rules and maps, isolating the untrusted process(es) from each other and the rest of the system.
@@ -174,8 +174,8 @@ Find it in the [Global Parameters](./Settings.md#global-parameters) table.
 
 ### Usage example
 
-Below is the general skeleton for XDP map usage with MsQuic.
-For a detailed comprehensive example, see [this sample](https://TODO_jackhe_fix_this) 
+The code below is a TL;DR outline of XDP map usage in MsQuic.
+For a detailed comprehensive example, see [this sample.](https://github.com/microsoft/msquic/tree/main/src/tools/quicxdpmapsample) 
 
 ```c
 //
@@ -197,9 +197,6 @@ DuplicateHandleAndShareWithConsumer(XskMap);
 
 //
 // MsQuic AF_XDP socket consumer 
-//
-// (maybe in another, less trusted process...
-//  or, in the same trusted process...)
 //
 
 QUIC_XDP_MAP_HANDLE XskMap = GetMapHandleFromSomewhere();
