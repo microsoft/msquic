@@ -11,6 +11,9 @@ Abstract:
     untrusted AF_XDP socket users.
 
     Usage:
+
+        Assuming your environment is correctly set up with the XDP driver runtime >= v1.4
+
         1. Start the untrusted QUIC server:
             quicxdpmappeer.exe -xdp_map_ifindex:<N> -cert_hash:<hash>
             (will print to stdout the PID)
@@ -44,7 +47,7 @@ Abstract:
 #endif
 
 const QUIC_REGISTRATION_CONFIG RegConfig = { "quicxdpmappeer", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
-const QUIC_BUFFER Alpn = { sizeof("xdpsample") - 1, (uint8_t*)"xdpsample" };
+const QUIC_BUFFER Alpn = { sizeof("quicxdpmappeer") - 1, (uint8_t*)"quicxdpmappeer" };
 const uint16_t UdpPort = 4567;
 
 const QUIC_API_TABLE* MsQuic;
@@ -115,15 +118,24 @@ PrintUsage(void)
 {
     printf(
         "\n"
-        "quicxdpmappeer: minimal XDP map consumer server.\n"
+        "quicxdpmappeer: minimal XDP map consumer peer (server/client).\n"
         "\n"
-        "Usage:\n"
+        "Server usage:\n"
         "  quicxdpmappeer.exe -xdp_map_ifindex:<N> -cert_hash:<THUMBPRINT> [-cibir_id:<hex>]\n"
         "  quicxdpmappeer.exe -xdp_map_ifindex:<N> -cert_file:<path> -key_file:<path> [-password:<pwd>] [-cibir_id:<hex>]\n"
         "\n"
-        "Required:\n"
+        "Client usage:\n"
+        "  quicxdpmappeer.exe -client -xdp_map_ifindex:<N> -target:<host_or_ip>\n"
+        "\n"
+        "Required (all modes):\n"
         "  -xdp_map_ifindex:<N>  Interface index for XDP map mode.\n"
+        "\n"
+        "Required (server):\n"
         "  -cert_hash:<...>      or -cert_file:<...> with -key_file:<...>.\n"
+        "\n"
+        "Required (client):\n"
+        "  -client               Run in client mode.\n"
+        "  -target:<...>         Server name or IP to connect to.\n"
         "\n"
         "Optional:\n"
         "  -cibir_id:<hex>       CIBIR ID (offset byte + CID prefix bytes).\n"
@@ -196,6 +208,40 @@ ServerConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ServerStreamCallback, NULL);
+        break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        MsQuic->ConnectionClose(Connection);
+        break;
+    default:
+        break;
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(QUIC_CONNECTION_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+ClientConnectionCallback(
+    _In_ HQUIC Connection,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    )
+{
+    UNREFERENCED_PARAMETER(Context);
+
+    switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_CONNECTED:
+        printf("[conn][%p] Connected (XDP map path validated)\n", Connection);
+        MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
+        printf("[conn][%p] Shutdown by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
+        printf("[conn][%p] Shutdown by peer, 0x%llu\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(Connection);
@@ -292,6 +338,40 @@ LoadServerConfiguration(
     }
 
     if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &Config.CredConfig))) {
+        printf("ConfigurationLoadCredential failed, 0x%x!\n", Status);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static
+BOOLEAN
+LoadClientConfiguration(void)
+{
+    QUIC_SETTINGS Settings = {0};
+    QUIC_STATUS Status;
+
+    QUIC_SETTINGS XdpSettings = {0};
+    XdpSettings.XdpEnabled = TRUE;
+    XdpSettings.IsSet.XdpEnabled = TRUE;
+    Status = MsQuic->SetParam(NULL, QUIC_PARAM_GLOBAL_SETTINGS, sizeof(XdpSettings), &XdpSettings);
+    if (QUIC_FAILED(Status)) {
+        printf("Failed to enable XDP globally, 0x%x!\n", Status);
+        return FALSE;
+    }
+
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    memset(&CredConfig, 0, sizeof(CredConfig));
+    CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
+    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), NULL, &Configuration))) {
+        printf("ConfigurationOpen failed, 0x%x!\n", Status);
+        return FALSE;
+    }
+
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig))) {
         printf("ConfigurationLoadCredential failed, 0x%x!\n", Status);
         return FALSE;
     }
@@ -420,6 +500,48 @@ Error:
     }
 }
 
+static
+void
+RunClient(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    QUIC_STATUS Status;
+    HQUIC Connection = NULL;
+
+    const char* Target = GetValue(argc, argv, "target");
+    if (Target == NULL) {
+        printf("Missing required argument '-target:<host_or_ip>' in client mode.\n");
+        return;
+    }
+
+    if (!LoadClientConfiguration()) {
+        return;
+    }
+
+    if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Registration, ClientConnectionCallback, NULL, &Connection))) {
+        printf("ConnectionOpen failed, 0x%x!\n", Status);
+        goto Error;
+    }
+
+    printf("[conn][%p] Connecting to %s:%u...\n", Connection, Target, UdpPort);
+    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_UNSPEC, Target, UdpPort))) {
+        printf("ConnectionStart failed, 0x%x!\n", Status);
+        goto Error;
+    }
+
+    printf("Client started. Press Enter to exit.\n");
+    (void)getchar();
+
+    return;
+
+Error:
+    if (Connection != NULL) {
+        MsQuic->ConnectionClose(Connection);
+    }
+}
+
 int
 QUIC_MAIN_EXPORT
 main(
@@ -428,6 +550,7 @@ main(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN ClientMode = GetFlag(argc, argv, "client");
 
     if (GetFlag(argc, argv, "help") || GetFlag(argc, argv, "?")) {
         PrintUsage();
@@ -449,7 +572,11 @@ main(
         goto Error;
     }
 
-    RunServer(argc, argv);
+    if (ClientMode) {
+        RunClient(argc, argv);
+    } else {
+        RunServer(argc, argv);
+    }
 
 Error:
     if (MsQuic != NULL) {

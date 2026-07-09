@@ -6,11 +6,14 @@
 Abstract:
 
     This sample application serves as a trusted process which can create XDP maps and set XDP rules.
-    
+
     The goal is to demonstrate how to use XDP maps to de-couple the trusted XDP rule setters and the
     untrusted AF_XDP socket users.
 
     Usage:
+
+        Assuming your environment is correctly set up with the XDP driver runtime >= v1.4
+        
         1. Start the untrusted QUIC server:
             quicxdpmappeer.exe -xdp_map_ifindex:<N> -cert_hash:<hash>
             (will print to stdout the PID)
@@ -22,7 +25,7 @@ Abstract:
         3. Paste the printed handle value into the quicxdpmappeer's stdin
         4. Press Enter in the orchestrator terminal to attach the XDP program
         5. The quicxdpmappeer process can now start accepting QUIC connections from other quicxdpmappeers via XDP maps.
-    
+
 --*/
 
 #define _CRT_SECURE_NO_WARNINGS 1
