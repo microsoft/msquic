@@ -13,7 +13,7 @@ Abstract:
     Usage:
 
         Assuming your environment is correctly set up with the XDP driver runtime >= v1.4
-        
+
         1. Start the untrusted QUIC server:
             quicxdpmappeer.exe -xdp_map_ifindex:<N> -cert_hash:<hash>
             (will print to stdout the PID)
@@ -59,23 +59,6 @@ static UINT8 CidServerIdLength;
 static BOOLEAN HasCibirId;
 static UINT8 CibirIdData[XDPMAP_CIBIR_MAX_DATA_LEN];
 static UINT8 CibirIdLength;
-
-static UINT32
-DecodeHexBuffer(
-    const char* Hex,
-    UINT32 OutLen,
-    UINT8* Out
-    )
-{
-    UINT32 Len = (UINT32)strlen(Hex) / 2;
-    if (Len > OutLen) {
-        Len = OutLen;
-    }
-    for (UINT32 i = 0; i < Len; i++) {
-        Out[i] = (XdpMapDecodeHexChar(Hex[i * 2]) << 4) | XdpMapDecodeHexChar(Hex[i * 2 + 1]);
-    }
-    return Len;
-}
 
 static void
 PrintUsage(void)
@@ -143,7 +126,7 @@ ParseArgs(
                 return FALSE;
             }
             UINT8 CibirRaw[XDPMAP_CIBIR_RAW_MAX_LEN]; // offset (1 byte) + max CID bytes
-            UINT32 CibirRawLen = DecodeHexBuffer(ArgV[i], sizeof(CibirRaw), CibirRaw);
+            UINT32 CibirRawLen = XdpMapDecodeHexBuffer(ArgV[i], sizeof(CibirRaw), CibirRaw);
             if (CibirRawLen < 2) {
                 LOGERR("CIBIR ID too short (need at least offset + 1 byte CID)");
                 return FALSE;

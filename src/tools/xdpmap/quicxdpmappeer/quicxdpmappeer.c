@@ -91,28 +91,6 @@ GetValue(
 }
 
 static
-uint32_t
-DecodeHexBuffer(
-    _In_z_ const char* HexBuffer,
-    _In_ uint32_t OutBufferLen,
-    _Out_writes_to_(OutBufferLen, return) uint8_t* OutBuffer
-    )
-{
-    uint32_t HexBufferLen = (uint32_t)strlen(HexBuffer) / 2;
-    if (HexBufferLen > OutBufferLen) {
-        return 0;
-    }
-
-    for (uint32_t i = 0; i < HexBufferLen; i++) {
-        OutBuffer[i] =
-            (XdpMapDecodeHexChar(HexBuffer[i * 2]) << 4) |
-            XdpMapDecodeHexChar(HexBuffer[i * 2 + 1]);
-    }
-
-    return HexBufferLen;
-}
-
-static
 void
 PrintUsage(void)
 {
@@ -302,7 +280,7 @@ LoadServerConfiguration(
     const char* KeyFile;
     if ((Cert = GetValue(argc, argv, "cert_hash")) != NULL) {
         uint32_t CertHashLen =
-            DecodeHexBuffer(
+            XdpMapDecodeHexBuffer(
                 Cert,
                 sizeof(Config.CertHash.ShaHash),
                 Config.CertHash.ShaHash);
@@ -473,7 +451,7 @@ RunServer(
     const char* CibirIdHex = GetValue(argc, argv, "cibir_id");
     if (CibirIdHex != NULL) {
         uint8_t CibirId[XDPMAP_CIBIR_RAW_MAX_LEN];
-        uint32_t CibirIdLen = DecodeHexBuffer(CibirIdHex, sizeof(CibirId), CibirId);
+        uint32_t CibirIdLen = XdpMapDecodeHexBuffer(CibirIdHex, sizeof(CibirId), CibirId);
         if (CibirIdLen < 2) {
             printf("CIBIR ID too short (need offset + >=1 CID byte).\n");
             goto Error;
