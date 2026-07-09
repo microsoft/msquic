@@ -175,7 +175,7 @@ Find it in the [Global Parameters](./Settings.md#global-parameters) table.
 ### Usage example
 
 The code below is a TL;DR outline of XDP map usage in MsQuic.
-For a detailed comprehensive example, see [this sample.](https://github.com/microsoft/msquic/tree/main/src/tools/quicxdpmapsample) 
+For a detailed comprehensive example, see [this sample.](https://github.com/microsoft/msquic/tree/main/src/tools/xdpmap)
 
 ```c
 //
@@ -196,7 +196,7 @@ XdpCreateProgram(IfIndex, &RxHook, QueueId, 0, &Rule, 1, &Program);
 DuplicateHandleAndShareWithConsumer(XskMap);
 
 //
-// MsQuic AF_XDP socket consumer 
+// MsQuic AF_XDP socket consumer
 //
 
 QUIC_XDP_MAP_HANDLE XskMap = GetMapHandleFromSomewhere();
