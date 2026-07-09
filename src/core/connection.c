@@ -5572,7 +5572,7 @@ QuicConnRecvPostProcessing(
 
     if (Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
-        !(*Path)->IsActive) {
+        !(*Path)->IsActive && (*Path)->InUse) {
         //
         // The peer has sent a non-probing frame on a path other than the active
         // one. This signals their intent to switch active paths.
