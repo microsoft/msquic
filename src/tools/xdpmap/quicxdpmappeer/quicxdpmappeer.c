@@ -22,10 +22,11 @@ Abstract:
         3. Paste the printed handle value into the quicxdpmappeer's stdin
         4. Press Enter in the orchestrator terminal to attach the XDP program
         5. The quicxdpmappeer process can now start accepting QUIC connections from other quicxdpmappeers via XDP maps.
-    
+
 --*/
 
 #define _CRT_SECURE_NO_WARNINGS 1
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #ifdef _WIN32
 #pragma warning(disable:5105)
