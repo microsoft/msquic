@@ -6058,6 +6058,36 @@ pub type QUIC_CONNECTION_COMP_CERT_FN = ::std::option::Option<
         TlsAlert: QUIC_TLS_ALERT_CODES,
     ) -> HRESULT,
 >;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_KEYING_MATERIAL_CONFIG {
+    pub Label: *const ::std::os::raw::c_char,
+    pub ContextLength: u32,
+    pub Context: *const u8,
+    pub OutputLength: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_KEYING_MATERIAL_CONFIG"]
+        [::std::mem::size_of::<QUIC_KEYING_MATERIAL_CONFIG>() - 32usize];
+    ["Alignment of QUIC_KEYING_MATERIAL_CONFIG"]
+        [::std::mem::align_of::<QUIC_KEYING_MATERIAL_CONFIG>() - 8usize];
+    ["Offset of field: QUIC_KEYING_MATERIAL_CONFIG::Label"]
+        [::std::mem::offset_of!(QUIC_KEYING_MATERIAL_CONFIG, Label) - 0usize];
+    ["Offset of field: QUIC_KEYING_MATERIAL_CONFIG::ContextLength"]
+        [::std::mem::offset_of!(QUIC_KEYING_MATERIAL_CONFIG, ContextLength) - 8usize];
+    ["Offset of field: QUIC_KEYING_MATERIAL_CONFIG::Context"]
+        [::std::mem::offset_of!(QUIC_KEYING_MATERIAL_CONFIG, Context) - 16usize];
+    ["Offset of field: QUIC_KEYING_MATERIAL_CONFIG::OutputLength"]
+        [::std::mem::offset_of!(QUIC_KEYING_MATERIAL_CONFIG, OutputLength) - 24usize];
+};
+pub type QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN = ::std::option::Option<
+    unsafe extern "C" fn(
+        Connection: HQUIC,
+        Config: *const QUIC_KEYING_MATERIAL_CONFIG,
+        Output: *mut u8,
+    ) -> HRESULT,
+>;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_START_COMPLETE: QUIC_STREAM_EVENT_TYPE = 0;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_RECEIVE: QUIC_STREAM_EVENT_TYPE = 1;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_SEND_COMPLETE: QUIC_STREAM_EVENT_TYPE = 2;
@@ -6713,10 +6743,11 @@ pub struct QUIC_API_TABLE {
     pub ExecutionDelete: QUIC_EXECUTION_DELETE_FN,
     pub ExecutionPoll: QUIC_EXECUTION_POLL_FN,
     pub RegistrationClose2: QUIC_REGISTRATION_CLOSE2_FN,
+    pub ConnectionExportKeyingMaterial: QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 304usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 312usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
@@ -6798,6 +6829,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionPoll) - 288usize];
     ["Offset of field: QUIC_API_TABLE::RegistrationClose2"]
         [::std::mem::offset_of!(QUIC_API_TABLE, RegistrationClose2) - 296usize];
+    ["Offset of field: QUIC_API_TABLE::ConnectionExportKeyingMaterial"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionExportKeyingMaterial) - 304usize];
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 459749;

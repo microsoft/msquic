@@ -2369,6 +2369,39 @@ CxPlatTlsParamGet(
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsExportKeyingMaterial(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_z_ const char* Label,
+    _In_reads_bytes_opt_(ContextLength)
+        const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _Out_writes_bytes_(OutputLength)
+        uint8_t* Output,
+    _In_ uint32_t OutputLength
+    )
+{
+    if (SSL_export_keying_material(
+            TlsContext->Ssl,
+            Output,
+            OutputLength,
+            Label,
+            strlen(Label),
+            Context,
+            ContextLength,
+            Context != NULL ? 1 : 0) != 1) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "SSL_export_keying_material failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
 _Success_(return==TRUE)
 BOOLEAN
 QuicTlsPopulateOffloadKeys(

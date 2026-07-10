@@ -64,6 +64,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION,
     QUIC_API_TYPE_CONN_COMPLETE_CERTIFICATE_VALIDATION,
     QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS,
+    QUIC_API_TYPE_CONN_EXPORT_KEYING_MATERIAL,
 
 } QUIC_API_TYPE;
 
@@ -178,6 +179,11 @@ typedef struct QUIC_API_CONTEXT {
             uint32_t* BufferLength;
             void* Buffer;
         } GET_PARAM;
+        struct {
+            const QUIC_KEYING_MATERIAL_CONFIG* Config;
+            _Field_size_bytes_(Config->OutputLength)
+                uint8_t* Output;
+        } CONN_EXPORT_KEYING_MATERIAL;
     };
 
 } QUIC_API_CONTEXT;
