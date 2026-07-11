@@ -2,5 +2,5 @@
 # cargo + rustup will use this to consistently build the project
 # with the same version across all checkouts and environments
 [toolchain]
-channel = "1.96.1"
+channel = "1.97.0"
 profile = "default"
