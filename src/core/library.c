@@ -1539,7 +1539,6 @@ QuicLibrarySetGlobalParam(
     return Status;
 }
 
-#ifndef _KERNEL_MODE
 //
 // Fills the caller's buffer with the per-worker statistics from the worker pool.
 //
@@ -1551,6 +1550,15 @@ QuicLibraryGetGlobalWorkerStatistics(
         void* Buffer
     )
 {
+#ifdef _KERNEL_MODE
+    //
+    // Worker statistics are not supported in kernel mode, where the worker
+    // threads are not owned by the platform worker pool.
+    //
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+#else
     if (MsQuicLib.WorkerPool == NULL) {
         return QUIC_STATUS_INVALID_STATE;
     }
@@ -1586,8 +1594,8 @@ QuicLibraryGetGlobalWorkerStatistics(
 
     *BufferLength = RequiredSize;
     return QUIC_STATUS_SUCCESS;
+#endif // _KERNEL_MODE
 }
-#endif // !_KERNEL_MODE
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == QUIC_STATUS_SUCCESS)
@@ -1964,18 +1972,9 @@ QuicLibraryGetGlobalParam(
         break;
     }
 
-    case QUIC_PARAM_GLOBAL_WORKER_STATISTICS: {
-#ifdef _KERNEL_MODE
-        //
-        // Worker statistics are not supported in kernel mode, where the worker
-        // threads are not owned by the platform worker pool.
-        //
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-#else
+    case QUIC_PARAM_GLOBAL_WORKER_STATISTICS:
         Status = QuicLibraryGetGlobalWorkerStatistics(BufferLength, Buffer);
-#endif
         break;
-    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

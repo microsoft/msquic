@@ -6181,17 +6181,17 @@ QuicTestGetWorkerStatistics()
         &BufferLength,
         nullptr);
 
-    uint8_t* Buffer = new(std::nothrow) uint8_t[BufferLength];
-    TEST_NOT_EQUAL(Buffer, nullptr);
+    UniquePtrArray<uint8_t> Buffer(new(std::nothrow) uint8_t[BufferLength]);
+    TEST_NOT_EQUAL(Buffer.get(), nullptr);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
             QUIC_PARAM_GLOBAL_WORKER_STATISTICS,
             &BufferLength,
-            Buffer));
+            Buffer.get()));
 
-    QUIC_WORKER_STATISTICS_LIST* List = (QUIC_WORKER_STATISTICS_LIST*)Buffer;
+    QUIC_WORKER_STATISTICS_LIST* List = (QUIC_WORKER_STATISTICS_LIST*)Buffer.get();
     TEST_TRUE(List->WorkerCount > 0);
     TEST_EQUAL(List->WorkerStatsSize, sizeof(QUIC_WORKER_STATISTICS));
     TEST_EQUAL(
@@ -6202,7 +6202,7 @@ QuicTestGetWorkerStatistics()
     // Validate each worker's statistics.
     //
     QUIC_WORKER_STATISTICS* Stats =
-        (QUIC_WORKER_STATISTICS*)(Buffer + sizeof(QUIC_WORKER_STATISTICS_LIST));
+        (QUIC_WORKER_STATISTICS*)(Buffer.get() + sizeof(QUIC_WORKER_STATISTICS_LIST));
     for (uint32_t i = 0; i < List->WorkerCount; i++) {
         TEST_TRUE(Stats[i].CumulativeWallTimeUs > 0);
         //
@@ -6210,8 +6210,6 @@ QuicTestGetWorkerStatistics()
         //
         TEST_TRUE(Stats[i].CumulativeActiveTimeUs <= Stats[i].CumulativeWallTimeUs);
     }
-
-    delete[] Buffer;
 #endif // _KERNEL_MODE
 }
 
