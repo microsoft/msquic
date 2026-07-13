@@ -15,16 +15,16 @@ Abstract:
         Assuming your environment is correctly set up with the XDP driver runtime >= v1.4
 
         1. Start the untrusted QUIC server:
-            quicxdpmappeer.exe -xdp_map_ifindex:<N> -cert_hash:<hash>
+            quicxdpmapserver.exe -xdp_map_ifindex:<N> -cert_hash:<hash>
             (will print to stdout the PID)
 
         2. On a separate terminal, run the trusted orchestrator:
             orchestrator.exe -TargetPid <PID> -IfIndex <N> -UdpPort <port>
             (will print the duplicated XSKMAP handle value to stdout)
 
-        3. Paste the printed handle value into the quicxdpmappeer's stdin
+        3. Paste the printed handle value into the quicxdpmapserver's stdin
         4. Press Enter in the orchestrator terminal to attach the XDP program
-        5. The quicxdpmappeer process can now start accepting QUIC connections from other quicxdpmappeers via XDP maps.
+        5. The quicxdpmapserver process can now start accepting QUIC connections from other MsQuic clients via XDP maps.
 
 --*/
 
