@@ -300,7 +300,7 @@ CxPlatDpRawParseIPv4(
     }
 
     uint16_t IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
-    if (Length < IPTotalLength) {
+    if (IPTotalLength < sizeof(IPV4_HEADER) || Length < IPTotalLength) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
