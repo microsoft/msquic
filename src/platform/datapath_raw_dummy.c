@@ -56,12 +56,14 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ const CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** DataPath
     )
 {
     UNREFERENCED_PARAMETER(ClientRecvContextLength);
     UNREFERENCED_PARAMETER(ParentDataPath);
     UNREFERENCED_PARAMETER(WorkerPool);
+    UNREFERENCED_PARAMETER(InitConfig);
     *DataPath = NULL;
 }
 
@@ -74,6 +76,23 @@ RawDataPathUninitialize(
     UNREFERENCED_PARAMETER(Datapath);
 }
 
+BOOLEAN
+CxPlatDpRawIsRawDatapathOnly(
+    _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
+    return FALSE; // Dummy raw datapath is never raw-only.
+}
+
+void
+CxPlatDpRawEnableRawDatapathOnly(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 RawDataPathUpdatePollingIdleTimeout(
@@ -83,6 +102,41 @@ RawDataPathUpdatePollingIdleTimeout(
 {
     UNREFERENCED_PARAMETER(Datapath);
     UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDpRawApplyMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
+    _In_reads_(MapConfigCount) const CXPLAT_XDP_MAP_CONFIG* MapConfigs,
+    _In_ uint32_t MapConfigCount
+    )
+{
+    //
+    // Stub for platforms without XDP support.
+    //
+    UNREFERENCED_PARAMETER(RawDataPath);
+    UNREFERENCED_PARAMETER(MapConfigs);
+    UNREFERENCED_PARAMETER(MapConfigCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawCleanupMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
+}
+
+uint32_t
+CxPlatDpRawGetTotalRuleCount(
+    _In_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    )
+{
+    UNREFERENCED_PARAMETER(RawDataPath);
+    return 0;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

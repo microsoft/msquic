@@ -62,6 +62,9 @@ as necessary.
 .PARAMETER DuoNic
     Uses DuoNic instead of loopback.
 
+.PARAMETER XdpMapMode
+    Uses XDP map mode with DuoNic.
+
 #>
 
 param (
@@ -132,6 +135,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$DuoNic = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$XdpMapMode = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$OsRunner = "",
@@ -403,6 +409,9 @@ function Start-TestCase([String]$Name) {
     if ($DuoNic) {
         $Arguments += " --duoNic"
     }
+    if ($XdpMapMode) {
+        $Arguments += " --xdpMapMode"
+    }
     if ($UseQtip) {
         $Arguments += " --useQTIP"
     }
@@ -450,6 +459,9 @@ function Start-AllTestCases {
     if ($DuoNic) {
         $Arguments += " --duoNic"
     }
+    if ($XdpMapMode) {
+        $Arguments += " --xdpMapMode"
+    }
     if ($UseQtip) {
         $Arguments += " --useQTIP"
     }
@@ -492,7 +504,7 @@ function PrintDumpCallStack($DumpFile) {
 
 function PrintLldbCoreCallStack($CoreFile) {
     try {
-        $Output = lldb $Path -c $CoreFile -b -o "`"bt all`""
+        $Output = lldb $Path -c $CoreFile -b -o "bt all"
         Write-Host "=================================================================================="
         Write-Host " $(Split-Path $CoreFile -Leaf)"
         Write-Host "=================================================================================="
@@ -527,7 +539,7 @@ function PrintLldbCoreCallStack($CoreFile) {
 
 function PrintGdbCoreCallStack($CoreFile) {
     try {
-        $Output = gdb $Path $CoreFile -batch -ex "`"bt`"" -ex "`"quit`""
+        $Output = gdb $Path $CoreFile -batch -ex "bt" -ex "quit"
         Write-Host "=================================================================================="
         Write-Host " $(Split-Path $CoreFile -Leaf)"
         Write-Host "=================================================================================="

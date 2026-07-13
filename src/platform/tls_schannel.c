@@ -2126,6 +2126,18 @@ CxPlatTlsWriteDataToSchannel(
         }
     }
 
+    //
+    // Some or all of the input data was processed. There may or may not be
+    // corresponding output data to send in response.
+    //
+    if (ExtraBuffer != NULL && ExtraBuffer->cbBuffer > 0) {
+        //
+        // Not all the input buffer was consumed. There is some 'extra' left over.
+        //
+        CXPLAT_DBG_ASSERT(ExtraBuffer->cbBuffer <= *InBufferLength);
+        *InBufferLength -= ExtraBuffer->cbBuffer;
+    }
+
     switch (SecStatus) {
     case SEC_E_BUFFER_TOO_SMALL: {
         //
@@ -2434,19 +2446,6 @@ CxPlatTlsWriteDataToSchannel(
             }
             Result |= CXPLAT_TLS_RESULT_ERROR;
             break;
-        }
-
-        //
-        // Some or all of the input data was processed. There may or may not be
-        // corresponding output data to send in response.
-        //
-
-        if (ExtraBuffer != NULL && ExtraBuffer->cbBuffer > 0) {
-            //
-            // Not all the input buffer was consumed. There is some 'extra' left over.
-            //
-            CXPLAT_DBG_ASSERT(InSecBuffers[1].cbBuffer <= *InBufferLength);
-            *InBufferLength -= InSecBuffers[1].cbBuffer;
         }
 
         QuicTraceLogConnInfo(
@@ -3181,6 +3180,105 @@ CxPlatTlsParamGet(
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsExportKeyingMaterial(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_z_ const char* Label,
+    _In_reads_bytes_opt_(ContextLength)
+        const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _Out_writes_bytes_(OutputLength)
+        uint8_t* Output,
+    _In_ uint32_t OutputLength
+    )
+{
+#ifdef _KERNEL_MODE
+    //
+    // Exporting keying material relies on the SecPkgContext_KeyingMaterial[Info]
+    // structures and the SECPKG_ATTR_KEYING_MATERIAL[_INFO] attributes, which
+    // are only defined in the user-mode <schannel.h> and not available to
+    // kernel-mode Schannel.
+    //
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(Label);
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(ContextLength);
+    UNREFERENCED_PARAMETER(Output);
+    UNREFERENCED_PARAMETER(OutputLength);
+    return QUIC_STATUS_NOT_SUPPORTED;
+#else
+    QUIC_STATUS Status;
+    SecPkgContext_KeyingMaterialInfo Info;
+    SecPkgContext_KeyingMaterial Material;
+    size_t LabelLength = strlen(Label);
+
+    CxPlatZeroMemory(&Material, sizeof(Material));
+
+    //
+    // Schannel's label length (which includes the NUL terminator) and context
+    // length are 16-bit fields, so validate they fit.
+    //
+    if (LabelLength == 0 || LabelLength + 1 > 0xFFFF || ContextLength > 0xFFFF) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    Info.cbLabel = (WORD)(LabelLength + 1);
+    Info.pszLabel = (LPSTR)Label;
+    Info.cbContextValue = (WORD)ContextLength;
+    Info.pbContextValue = ContextLength != 0 ? (PBYTE)Context : NULL;
+    Info.cbKeyingMaterial = OutputLength;
+
+    Status =
+        SecStatusToQuicStatus(
+            SetContextAttributesW(
+                &TlsContext->SchannelContext,
+                SECPKG_ATTR_KEYING_MATERIAL_INFO,
+                &Info,
+                sizeof(Info)));
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "Set keying material info");
+        goto Error;
+    }
+
+    Status =
+        SecStatusToQuicStatus(
+            QueryContextAttributesW(
+                &TlsContext->SchannelContext,
+                SECPKG_ATTR_KEYING_MATERIAL,
+                &Material));
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "Query keying material");
+        goto Error;
+    }
+
+    CXPLAT_DBG_ASSERT(Material.pbKeyingMaterial != NULL);
+    CXPLAT_DBG_ASSERT(Material.cbKeyingMaterial == OutputLength);
+
+    CxPlatCopyMemory(Output, Material.pbKeyingMaterial, OutputLength);
+    Status = QUIC_STATUS_SUCCESS;
+
+Error:
+
+    if (Material.pbKeyingMaterial != NULL) {
+        FreeContextBuffer(Material.pbKeyingMaterial);
+    }
+
+    return Status;
+#endif // _KERNEL_MODE
 }
 
 _Success_(return != FALSE)

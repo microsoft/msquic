@@ -450,6 +450,7 @@ MsQuicConnectionStart(
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;
+    Oper->API_CALL.Context->CONN_START.Flags = QUIC_CONN_START_FLAG_NONE;
     ServerNameCopy = NULL;
 
     //
@@ -666,6 +667,94 @@ Error:
     if (ResumptionDataCopy != NULL) {
         CXPLAT_FREE(ResumptionDataCopy, QUIC_POOL_APP_RESUMPTION_DATA);
     }
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionExportKeyingMaterial(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ _Pre_defensive_ const QUIC_KEYING_MATERIAL_CONFIG* Config,
+    _Out_writes_bytes_(Config->OutputLength)
+        uint8_t* Output
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+
+    CXPLAT_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_EXPORT_KEYING_MATERIAL,
+        Handle);
+
+    if (Config == NULL ||
+        Config->Label == NULL ||
+        Config->OutputLength == 0 ||
+        Output == NULL ||
+        (Config->Context == NULL && Config->ContextLength != 0) ||
+        !IS_CONN_HANDLE(Handle)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Connection = (QUIC_CONNECTION*)Handle;
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+
+    if (MsQuicLib.CustomExecutions ||
+        Connection->WorkerThreadID == CxPlatCurThreadID()) {
+        //
+        // Execute this blocking API call inline if called on the worker thread.
+        //
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
+        Status =
+            QuicConnExportKeyingMaterial(Connection, Config, Output);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
+        goto Error;
+    }
+
+    //
+    // Queue the operation and wait for the worker to process it.
+    //
+    CXPLAT_EVENT CompletionEvent;
+    CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
+
+    QUIC_API_CONTEXT ApiCtx;
+    ApiCtx.Type = QUIC_API_TYPE_CONN_EXPORT_KEYING_MATERIAL;
+    ApiCtx.Completed = &CompletionEvent;
+    ApiCtx.Status = &Status;
+    ApiCtx.CONN_EXPORT_KEYING_MATERIAL.Config = Config;
+    ApiCtx.CONN_EXPORT_KEYING_MATERIAL.Output = Output;
+
+    QUIC_OPERATION Oper = { 0 };
+    Oper.Type = QUIC_OPER_TYPE_API_CALL;
+    Oper.FreeAfterProcess = FALSE;
+    Oper.API_CALL.Context = &ApiCtx;
+
+    QuicConnQueueOper(Connection, &Oper);
+    QuicTraceEvent(
+        ApiWaitOperation,
+        "[ api] Waiting on operation");
+    CxPlatEventWaitForever(CompletionEvent);
+    CxPlatEventUninitialize(CompletionEvent);
+
+Error:
 
     QuicTraceEvent(
         ApiExitStatus,

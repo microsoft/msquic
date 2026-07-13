@@ -337,6 +337,111 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpMapInsertFailed
+// [ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x
+// QuicTraceLogVerbose(
+                XdpMapInsertFailed,
+                "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                Interface,
+                Interface->IfIndex,
+                j,
+                XskMap,
+                Queue->RxXsk,
+                Hr);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = j = arg4
+// arg5 = arg5 = XskMap = arg5
+// arg6 = arg6 = Queue->RxXsk = arg6
+// arg7 = arg7 = Hr = arg7
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapInsertFailed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4,
+        const void *, arg5,
+        const void *, arg6,
+        unsigned int, arg7), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer_hex(uint64_t, arg5, (uint64_t)arg5)
+        ctf_integer_hex(uint64_t, arg6, (uint64_t)arg6)
+        ctf_integer(unsigned int, arg7, arg7)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpMapDeleteFailed
+// [ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x
+// QuicTraceLogVerbose(
+                            XdpMapDeleteFailed,
+                            "[ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                            Interface,
+                            Interface->IfIndex,
+                            k,
+                            XskMap,
+                            Interface->Queues[k].RxXsk,
+                            DeleteHr);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = k = arg4
+// arg5 = arg5 = XskMap = arg5
+// arg6 = arg6 = Interface->Queues[k].RxXsk = arg6
+// arg7 = arg7 = DeleteHr = arg7
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapDeleteFailed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4,
+        const void *, arg5,
+        const void *, arg6,
+        unsigned int, arg7), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer_hex(uint64_t, arg5, (uint64_t)arg5)
+        ctf_integer_hex(uint64_t, arg6, (uint64_t)arg6)
+        ctf_integer(unsigned int, arg7, arg7)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpMapModeConfigured
+// [ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)
+// QuicTraceLogVerbose(
+            XdpMapModeConfigured,
+            "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+            Interface,
+            Interface->IfIndex,
+            XskMap);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = XskMap = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapModeConfigured,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        const void *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg4, (uint64_t)arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(

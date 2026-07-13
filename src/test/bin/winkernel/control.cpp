@@ -463,10 +463,16 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestTlsHandshakeInfo);
     RegisterTestFunction(QuicTestStreamParam);
     RegisterTestFunction(QuicTestGetPerfCounters);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestValidateEncryptDecryptPerfCounters);
+    RegisterTestFunction(QuicTestConnQueueDelayStatistics);
+#endif
     RegisterTestFunction(QuicTestValidateConfiguration);
     RegisterTestFunction(QuicTestValidateListener);
     RegisterTestFunction(QuicTestValidateConnection);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestConnectionExportKeyingMaterial);
+    RegisterTestFunction(QuicTestValidateConnectionExportKeyingMaterial);
     RegisterTestFunction(QuicTestValidateConnectionPoolCreate);
     RegisterTestFunction(QuicTestValidateExecutionContext);
     RegisterTestFunction(QuicTestValidatePartition);
@@ -572,6 +578,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestClientBlockedSourcePort);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestPathValidationTimeout);
+    RegisterTestFunction(QuicTestPathValidationLastPathClose);
     RegisterTestFunction(QuicTestNatPortRebind_NoPadding);
     RegisterTestFunction(QuicTestNatPortRebind_WithPadding);
     RegisterTestFunction(QuicTestNatAddrRebind_NoPadding);

@@ -47,7 +47,7 @@ The API supports both server and client applications. All functionality is expos
 
 [**Stream**](#stream) – The layer at which application data is exchanged. Streams may be opened by either peer of a connection and may be unidirectional or bidirectional. For a single connection, as many streams as necessary may be created.
 
-(For more details on the inner design of MsQuic see: [TLS](./TLS.md))
+(For more details on the inner design of MsQuic see: [TLS](./contrib/TLS.md))
 
 ## Versioning
 

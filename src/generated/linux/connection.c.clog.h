@@ -489,6 +489,30 @@ tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ExportKeyingMaterialInvalidState
+// [conn][%p] Cannot export keying material [Connected=%hhu, HandshakeComplete=%hhu, HasTls=%hhu]
+// QuicTraceLogConnWarning(
+            ExportKeyingMaterialInvalidState,
+            Connection,
+            "Cannot export keying material [Connected=%hhu, HandshakeComplete=%hhu, HasTls=%hhu]",
+            Connection->State.Connected,
+            Connection->Crypto.TlsState.HandshakeComplete,
+            (uint8_t)(Connection->Crypto.TLS != NULL));
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.Connected = arg3
+// arg4 = arg4 = Connection->Crypto.TlsState.HandshakeComplete = arg4
+// arg5 = arg5 = (uint8_t)(Connection->Crypto.TLS != NULL) = arg5
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ExportKeyingMaterialInvalidState
+#define _clog_6_ARGS_TRACE_ExportKeyingMaterialInvalidState(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
+tracepoint(CLOG_CONNECTION_C, ExportKeyingMaterialInvalidState , arg1, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for CloseComplete
 // [conn][%p] Connection close complete
 // QuicTraceLogConnInfo(
@@ -756,10 +780,10 @@ tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
 // Decoder Ring for FailedRouteResolution
 // [conn][%p] Route resolution failed on Path[%hhu]. Switching paths...
 // QuicTraceLogConnInfo(
-                    FailedRouteResolution,
-                    Connection,
-                    "Route resolution failed on Path[%hhu]. Switching paths...",
-                    PathId);
+            FailedRouteResolution,
+            Connection,
+            "Route resolution failed on Path[%hhu]. Switching paths...",
+            PathId);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = PathId = arg3
 ----------------------------------------------------------*/
@@ -2181,6 +2205,26 @@ tracepoint(CLOG_CONNECTION_C, ConnDelayCloseApplicationError , arg2);\
 #ifndef _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams
 #define _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ConnRecvUdpDatagrams , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathValidationTimeout
+// [conn][%p] Path[%hhu] validation timed out
+// QuicTraceEvent(
+            ConnPathValidationTimeout,
+            "[conn][%p] Path[%hhu] validation timed out",
+            Connection,
+            Path->ID);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPathValidationTimeout
+#define _clog_4_ARGS_TRACE_ConnPathValidationTimeout(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnPathValidationTimeout , arg2, arg3);\
 
 #endif
 

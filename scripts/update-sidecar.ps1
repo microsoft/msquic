@@ -5,7 +5,7 @@ This regenerates the CLOG sidecar file.
 
 #>
 
-#Requires -Version 7.2
+#Requires -Version 7.0
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
@@ -33,10 +33,15 @@ if (Test-Path $OutputDir) {
     }
 }
 
+$TmpOutputDir = Join-Path $RootDir "build" "tmp"
+
+# Clean stale generated files so removed/renamed sources don't leave orphans
+if (Test-Path $TmpOutputDir) {
+    Remove-Item $TmpOutputDir -Recurse -Force
+}
+
 $Sidecar = Join-Path $SrcDir "manifest" "clog.sidecar"
 $ConfigFile = Join-Path $SrcDir "manifest" "msquic.clog_config"
-
-$TmpOutputDir = Join-Path $RootDir "build" "tmp"
 $ClogDir = Join-Path $RootDir "build" "clog"
 
 # Create directories
