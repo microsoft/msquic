@@ -24,7 +24,8 @@ Abstract:
 
         3. Paste the printed handle value into the quicxdpmapserver's stdin
         4. Press Enter in the orchestrator terminal to attach the XDP program
-        5. The quicxdpmapserver process can now start accepting QUIC connections from other MsQuic clients via XDP maps.
+        5. The quicxdpmapserver process can now start talking to other MsQuic clients via XDP maps with ALPN == 'sample'
+
 
 --*/
 
@@ -47,7 +48,7 @@ Abstract:
 #endif
 
 const QUIC_REGISTRATION_CONFIG RegConfig = { "quicxdpmapserver", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
-const QUIC_BUFFER Alpn = { sizeof("quicxdpmapserver") - 1, (uint8_t*)"quicxdpmapserver" };
+const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
 const uint16_t UdpPort = 4567;
 
 const QUIC_API_TABLE* MsQuic;
@@ -309,10 +310,10 @@ ConfigureXdpMap(
 
     const char* CibirHint = GetValue(argc, argv, "cibir_id");
     if (CibirHint != NULL) {
-        printf("  orchestrator -TargetPid %u -IfIndex %u -UdpPort %u -CibirId %s\n",
+        printf("  ./orchestrator.exe -TargetPid %u -IfIndex %u -UdpPort %u -CibirId %s\n",
             (unsigned)GetCurrentProcessId(), MapIfIndex, UdpPort, CibirHint);
     } else {
-        printf("  orchestrator -TargetPid %u -IfIndex %u -UdpPort %u\n",
+        printf("  ./orchestrator.exe -TargetPid %u -IfIndex %u -UdpPort %u\n",
             (unsigned)GetCurrentProcessId(), MapIfIndex, UdpPort);
     }
 
@@ -413,6 +414,19 @@ main(
     if (GetFlag(argc, argv, "help") || GetFlag(argc, argv, "?")) {
         PrintUsage();
         return 0;
+    }
+
+    if (GetValue(argc, argv, "xdp_map_ifindex") == NULL) {
+        printf("Missing required argument '-xdp_map_ifindex:<N>'.\n");
+        PrintUsage();
+        return (int)QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (GetValue(argc, argv, "cert_hash") == NULL &&
+        (GetValue(argc, argv, "cert_file") == NULL || GetValue(argc, argv, "key_file") == NULL)) {
+        printf("Must specify '-cert_hash' or '-cert_file' with '-key_file'.\n");
+        PrintUsage();
+        return (int)QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
