@@ -53,7 +53,6 @@ const uint16_t UdpPort = 4567;
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
-HQUIC Configuration;
 
 static
 BOOLEAN
@@ -110,6 +109,51 @@ PrintUsage(void)
         "Optional:\n"
         "  -cibir_id:<hex>       CIBIR ID (offset byte + CID prefix bytes).\n"
     );
+}
+
+typedef struct SERVER_ARGS {
+    UINT32 XdpMapIfIndex;
+    const char* CertHash;
+    const char* CertFile;
+    const char* KeyFile;
+    const char* Password;
+    const char* CibirIdHex;
+} SERVER_ARGS;
+
+static
+BOOLEAN
+ParseArgs(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _Out_ SERVER_ARGS* Args
+    )
+{
+    memset(Args, 0, sizeof(*Args));
+
+    const char* IfIndexStr = GetValue(argc, argv, "xdp_map_ifindex");
+    if (IfIndexStr == NULL) {
+        printf("Missing required argument '-xdp_map_ifindex:<N>'.\n");
+        return FALSE;
+    }
+    Args->XdpMapIfIndex = (UINT32)atoi(IfIndexStr);
+    if (Args->XdpMapIfIndex == 0) {
+        printf("Invalid interface index '%s'.\n", IfIndexStr);
+        return FALSE;
+    }
+
+    Args->CertHash = GetValue(argc, argv, "cert_hash");
+    Args->CertFile = GetValue(argc, argv, "cert_file");
+    Args->KeyFile = GetValue(argc, argv, "key_file");
+    Args->Password = GetValue(argc, argv, "password");
+    Args->CibirIdHex = GetValue(argc, argv, "cibir_id");
+
+    if (Args->CertHash == NULL &&
+        (Args->CertFile == NULL || Args->KeyFile == NULL)) {
+        printf("Must specify '-cert_hash' or '-cert_file' with '-key_file'.\n");
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
@@ -201,11 +245,11 @@ ServerListenerCallback(
     )
 {
     UNREFERENCED_PARAMETER(Listener);
-    UNREFERENCED_PARAMETER(Context);
 
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        HQUIC Config = (HQUIC)Context;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, NULL);
-        return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
+        return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Config);
     }
 
     return QUIC_STATUS_NOT_SUPPORTED;
@@ -214,12 +258,13 @@ ServerListenerCallback(
 static
 BOOLEAN
 LoadServerConfiguration(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[]
+    _In_ const SERVER_ARGS* Args,
+    _Out_ HQUIC* ConfigurationOut
     )
 {
     QUIC_SETTINGS Settings = {0};
     QUIC_STATUS Status;
+    HQUIC Config = NULL;
 
     QUIC_SETTINGS XdpSettings = {0};
     XdpSettings.XdpEnabled = TRUE;
@@ -230,91 +275,72 @@ LoadServerConfiguration(
         return FALSE;
     }
 
-    QUIC_CREDENTIAL_CONFIG_HELPER Config;
-    memset(&Config, 0, sizeof(Config));
-    Config.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+    QUIC_CREDENTIAL_CONFIG_HELPER CredHelper;
+    memset(&CredHelper, 0, sizeof(CredHelper));
+    CredHelper.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
 
-    const char* Cert;
-    const char* KeyFile;
-    if ((Cert = GetValue(argc, argv, "cert_hash")) != NULL) {
+    if (Args->CertHash != NULL) {
         uint32_t CertHashLen =
             XdpMapDecodeHexBuffer(
-                Cert,
-                sizeof(Config.CertHash.ShaHash),
-                Config.CertHash.ShaHash);
-        if (CertHashLen != sizeof(Config.CertHash.ShaHash)) {
+                Args->CertHash,
+                sizeof(CredHelper.CertHash.ShaHash),
+                CredHelper.CertHash.ShaHash);
+        if (CertHashLen != sizeof(CredHelper.CertHash.ShaHash)) {
             printf("Invalid cert hash length.\n");
             return FALSE;
         }
-        Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        Config.CredConfig.CertificateHash = &Config.CertHash;
-    } else if ((Cert = GetValue(argc, argv, "cert_file")) != NULL &&
-               (KeyFile = GetValue(argc, argv, "key_file")) != NULL) {
-        const char* Password = GetValue(argc, argv, "password");
-        if (Password != NULL) {
-            Config.CertFileProtected.CertificateFile = (char*)Cert;
-            Config.CertFileProtected.PrivateKeyFile = (char*)KeyFile;
-            Config.CertFileProtected.PrivateKeyPassword = (char*)Password;
-            Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED;
-            Config.CredConfig.CertificateFileProtected = &Config.CertFileProtected;
-        } else {
-            Config.CertFile.CertificateFile = (char*)Cert;
-            Config.CertFile.PrivateKeyFile = (char*)KeyFile;
-            Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
-            Config.CredConfig.CertificateFile = &Config.CertFile;
-        }
+        CredHelper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        CredHelper.CredConfig.CertificateHash = &CredHelper.CertHash;
     } else {
-        printf("Must specify '-cert_hash' or '-cert_file' with '-key_file'.\n");
-        return FALSE;
+        if (Args->Password != NULL) {
+            CredHelper.CertFileProtected.CertificateFile = (char*)Args->CertFile;
+            CredHelper.CertFileProtected.PrivateKeyFile = (char*)Args->KeyFile;
+            CredHelper.CertFileProtected.PrivateKeyPassword = (char*)Args->Password;
+            CredHelper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED;
+            CredHelper.CredConfig.CertificateFileProtected = &CredHelper.CertFileProtected;
+        } else {
+            CredHelper.CertFile.CertificateFile = (char*)Args->CertFile;
+            CredHelper.CertFile.PrivateKeyFile = (char*)Args->KeyFile;
+            CredHelper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
+            CredHelper.CredConfig.CertificateFile = &CredHelper.CertFile;
+        }
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), NULL, &Configuration))) {
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), NULL, &Config))) {
         printf("ConfigurationOpen failed, 0x%x!\n", Status);
         return FALSE;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &Config.CredConfig))) {
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Config, &CredHelper.CredConfig))) {
         printf("ConfigurationLoadCredential failed, 0x%x!\n", Status);
+        MsQuic->ConfigurationClose(Config);
         return FALSE;
     }
 
+    *ConfigurationOut = Config;
     return TRUE;
 }
 
 static
 BOOLEAN
-ConfigureXdpMap(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[]
+PromptForXdpMapHandle(
+    _In_ const SERVER_ARGS* Args,
+    _Out_ UINT_PTR* HandleValueOut
     )
 {
-    const char* MapIfIndexStr = GetValue(argc, argv, "xdp_map_ifindex");
-    if (MapIfIndexStr == NULL) {
-        printf("Missing required argument '-xdp_map_ifindex:<N>'.\n");
-        return FALSE;
-    }
-
-    UINT32 MapIfIndex = (UINT32)atoi(MapIfIndexStr);
-    if (MapIfIndex == 0) {
-        printf("Invalid interface index '%s'.\n", MapIfIndexStr);
-        return FALSE;
-    }
-
     char InputBuf[64];
-    UINT_PTR HandleValue;
 
     printf("=== XDP Map Mode (Consumer) ===\n");
     printf("  PID: %u\n", (unsigned)GetCurrentProcessId());
-    printf("  IfIndex: %u\n\n", MapIfIndex);
+    printf("  IfIndex: %u\n\n", Args->XdpMapIfIndex);
     printf("Start orchestrator in another terminal:\n");
 
-    const char* CibirHint = GetValue(argc, argv, "cibir_id");
-    if (CibirHint != NULL) {
+    if (Args->CibirIdHex != NULL) {
         printf("  ./orchestrator.exe -TargetPid %u -IfIndex %u -UdpPort %u -CibirId %s\n",
-            (unsigned)GetCurrentProcessId(), MapIfIndex, UdpPort, CibirHint);
+            (unsigned)GetCurrentProcessId(), Args->XdpMapIfIndex, UdpPort, Args->CibirIdHex);
     } else {
         printf("  ./orchestrator.exe -TargetPid %u -IfIndex %u -UdpPort %u\n",
-            (unsigned)GetCurrentProcessId(), MapIfIndex, UdpPort);
+            (unsigned)GetCurrentProcessId(), Args->XdpMapIfIndex, UdpPort);
     }
 
     printf("\nPaste XSKMAP handle value here (hex): ");
@@ -325,15 +351,25 @@ ConfigureXdpMap(
         return FALSE;
     }
 
-    HandleValue = (UINT_PTR)_strtoui64(InputBuf, NULL, 16);
-    if (HandleValue == 0 || HandleValue == (UINT_PTR)INVALID_HANDLE_VALUE) {
+    *HandleValueOut = (UINT_PTR)_strtoui64(InputBuf, NULL, 16);
+    if (*HandleValueOut == 0 || *HandleValueOut == (UINT_PTR)INVALID_HANDLE_VALUE) {
         printf("Invalid handle value: %s\n", InputBuf);
         return FALSE;
     }
 
+    return TRUE;
+}
+
+static
+BOOLEAN
+ConfigureXdpMap(
+    _In_ UINT32 IfIndex,
+    _In_ QUIC_XDP_MAP_HANDLE MapHandle
+    )
+{
     QUIC_XDP_MAP_CONFIG MapConfig;
-    MapConfig.InterfaceIndex = MapIfIndex;
-    MapConfig.MapHandle = (QUIC_XDP_MAP_HANDLE)HandleValue;
+    MapConfig.InterfaceIndex = IfIndex;
+    MapConfig.MapHandle = MapHandle;
 
     QUIC_STATUS Status = MsQuic->SetParam(
         NULL,
@@ -345,21 +381,21 @@ ConfigureXdpMap(
         return FALSE;
     }
 
-    printf("XDP map config set (IfIndex=%u, MapHandle=0x%IX).\n\n", MapIfIndex, HandleValue);
+    printf("XDP map config set (IfIndex=%u, MapHandle=0x%IX).\n\n", IfIndex, (UINT_PTR)MapHandle);
     return TRUE;
 }
 
 static
 void
 RunServer(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[]
+    _In_ const SERVER_ARGS* Args
     )
 {
     QUIC_STATUS Status;
     HQUIC Listener = NULL;
+    HQUIC Configuration = NULL;
 
-    if (!LoadServerConfiguration(argc, argv)) {
+    if (!LoadServerConfiguration(Args, &Configuration)) {
         return;
     }
 
@@ -367,15 +403,14 @@ RunServer(
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, UdpPort);
 
-    if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, NULL, &Listener))) {
+    if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, Configuration, &Listener))) {
         printf("ListenerOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    const char* CibirIdHex = GetValue(argc, argv, "cibir_id");
-    if (CibirIdHex != NULL) {
+    if (Args->CibirIdHex != NULL) {
         uint8_t CibirId[XDPMAP_CIBIR_RAW_MAX_LEN];
-        uint32_t CibirIdLen = XdpMapDecodeHexBuffer(CibirIdHex, sizeof(CibirId), CibirId);
+        uint32_t CibirIdLen = XdpMapDecodeHexBuffer(Args->CibirIdHex, sizeof(CibirId), CibirId);
         if (CibirIdLen < 2) {
             printf("CIBIR ID too short (need offset + >=1 CID byte).\n");
             goto Error;
@@ -400,6 +435,9 @@ Error:
     if (Listener != NULL) {
         MsQuic->ListenerClose(Listener);
     }
+    if (Configuration != NULL) {
+        MsQuic->ConfigurationClose(Configuration);
+    }
 }
 
 int
@@ -416,15 +454,8 @@ main(
         return 0;
     }
 
-    if (GetValue(argc, argv, "xdp_map_ifindex") == NULL) {
-        printf("Missing required argument '-xdp_map_ifindex:<N>'.\n");
-        PrintUsage();
-        return (int)QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (GetValue(argc, argv, "cert_hash") == NULL &&
-        (GetValue(argc, argv, "cert_file") == NULL || GetValue(argc, argv, "key_file") == NULL)) {
-        printf("Must specify '-cert_hash' or '-cert_file' with '-key_file'.\n");
+    SERVER_ARGS Args;
+    if (!ParseArgs(argc, argv, &Args)) {
         PrintUsage();
         return (int)QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -434,7 +465,13 @@ main(
         goto Error;
     }
 
-    if (!ConfigureXdpMap(argc, argv)) {
+    UINT_PTR MapHandleValue;
+    if (!PromptForXdpMapHandle(&Args, &MapHandleValue)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (!ConfigureXdpMap(Args.XdpMapIfIndex, (QUIC_XDP_MAP_HANDLE)MapHandleValue)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -444,13 +481,10 @@ main(
         goto Error;
     }
 
-    RunServer(argc, argv);
+    RunServer(&Args);
 
 Error:
     if (MsQuic != NULL) {
-        if (Configuration != NULL) {
-            MsQuic->ConfigurationClose(Configuration);
-        }
         if (Registration != NULL) {
             MsQuic->RegistrationClose(Registration);
         }

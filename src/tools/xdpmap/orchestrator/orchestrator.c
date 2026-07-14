@@ -311,8 +311,9 @@ main(
     (void)getchar();
 
     //
-    // Cleanup: closing the program handle detaches XDP. Closing the map
-    // handle releases our reference (consumer may still hold one).
+    // Cleanup: closing the program handle detaches XDP and destroys the
+    // rules. The XSKMAP stays alive as long as quicxdpmapserver.exe still
+    // holds a handle to it, but without rules no traffic will be redirected.
     //
     printf("Detaching XDP program and cleaning up.\n");
     CloseHandle(Program);
