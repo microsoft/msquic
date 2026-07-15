@@ -259,6 +259,10 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 include(GNUInstallDirs)
 
 if (WIN32)
+    if (QUIC_USE_SYSTEM_LIBCRYPTO)
+        message(FATAL_ERROR "-UseSystemOpenSSLCrypto is currently not supported on Windows platforms.")
+    endif()
+
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS /utf-8)
 
