@@ -341,10 +341,10 @@ TEST_P(WithXdpMapModeArgs, Handshake) {
         GTEST_SKIP() << "QuicTestXdpMapModeHandshake doesn't apply to kernel mode.";
     }
 
-    XdpMapModeTestScope MapScope;
-    if (MapScope.ShouldSkip()) {
-        GTEST_SKIP() << MapScope.SkipReason();
-    }
+    // XdpMapModeTestScope MapScope;
+    // if (MapScope.ShouldSkip()) {
+    //     GTEST_SKIP() << MapScope.SkipReason();
+    // }
 
     auto Params = GetParam();
     XdpMapModeRuleScope Scope(Params.UseCibir, UseQTIP);
