@@ -68,4 +68,33 @@ private:
     bool UseQtip = false;
 };
 
+//
+// RAII scope that tears down the global MsQuic library, re-creates it with
+// XDP map mode configured, and restores normal mode on destruction. This
+// enables each XDP map mode test to be self-contained without requiring a
+// separate command-line flag.
+//
+// The constructor probes XdpMapCreate to detect whether the installed XDP
+// driver supports map mode. If not, ShouldSkip() returns true and the test
+// should call GTEST_SKIP().
+//
+class XdpMapModeTestScope {
+public:
+    XdpMapModeTestScope();
+    ~XdpMapModeTestScope();
+
+    XdpMapModeTestScope(const XdpMapModeTestScope&) = delete;
+    XdpMapModeTestScope& operator=(const XdpMapModeTestScope&) = delete;
+    XdpMapModeTestScope(XdpMapModeTestScope&&) = delete;
+    XdpMapModeTestScope& operator=(XdpMapModeTestScope&&) = delete;
+
+    bool ShouldSkip() const { return Skip; }
+    const char* SkipReason() const { return SkipMessage; }
+
+private:
+    bool Skip = false;
+    const char* SkipMessage = nullptr;
+    bool MapModeActive = false;
+};
+
 #endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES

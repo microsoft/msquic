@@ -16,7 +16,6 @@ Abstract:
 #endif
 
 extern bool UseDuoNic;
-extern bool UseXdpMapMode;
 
 //
 // Connect to the duonic address (if using duonic) or localhost (if not).

@@ -27,6 +27,8 @@ Abstract:
 #include <iphlpapi.h>
 
 extern const MsQuicApi* MsQuic;
+extern bool UseDuoNic;
+extern bool UseQTIP;
 
 XdpMapModeState XdpMapState = {};
 
@@ -324,6 +326,190 @@ XdpMapModeRuleScope::~XdpMapModeRuleScope()
     if (WsaInitialized) {
         WSACleanup();
     }
+}
+
+//
+// Helper: re-initialize the global MsQuic API object with optional XDP map
+// mode configuration. Called by XdpMapModeTestScope's constructor and
+// destructor to cycle the library.
+//
+static bool
+ReinitMsQuic(bool WithMapMode)
+{
+    MsQuic = new(std::nothrow) MsQuicApi();
+    if (!MsQuic || QUIC_FAILED(MsQuic->GetInitStatus())) {
+        printf("XdpMapModeTestScope: MsQuicApi init failed\n");
+        return false;
+    }
+
+    if (UseDuoNic) {
+        MsQuicSettings Settings;
+        Settings.SetXdpEnabled(true);
+        if (QUIC_FAILED(Settings.SetGlobal())) {
+            printf("XdpMapModeTestScope: SetXdpEnabled failed\n");
+            return false;
+        }
+    }
+
+    if (UseQTIP) {
+        MsQuicSettings Settings;
+        Settings.SetQtipEnabled(true);
+        if (QUIC_FAILED(Settings.SetGlobal())) {
+            printf("XdpMapModeTestScope: SetQtipEnabled failed\n");
+            return false;
+        }
+    }
+
+    if (WithMapMode) {
+        QUIC_XDP_MAP_CONFIG MapConfigs[XDP_MAP_MODE_MAX_INTERFACES];
+        for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+            MapConfigs[i].InterfaceIndex = XdpMapState.IfIndices[i];
+            MapConfigs[i].MapHandle = (QUIC_XDP_MAP_HANDLE)XdpMapState.XskMaps[i];
+        }
+
+        if (QUIC_FAILED(MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                XdpMapState.InterfaceCount * sizeof(QUIC_XDP_MAP_CONFIG),
+                MapConfigs))) {
+            printf("XdpMapModeTestScope: SetParam XDP_MAP_CONFIG failed\n");
+            return false;
+        }
+    }
+
+    BOOLEAN DscpOption = TRUE;
+    if (QUIC_FAILED(MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+            sizeof(BOOLEAN),
+            &DscpOption))) {
+        printf("XdpMapModeTestScope: SetParam DSCP_RECV_ENABLED failed\n");
+        return false;
+    }
+
+    QuicTestInitialize();
+    return true;
+}
+
+XdpMapModeTestScope::XdpMapModeTestScope()
+{
+    //
+    // Map mode requires DuoNic.
+    //
+    if (!UseDuoNic) {
+        Skip = true;
+        SkipMessage = "XDP Map Mode requires DuoNic (--duoNic)";
+        return;
+    }
+
+    //
+    // Discover DuoNic interfaces.
+    //
+    auto IfIndices = DiscoverDuoNicInterfaces();
+    if (IfIndices.empty()) {
+        Skip = true;
+        SkipMessage = "No DuoNic interfaces found";
+        return;
+    }
+
+    //
+    // Probe whether the XDP driver supports map mode by trying to create
+    // a temporary XSKMAP. If it fails the driver is too old.
+    //
+    HANDLE ProbeMap = nullptr;
+    HRESULT Hr = XdpMapCreate(&ProbeMap, XDP_MAP_TYPE_XSKMAP);
+    if (FAILED(Hr)) {
+        Skip = true;
+        SkipMessage = "XDP driver does not support map mode (XdpMapCreate failed)";
+        return;
+    }
+    CloseHandle(ProbeMap);
+
+    //
+    // Tear down the current MsQuic library instance so we can re-create
+    // it with XDP map config set before lazy initialization.
+    //
+    QuicTestUninitialize();
+    delete MsQuic;
+    MsQuic = nullptr;
+
+    //
+    // Populate XdpMapState with discovered interfaces and create XSKMAPs.
+    //
+    XdpMapState.InterfaceCount = (uint32_t)IfIndices.size();
+    memcpy(XdpMapState.IfIndices, IfIndices.data(),
+        sizeof(uint32_t) * IfIndices.size());
+    printf("XdpMapModeTestScope: discovered %u DuoNic interface(s)\n",
+        XdpMapState.InterfaceCount);
+
+    for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+        Hr = XdpMapCreate(&XdpMapState.XskMaps[i], XDP_MAP_TYPE_XSKMAP);
+        if (FAILED(Hr)) {
+            //
+            // Clean up any already-created maps and restore normal mode.
+            //
+            for (uint32_t j = 0; j < i; j++) {
+                CloseHandle(XdpMapState.XskMaps[j]);
+                XdpMapState.XskMaps[j] = nullptr;
+            }
+            XdpMapState.InterfaceCount = 0;
+            ReinitMsQuic(false);
+            Skip = true;
+            SkipMessage = "XdpMapCreate failed for interface XSKMAP";
+            return;
+        }
+        printf("  IfIndex=%u, XskMap=%p\n",
+            XdpMapState.IfIndices[i], XdpMapState.XskMaps[i]);
+    }
+
+    //
+    // Re-create MsQuic with map mode configured.
+    //
+    if (!ReinitMsQuic(true)) {
+        for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+            if (XdpMapState.XskMaps[i]) {
+                CloseHandle(XdpMapState.XskMaps[i]);
+                XdpMapState.XskMaps[i] = nullptr;
+            }
+        }
+        XdpMapState.InterfaceCount = 0;
+        ReinitMsQuic(false);
+        Skip = true;
+        SkipMessage = "Failed to re-initialize MsQuic with XDP map config";
+        return;
+    }
+
+    MapModeActive = true;
+}
+
+XdpMapModeTestScope::~XdpMapModeTestScope()
+{
+    if (!MapModeActive) {
+        return;
+    }
+
+    //
+    // Tear down the map-mode MsQuic instance.
+    //
+    QuicTestUninitialize();
+    delete MsQuic;
+    MsQuic = nullptr;
+
+    //
+    // Close XSKMAPs.
+    //
+    for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+        if (XdpMapState.XskMaps[i]) {
+            CloseHandle(XdpMapState.XskMaps[i]);
+            XdpMapState.XskMaps[i] = nullptr;
+        }
+    }
+    XdpMapState.InterfaceCount = 0;
+
+    //
+    // Restore the normal (non-map-mode) MsQuic instance.
+    //
+    ReinitMsQuic(false);
 }
 
 #endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
