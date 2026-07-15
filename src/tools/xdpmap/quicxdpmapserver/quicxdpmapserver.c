@@ -166,8 +166,6 @@ typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
     };
 } QUIC_CREDENTIAL_CONFIG_HELPER;
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_STREAM_CALLBACK)
 static
 QUIC_STATUS
 QUIC_API
@@ -197,8 +195,6 @@ ServerStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_CONNECTION_CALLBACK)
 static
 QUIC_STATUS
 QUIC_API
@@ -218,7 +214,7 @@ ServerConnectionCallback(
         printf("[conn][%p] Shutdown by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        printf("[conn][%p] Shutdown by peer, 0x%llu\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
+        printf("[conn][%p] Shutdown by peer, 0x%llx\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ServerStreamCallback, NULL);
@@ -233,8 +229,6 @@ ServerConnectionCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_LISTENER_CALLBACK)
 static
 QUIC_STATUS
 QUIC_API
@@ -262,6 +256,7 @@ LoadServerConfiguration(
     _Out_ HQUIC* ConfigurationOut
     )
 {
+    *ConfigurationOut = NULL;
     QUIC_SETTINGS Settings = {0};
     QUIC_STATUS Status;
     HQUIC Config = NULL;
@@ -306,12 +301,14 @@ LoadServerConfiguration(
         }
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), NULL, &Config))) {
+    Status = MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), NULL, &Config);
+    if (QUIC_FAILED(Status)) {
         printf("ConfigurationOpen failed, 0x%x!\n", Status);
         return FALSE;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Config, &CredHelper.CredConfig))) {
+    Status = MsQuic->ConfigurationLoadCredential(Config, &CredHelper.CredConfig);
+    if (QUIC_FAILED(Status)) {
         printf("ConfigurationLoadCredential failed, 0x%x!\n", Status);
         MsQuic->ConfigurationClose(Config);
         return FALSE;
@@ -328,6 +325,7 @@ PromptForXdpMapHandle(
     _Out_ UINT_PTR* HandleValueOut
     )
 {
+    *HandleValueOut = 0;
     char InputBuf[64];
 
     printf("=== XDP Map Mode (Consumer) ===\n");

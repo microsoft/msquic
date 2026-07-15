@@ -108,6 +108,10 @@ ParseArgs(
                 return FALSE;
             }
             IfIndex = (UINT32)atoi(ArgV[i]);
+            if (IfIndex == 0) {
+                LOGERR("Invalid IfIndex value '%s' (must be a non-zero integer)", ArgV[i]);
+                return FALSE;
+            }
         } else if (!_stricmp(ArgV[i], "-UdpPort")) {
             if (++i >= ArgC) {
                 LOGERR("Missing UdpPort value");
