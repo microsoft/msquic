@@ -315,6 +315,53 @@ TEST(ParameterValidation, ValidateXdpMapConfigParam) {
 }
 #endif
 
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+struct WithXdpMapModeArgs : public ::testing::TestWithParam<XdpMapModeArgs> {
+
+    static ::std::vector<XdpMapModeArgs> Generate() {
+        ::std::vector<XdpMapModeArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool UseCibir : { false, true })
+            list.push_back({ Family, 0, 0, UseCibir });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const XdpMapModeArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.UseCibir ? "Cibir" : "NoCibir") << "/" <<
+        "ServerPort:" << (args.ServerPort) << "/" <<
+        "ClientPort:" << (args.ClientPort);
+}
+
+TEST_P(WithXdpMapModeArgs, Handshake) {
+
+    if (TestingKernelMode) {
+        GTEST_SKIP() << "QuicTestXdpMapModeHandshake doesn't apply to kernel mode.";
+    }
+
+    XdpMapModeTestScope MapScope;
+    if (MapScope.ShouldSkip()) {
+        GTEST_SKIP() << MapScope.SkipReason();
+    }
+
+    auto Params = GetParam();
+    XdpMapModeRuleScope Scope(Params.UseCibir, UseQTIP);
+    Params.ClientPort = Scope.GetClientPort();
+    Params.ServerPort = Scope.GetServerPort();
+
+    TestLoggerT<ParamType> Logger("QuicTestXdpMapModeHandshake", Params);
+
+    QuicTestXdpMapModeHandshake(Params);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    XdpMapMode,
+    WithXdpMapModeArgs,
+    ::testing::ValuesIn(WithXdpMapModeArgs::Generate()));
+#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
+
 TEST(ParameterValidation, ValidateCommonParam) {
     TestLogger Logger("QuicTestValidateCommonParam");
     if (TestingKernelMode) {
@@ -3156,60 +3203,6 @@ INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
     ::testing::ValuesIn(WithFamilyArgs::Generate()));
-
-#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-//
-// XDP Map Mode tests. These are self-contained: each test tears down the
-// global MsQuic library, re-creates it with XDP map config, runs the test,
-// then restores normal mode. They auto-detect whether the installed XDP
-// driver supports map mode and skip if not.
-//
-
-struct WithXdpMapModeArgs : public ::testing::TestWithParam<XdpMapModeArgs> {
-
-    static ::std::vector<XdpMapModeArgs> Generate() {
-        ::std::vector<XdpMapModeArgs> list;
-        for (int Family : { 4, 6 })
-        for (bool UseCibir : { false, true })
-            list.push_back({ Family, 0, 0, UseCibir });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const XdpMapModeArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.UseCibir ? "Cibir" : "NoCibir") << "/" <<
-        "ServerPort:" << (args.ServerPort) << "/" <<
-        "ClientPort:" << (args.ClientPort);
-}
-
-TEST_P(WithXdpMapModeArgs, Handshake) {
-
-    if (TestingKernelMode) {
-        GTEST_SKIP() << "QuicTestXdpMapModeHandshake doesn't apply to kernel mode.";
-    }
-
-    XdpMapModeTestScope MapScope;
-    if (MapScope.ShouldSkip()) {
-        GTEST_SKIP() << MapScope.SkipReason();
-    }
-
-    auto Params = GetParam();
-    XdpMapModeRuleScope Scope(Params.UseCibir, UseQTIP);
-    Params.ClientPort = Scope.GetClientPort();
-    Params.ServerPort = Scope.GetServerPort();
-
-    TestLoggerT<ParamType> Logger("QuicTestXdpMapModeHandshake", Params);
-
-    QuicTestXdpMapModeHandshake(Params);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    XdpMapMode,
-    WithXdpMapModeArgs,
-    ::testing::ValuesIn(WithXdpMapModeArgs::Generate()));
-#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
