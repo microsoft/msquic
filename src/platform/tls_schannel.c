@@ -1324,6 +1324,8 @@ CxPlatTlsSecConfigCreate(
 #else
 
     if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
+        CertContext = AchContext->CertContext;
+
         Status = CxPlatCertCreate(CredConfig, CredCount, CertContext);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
