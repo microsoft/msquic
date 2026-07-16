@@ -156,8 +156,6 @@ CxPlatDpRawParseUdp(
     _In_ uint16_t Length
     )
 {
-    const uint16_t UdpLength = QuicNetByteSwapShort(Udp->Length);
-
     if (Length < sizeof(UDP_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -167,6 +165,8 @@ CxPlatDpRawParseUdp(
             "packet is too small for a UDP header");
         return;
     }
+
+    const uint16_t UdpLength = QuicNetByteSwapShort(Udp->Length);
 
     if (Length < UdpLength) {
         QuicTraceEvent(
@@ -299,7 +299,7 @@ CxPlatDpRawParseIPv4(
     }
 
     uint16_t IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
-    if (Length < IPTotalLength) {
+    if (IPTotalLength < sizeof(IPV4_HEADER) || Length < IPTotalLength) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
