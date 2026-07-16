@@ -232,6 +232,12 @@ QuicTestCustomClientCertificateValidation(
     );
 
 void
+QuicTestCustomServerCertValidationAfterShutdown();
+
+void
+QuicTestCustomClientCertValidationAfterShutdown();
+
+void
 QuicTestConnectClientCertificate(
     _In_ int Family,
     _In_ bool UseClientCertificate
@@ -1407,4 +1413,10 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
 #define IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING \
     QUIC_CTL_CODE(134, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 134
+#define IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION_AFTER_SHUTDOWN \
+    QUIC_CTL_CODE(135, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION_AFTER_SHUTDOWN \
+    QUIC_CTL_CODE(136, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 136

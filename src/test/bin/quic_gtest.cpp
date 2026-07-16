@@ -1163,6 +1163,24 @@ TEST_P(WithHandshakeArgs5, CustomClientCertificateValidation) {
     }
 }
 
+TEST(Handshake, CustomServerCertValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomServerCertValidationAfterShutdown");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION_AFTER_SHUTDOWN));
+    } else {
+        QuicTestCustomServerCertValidationAfterShutdown();
+    }
+}
+
+TEST(Handshake, CustomClientCertValidationAfterShutdown) {
+    TestLogger Logger("QuicTestCustomClientCertValidationAfterShutdown");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION_AFTER_SHUTDOWN));
+    } else {
+        QuicTestCustomClientCertValidationAfterShutdown();
+    }
+}
+
 TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
