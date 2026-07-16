@@ -108,8 +108,12 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", iouring: "-UseIoUring" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", sanitize: "-SanitizeAddress", iouring: "-UseIoUring" },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", iouring: "-UseIoUring" },
+          { config: "Debug", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Release", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-SanitizeAddress", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -139,7 +143,11 @@ jobs:
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", iouring: "-UseIoUring"  },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", iouring: "-UseIoUring"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-SanitizeAddress", build: "-Test"  },
+          { config: "Release", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-SanitizeAddress", build: "-Test"  },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test", log: "Full.Verbose" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "xdp-v1.1", qtip: "-UseQtip", sanitize: "-SanitizeAddress", build: "-Test" },
