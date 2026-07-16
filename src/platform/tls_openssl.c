@@ -1620,7 +1620,8 @@ CxPlatTlsSecConfigCreate(
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -1641,7 +1642,8 @@ CxPlatTlsSecConfigCreate(
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_DISABLE_AIA)) {
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_DISABLE_AIA ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
