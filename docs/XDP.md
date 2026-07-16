@@ -156,19 +156,17 @@ BIND --> LIST2
 The XDP maps feature is introduced in XDP v1.4 to de-couple AF_XDP socket
 users from privileged XDP rule setters.
 
-MsQuic version v2.5 (and below) currently serves 2 simultaneous roles:
-- AF_XDP socket creator and user
-- Privileged XDP rule setter
+Typically, MsQuic both creates AF_XDP sockets and configures XDP rules. The process running MsQuic must have the permission to do both.
 
-MsQuic version v2.6 (and beyond) implements integration of XDP maps, and expose APIs for applications wishing to harden their security
-posture and reduce their threat surface by de-coupling.
+Starting version v2.6, MsQuic can use XDP maps instead of configuring XDP rules.
 
-The intention with de-coupling is to have a trusted process create rules and maps, isolating the untrusted process(es) from each other and the rest of the system.
+This allows applications wishing to harden their security posture to configure XDP rules in a trusted, more privileged process while the less trusted process running MsQuic only needs the permission to use AF_XDP sockets. 
 
 ### API
 
 Using XDP maps is configured via a global `SetParam` call using the
 `QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG` parameter.
+It must be set before the first first registration is opened.
 Find it in the [Global Parameters](./Settings.md#global-parameters) table.
 
 
@@ -194,8 +192,6 @@ XDP_RULE Rule = {
 XdpCreateProgram(IfIndex, &RxHook, QueueId, 0, &Rule, 1, &Program);
 
 DuplicateHandleAndShareWithConsumer(XskMap);
-
-//
 // MsQuic AF_XDP socket consumer
 //
 
