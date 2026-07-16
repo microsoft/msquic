@@ -345,6 +345,7 @@ TEST_P(WithXdpMapModeArgs, Handshake) {
     if (MapScope.ShouldSkip()) {
         GTEST_SKIP() << MapScope.SkipReason();
     }
+    ASSERT_FALSE(MapScope.HasFailed()) << MapScope.FailureReason();
 
     auto Params = GetParam();
     XdpMapModeRuleScope Scope(Params.UseCibir, UseQTIP);

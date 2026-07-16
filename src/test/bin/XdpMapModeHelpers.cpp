@@ -329,9 +329,7 @@ XdpMapModeRuleScope::~XdpMapModeRuleScope()
 }
 
 //
-// Helper: re-initialize the global MsQuic API object with optional XDP map
-// mode configuration. Called by XdpMapModeTestScope's constructor and
-// destructor to cycle the library.
+// Helper: re-initialize the global MsQuic API object
 //
 static bool
 ReinitMsQuic(bool WithMapMode)
@@ -394,7 +392,7 @@ ReinitMsQuic(bool WithMapMode)
 XdpMapModeTestScope::XdpMapModeTestScope()
 {
     //
-    // Map mode requires DuoNic.
+    // Check for Duonic
     //
     if (!UseDuoNic) {
         Skip = true;
@@ -402,9 +400,6 @@ XdpMapModeTestScope::XdpMapModeTestScope()
         return;
     }
 
-    //
-    // Discover DuoNic interfaces.
-    //
     auto IfIndices = DiscoverDuoNicInterfaces();
     if (IfIndices.empty()) {
         Skip = true;
@@ -427,14 +422,14 @@ XdpMapModeTestScope::XdpMapModeTestScope()
 
     //
     // Tear down the current MsQuic library instance so we can re-create
-    // it with XDP map config set before lazy initialization.
+    // it with XDP map config set.
     //
     QuicTestUninitialize();
     delete MsQuic;
     MsQuic = nullptr;
 
     //
-    // Populate XdpMapState with discovered interfaces and create XSKMAPs.
+    // Create the maps.
     //
     XdpMapState.InterfaceCount = (uint32_t)IfIndices.size();
     memcpy(XdpMapState.IfIndices, IfIndices.data(),
@@ -446,7 +441,7 @@ XdpMapModeTestScope::XdpMapModeTestScope()
         Hr = XdpMapCreate(&XdpMapState.XskMaps[i], XDP_MAP_TYPE_XSKMAP);
         if (FAILED(Hr)) {
             //
-            // Clean up any already-created maps and restore normal mode.
+            // Clean up any already-created maps and restore old singleton.
             //
             for (uint32_t j = 0; j < i; j++) {
                 CloseHandle(XdpMapState.XskMaps[j]);
@@ -454,8 +449,8 @@ XdpMapModeTestScope::XdpMapModeTestScope()
             }
             XdpMapState.InterfaceCount = 0;
             ReinitMsQuic(false);
-            Skip = true;
-            SkipMessage = "XdpMapCreate failed for interface XSKMAP";
+            Failed = true;
+            FailureMessage = "XdpMapCreate failed for interface XSKMAP";
             return;
         }
         printf("  IfIndex=%u, XskMap=%p\n",
@@ -474,17 +469,15 @@ XdpMapModeTestScope::XdpMapModeTestScope()
         }
         XdpMapState.InterfaceCount = 0;
         ReinitMsQuic(false);
-        Skip = true;
-        SkipMessage = "Failed to re-initialize MsQuic with XDP map config";
+        Failed = true;
+        FailureMessage = "Failed to re-initialize MsQuic with XDP map config";
         return;
     }
-
-    MapModeActive = true;
 }
 
 XdpMapModeTestScope::~XdpMapModeTestScope()
 {
-    if (!MapModeActive) {
+    if (Failed || Skip) {
         return;
     }
 
@@ -507,7 +500,7 @@ XdpMapModeTestScope::~XdpMapModeTestScope()
     XdpMapState.InterfaceCount = 0;
 
     //
-    // Restore the normal (non-map-mode) MsQuic instance.
+    // Restore the old singleton.
     //
     ReinitMsQuic(false);
 }

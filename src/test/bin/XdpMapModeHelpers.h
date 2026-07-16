@@ -69,14 +69,14 @@ private:
 };
 
 //
-// RAII scope that tears down the global MsQuic library, re-creates it with
-// XDP map mode configured, and restores normal mode on destruction. This
-// enables each XDP map mode test to be self-contained without requiring a
-// separate command-line flag.
-//
-// The constructor probes XdpMapCreate to detect whether the installed XDP
-// driver supports map mode. If not, ShouldSkip() returns true and the test
-// should call GTEST_SKIP().
+// RAII scope that:
+//  On Construction:
+//  - probes whether we should skip this test by checking if 1) duonic is enabled AND 2) xdp map APIs work
+//  - tears down the global datapath, creates map handles, and creates a new global datapath instance configured
+//    with the map handles.
+//  On Destruction:
+//  - tears down the global datapath we created and configured earlier, and restores the global
+//    back to its pre-test state.
 //
 class XdpMapModeTestScope {
 public:
@@ -91,10 +91,14 @@ public:
     bool ShouldSkip() const { return Skip; }
     const char* SkipReason() const { return SkipMessage; }
 
+    bool HasFailed() const { return Failed; }
+    const char* FailureReason() const { return FailureMessage; }
+
 private:
     bool Skip = false;
     const char* SkipMessage = nullptr;
-    bool MapModeActive = false;
+    bool Failed = false;
+    const char* FailureMessage = nullptr;
 };
 
 #endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
