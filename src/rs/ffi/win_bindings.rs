@@ -344,6 +344,7 @@ pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE:
 pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE:
     QUIC_CREDENTIAL_FLAGS = 1048576;
 pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_DISABLE_AIA: QUIC_CREDENTIAL_FLAGS = 2097152;
+pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_SET_MULTIPLE: QUIC_CREDENTIAL_FLAGS = 4194304;
 pub type QUIC_CREDENTIAL_FLAGS = ::std::os::raw::c_int;
 pub const QUIC_ALLOWED_CIPHER_SUITE_FLAGS_QUIC_ALLOWED_CIPHER_SUITE_NONE:
     QUIC_ALLOWED_CIPHER_SUITE_FLAGS = 0;
@@ -636,6 +637,7 @@ pub struct QUIC_CREDENTIAL_CONFIG {
     pub AsyncHandler: QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER,
     pub AllowedCipherSuites: QUIC_ALLOWED_CIPHER_SUITE_FLAGS,
     pub CaCertificateFile: *const ::std::os::raw::c_char,
+    pub MultipleCount: u32,
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -672,7 +674,7 @@ const _: () = {
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_CREDENTIAL_CONFIG"][::std::mem::size_of::<QUIC_CREDENTIAL_CONFIG>() - 56usize];
+    ["Size of QUIC_CREDENTIAL_CONFIG"][::std::mem::size_of::<QUIC_CREDENTIAL_CONFIG>() - 64usize];
     ["Alignment of QUIC_CREDENTIAL_CONFIG"]
         [::std::mem::align_of::<QUIC_CREDENTIAL_CONFIG>() - 8usize];
     ["Offset of field: QUIC_CREDENTIAL_CONFIG::Type"]
@@ -689,6 +691,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, AllowedCipherSuites) - 40usize];
     ["Offset of field: QUIC_CREDENTIAL_CONFIG::CaCertificateFile"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, CaCertificateFile) - 48usize];
+    ["Offset of field: QUIC_CREDENTIAL_CONFIG::MultipleCount"]
+        [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, MultipleCount) - 56usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

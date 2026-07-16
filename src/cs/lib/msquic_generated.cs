@@ -100,6 +100,7 @@ namespace Microsoft.Quic
         INPROC_PEER_CERTIFICATE = 0x00080000,
         SET_CA_CERTIFICATE_FILE = 0x00100000,
         DISABLE_AIA = 0x00200000,
+        SET_MULTIPLE = 0x00400000,
     }
 
     [System.Flags]
@@ -248,6 +249,15 @@ namespace Microsoft.Quic
     {
     }
 
+    internal unsafe partial struct QUIC_XDP_MAP_CONFIG
+    {
+        [NativeTypeName("uint32_t")]
+        internal uint InterfaceIndex;
+
+        [NativeTypeName("QUIC_XDP_MAP_HANDLE")]
+        internal void* MapHandle;
+    }
+
     internal unsafe partial struct QUIC_REGISTRATION_CONFIG
     {
         [NativeTypeName("const char *")]
@@ -327,6 +337,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("const char *")]
         internal sbyte* CaCertificateFile;
+
+        [NativeTypeName("uint32_t")]
+        internal uint MultipleCount;
 
         internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {
@@ -1012,6 +1025,8 @@ namespace Microsoft.Quic
         SEND_STATELESS_RETRY,
         CONN_LOAD_REJECT,
         LISTEN_QUEUE_DEPTH,
+        ENCRYPT_DURATION_US,
+        DECRYPT_DURATION_US,
         MAX,
     }
 
@@ -3100,6 +3115,21 @@ namespace Microsoft.Quic
         }
     }
 
+    internal unsafe partial struct QUIC_KEYING_MATERIAL_CONFIG
+    {
+        [NativeTypeName("const char *")]
+        internal sbyte* Label;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ContextLength;
+
+        [NativeTypeName("const uint8_t *")]
+        internal byte* Context;
+
+        [NativeTypeName("uint32_t")]
+        internal uint OutputLength;
+    }
+
     internal enum QUIC_STREAM_EVENT_TYPE
     {
         START_COMPLETE = 0,
@@ -3577,6 +3607,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_REGISTRATION_CLOSE2_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<void*, void>, void*, void> RegistrationClose2;
+
+        [NativeTypeName("QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_KEYING_MATERIAL_CONFIG*, byte*, int> ConnectionExportKeyingMaterial;
     }
 
     internal static unsafe partial class MsQuic
@@ -3677,6 +3710,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG 0x0100000D")]
         internal const uint QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG = 0x0100000D;
+
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG 0x0100000E")]
+        internal const uint QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG = 0x0100000E;
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
         internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
