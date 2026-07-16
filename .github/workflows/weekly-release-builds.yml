@@ -1,0 +1,39 @@
+name: Weekly Release Branch Builds
+
+# Runs the Build workflow (build.yml) on each supported release branch on a
+# weekly schedule to catch build breakages on branches that no longer receive
+# regular pushes.
+#
+# To update the list of branches that get built, edit the 'branches' matrix
+# below: add a branch when a new release branch is created, and remove it when
+# a release goes out of support.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 13 * * 1' # Weekly on Monday 13:23 UTC; non-round minute to avoid thundering herd
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    name: Trigger builds for release branches
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # Needed to trigger the Build workflow via workflow_dispatch.
+    strategy:
+      fail-fast: false
+      matrix:
+        # Update this list when a new release branch is created or goes out of support.
+        branch:
+          - release/2.4
+          - release/2.5
+    steps:
+    - name: Trigger Build workflow for ${{ matrix.branch }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        echo "Triggering Build workflow for ${{ matrix.branch }}"
+        gh workflow run build.yml --ref "${{ matrix.branch }}"
