@@ -68,37 +68,4 @@ private:
     bool UseQtip = false;
 };
 
-//
-// RAII scope that:
-//  On Construction:
-//  - probes whether we should skip this test by checking if 1) duonic is enabled AND 2) xdp map APIs work
-//  - tears down the global datapath, creates map handles, and creates a new global datapath instance configured
-//    with the map handles.
-//  On Destruction:
-//  - tears down the global datapath we created and configured earlier, and restores the global
-//    back to its pre-test state.
-//
-class XdpMapModeTestScope {
-public:
-    XdpMapModeTestScope();
-    ~XdpMapModeTestScope();
-
-    XdpMapModeTestScope(const XdpMapModeTestScope&) = delete;
-    XdpMapModeTestScope& operator=(const XdpMapModeTestScope&) = delete;
-    XdpMapModeTestScope(XdpMapModeTestScope&&) = delete;
-    XdpMapModeTestScope& operator=(XdpMapModeTestScope&&) = delete;
-
-    bool ShouldSkip() const { return Skip; }
-    const char* SkipReason() const { return SkipMessage; }
-
-    bool HasFailed() const { return Failed; }
-    const char* FailureReason() const { return FailureMessage; }
-
-private:
-    bool Skip = false;
-    const char* SkipMessage = nullptr;
-    bool Failed = false;
-    const char* FailureMessage = nullptr;
-};
-
 #endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
