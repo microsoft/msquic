@@ -44,6 +44,7 @@ RUN source /etc/os-release \
 RUN gem install fpm
 RUN wget -q https://packages.microsoft.com/config/ubuntu/26.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
     && dpkg -i packages-microsoft-prod.deb \
+    && rm -f packages-microsoft-prod.deb \
     && add-apt-repository universe \
     && apt-get update -y \
     && (apt-get install -y powershell || \
