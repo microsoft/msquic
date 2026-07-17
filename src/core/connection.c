@@ -3532,6 +3532,7 @@ QuicConnRecvRetry(
 
     if (!QuicVersionNegotiationExtIsVersionClientSupported(Connection, Packet->LH->Version)) {
         QuicPacketLogDrop(Connection, Packet, "Retry Version not supported by client");
+        return;
     }
 
     const QUIC_VERSION_INFO* VersionInfo = NULL;
