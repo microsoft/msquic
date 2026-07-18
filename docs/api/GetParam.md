@@ -103,6 +103,51 @@ uint32_t NumSizes = BufferLength / sizeof(uint32_t);
 
 See also: [Settings.md](../Settings.md#global-parameters)
 
+## QUIC_PARAM_GLOBAL_WORKER_STATISTICS
+
+**Preview:** This parameter is in [preview](../PreviewFeatures.md).
+
+Returns per-worker statistics for the global worker pool, allowing an application to observe how busy each worker thread is. The returned buffer is a `QUIC_WORKER_STATISTICS_LIST` header followed by one `QUIC_WORKER_STATISTICS` entry per worker:
+
+- `CumulativeActiveTimeUs` - total time (in microseconds) the worker spent active (not idle).
+- `CumulativeWallTimeUs` - wall time (in microseconds) since the worker thread started.
+- `IdealProcessor` - the CPU the worker's partition is affinitized to.
+
+Dividing `CumulativeActiveTimeUs` by `CumulativeWallTimeUs` yields the worker's utilization; sampling the values over an interval yields the utilization for that interval.
+
+- **Type:** `QUIC_WORKER_STATISTICS_LIST`
+- **Get-only**
+- **Variable-length:** Use a double-call pattern to determine the required buffer size.
+
+Iterate the entries using the `WorkerStatsSize` stride, more fields may be added to `QUIC_WORKER_STATISTICS` in the future.
+
+**Sample usage:**
+```c
+uint32_t BufferLength = 0;
+QUIC_STATUS Status =
+    MsQuic->GetParam(NULL, QUIC_PARAM_GLOBAL_WORKER_STATISTICS, &BufferLength, NULL);
+
+if (Status != QUIC_STATUS_BUFFER_TOO_SMALL) {
+    // Unexpected, handle errors
+}
+
+QUIC_WORKER_STATISTICS_LIST* List =
+    (QUIC_WORKER_STATISTICS_LIST*)malloc(BufferLength);
+
+Status = MsQuic->GetParam(NULL, QUIC_PARAM_GLOBAL_WORKER_STATISTICS, &BufferLength, List);
+if (!QUIC_SUCCEEDED(Status)) {
+    // Handle errors
+}
+uint8_t* Entry = (uint8_t*)List + sizeof(QUIC_WORKER_STATISTICS_LIST);
+for (uint32_t i = 0; i < List->WorkerCount; i++) {
+    QUIC_WORKER_STATISTICS* WorkerStats = (QUIC_WORKER_STATISTICS*)Entry;
+    // Use Worker->CumulativeActiveTimeUs, etc.
+    Entry += List->WorkerStatsSize;
+}
+```
+
+See also: [Settings.md](../Settings.md#global-parameters)
+
 # See Also
 
 [Settings](../Settings.md#api-object-parameters)<br>
