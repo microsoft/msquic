@@ -249,9 +249,10 @@ QuicSendBufferStreamAdjust(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendBufferConnectionAdjust(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_PATHID* PathID
     )
 {
+    QUIC_CONNECTION* Connection = PathID->Connection;
     if (Connection->SendBuffer.IdealBytes == QUIC_MAX_IDEAL_SEND_BUFFER_SIZE ||
         Connection->Streams.StreamTable == NULL) {
         return; // Nothing to do.
@@ -259,7 +260,7 @@ QuicSendBufferConnectionAdjust(
 
     const uint64_t NewIdealBytes =
         QuicGetNextIdealBytes(
-            QuicCongestionControlGetBytesInFlightMax(&Connection->CongestionControl));
+            QuicCongestionControlGetBytesInFlightMax(&PathID->CongestionControl));
 
     //
     // TODO: Currently, IdealBytes only grows and never shrinks. Add appropriate

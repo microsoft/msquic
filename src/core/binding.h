@@ -46,6 +46,7 @@ typedef struct QUIC_RX_PACKET {
     //
     uint64_t PacketNumber;
 
+    uint32_t PathId;
     //
     // Represents the sender side's timestamp (in us) from the start of their
     // epoch.
@@ -402,7 +403,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CID_SLIST_ENTRY* SourceCid
     );
 

@@ -41,6 +41,7 @@ union QuicV1Frames {
 TEST(SpinFrame, SpinFrame1000000)
 {
     QuicV1Frames DecodedFrame;
+    QUIC_VAR_INT PathId;
     QUIC_ACK_ECN_EX Ecn;
     QUIC_RANGE AckBlocks;
     uint64_t AckDelay;
@@ -50,7 +51,17 @@ TEST(SpinFrame, SpinFrame1000000)
     BOOLEAN InvalidFrame;
     uint8_t Buffer[255];
     uint8_t BufferLength = 0;
-    uint64_t FrameType;
+
+    //
+    // FrameType is intentionally uint16_t: the loop below searches for a random
+    // value that satisfies QUIC_FRAME_IS_KNOWN, which only terminates in a
+    // reasonable time over a bounded (16-bit) space. (Frame types wider than
+    // 16 bits — e.g. the address/multipath frames — aren't fuzzed here.)
+    //
+    uint16_t FrameType;
+    CXPLAT_STATIC_ASSERT(
+        QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT32_MAX,
+        "Tests below assumes frames fit in 32-bits");
 
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);
 
@@ -73,7 +84,13 @@ TEST(SpinFrame, SpinFrame1000000)
 
         do {
             TEST_QUIC_SUCCEEDED(CxPlatRandom(sizeof(FrameType), &FrameType));
-        } while (!QUIC_FRAME_IS_KNOWN(FrameType));
+            //
+            // Widen for the check so comparisons against frame types that don't
+            // fit in 16 bits (e.g. the address-discovery frames) aren't flagged
+            // as tautological by clang. Frame types above the 16-bit range are
+            // simply never generated here.
+            //
+        } while (!QUIC_FRAME_IS_KNOWN((uint64_t)FrameType));
 
         switch(FrameType) {
             case QUIC_FRAME_PADDING:
@@ -83,7 +100,7 @@ TEST(SpinFrame, SpinFrame1000000)
             case QUIC_FRAME_ACK:
             case QUIC_FRAME_ACK_1:
                 CxPlatZeroMemory(&Ecn, sizeof(Ecn));
-                if (QuicAckFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &InvalidFrame, &AckBlocks, &Ecn, &AckDelay)) {
+                if (QuicAckFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &InvalidFrame, &PathId, &AckBlocks, &Ecn, &AckDelay)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;
@@ -177,14 +194,14 @@ TEST(SpinFrame, SpinFrame1000000)
                 }
                 break;
             case QUIC_FRAME_NEW_CONNECTION_ID:
-                if (QuicNewConnectionIDFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.NewConnectionIdFrame)) {
+                if (QuicNewConnectionIDFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &DecodedFrame.NewConnectionIdFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;
                 }
                 break;
             case QUIC_FRAME_RETIRE_CONNECTION_ID:
-                if (QuicRetireConnectionIDFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.RetireConnectionIdFrame)) {
+                if (QuicRetireConnectionIDFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &DecodedFrame.RetireConnectionIdFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;
@@ -245,6 +262,22 @@ TEST(SpinFrame, SpinFrame1000000)
                 } else {
                     FailedDecodes++;
                 }
+                break;
+            case QUIC_FRAME_PATH_ACK:
+            case QUIC_FRAME_PATH_ACK_1:
+            case QUIC_FRAME_PATH_ABANDON:
+            case QUIC_FRAME_PATH_BACKUP:
+            case QUIC_FRAME_PATH_AVAILABLE:
+            case QUIC_FRAME_PATH_NEW_CONNECTION_ID:
+            case QUIC_FRAME_PATH_RETIRE_CONNECTION_ID:
+            case QUIC_FRAME_MAX_PATH_ID:
+            case QUIC_FRAME_PATHS_BLOCKED:
+            case QUIC_FRAME_PATH_CIDS_BLOCKED:
+                //
+                // Multipath (draft-ietf-quic-multipath) frames. Their draft-21
+                // codepoints now fall within the 16-bit fuzz range; they are not
+                // decode-fuzzed here (covered by the Multipath end-to-end test).
+                //
                 break;
             default:
                 ASSERT_TRUE(FALSE) << "You have a test bug. FrameType: " << (QUIC_FRAME_TYPE) FrameType << " doesn't have a matching case.";

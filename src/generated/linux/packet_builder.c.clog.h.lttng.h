@@ -160,18 +160,22 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketCreated,
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketEncrypt
-// [pack][%llu] Encrypting
+// [pack][%llu][%u] Encrypting
 // QuicTraceEvent(
             PacketEncrypt,
-            "[pack][%llu] Encrypting",
-            Builder->Metadata->PacketId);
+            "[pack][%llu][%u] Encrypting",
+            Builder->Metadata->PacketId,
+            Builder->Path->PathID->ID);
 // arg2 = arg2 = Builder->Metadata->PacketId = arg2
+// arg3 = arg3 = Builder->Path->PathID->ID = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketEncrypt,
     TP_ARGS(
-        unsigned long long, arg2), 
+        unsigned long long, arg2,
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

@@ -174,6 +174,7 @@ QuicAckTrackerAckPacket(
     )
 {
     QUIC_CONNECTION* Connection = QuicAckTrackerGetPacketSpace(Tracker)->Connection;
+    QUIC_PATHID* PathID = QuicAckTrackerGetPacketSpace(Tracker)->PathID;
     _Analysis_assume_(Connection != NULL);
 
     //
@@ -190,6 +191,7 @@ QuicAckTrackerAckPacket(
         // Any time the largest known packet number is greater than the one
         // we just received, we consider it reordering.
         //
+        PathID->Stats.Recv.ReorderedPackets++;
         Connection->Stats.Recv.ReorderedPackets++;
     }
 
@@ -290,6 +292,7 @@ QuicAckTrackerAckFrameEncode(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
+    QUIC_PACKET_SPACE* PacketSpace = QuicAckTrackerGetPacketSpace(Tracker);
     CXPLAT_DBG_ASSERT(QuicAckTrackerHasPacketsToAck(Tracker));
 
     const uint64_t Timestamp = CxPlatTimeUs64();
@@ -310,6 +313,9 @@ QuicAckTrackerAckFrameEncode(
     }
 
     if (!QuicAckFrameEncode(
+            PacketSpace->Connection->State.MultipathNegotiated &&
+                Builder->EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT,
+            PacketSpace->PathID->ID,
             &Tracker->PacketNumbersToAck,
             AckDelay,
             Tracker->NonZeroRecvECN ?

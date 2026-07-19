@@ -44,6 +44,8 @@
     <ClCompile Include="packet_builder.c" />
     <ClCompile Include="packet_space.c" />
     <ClCompile Include="path.c" />
+    <ClCompile Include="pathid.c" />
+    <ClCompile Include="pathid_set.c" />
     <ClCompile Include="range.c" />
     <ClCompile Include="recv_buffer.c" />
     <ClCompile Include="registration.c" />
@@ -84,6 +86,8 @@
     <ClInclude Include="packet_builder.h" />
     <ClInclude Include="packet_space.h" />
     <ClInclude Include="path.h" />
+    <ClInclude Include="pathid.h" />
+    <ClInclude Include="pathid_set.h" />
     <ClInclude Include="precomp.h" />
     <ClInclude Include="quicdef.h" />
     <ClInclude Include="range.h" />

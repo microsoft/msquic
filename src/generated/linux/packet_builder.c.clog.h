@@ -169,16 +169,18 @@ tracepoint(CLOG_PACKET_BUILDER_C, PacketCreated , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketEncrypt
-// [pack][%llu] Encrypting
+// [pack][%llu][%u] Encrypting
 // QuicTraceEvent(
             PacketEncrypt,
-            "[pack][%llu] Encrypting",
-            Builder->Metadata->PacketId);
+            "[pack][%llu][%u] Encrypting",
+            Builder->Metadata->PacketId,
+            Builder->Path->PathID->ID);
 // arg2 = arg2 = Builder->Metadata->PacketId = arg2
+// arg3 = arg3 = Builder->Path->PathID->ID = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_PacketEncrypt
-#define _clog_3_ARGS_TRACE_PacketEncrypt(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_PACKET_BUILDER_C, PacketEncrypt , arg2);\
+#ifndef _clog_4_ARGS_TRACE_PacketEncrypt
+#define _clog_4_ARGS_TRACE_PacketEncrypt(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketEncrypt , arg2, arg3);\
 
 #endif
 

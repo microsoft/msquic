@@ -178,6 +178,25 @@ pub enum ConnectionEvent<'a> {
     NotifyRemoteAddressRemoved {
         sequence_number: crate::u62,
     },
+    #[cfg(feature = "preview-api")]
+    PathAdded {
+        peer_address: &'a crate::Addr,
+        local_address: &'a crate::Addr,
+        path_id: u32,
+    },
+    #[cfg(feature = "preview-api")]
+    PathRemoved {
+        peer_address: &'a crate::Addr,
+        local_address: &'a crate::Addr,
+        path_id: u32,
+    },
+    #[cfg(feature = "preview-api")]
+    PathStatusChanged {
+        peer_address: &'a crate::Addr,
+        local_address: &'a crate::Addr,
+        path_id: u32,
+        is_active: bool,
+    },
 }
 
 impl<'a> From<&'a QUIC_CONNECTION_EVENT> for ConnectionEvent<'a> {
@@ -285,6 +304,27 @@ impl<'a> From<&'a QUIC_CONNECTION_EVENT> for ConnectionEvent<'a> {
             crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED => {
               let ev = unsafe { value.__bindgen_anon_1.NOTIFY_REMOTE_ADDRESS_REMOVED };
               Self::NotifyRemoteAddressRemoved { sequence_number: ev.SequenceNumber }
+            }
+            #[cfg(feature = "preview-api")]
+            crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PATH_ADDED => {
+                let ev = unsafe { value.__bindgen_anon_1.PATH_ADDED };
+                let peer_addr = ev.PeerAddress as *const crate::Addr;
+                let local_addr = ev.LocalAddress as *const crate::Addr;
+                Self::PathAdded { peer_address: unsafe { peer_addr.as_ref().unwrap() }, local_address: unsafe { local_addr.as_ref().unwrap() }, path_id: ev.PathId }
+            }
+            #[cfg(feature = "preview-api")]
+            crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PATH_REMOVED => {
+                let ev = unsafe { value.__bindgen_anon_1.PATH_REMOVED };
+                let peer_addr = ev.PeerAddress as *const crate::Addr;
+                let local_addr = ev.LocalAddress as *const crate::Addr;
+                Self::PathRemoved { peer_address: unsafe { peer_addr.as_ref().unwrap() }, local_address: unsafe { local_addr.as_ref().unwrap() }, path_id: ev.PathId }
+            }
+            #[cfg(feature = "preview-api")]
+            crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED => {
+                let ev = unsafe { value.__bindgen_anon_1.PATH_STATUS_CHANGED };
+                let peer_addr = ev.PeerAddress as *const crate::Addr;
+                let local_addr = ev.LocalAddress as *const crate::Addr;
+                Self::PathStatusChanged { peer_address: unsafe { peer_addr.as_ref().unwrap() }, local_address: unsafe { local_addr.as_ref().unwrap() }, path_id: ev.PathId, is_active: ev.IsActive != 0 }
             }
             _ => {
                 todo!("unknown event. maybe preview feature.")

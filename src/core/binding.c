@@ -579,11 +579,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CID_SLIST_ENTRY* SourceCid
     )
 {
-    return QuicLookupAddLocalCid(&Binding->Lookup, Connection, SourceCid, NULL);
+    return QuicLookupAddLocalCid(&Binding->Lookup, SourceCid, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -593,22 +592,35 @@ QuicBindingAddAllSourceConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    for (CXPLAT_SLIST_ENTRY* Link = Connection->SourceCids.Next;
-        Link != NULL;
-        Link = Link->Next) {
+    BOOLEAN Success = TRUE;
 
-        QUIC_CID_SLIST_ENTRY* Entry =
-            CXPLAT_CONTAINING_RECORD(
-                Link,
-                QUIC_CID_SLIST_ENTRY,
-                Link);
-        if (!QuicBindingAddSourceConnectionID(Binding, Connection, Entry)) {
-            return FALSE;
+    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+    QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
+
+    for (uint8_t i = 0; i < PathIDCount; i++) {
+        if (Success) {
+            for (CXPLAT_SLIST_ENTRY* Link = PathIDs[i]->SourceCids.Next;
+                Link != NULL;
+                Link = Link->Next) {
+
+                QUIC_CID_SLIST_ENTRY* Entry =
+                    CXPLAT_CONTAINING_RECORD(
+                        Link,
+                        QUIC_CID_SLIST_ENTRY,
+                        Link);
+                if (!QuicBindingAddSourceConnectionID(Binding, Entry)) {
+                    Success = FALSE;
+                    break;
+                }
+            }
         }
+        QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
     }
 
-    return TRUE;
+    return Success;
 }
+
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -627,32 +639,40 @@ QuicBindingRemoveAllSourceConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    for (CXPLAT_SLIST_ENTRY* Link = Connection->SourceCids.Next;
-        Link != NULL;
-        Link = Link->Next) {
+    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+    QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
 
-        QUIC_CID_SLIST_ENTRY* Entry =
-            CXPLAT_CONTAINING_RECORD(
-                Link,
-                QUIC_CID_SLIST_ENTRY,
-                Link);
+    for (uint8_t i = 0; i < PathIDCount; i++) {
+        for (CXPLAT_SLIST_ENTRY* Link = PathIDs[i]->SourceCids.Next;
+            Link != NULL;
+            Link = Link->Next) {
 
-        CXPLAT_SLIST_ENTRY** HashLink = &Entry->HashEntries.Next;
-        while (*HashLink != NULL) {
-            QUIC_CID_HASH_ENTRY* HashEntry = 
+            QUIC_CID_SLIST_ENTRY* Entry =
                 CXPLAT_CONTAINING_RECORD(
-                    *HashLink,
-                    QUIC_CID_HASH_ENTRY,
+                    Link,
+                    QUIC_CID_SLIST_ENTRY,
                     Link);
-            if (HashEntry->Binding == Binding) {
-                QuicBindingRemoveSourceConnectionID(Binding, HashEntry);
-                *HashLink = (*HashLink)->Next;
-                CXPLAT_FREE(HashEntry, QUIC_POOL_CIDHASH);
-                HashEntry = NULL;
-            } else {
-                HashLink = &(*HashLink)->Next;
+
+            CXPLAT_SLIST_ENTRY** HashLink = &Entry->HashEntries.Next;
+            while (*HashLink != NULL) {
+                QUIC_CID_HASH_ENTRY* HashEntry = 
+                    CXPLAT_CONTAINING_RECORD(
+                        *HashLink,
+                        QUIC_CID_HASH_ENTRY,
+                        Link);
+                if (HashEntry->Binding == Binding) {
+                    QuicBindingRemoveSourceConnectionID(Binding, HashEntry);
+                    *HashLink = (*HashLink)->Next;
+                    CXPLAT_FREE(HashEntry, QUIC_POOL_CIDHASH);
+                    HashEntry = NULL;
+                } else {
+                    HashLink = &(*HashLink)->Next;
+                }
             }
         }
+
+        QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
     }
 }
 
@@ -1361,10 +1381,10 @@ QuicBindingCreateConnection(
     }
 
     BOOLEAN BindingRefAdded = FALSE;
-    CXPLAT_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);
+    CXPLAT_DBG_ASSERT(NewConnection->Paths[0].PathID->SourceCids.Next != NULL);
     QUIC_CID_SLIST_ENTRY* SourceCid =
         CXPLAT_CONTAINING_RECORD(
-            NewConnection->SourceCids.Next,
+            NewConnection->Paths[0].PathID->SourceCids.Next,
             QUIC_CID_SLIST_ENTRY,
             Link);
 
@@ -1463,7 +1483,7 @@ Exit:
 #pragma warning(pop)
 
     } else {
-        NewConnection->SourceCids.Next = NULL;
+        NewConnection->Paths[0].PathID->SourceCids.Next = NULL;
         CXPLAT_FREE(SourceCid, QUIC_POOL_CIDSLIST);
         QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
@@ -1565,14 +1585,16 @@ QuicBindingDeliverPackets(
             QuicLookupFindConnectionByLocalCid(
                 &Binding->Lookup,
                 Packets->DestCid,
-                Packets->DestCidLen);
+                Packets->DestCidLen,
+                &Packets->PathId);
     } else {
         Connection =
             QuicLookupFindConnectionByRemoteHash(
                 &Binding->Lookup,
                 &Packets->Route->RemoteAddress,
                 Packets->SourceCidLen,
-                Packets->SourceCid);
+                Packets->SourceCid,
+                &Packets->PathId);
     }
 
     if (Connection == NULL) {

@@ -117,6 +117,12 @@ QUIC_TLS_SECRETS ClientSecrets = {0};
 //
 const char* SslKeyLogEnvVar = "SSLKEYLOGFILE";
 
+
+//
+// The flag to enable multipath.
+//
+BOOLEAN MultipathEnabled = FALSE;
+
 void PrintUsage()
 {
     printf(
@@ -478,6 +484,16 @@ ServerConnectionCallback(
         //
         printf("[conn][%p] Connection resumed!\n", Connection);
         break;
+    case QUIC_CONNECTION_EVENT_PATH_ADDED:
+        printf("[conn][%p] Path added PathId:%u\n", Connection, Event->PATH_ADDED.PathId);
+        break;
+    case QUIC_CONNECTION_EVENT_PATH_REMOVED:
+        printf("[conn][%p] Path removed PathId:%u\n", Connection, Event->PATH_REMOVED.PathId);
+        break;
+    case QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED:
+        printf("[conn][%p] Path status changed PathId:%u, IsActive:%d\n",
+            Connection, Event->PATH_STATUS_CHANGED.PathId, Event->PATH_STATUS_CHANGED.IsActive);
+        break;
     default:
         break;
     }
@@ -555,6 +571,12 @@ ServerLoadConfiguration(
     //
     Settings.PeerBidiStreamCount = 1;
     Settings.IsSet.PeerBidiStreamCount = TRUE;
+
+    if (GetFlag(argc, argv, "multipath")) {
+        Settings.IsSet.MultipathEnabled = TRUE;
+        Settings.MultipathEnabled = TRUE;
+        MultipathEnabled = TRUE;
+    }
 
     QUIC_CREDENTIAL_CONFIG_HELPER Config;
     memset(&Config, 0, sizeof(Config));
@@ -750,7 +772,7 @@ ClientSend(
     // Create/allocate a new bidirectional stream. The stream is just allocated
     // and no QUIC stream identifier is assigned until it's started.
     //
-    if (QUIC_FAILED(Status = MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_NONE, ClientStreamCallback, NULL, &Stream))) {
+    if (QUIC_FAILED(Status = MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_NONE, ClientStreamCallback, Connection, &Stream))) {
         printf("StreamOpen failed, 0x%x!\n", Status);
         goto Error;
     }
@@ -828,7 +850,30 @@ ClientConnectionCallback(
         // The handshake has completed for the connection.
         //
         printf("[conn][%p] Connected\n", Connection);
-        ClientSend(Connection);
+        if (MultipathEnabled) {
+            QUIC_ADDR SecondAddr = {0}, RemoteAddr = {0};
+            uint32_t Addrlen = sizeof(SecondAddr);
+            QUIC_STATUS Status = MsQuic->GetParam(Connection, QUIC_PARAM_CONN_LOCAL_ADDRESS, &Addrlen, &SecondAddr);
+            if (QUIC_FAILED(Status)) {
+                printf("SetParam(QUIC_PARAM_CONN_LOCAL_ADDRESS) failed, 0x%x!\n", Status);
+                break;
+            }
+            Addrlen = sizeof(RemoteAddr);
+            Status = MsQuic->GetParam(Connection, QUIC_PARAM_CONN_REMOTE_ADDRESS, &Addrlen, &RemoteAddr);
+            if (QUIC_FAILED(Status)) {
+                printf("SetParam(QUIC_PARAM_CONN_REMOTE_ADDRESS) failed, 0x%x!\n", Status);
+                break;
+            }
+            SecondAddr.Ipv4.sin_port = 0;
+            QUIC_PATH_PARAM PathParam = {&SecondAddr, &RemoteAddr};
+            Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_ADD_PATH, sizeof(PathParam), &PathParam);
+            if (QUIC_FAILED(Status)) {
+                printf("SetParam(QUIC_PARAM_CONN_ADD_PATH) failed, 0x%x!\n", Status);
+                break;
+            }
+        } else {
+            ClientSend(Connection);
+        }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //
@@ -869,6 +914,43 @@ ClientConnectionCallback(
         }
         printf("\n");
         break;
+    case QUIC_CONNECTION_EVENT_PATH_ADDED:
+        printf("[conn][%p] Path added PathId:%u\n", Connection, Event->PATH_ADDED.PathId);
+
+        QUIC_ADDR FirstAddr = {0}, RemoteAddr = {0};
+        uint32_t Addrlen = sizeof(FirstAddr);
+        QUIC_STATUS Status = MsQuic->GetParam(Connection, QUIC_PARAM_CONN_LOCAL_ADDRESS, &Addrlen, &FirstAddr);
+        if (QUIC_FAILED(Status)) {
+            printf("SetParam(QUIC_PARAM_CONN_LOCAL_ADDRESS) failed, 0x%x!\n", Status);
+            break;
+        }
+        Addrlen = sizeof(RemoteAddr);
+        Status = MsQuic->GetParam(Connection, QUIC_PARAM_CONN_REMOTE_ADDRESS, &Addrlen, &RemoteAddr);
+        if (QUIC_FAILED(Status)) {
+            printf("SetParam(QUIC_PARAM_CONN_REMOTE_ADDRESS) failed, 0x%x!\n", Status);
+            break;
+        }
+        QUIC_PATH_STATUS PathStatus;
+        PathStatus.PathId = 0;
+        PathStatus.Active = FALSE;
+        Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_PATH_STATUS, sizeof(QUIC_PATH_STATUS), &PathStatus);
+        if (QUIC_FAILED(Status)) {
+            printf("SetParam(QUIC_PARAM_CONN_PATH_STATUS) failed, 0x%x!\n", Status);
+        }
+        QUIC_PATH_PARAM PathParam = {&FirstAddr, &RemoteAddr};
+        Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_REMOVE_PATH, sizeof(PathParam), &PathParam);
+        if (QUIC_FAILED(Status)) {
+            printf("SetParam(QUIC_PARAM_CONN_REMOVE_PATH) failed, 0x%x!\n", Status);
+        }
+        ClientSend(Connection);
+        break;
+    case QUIC_CONNECTION_EVENT_PATH_REMOVED:
+        printf("[conn][%p] Path removed PathId:%u\n", Connection, Event->PATH_REMOVED.PathId);
+        break;
+    case QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED:
+        printf("[conn][%p] Path status changed PathId:%u, IsActive:%d\n",
+            Connection, Event->PATH_STATUS_CHANGED.PathId, Event->PATH_STATUS_CHANGED.IsActive);
+        break;
     case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
         printf(
             "[conn][%p] Ideal Processor is: %u, Partition Index %u\n",
@@ -900,7 +982,8 @@ ClientConnectionCallback(
 //
 BOOLEAN
 ClientLoadConfiguration(
-    BOOLEAN Unsecure
+    BOOLEAN Unsecure,
+    BOOLEAN Multipath
     )
 {
     QUIC_SETTINGS Settings = {0};
@@ -909,6 +992,11 @@ ClientLoadConfiguration(
     //
     Settings.IdleTimeoutMs = IdleTimeoutMs;
     Settings.IsSet.IdleTimeoutMs = TRUE;
+    if (Multipath) {
+        Settings.IsSet.MultipathEnabled = TRUE;
+        Settings.MultipathEnabled = TRUE;
+        MultipathEnabled = TRUE;
+    }
 
     //
     // Configures a default client configuration, optionally disabling
@@ -956,7 +1044,7 @@ RunClient(
     //
     // Load the client configuration based on the "unsecure" command line option.
     //
-    if (!ClientLoadConfiguration(GetFlag(argc, argv, "unsecure"))) {
+    if (!ClientLoadConfiguration(GetFlag(argc, argv, "unsecure"), GetFlag(argc, argv, "multipath"))) {
         return;
     }
 
@@ -989,6 +1077,14 @@ RunClient(
     if (SslKeyLogFile != NULL) {
         if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_TLS_SECRETS, sizeof(ClientSecrets), &ClientSecrets))) {
             printf("SetParam(QUIC_PARAM_CONN_TLS_SECRETS) failed, 0x%x!\n", Status);
+            goto Error;
+        }
+    }
+
+    if (GetFlag(argc, argv, "multipath")) {
+        uint8_t ShareBinding = 1;
+        if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_SHARE_UDP_BINDING, sizeof(ShareBinding), &ShareBinding))) {
+            printf("SetParam(QUIC_PARAM_CONN_SHARE_UDP_BINDING) failed, 0x%x!\n", Status);
             goto Error;
         }
     }
@@ -1035,7 +1131,7 @@ RunMultiClient(
     //
     // Load the client configuration based on the "unsecure" command line option.
     //
-    if (!ClientLoadConfiguration(GetFlag(argc, argv, "unsecure"))) {
+    if (!ClientLoadConfiguration(GetFlag(argc, argv, "unsecure"), GetFlag(argc, argv, "multipath"))) {
         return;
     }
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;

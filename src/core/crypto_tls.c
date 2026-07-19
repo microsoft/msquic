@@ -71,6 +71,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_OBSERVED_ADDRESS                         0x9f81a176      // varint
 #define QUIC_TP_ID_SERVER_MIGRATION                         0x3e764478      // N/A
 #define QUIC_TP_ID_NAT_TRAVERSE                             0x3d7e9f0bca12fea6 // varint
+#define QUIC_TP_ID_INITIAL_MAX_PATH_ID                      0x3e // varint (draft-ietf-quic-multipath-21, suggested)
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -932,6 +933,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_SERVER_MIGRATION,
                 0);
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_PATH_ID) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_MAX_PATH_ID,
+                QuicVarIntSize(TransportParams->InitialMaxPathId));
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1323,6 +1330,17 @@ QuicCryptoTlsEncodeTransportParameters(
             EncodeTPServerMigration,
             Connection,
             "TP: Server Migration");
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_PATH_ID) {
+        TPBuf =
+            TlsWriteTransportParamVarInt(
+                QUIC_TP_ID_INITIAL_MAX_PATH_ID,
+                TransportParams->InitialMaxPathId, TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPInitMaxPathId,
+            Connection,
+            "TP: Max Path Id (%llu)",
+            TransportParams->InitialMaxPathId);
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -2030,6 +2048,41 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             TransportParams->Flags |= (uint32_t)value;
             break;
         }
+        case QUIC_TP_ID_INITIAL_MAX_PATH_ID:
+            if (!TRY_READ_VAR_INT(TransportParams->InitialMaxPathId)) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_INITIAL_MAX_PATH_ID");
+                goto Exit;
+            }
+            QUIC_CID_LIST_ENTRY* DestCid =
+                CXPLAT_CONTAINING_RECORD(
+                    Connection->Paths[0].PathID->DestCids.Flink,
+                    QUIC_CID_LIST_ENTRY,
+                    Link);
+            if (DestCid->CID.Length == 0) {
+                //
+                // Multipath requires non-zero length connection IDs.
+                //
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Multipath requires non-zero length connection IDs");
+                goto Exit;
+            }
+
+            TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_PATH_ID;
+            QuicTraceLogConnVerbose(
+                DecodeTPInitMaxPathId,
+                Connection,
+                "TP: Max Path Id (%llu)",
+                TransportParams->InitialMaxPathId);
+            break;
 
         case QUIC_TP_ID_OBSERVED_ADDRESS: {
             QUIC_VAR_INT value = 0;

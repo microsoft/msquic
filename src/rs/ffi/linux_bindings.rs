@@ -220,6 +220,7 @@ pub const QUIC_PARAM_CONN_ACTIVATE_PATH: u32 = 83886111;
 pub const QUIC_PARAM_CONN_REMOVE_PATH: u32 = 83886113;
 pub const QUIC_PARAM_CONN_ADD_CANDIDATE_ADDRESS: u32 = 83886114;
 pub const QUIC_PARAM_CONN_REMOVE_CANDIDATE_ADDRESS: u32 = 83886115;
+pub const QUIC_PARAM_CONN_PATH_STATUS: u32 = 83886116;
 pub const QUIC_PARAM_TLS_HANDSHAKE_INFO: u32 = 100663296;
 pub const QUIC_PARAM_TLS_NEGOTIATED_ALPN: u32 = 100663297;
 pub const QUIC_PARAM_STREAM_ID: u32 = 134217728;
@@ -1812,6 +1813,21 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_VERSION_SETTINGS, OfferedVersionsLength) - 28usize];
     ["Offset of field: QUIC_VERSION_SETTINGS::FullyDeployedVersionsLength"]
         [::std::mem::offset_of!(QUIC_VERSION_SETTINGS, FullyDeployedVersionsLength) - 32usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_PATH_STATUS {
+    pub PathId: u32,
+    pub Active: BOOLEAN,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_PATH_STATUS"][::std::mem::size_of::<QUIC_PATH_STATUS>() - 8usize];
+    ["Alignment of QUIC_PATH_STATUS"][::std::mem::align_of::<QUIC_PATH_STATUS>() - 4usize];
+    ["Offset of field: QUIC_PATH_STATUS::PathId"]
+        [::std::mem::offset_of!(QUIC_PATH_STATUS, PathId) - 0usize];
+    ["Offset of field: QUIC_PATH_STATUS::Active"]
+        [::std::mem::offset_of!(QUIC_PATH_STATUS, Active) - 4usize];
 };
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -3700,14 +3716,47 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
+    pub fn MultipathEnabled(&self) -> u64 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(49usize, 1u8) as u64) }
+    }
+    #[inline]
+    pub fn set_MultipathEnabled(&mut self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            self._bitfield_1.set(49usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn MultipathEnabled_raw(this: *const Self) -> u64 {
+        unsafe {
+            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
+                ::std::ptr::addr_of!((*this)._bitfield_1),
+                49usize,
+                1u8,
+            ) as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn set_MultipathEnabled_raw(this: *mut Self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
+                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
+                49usize,
+                1u8,
+                val as u64,
+            )
+        }
+    }
+    #[inline]
     pub fn RESERVED(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(49usize, 15u8) as u64) }
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(50usize, 14u8) as u64) }
     }
     #[inline]
     pub fn set_RESERVED(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(49usize, 15u8, val as u64)
+            self._bitfield_1.set(50usize, 14u8, val as u64)
         }
     }
     #[inline]
@@ -3715,8 +3764,8 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
-                49usize,
-                15u8,
+                50usize,
+                14u8,
             ) as u64)
         }
     }
@@ -3726,8 +3775,8 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
                 ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                49usize,
-                15u8,
+                50usize,
+                14u8,
                 val as u64,
             )
         }
@@ -3783,6 +3832,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         ServerMigrationEnabled: u64,
         AddAddressMode: u64,
         IgnoreUnreachable: u64,
+        MultipathEnabled: u64,
         RESERVED: u64,
     ) -> __BindgenBitfieldUnit<[u8; 8usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 8usize]> = Default::default();
@@ -4005,7 +4055,11 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
             let IgnoreUnreachable: u64 = unsafe { ::std::mem::transmute(IgnoreUnreachable) };
             IgnoreUnreachable as u64
         });
-        __bindgen_bitfield_unit.set(49usize, 15u8, {
+        __bindgen_bitfield_unit.set(49usize, 1u8, {
+            let MultipathEnabled: u64 = unsafe { ::std::mem::transmute(MultipathEnabled) };
+            MultipathEnabled as u64
+        });
+        __bindgen_bitfield_unit.set(50usize, 14u8, {
             let RESERVED: u64 = unsafe { ::std::mem::transmute(RESERVED) };
             RESERVED as u64
         });
@@ -4407,14 +4461,47 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         }
     }
     #[inline]
+    pub fn MultipathEnabled(&self) -> u64 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(11usize, 1u8) as u64) }
+    }
+    #[inline]
+    pub fn set_MultipathEnabled(&mut self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            self._bitfield_1.set(11usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn MultipathEnabled_raw(this: *const Self) -> u64 {
+        unsafe {
+            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
+                ::std::ptr::addr_of!((*this)._bitfield_1),
+                11usize,
+                1u8,
+            ) as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn set_MultipathEnabled_raw(this: *mut Self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
+                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
+                11usize,
+                1u8,
+                val as u64,
+            )
+        }
+    }
+    #[inline]
     pub fn ReservedFlags(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(11usize, 53u8) as u64) }
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(12usize, 52u8) as u64) }
     }
     #[inline]
     pub fn set_ReservedFlags(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(11usize, 53u8, val as u64)
+            self._bitfield_1.set(12usize, 52u8, val as u64)
         }
     }
     #[inline]
@@ -4422,8 +4509,8 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
-                11usize,
-                53u8,
+                12usize,
+                52u8,
             ) as u64)
         }
     }
@@ -4433,8 +4520,8 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
                 ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                11usize,
-                53u8,
+                12usize,
+                52u8,
                 val as u64,
             )
         }
@@ -4452,6 +4539,7 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         ReservedRioEnabled: u64,
         ServerMigrationEnabled: u64,
         IgnoreUnreachable: u64,
+        MultipathEnabled: u64,
         ReservedFlags: u64,
     ) -> __BindgenBitfieldUnit<[u8; 8usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 8usize]> = Default::default();
@@ -4502,7 +4590,11 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
             let IgnoreUnreachable: u64 = unsafe { ::std::mem::transmute(IgnoreUnreachable) };
             IgnoreUnreachable as u64
         });
-        __bindgen_bitfield_unit.set(11usize, 53u8, {
+        __bindgen_bitfield_unit.set(11usize, 1u8, {
+            let MultipathEnabled: u64 = unsafe { ::std::mem::transmute(MultipathEnabled) };
+            MultipathEnabled as u64
+        });
+        __bindgen_bitfield_unit.set(12usize, 52u8, {
             let ReservedFlags: u64 = unsafe { ::std::mem::transmute(ReservedFlags) };
             ReservedFlags as u64
         });
@@ -5623,6 +5715,12 @@ pub const QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PATH_VALIDATED:
     QUIC_CONNECTION_EVENT_TYPE = 21;
 pub const QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED:
     QUIC_CONNECTION_EVENT_TYPE = 22;
+pub const QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PATH_ADDED: QUIC_CONNECTION_EVENT_TYPE =
+    23;
+pub const QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PATH_REMOVED:
+    QUIC_CONNECTION_EVENT_TYPE = 24;
+pub const QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED:
+    QUIC_CONNECTION_EVENT_TYPE = 25;
 pub type QUIC_CONNECTION_EVENT_TYPE = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -5656,6 +5754,9 @@ pub union QUIC_CONNECTION_EVENT__bindgen_ty_1 {
     pub NOTIFY_REMOTE_ADDRESS_ADDED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_20,
     pub PATH_VALIDATED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_21,
     pub NOTIFY_REMOTE_ADDRESS_REMOVED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_22,
+    pub PATH_ADDED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23,
+    pub PATH_REMOVED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24,
+    pub PATH_STATUS_CHANGED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6244,6 +6345,95 @@ const _: () = {
     )
         - 0usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23 {
+    pub PeerAddress: *const QUIC_ADDR,
+    pub LocalAddress: *const QUIC_ADDR,
+    pub PathId: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23"]
+        [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23>() - 24usize];
+    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23"]
+        [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23>() - 8usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23::PeerAddress"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23,
+        PeerAddress
+    )
+        - 0usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23::LocalAddress"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23,
+        LocalAddress
+    )
+        - 8usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23::PathId"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_23,
+        PathId
+    ) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24 {
+    pub PeerAddress: *const QUIC_ADDR,
+    pub LocalAddress: *const QUIC_ADDR,
+    pub PathId: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24"]
+        [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24>() - 24usize];
+    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24"]
+        [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24>() - 8usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24::PeerAddress"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24,
+        PeerAddress
+    )
+        - 0usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24::LocalAddress"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24,
+        LocalAddress
+    )
+        - 8usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24::PathId"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_24,
+        PathId
+    ) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25 {
+    pub PeerAddress: *const QUIC_ADDR,
+    pub LocalAddress: *const QUIC_ADDR,
+    pub PathId: u32,
+    pub IsActive: BOOLEAN,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25"]
+        [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25>() - 24usize];
+    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25"]
+        [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25>() - 8usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25::PeerAddress"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25,
+        PeerAddress
+    )
+        - 0usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25::LocalAddress"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25,
+        LocalAddress
+    )
+        - 8usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25::PathId"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25,
+        PathId
+    ) - 16usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25::IsActive"][::std::mem::offset_of!(
+        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_25,
+        IsActive
+    ) - 20usize];
+};
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1"]
@@ -6330,6 +6520,12 @@ const _: () = {
         NOTIFY_REMOTE_ADDRESS_REMOVED
     )
         - 0usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PATH_ADDED"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, PATH_ADDED) - 0usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PATH_REMOVED"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, PATH_REMOVED) - 0usize];
+    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1::PATH_STATUS_CHANGED"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_EVENT__bindgen_ty_1, PATH_STATUS_CHANGED) - 0usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {

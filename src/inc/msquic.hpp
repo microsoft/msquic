@@ -747,6 +747,7 @@ public:
     MsQuicSettings& SetStreamMultiReceiveEnabled(bool value) { StreamMultiReceiveEnabled = value; IsSet.StreamMultiReceiveEnabled = TRUE; return *this; }
     MsQuicSettings& SetServerMigrationEnabled(bool value) { ServerMigrationEnabled = value; IsSet.ServerMigrationEnabled = TRUE; return *this; }
     MsQuicSettings& SetIgnoreUnreachable(bool value) { IgnoreUnreachable = value; IsSet.IgnoreUnreachable = TRUE; return *this; }
+    MsQuicSettings& SetMultipathEnabled(bool value) { MultipathEnabled = value; IsSet.MultipathEnabled = TRUE; return *this; }
 #endif
 
     QUIC_STATUS

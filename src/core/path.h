@@ -55,6 +55,11 @@ typedef struct QUIC_PATH {
     BOOLEAN InUse : 1;
 
     //
+    // Indicates the path is bound to a local address.
+    //
+    BOOLEAN UseBound : 1;
+
+    //
     // Indicates this is the primary path being used by the connection.
     //
     BOOLEAN IsActive : 1;
@@ -100,6 +105,15 @@ typedef struct QUIC_PATH {
     // The current path response needs to be sent out.
     //
     BOOLEAN SendResponse : 1;
+
+    BOOLEAN SendStatus : 1;
+
+    BOOLEAN LocalClose : 1;
+    BOOLEAN LocalCloseAcked : 1;
+
+    BOOLEAN SendAbandon : 1;
+
+    BOOLEAN RemoteClose : 1;
 
     //
     // Indicates the partition has updated for this path.
@@ -161,6 +175,8 @@ typedef struct QUIC_PATH {
     //
     QUIC_MTU_DISCOVERY MtuDiscovery;
 
+    QUIC_PATHID *PathID;
+    
     //
     // The binding used for sending/receiving UDP packets.
     //
@@ -228,7 +244,7 @@ typedef struct QUIC_PATH {
 #endif
 
 CXPLAT_STATIC_ASSERT(
-    sizeof(QUIC_PATH) < 512,
+    sizeof(QUIC_PATH) < 1024,
     "Ensure path struct stays small since we prealloc them");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -349,6 +365,13 @@ QuicConnGetPathForPacket(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_notnull_
+QUIC_PATH*
+QuicConnChoosePath(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCopyRouteInfo(
     _Inout_ CXPLAT_ROUTE* DstRoute,
@@ -365,3 +388,5 @@ QuicPathUpdateQeo(
     _In_ QUIC_PATH* Path,
     _In_ CXPLAT_QEO_OPERATION Operation
     );
+
+

@@ -42,8 +42,19 @@ enum RECOVERY_STATE {
 //
 static void InitBbrMockConnection(
     QUIC_CONNECTION& Connection,
+    QUIC_PATHID& PathID,
     uint16_t Mtu)
 {
+    //
+    // Congestion control and loss detection now live on the QUIC_PATHID (the
+    // multipath model). Wire up the mock PathID so QuicCongestionControlGetPathID
+    // (CONTAINING_RECORD off CongestionControl) resolves back to the connection
+    // and active path.
+    //
+    PathID.Connection = &Connection;
+    PathID.Path = &Connection.Paths[0];
+    Connection.Paths[0].PathID = &PathID;
+
     Connection.Paths[0].Mtu = Mtu;
     Connection.Paths[0].IsActive = TRUE;
     Connection.Send.NextPacketNumber = 0;
@@ -60,7 +71,7 @@ static void InitBbrMockConnection(
     Connection.SendBuffer.PostedBytes = 0;
     Connection.SendBuffer.IdealBytes = 0;
     Connection.Stats.Send.TotalBytes = 0;
-    Connection.LossDetection.LargestSentPacketNumber = 0;
+    PathID.LossDetection.LargestSentPacketNumber = 0;
 }
 
 static QUIC_ACK_EVENT MakeBbrAckEvent(
@@ -136,6 +147,7 @@ protected:
     QUIC_NETWORK_STATISTICS LastNetStats = {};
 
     QUIC_CONNECTION Connection{};
+    QUIC_PATHID PathID{};
     QUIC_SETTINGS_INTERNAL Settings{};
     QUIC_CONGESTION_CONTROL_BBR* Bbr;
     QUIC_CONGESTION_CONTROL* CC;
@@ -166,7 +178,7 @@ protected:
         bool NetStatsEnabled = false)
     {
         Settings.InitialWindowPackets = WindowPackets;
-        InitBbrMockConnection(Connection, Mtu);
+        InitBbrMockConnection(Connection, PathID, Mtu);
         Connection.Settings.PacingEnabled = PacingEnabled ? TRUE : FALSE;
         Connection.Settings.NetStatsEventEnabled = NetStatsEnabled ? TRUE : FALSE;
         if (NetStatsEnabled) {
@@ -178,7 +190,7 @@ protected:
             NetStatsCallbackInvoked = false;
             LastNetStats = {};
         }
-        CC = &Connection.CongestionControl;
+        CC = &PathID.CongestionControl;
         BbrCongestionControlInitialize(CC, &Settings);
         Bbr = &CC->Bbr;
     }

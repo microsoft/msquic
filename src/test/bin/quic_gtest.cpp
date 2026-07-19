@@ -930,6 +930,17 @@ TEST_P(WithFamilyArgs, LocalPathChanges) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST_P(WithFamilyArgs, Multipath) {
+    TestLoggerT<ParamType> Logger("QuicTestMultipath", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestMultipath), GetParam()));
+    } else {
+        QuicTestMultipath(GetParam());
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 TEST(Mtu, Settings) {
     TestLogger Logger("QuicTestMtuSettings");
     if (TestingKernelMode) {

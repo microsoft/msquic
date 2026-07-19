@@ -132,6 +132,7 @@ TEST(SettingsTest, TestAllSettingsFieldsSet)
     SETTINGS_FEATURE_SET_TEST(ServerMigrationEnabled, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(AddAddressMode, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(IgnoreUnreachable, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MultipathEnabled, QuicSettingsSettingsToInternal);
 
     // Bias field count on behalf of erstwhile ReservedRioEnabled
     FieldCount++;
@@ -226,6 +227,7 @@ TEST(SettingsTest, TestAllSettingsFieldsGet)
     SETTINGS_FEATURE_GET_TEST(ServerMigrationEnabled, QuicSettingsGetSettings);
     SETTINGS_FEATURE_GET_TEST(AddAddressMode, QuicSettingsGetSettings);
     SETTINGS_FEATURE_GET_TEST(IgnoreUnreachable, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MultipathEnabled, QuicSettingsGetSettings);
 
     // Bias field count on behalf of erstwhile ReservedRioEnabled
     FieldCount++;

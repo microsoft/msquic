@@ -166,6 +166,7 @@ typedef struct QUIC_CID_LIST_ENTRY {
 typedef struct QUIC_CID_SLIST_ENTRY {
 
     CXPLAT_SLIST_ENTRY Link;
+    QUIC_PATHID* PathID;
     CXPLAT_SLIST_ENTRY HashEntries;
     QUIC_CID CID;
 
@@ -175,7 +176,7 @@ typedef struct QUIC_CID_HASH_ENTRY {
 
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_SLIST_ENTRY Link;
-    QUIC_CONNECTION* Connection;
+    QUIC_PATHID* PathID;
     QUIC_BINDING* Binding;
     QUIC_CID_SLIST_ENTRY* Parent;
 
@@ -188,7 +189,9 @@ typedef struct QUIC_CID_HASH_ENTRY {
 QUIC_INLINE
 _Success_(return != NULL)
 QUIC_CID_SLIST_ENTRY*
-QuicCidNewNullSource()
+QuicCidNewNullSource(
+    _In_ QUIC_PATHID* PathID
+    )
 {
     QUIC_CID_SLIST_ENTRY* Entry =
         (QUIC_CID_SLIST_ENTRY*)CXPLAT_ALLOC_NONPAGED(
@@ -196,6 +199,7 @@ QuicCidNewNullSource()
             QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
+        Entry->PathID = PathID;
         Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
     }
@@ -210,6 +214,7 @@ QUIC_INLINE
 _Success_(return != NULL)
 QUIC_CID_SLIST_ENTRY*
 QuicCidNewSource(
+    _In_ QUIC_PATHID* PathID,
     _In_ uint8_t Length,
     _In_reads_(Length)
         const uint8_t* const Data
@@ -223,6 +228,7 @@ QuicCidNewSource(
             QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
+        Entry->PathID = PathID;
         Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = Length;

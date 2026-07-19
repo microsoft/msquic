@@ -206,6 +206,8 @@ impl Settings {
 
     #[cfg(feature = "preview-api")]
     define_settings_entry_bitflag2!(set_IgnoreUnreachable);
+    #[cfg(feature = "preview-api")]
+    define_settings_entry_bitflag2!(set_MultipathEnabled);
 
     define_settings_entry!(
         set_StreamRecvWindowBidiLocalDefault,

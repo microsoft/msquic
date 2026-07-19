@@ -773,6 +773,11 @@ typedef struct QUIC_VERSION_SETTINGS {
     uint32_t FullyDeployedVersionsLength;
 
 } QUIC_VERSION_SETTINGS;
+
+typedef struct QUIC_PATH_STATUS {
+    uint32_t PathId;
+    BOOLEAN Active;
+} QUIC_PATH_STATUS;
 #endif
 
 typedef struct QUIC_GLOBAL_SETTINGS {
@@ -845,7 +850,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t ServerMigrationEnabled                 : 1;
             uint64_t AddAddressMode                         : 1;
             uint64_t IgnoreUnreachable                      : 1;
-            uint64_t RESERVED                               : 15;
+            uint64_t MultipathEnabled                       : 1;
+            uint64_t RESERVED                               : 14;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -901,7 +907,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t ReservedRioEnabled        : 1;
             uint64_t ServerMigrationEnabled    : 1;
             uint64_t IgnoreUnreachable         : 1;
-            uint64_t ReservedFlags             : 53;
+            uint64_t MultipathEnabled          : 1;
+            uint64_t ReservedFlags             : 52;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -1114,6 +1121,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_REMOVE_PATH                     0x05000021  // QUIC_PATH_PARAM
 #define QUIC_PARAM_CONN_ADD_CANDIDATE_ADDRESS           0x05000022  // QUIC_CANDIDATE_ADDRESS
 #define QUIC_PARAM_CONN_REMOVE_CANDIDATE_ADDRESS        0x05000023  // QUIC_CANDIDATE_ADDRESS
+#define QUIC_PARAM_CONN_PATH_STATUS                     0x05000024  // QUIC_PATH_STATUS
 #endif
 
 //
@@ -1414,6 +1422,9 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_ADDED       = 20,   // Only indicated if QUIC_SETTINGS.AddAddressMode is MANUAL
     QUIC_CONNECTION_EVENT_PATH_VALIDATED                    = 21,
     QUIC_CONNECTION_EVENT_NOTIFY_REMOTE_ADDRESS_REMOVED     = 22,   // Only indicated if QUIC_SETTINGS.AddAddressMode is MANUAL
+    QUIC_CONNECTION_EVENT_PATH_ADDED                        = 23,   // Only indicated if QUIC_SETTINGS.MultipathEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_PATH_REMOVED                      = 24,   // Only indicated if QUIC_SETTINGS.MultipathEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED               = 25,   // Only indicated if QUIC_SETTINGS.MultipathEnabled is TRUE.
 #endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
@@ -1512,6 +1523,22 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             QUIC_UINT62 SequenceNumber;
         } NOTIFY_REMOTE_ADDRESS_REMOVED;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+        } PATH_ADDED;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+        } PATH_REMOVED;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+            BOOLEAN IsActive;
+        } PATH_STATUS_CHANGED;
 #endif
     };
 } QUIC_CONNECTION_EVENT;

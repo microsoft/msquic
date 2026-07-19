@@ -510,13 +510,16 @@ void WriteAckFrame(
     BOOLEAN RangeUpdated;
     QuicRangeAddRange(&AckRange, LargestAcknowledge, 1, &RangeUpdated);
     uint64_t AckDelay = 40;
-    QuicAckFrameEncode(
-        &AckRange,
-        AckDelay,
-        nullptr,
-        Offset,
-        BufferLength,
-        Buffer);
+    CXPLAT_FRE_ASSERT(
+        QuicAckFrameEncode(
+            FALSE,
+            0,
+            &AckRange,
+            AckDelay,
+            nullptr,
+            Offset,
+            BufferLength,
+            Buffer));
 }
 
 void WriteHandshakeDoneFrame(

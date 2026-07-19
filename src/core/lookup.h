@@ -108,7 +108,8 @@ QuicLookupFindConnectionByLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_reads_(CIDLen)
         const uint8_t* const CID,
-    _In_ uint8_t CIDLen
+    _In_ uint8_t CIDLen,
+    _Out_ uint32_t* PathId
     );
 
 //
@@ -121,7 +122,8 @@ QuicLookupFindConnectionByRemoteHash(
     _In_ const QUIC_ADDR* const RemoteAddress,
     _In_ uint8_t RemoteCidLength,
     _In_reads_(RemoteCidLength)
-        const uint8_t* const RemoteCid
+        const uint8_t* const RemoteCid,
+    _Out_ uint32_t* PathId
     );
 
 //
@@ -141,7 +143,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupAddLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CID_SLIST_ENTRY* SourceCid,
     _Out_opt_ QUIC_CONNECTION** Collision
     );
@@ -179,4 +180,17 @@ void
 QuicLookupRemoveRemoteHash(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry
+    );
+
+//
+// Inserts a source connection ID into the lookup table. Requires the
+// Lookup->RwLock to be exlusively held.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicLookupInsertLocalCid(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ uint32_t Hash,
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
+    _In_ BOOLEAN UpdateRefCount
     );
