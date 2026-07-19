@@ -16,6 +16,7 @@
 [![](https://img.shields.io/static/v1?label=Draft&message=Load%20Balancers&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
 [![](https://img.shields.io/static/v1?label=Draft&message=ACK%20Frequency&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-ack-frequency)
 [![](https://img.shields.io/static/v1?label=Draft&message=ReliableReset&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-reliable-stream-reset/)
+[![](https://img.shields.io/static/v1?label=Draft&message=Multipath&color=blue)](https://datatracker.ietf.org/doc/html/draft-ietf-quic-multipath/)
 [![](https://img.shields.io/static/v1?label=Draft&message=AddressDiscovery&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-address-discovery/)
 [![](https://img.shields.io/static/v1?label=Draft&message=Disable%20Encryption&color=blueviolet)](https://tools.ietf.org/html/draft-banks-quic-disable-encryption)
 [![](https://img.shields.io/static/v1?label=Draft&message=Performance&color=blueviolet)](https://tools.ietf.org/html/draft-banks-quic-performance)
@@ -29,6 +30,7 @@
 
 - Client Initiated Migration
 - Implements additional QUIC extensions
+  - Multipath
   - Address Discovery
   - Server Initiated Migration
   - NAT-T
