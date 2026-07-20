@@ -667,12 +667,11 @@ BbrCongestionControlGetSendAllowance(
                 BandwidthEst,
                 Bbr->PacingGain,
                 TimeSinceLastSend);
+        SendAllowance = PacingAllowance;
         if (Bbr->BbrState == BBR_STATE_STARTUP) {
             SendAllowance = CXPLAT_MAX(
                 PacingAllowance,
                 (uint64_t)CongestionWindow * Bbr->PacingGain / GAIN_UNIT - Bbr->BytesInFlight);
-        } else {
-            SendAllowance = PacingAllowance;
         }
 
         if (SendAllowance > CongestionWindow - Bbr->BytesInFlight) {
