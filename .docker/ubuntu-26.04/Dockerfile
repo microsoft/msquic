@@ -51,13 +51,11 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/26.04/packages-microsof
         (apt-get install -y curl \
         && POWERSHELL_VERSION=7.5.2 \
         && mkdir -p /opt/microsoft/powershell/7 \
-        && curl -fsSL -o /tmp/powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz "https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz" \
-        && curl -fsSL -o /tmp/powershell-hashes.sha256 "https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/hashes.sha256" \
-        && grep " powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz$" /tmp/powershell-hashes.sha256 | sed "s#  powershell-#  /tmp/powershell-#" | sha256sum -c - \
-        && tar zxf /tmp/powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz -C /opt/microsoft/powershell/7 \
+        && curl -L -o /tmp/powershell-linux-x64.tar.gz "https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz" \
+        && tar zxf /tmp/powershell-linux-x64.tar.gz -C /opt/microsoft/powershell/7 \
         && chmod +x /opt/microsoft/powershell/7/pwsh \
         && ln -sf /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh \
-        && rm -f /tmp/powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz /tmp/powershell-hashes.sha256)) \
+        && rm -f /tmp/powershell-linux-x64.tar.gz)) \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git config --global safe.directory '*'
