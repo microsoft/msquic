@@ -20,7 +20,6 @@ fn cmake_build() {
     use cmake::Config;
     use std::env;
     use std::path::Path;
-    let path_extra = "lib";
     let mut logging_enabled = "off";
     if cfg!(windows) {
         logging_enabled = "on";
@@ -103,8 +102,24 @@ fn cmake_build() {
     };
 
     let dst = config.build();
-    let lib_path = Path::join(Path::new(&dst), Path::new(path_extra));
-    println!("cargo:rustc-link-search=native={}", lib_path.display());
+    // The native MsQuic library is installed via CMake's GNUInstallDirs, which
+    // resolves CMAKE_INSTALL_LIBDIR to "lib" on Debian/Ubuntu-style systems but to
+    // "lib64" on many 64-bit distros (Fedora, RHEL, SUSE, ...). Hardcoding "lib"
+    // makes linking fail on the latter because the .so ends up under "lib64".
+    // Add a link search path for every candidate that actually exists.
+    let mut found_lib_dir = false;
+    for lib_subdir in ["lib", "lib64"] {
+        let lib_path = Path::join(Path::new(&dst), Path::new(lib_subdir));
+        if lib_path.is_dir() {
+            println!("cargo:rustc-link-search=native={}", lib_path.display());
+            found_lib_dir = true;
+        }
+    }
+    if !found_lib_dir {
+        // Fall back to the historical default so any resulting error is meaningful.
+        let lib_path = Path::join(Path::new(&dst), Path::new("lib"));
+        println!("cargo:rustc-link-search=native={}", lib_path.display());
+    }
     if cfg!(feature = "static") {
         if cfg!(target_os = "linux") {
             let numa_lib_path = match target.as_str() {
