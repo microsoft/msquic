@@ -916,14 +916,14 @@ CxPlatWorkerPoolGetStatistics(
     CXPLAT_WORKER* Worker = &WorkerPool->Workers[Index];
 
     Stats->IdealProcessor = Worker->IdealProcessor;
-    Stats->CumulativeWallTimeUs = CxPlatTimeDiff64(Worker->Stats.StartedTimeUs, Now);
+    Stats->CumulativeWallTimeUs = CxPlatTimeDiff64(Worker->Stats.StartedTimeUs, TimeNow);
     Stats->CumulativeActiveTimeUs = Worker->Stats.CumulativeActiveTimeUs;
 
     //
     // If the worker is currently active, include the in-progress active period.
     //
     const uint64_t ActiveStartTimeUs = Worker->Stats.ActiveStartTimeUs;
-    if (ActiveStartTimeUs != 0 && ActiveStartTimeUs < Now) {
-        Stats->CumulativeActiveTimeUs += CxPlatTimeDiff64(ActiveStartTimeUs, Now);
+    if (ActiveStartTimeUs != 0 && ActiveStartTimeUs < TimeNow) {
+        Stats->CumulativeActiveTimeUs += CxPlatTimeDiff64(ActiveStartTimeUs, TimeNow);
     }
 }
