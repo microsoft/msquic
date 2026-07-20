@@ -3469,14 +3469,16 @@ QuicConnRecvVerNeg(
 {
     uint32_t SupportedVersion = 0;
 
-    // TODO - Validate the packet's SourceCid is equal to our DestCid.
+    const uint8_t VnSourceCidLen =
+        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength];
+    const uint8_t* VnSourceCid =
+        Packet->VerNeg->DestCid + Packet->VerNeg->DestCidLength + sizeof(uint8_t);
+    CXPLAT_DBG_ASSERT(
+        VnSourceCidLen == Connection->Paths[0].DestCid->CID.Length &&
+        memcmp(VnSourceCid, Connection->Paths[0].DestCid->CID.Data, VnSourceCidLen) == 0);
 
     const uint32_t* ServerVersionList =
-        (const uint32_t*)(
-        Packet->VerNeg->DestCid +
-        Packet->VerNeg->DestCidLength +
-        sizeof(uint8_t) +                                         // SourceCidLength field size
-        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength]);  // SourceCidLength
+        (const uint32_t*)(VnSourceCid + VnSourceCidLen);
     uint16_t ServerVersionListLength =
         (Packet->AvailBufferLength - (uint16_t)((uint8_t*)ServerVersionList - Packet->AvailBuffer)) / sizeof(uint32_t);
 
