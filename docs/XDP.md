@@ -173,7 +173,7 @@ Find it in the [Global Parameters](./Settings.md#global-parameters) table.
 ### Usage example
 
 The code below is a TL;DR outline of XDP map usage in MsQuic.
-For a detailed comprehensive example, see [this sample.](https://github.com/microsoft/msquic/tree/main/src/tools/xdpmap)
+For a detailed comprehensive example, see [this sample.](../src/tools/xdpmap)
 
 ```c
 //
