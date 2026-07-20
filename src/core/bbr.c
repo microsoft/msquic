@@ -614,6 +614,18 @@ BbrCongestionControlGetTargetCwnd(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+uint64_t
+BbrCongestionControlGetPacingSendAllowance(
+    _In_ uint64_t BandwidthEst,
+    _In_ uint32_t PacingGain,
+    _In_ uint64_t TimeSinceLastSend
+    )
+{
+    uint64_t PacingRate = BandwidthEst * PacingGain / GAIN_UNIT;
+    return PacingRate * TimeSinceLastSend / kMicroSecsInSec / BW_UNIT;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 BbrCongestionControlGetSendAllowance(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -627,7 +639,7 @@ BbrCongestionControlGetSendAllowance(
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
     uint32_t CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
 
-    uint32_t SendAllowance = 0;
+    uint64_t SendAllowance = 0;
 
     if (Bbr->BytesInFlight >= CongestionWindow) {
         //
@@ -647,16 +659,19 @@ BbrCongestionControlGetSendAllowance(
 
     } else {
         //
-        // We are pacing, so split the congestion window into chunks which are
-        // spread out over the RTT. Calculate the current send allowance (chunk
-        // size) as the time since the last send times the pacing rate (CWND / RTT).
+        // Calculate the current send allowance as the time since the last send
+        // times the BBR pacing rate (BtlBw * pacing_gain).
         //
+        uint64_t PacingAllowance =
+            BbrCongestionControlGetPacingSendAllowance(
+                BandwidthEst,
+                Bbr->PacingGain,
+                TimeSinceLastSend);
+        SendAllowance = PacingAllowance;
         if (Bbr->BbrState == BBR_STATE_STARTUP) {
-            SendAllowance = (uint32_t)CXPLAT_MAX(
-                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT,
-                CongestionWindow * Bbr->PacingGain / GAIN_UNIT - Bbr->BytesInFlight);
-        } else {
-            SendAllowance = (uint32_t)(BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT);
+            SendAllowance = CXPLAT_MAX(
+                PacingAllowance,
+                (uint64_t)CongestionWindow * Bbr->PacingGain / GAIN_UNIT - Bbr->BytesInFlight);
         }
 
         if (SendAllowance > CongestionWindow - Bbr->BytesInFlight) {
@@ -667,7 +682,7 @@ BbrCongestionControlGetSendAllowance(
             SendAllowance = CongestionWindow >> 2; // Don't send more than a quarter of the current window.
         }
     }
-    return SendAllowance;
+    return (uint32_t)SendAllowance;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
