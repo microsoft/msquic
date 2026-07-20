@@ -4364,6 +4364,52 @@ struct StreamReliableReset {
     }
 };
 
+
+//
+// Context struct for the ZeroOffset test. Stores the server-side stream so
+// we can query QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV after shutdown.
+//
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+struct StreamReliableResetZeroOffset {
+    CxPlatEvent ClientStreamShutdownComplete;
+    CxPlatEvent ServerStreamShutdownComplete;
+    MsQuicStream* ServerStream {nullptr};
+    QUIC_UINT62 ShutdownErrorCode {0};
+
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (StreamReliableResetZeroOffset*)ClientContext;
+        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ClientStreamShutdownComplete.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (StreamReliableResetZeroOffset*)ServerContext;
+        if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_ABORTED) {
+            TestContext->ShutdownErrorCode = Event->PEER_SEND_ABORTED.ErrorCode;
+        }
+        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerStreamShutdownComplete.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto TestContext = (StreamReliableResetZeroOffset*)Context;
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            TestContext->ServerStream =
+                new(std::nothrow) MsQuicStream(
+                    Event->PEER_STREAM_STARTED.Stream,
+                    CleanUpAutoDelete,
+                    ServerStreamCallback,
+                    Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
 void
 QuicTestStreamReliableReset(
@@ -4521,6 +4567,111 @@ QuicTestStreamReliableResetMultipleSends(
     // Test Error code matches what we sent.
     TEST_TRUE(Context.ShutdownErrorCode == AbortShutdownErrorCode);
 }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+//
+// Regression test: verifies that ReliableOffset = 0 is treated as a valid
+// "first frame seen" value, not as the "no frame received yet" sentinel.
+//
+// Previously, QuicStreamProcessReliableResetFrame used (RecvMaxLength == 0)
+// as the sentinel to detect the first RELIABLE_RESET frame. This was wrong
+// because 0 is a valid ReliableOffset value. As a result, if a peer sent
+// RELIABLE_RESET(offset=0) followed by RELIABLE_RESET(offset=5000), the
+// second frame would incorrectly pass the check (RecvMaxLength was still 0
+// after the first frame) and bump the offset up to 5000 — violating the
+// spec's strictly-decreasing rule.
+//
+// The fix uses the RemoteCloseResetReliable flag as the sentinel instead.
+// This test confirms that after receiving RELIABLE_RESET(offset=0), the
+// server correctly tracks the received offset as 0 (i.e.
+// QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV returns 0, not INVALID_STATE).
+// If the old sentinel were still in place, the flag would still be set to
+// TRUE and RecvMaxLength would be 0, so RecvMaxLength == 0 would wrongly
+// look like "no frame received yet" — leaving the door open for a higher-
+// offset frame to pass the check.
+//
+void
+QuicTestStreamReliableResetZeroOffset(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicSettings TestSettings;
+    TestSettings.SetReliableResetEnabled(true);
+    TestSettings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", TestSettings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", TestSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    StreamReliableResetZeroOffset Context;
+
+    //
+    // We need to send at least 1 byte so that QueuedSendOffset > 0 and
+    // SetReliableOffset(0) passes the "offset <= QueuedSendOffset" check.
+    //
+    const uint8_t SendData[1] = { 0 };
+    QUIC_BUFFER SendBuffer { sizeof(SendData), (uint8_t*)SendData };
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableResetZeroOffset::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+    TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+    CxPlatSleep(50); // Wait for things to idle out
+
+    {
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableResetZeroOffset::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+
+        //
+        // Send 1 byte so QueuedSendOffset >= 1, making SetReliableOffset(0) valid.
+        //
+        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, nullptr));
+
+        //
+        // Set ReliableOffset to 0 — this is the corner case. The old code used
+        // RecvMaxLength == 0 as "first frame not yet received", which means
+        // offset=0 looked like "not seen" even after it was processed, allowing
+        // a subsequent RELIABLE_RESET with a larger offset to slip through.
+        //
+        TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(0));
+
+        const QUIC_UINT62 AbortErrorCode = 0x1234;
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+
+        TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+
+        //
+        // Verify the server correctly recorded ReliableOffset = 0.
+        // QUIC_STATUS_SUCCESS (not INVALID_STATE) confirms that
+        // RemoteCloseResetReliable was set to TRUE, i.e. the frame was
+        // recognised and tracked — not treated as "no frame received".
+        //
+        TEST_NOT_EQUAL(Context.ServerStream, nullptr);
+        uint64_t RecvOffset = UINT64_MAX;
+        TEST_QUIC_SUCCEEDED(Context.ServerStream->GetReliableOffsetRecv(&RecvOffset));
+        TEST_EQUAL(RecvOffset, 0ull);
+
+        TEST_TRUE(Context.ShutdownErrorCode == AbortErrorCode);
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
