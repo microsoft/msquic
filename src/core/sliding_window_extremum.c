@@ -14,8 +14,9 @@ Abstract:
     older elements which value is greater/less than equal to the new element,
     along with the elements which is expired.
     
-    If there are more elements comparing to the capacity of queue, the
-    algorithm will still work but the accuracy will be compromised.
+    If the queue is full after sweeping expired and dominated entries, the
+    oldest entry (head) is evicted to make room for the new one, preserving
+    the accuracy of the extremum over the window.
 
 --*/
 
@@ -119,14 +120,22 @@ QuicSlidingWindowExtremumUpdateMin(
         }
     }
 
-    if (Window->WindowSize < Window->WindowCapacity) {
-        uint32_t NewRear = (Window->WindowHead + Window->WindowSize) % Window->WindowCapacity;
-
-        Window->Extremums[NewRear].Value = NewValue;
-        Window->Extremums[NewRear].Time = NewTime;
-
-        Window->WindowSize++;
+    //
+    // If the queue is full at this point, the new entry still must be
+    // inserted because it is the most recent sample and is not dominated
+    // by any remaining entry. Evict the oldest entry (head) to make room.
+    //
+    if (Window->WindowSize == Window->WindowCapacity) {
+        Window->WindowHead = (Window->WindowHead + 1) % Window->WindowCapacity;
+        Window->WindowSize--;
     }
+
+    uint32_t NewRear = (Window->WindowHead + Window->WindowSize) % Window->WindowCapacity;
+
+    Window->Extremums[NewRear].Value = NewValue;
+    Window->Extremums[NewRear].Time = NewTime;
+
+    Window->WindowSize++;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -159,12 +168,20 @@ QuicSlidingWindowExtremumUpdateMax(
         }
     }
 
-    if (Window->WindowSize < Window->WindowCapacity) {
-        uint32_t NewRear = (Window->WindowHead + Window->WindowSize) % Window->WindowCapacity;
-
-        Window->Extremums[NewRear].Value = NewValue;
-        Window->Extremums[NewRear].Time = NewTime;
-
-        Window->WindowSize++;
+    //
+    // If the queue is full at this point, the new entry still must be
+    // inserted because it is the most recent sample and is not dominated
+    // by any remaining entry. Evict the oldest entry (head) to make room.
+    //
+    if (Window->WindowSize == Window->WindowCapacity) {
+        Window->WindowHead = (Window->WindowHead + 1) % Window->WindowCapacity;
+        Window->WindowSize--;
     }
+
+    uint32_t NewRear = (Window->WindowHead + Window->WindowSize) % Window->WindowCapacity;
+
+    Window->Extremums[NewRear].Value = NewValue;
+    Window->Extremums[NewRear].Time = NewTime;
+
+    Window->WindowSize++;
 }
