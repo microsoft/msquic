@@ -3473,9 +3473,17 @@ QuicConnRecvVerNeg(
         Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength];
     const uint8_t* VnSourceCid =
         Packet->VerNeg->DestCid + Packet->VerNeg->DestCidLength + sizeof(uint8_t);
-    CXPLAT_DBG_ASSERT(
-        VnSourceCidLen == Connection->Paths[0].DestCid->CID.Length &&
-        memcmp(VnSourceCid, Connection->Paths[0].DestCid->CID.Data, VnSourceCidLen) == 0);
+
+    //
+    // Validate that the packet's Source CID matches our current Destination CID
+    //
+    const QUIC_CID_LIST_ENTRY* DestCid = Connection->Paths[0].DestCid;
+    if (DestCid == NULL ||
+        VnSourceCidLen != DestCid->CID.Length ||
+        memcmp(VnSourceCid, DestCid->CID.Data, VnSourceCidLen) != 0) {
+        QuicPacketLogDrop(Connection, Packet, "Version Negotiation Source CID doesn't match our Destination CID");
+        return;
+    }
 
     const uint32_t* ServerVersionList =
         (const uint32_t*)(VnSourceCid + VnSourceCidLen);
