@@ -1596,9 +1596,10 @@ QuicLibraryGetGlobalWorkerStatistics(
     QUIC_WORKER_STATISTICS* Stats =
         (QUIC_WORKER_STATISTICS*)((uint8_t*)Buffer + sizeof(QUIC_WORKER_STATISTICS_LIST));
 
+    const uint64_t Now = CxPlatTimeUs64();
     for (uint32_t i = 0; i < WorkerCount; i++) {
         CXPLAT_WORKER_STATISTICS WorkerStats = {0};
-        CxPlatWorkerPoolGetStatistics(WorkerPool, i, &WorkerStats);
+        CxPlatWorkerPoolGetStatistics(WorkerPool, i, Now, &WorkerStats);
         Stats[i].IdealProcessor = WorkerStats.IdealProcessor;
         Stats[i].CumulativeActiveTimeUs = WorkerStats.CumulativeActiveTimeUs;
         Stats[i].CumulativeWallTimeUs = WorkerStats.CumulativeWallTimeUs;

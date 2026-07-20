@@ -907,12 +907,12 @@ void
 CxPlatWorkerPoolGetStatistics(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_ uint32_t Index,
+    _In_ uint64_t TimeNow,
     _Out_ CXPLAT_WORKER_STATISTICS* Stats
     )
 {
     CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
 
-    const uint64_t Now = CxPlatTimeUs64();
     CXPLAT_WORKER* Worker = &WorkerPool->Workers[Index];
 
     Stats->IdealProcessor = Worker->IdealProcessor;
