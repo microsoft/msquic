@@ -189,6 +189,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamProcessReliableResetFrame(
     _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t FinalSize,
     _In_ QUIC_VAR_INT ErrorCode,
     _In_ QUIC_VAR_INT ReliableOffset
     )
@@ -204,6 +205,70 @@ QuicStreamProcessReliableResetFrame(
             "Received ReliableReset without negotiation.");
         QuicConnTransportError(Stream->Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
         return;
+    }
+
+    if (FinalSize < ReliableOffset) {
+        QuicTraceLogStreamWarning(
+            ResetEarly,
+            Stream,
+            "Reliable reset has final size less than reliable offset!");
+        QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
+        return;
+    }
+
+    BOOLEAN CloseNow = Stream->RecvBuffer.BaseOffset >= ReliableOffset;
+
+    if (!Stream->Flags.RemoteCloseResetReliable && CloseNow) {
+        uint64_t TotalRecvLength = QuicRecvBufferGetTotalLength(&Stream->RecvBuffer);
+        if (TotalRecvLength > FinalSize) {
+            //
+            // The peer indicated a final offset less than what they have
+            // already sent to us. Kill the connection.
+            //
+            QuicTraceLogStreamWarning(
+                ResetEarly,
+                Stream,
+                "Tried to reset at earlier final size!");
+            QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
+            return;
+        }
+
+        if (TotalRecvLength < FinalSize) {
+            //
+            // The final offset is indicating that more data was sent than we
+            // have actually received. Make sure to update our flow control
+            // accounting so we stay in sync with the peer.
+            //
+            uint64_t FlowControlIncrease = FinalSize - TotalRecvLength;
+            Stream->Connection->Send.OrderedStreamBytesReceived += FlowControlIncrease;
+            if (Stream->Connection->Send.OrderedStreamBytesReceived < FlowControlIncrease ||
+                Stream->Connection->Send.OrderedStreamBytesReceived > Stream->Connection->Send.MaxData) {
+                //
+                // The peer indicated a final offset more than allowed. Kill the
+                // connection.
+                //
+                QuicTraceLogStreamWarning(
+                    ResetTooBig,
+                    Stream,
+                    "Tried to reset with too big final size!");
+                QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
+                return;
+            }
+        }
+
+        uint64_t TotalReadLength = Stream->RecvBuffer.BaseOffset;
+        if (TotalReadLength < FinalSize) {
+            //
+            // The final offset is indicating that more data was sent than the
+            // app has completely read. Make sure to give the peer more credit
+            // as a result.
+            //
+            uint64_t FlowControlIncrease = FinalSize - TotalReadLength;
+            Stream->Connection->Send.MaxData += FlowControlIncrease;
+            QuicSendSetSendFlag(
+                &Stream->Connection->Send,
+                QUIC_CONN_SEND_FLAG_MAX_DATA);
+        }
     }
 
     if (Stream->RecvMaxLength == 0 || ReliableOffset < Stream->RecvMaxLength) {
@@ -735,6 +800,7 @@ QuicStreamRecv(
 
         QuicStreamProcessReliableResetFrame(
             Stream,
+            Frame.FinalSize,
             Frame.ErrorCode,
             Frame.ReliableSize);
 
