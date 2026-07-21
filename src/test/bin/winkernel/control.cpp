@@ -641,6 +641,9 @@ ExecuteTestRequest(
 #ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
     RegisterTestFunction(QuicTestStreamReliableReset);
     RegisterTestFunction(QuicTestStreamReliableResetMultipleSends);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestStreamReliableResetZeroOffset);
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestStreamMultiReceive);

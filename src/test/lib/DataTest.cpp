@@ -4364,6 +4364,52 @@ struct StreamReliableReset {
     }
 };
 
+
+//
+// Context struct for the ZeroOffset test. Stores the server-side stream so
+// we can query QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV after shutdown.
+//
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+struct StreamReliableResetZeroOffset {
+    CxPlatEvent ClientStreamShutdownComplete;
+    CxPlatEvent ServerStreamShutdownComplete;
+    MsQuicStream* ServerStream {nullptr};
+    QUIC_UINT62 ShutdownErrorCode {0};
+
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (StreamReliableResetZeroOffset*)ClientContext;
+        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ClientStreamShutdownComplete.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (StreamReliableResetZeroOffset*)ServerContext;
+        if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_ABORTED) {
+            TestContext->ShutdownErrorCode = Event->PEER_SEND_ABORTED.ErrorCode;
+        }
+        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerStreamShutdownComplete.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto TestContext = (StreamReliableResetZeroOffset*)Context;
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            TestContext->ServerStream =
+                new(std::nothrow) MsQuicStream(
+                    Event->PEER_STREAM_STARTED.Stream,
+                    CleanUpAutoDelete,
+                    ServerStreamCallback,
+                    Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
 void
 QuicTestStreamReliableReset(
@@ -4521,6 +4567,95 @@ QuicTestStreamReliableResetMultipleSends(
     // Test Error code matches what we sent.
     TEST_TRUE(Context.ShutdownErrorCode == AbortShutdownErrorCode);
 }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+//
+// Validates that a reliable-reset with offset 0 is handled properly: the
+// server correctly records the received offset as 0 and does not treat it
+// as "no frame received yet".
+//
+void
+QuicTestStreamReliableResetZeroOffset(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicSettings TestSettings;
+    TestSettings.SetReliableResetEnabled(true);
+    TestSettings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", TestSettings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", TestSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    StreamReliableResetZeroOffset Context;
+
+    //
+    // Send a few bytes so that QueuedSendOffset > 0 (required for
+    // SetReliableOffset(0) to pass the validation check) and so there
+    // is data beyond the reliable reset offset.
+    //
+    const uint8_t SendData[16] = { 0 };
+    QUIC_BUFFER SendBuffer { sizeof(SendData), (uint8_t*)SendData };
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableResetZeroOffset::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+    TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+
+    {
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableResetZeroOffset::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+
+        //
+        // Send data so QueuedSendOffset > 0, which is required for
+        // SetReliableOffset(0) to be valid, and so there is data after
+        // the reliable reset offset.
+        //
+        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, nullptr));
+
+        //
+        // Set ReliableOffset to 0 — this is the corner case where offset=0
+        // must be treated as a valid "frame received" value.
+        //
+        TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(0));
+
+        const QUIC_UINT62 AbortErrorCode = 0x1234;
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+
+        TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+
+        //
+        // Verify the server correctly recorded ReliableOffset = 0.
+        // QUIC_STATUS_SUCCESS (not INVALID_STATE) confirms that
+        // RemoteCloseResetReliable was set to TRUE, i.e. the frame was
+        // recognised and tracked — not treated as "no frame received".
+        //
+        TEST_NOT_EQUAL(Context.ServerStream, nullptr);
+        uint64_t RecvOffset = UINT64_MAX;
+        TEST_QUIC_SUCCEEDED(Context.ServerStream->GetReliableOffsetRecv(&RecvOffset));
+        TEST_EQUAL(RecvOffset, 0ull);
+
+        TEST_TRUE(Context.ShutdownErrorCode == AbortErrorCode);
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
