@@ -26,8 +26,6 @@ Abstract:
 #include <xdpapi.h>
 #include <iphlpapi.h>
 
-extern const MsQuicApi* MsQuic;
-
 XdpMapModeState XdpMapState = {};
 
 namespace {

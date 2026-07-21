@@ -34,7 +34,6 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
-bool UseXdpMapMode = false;
 CXPLAT_WORKER_POOL* WorkerPool;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
@@ -120,63 +119,6 @@ public:
 
         } else {
             printf("Initializing for User Mode tests\n");
-            MsQuic = new(std::nothrow) MsQuicApi();
-            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            if (UseDuoNic) {
-                MsQuicSettings Settings;
-                Settings.SetXdpEnabled(true);
-                ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
-            }
-            if (UseQTIP) {
-                MsQuicSettings Settings;
-                Settings.SetQtipEnabled(true);
-                ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
-            }
-#if defined(_WIN32)
-            if (UseXdpMapMode) {
-                //
-                // Discover DuoNic interfaces and create XSKMAPs.
-                //
-                auto IfIndices = DiscoverDuoNicInterfaces();
-                ASSERT_FALSE(IfIndices.empty());
-                XdpMapState.InterfaceCount = (uint32_t)IfIndices.size();
-                memcpy(XdpMapState.IfIndices, IfIndices.data(),
-                    sizeof(uint32_t) * IfIndices.size());
-                printf("XDP Map Mode: discovered %u DuoNic interface(s)\n",
-                    XdpMapState.InterfaceCount);
-
-                QUIC_XDP_MAP_CONFIG MapConfigs[XDP_MAP_MODE_MAX_INTERFACES];
-                for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
-                    ASSERT_TRUE(SUCCEEDED(
-                        XdpMapCreate(&XdpMapState.XskMaps[i], XDP_MAP_TYPE_XSKMAP)));
-                    MapConfigs[i].InterfaceIndex = XdpMapState.IfIndices[i];
-                    MapConfigs[i].MapHandle = (QUIC_XDP_MAP_HANDLE)XdpMapState.XskMaps[i];
-                    printf("  IfIndex=%u, XskMap=%p\n",
-                        XdpMapState.IfIndices[i], XdpMapState.XskMaps[i]);
-                }
-
-                //
-                // Set the XDP map config before any registration is opened.
-                // This must happen before LazyInitComplete.
-                //
-                ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
-                    XdpMapState.InterfaceCount * sizeof(QUIC_XDP_MAP_CONFIG),
-                    MapConfigs)));
-            }
-#endif // _WIN32
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
-            //
-            // Enable DSCP on the receive path. This is needed to test DSCP Send path.
-            //
-            BOOLEAN Option = TRUE;
-            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
-                sizeof(BOOLEAN),
-                &Option)));
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
@@ -185,7 +127,6 @@ public:
                 QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
             memcpy(&ClientCertCredConfig, ClientCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ClientCertCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-            QuicTestInitialize();
 
 #ifdef _WIN32
             ASSERT_NE(GetCurrentDirectoryA(sizeof(CurrentWorkingDirectory), CurrentWorkingDirectory), 0);
@@ -198,20 +139,7 @@ public:
         if (TestingKernelMode) {
             DriverClient.Uninitialize();
             DriverService.Uninitialize();
-        } else {
-            QuicTestUninitialize();
-            delete MsQuic;
         }
-#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        if (UseXdpMapMode) {
-            for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
-                if (XdpMapState.XskMaps[i]) {
-                    CloseHandle(XdpMapState.XskMaps[i]);
-                    XdpMapState.XskMaps[i] = nullptr;
-                }
-            }
-        }
-#endif
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatFreeSelfSignedCert(ClientCertParams);
 
@@ -316,35 +244,124 @@ bool InvokeKernelTest(const std::string& Name, FunType, const ParamType& Params)
 #define FUNC(TestFunction) \
     #TestFunction, TestFunction
 
-TEST(ParameterValidation, ValidateApi) {
-    TestLogger Logger("QuicTestValidateApi");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateApi)));
-    } else {
-        QuicTestValidateApi();
+//
+// Macros that generate the standard test body boilerplate:
+// logger + kernel-mode dispatch + user-mode call.
+//
+#define QUIC_TEST_F(Suite, Name, Func)                                  \
+    TEST_F(Suite, Name) {                                               \
+        TestLogger Logger(#Func);                                       \
+        if (TestingKernelMode) {                                        \
+            ASSERT_TRUE(InvokeKernelTest(FUNC(Func)));                  \
+        } else { Func(); }                                              \
     }
-}
 
-TEST(ParameterValidation, ValidateRegistration) {
-    TestLogger Logger("QuicTestValidateRegistration");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateRegistration)));
-    } else {
-        QuicTestValidateRegistration();
+#define QUIC_TEST_P(Suite, Name, Func)                                  \
+    TEST_P(Suite, Name) {                                               \
+        TestLoggerT<ParamType> Logger(#Func, GetParam());               \
+        if (TestingKernelMode) {                                        \
+            ASSERT_TRUE(InvokeKernelTest(FUNC(Func), GetParam()));      \
+        } else { Func(GetParam()); }                                    \
     }
-}
 
-TEST(ParameterValidation, ValidateGlobalParam) {
-    TestLogger Logger("QuicTestValidateGlobalParam");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGlobalParam)));
-    } else {
-        QuicTestGlobalParam();
+//
+// Base test fixture that owns the MsQuic library lifecycle.
+// Each test suite gets its own init/teardown via SetUpTestSuite/TearDownTestSuite.
+//
+class QuicTestFixture : public ::testing::Test {
+protected:
+    //
+    // Creates the global MsQuicApi instance and applies XDP/QTIP settings.
+    //
+    static void InitMsQuicLibrary() {
+        MsQuic = new(std::nothrow) MsQuicApi();
+        ASSERT_NE(MsQuic, nullptr);
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        if (UseDuoNic) {
+            MsQuicSettings Settings;
+            Settings.SetXdpEnabled(true);
+            ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
+        }
+        if (UseQTIP) {
+            MsQuicSettings Settings;
+            Settings.SetQtipEnabled(true);
+            ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
+        }
+#endif
     }
-}
+
+    //
+    // Enables DSCP on the receive path (needed for DSCP send-path tests).
+    //
+    static void ConfigureDscp() {
+        BOOLEAN Option = TRUE;
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+            sizeof(BOOLEAN),
+            &Option)));
+    }
+
+    //
+    // Tears down the global MsQuicApi instance.
+    //
+    static void UninitMsQuicLibrary() {
+        QuicTestUninitialize();
+        delete MsQuic;
+        MsQuic = nullptr;
+    }
+
+    static void SetUpTestSuite() {
+        if (TestingKernelMode) return;
+        InitMsQuicLibrary();
+        ConfigureDscp();
+        QuicTestInitialize();
+    }
+    static void TearDownTestSuite() {
+        if (TestingKernelMode) return;
+        UninitMsQuicLibrary();
+    }
+};
+
+//
+// Fixture classes for plain test suites (TEST_F).
+//
+class ParameterValidation : public QuicTestFixture {};
+class Basic : public QuicTestFixture {};
+class Misc : public QuicTestFixture {};
+class OwnershipValidation : public QuicTestFixture {};
+class CredValidation : public QuicTestFixture {};
+class Handshake : public QuicTestFixture {};
+class Alpn : public QuicTestFixture {};
+class Mtu : public QuicTestFixture {};
+class HandshakeTest : public QuicTestFixture {};
+class Drill : public QuicTestFixture {};
+
+//
+// Common parameterized test fixtures.
+//
+class WithBool : public QuicTestFixture,
+    public testing::WithParamInterface<bool> {
+};
+
+struct WithFamilyArgs :
+    public QuicTestFixture,
+    public testing::WithParamInterface<FamilyArgs> {
+
+    static ::std::vector<FamilyArgs> Generate() {
+        return {{4}, {6}};
+    }
+};
+
+QUIC_TEST_F(ParameterValidation, ValidateApi, QuicTestValidateApi)
+
+QUIC_TEST_F(ParameterValidation, ValidateRegistration, QuicTestValidateRegistration)
+
+QUIC_TEST_F(ParameterValidation, ValidateGlobalParam, QuicTestGlobalParam)
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-TEST(ParameterValidation, ValidateXdpMapConfigParam) {
+TEST_F(ParameterValidation, ValidateXdpMapConfigParam) {
     //
     // User-mode only: QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG is set-once before the
     // library's lazy initialization. In kernel mode the test driver shares one
@@ -360,59 +377,180 @@ TEST(ParameterValidation, ValidateXdpMapConfigParam) {
 }
 #endif
 
-TEST(ParameterValidation, ValidateCommonParam) {
-    TestLogger Logger("QuicTestValidateCommonParam");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCommonParam)));
-    } else {
-        QuicTestCommonParam();
+#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+struct WithXdpMapModeArgs : public QuicTestFixture,
+    public ::testing::WithParamInterface<XdpMapModeArgs> {
+
+    static bool SuiteSkip;
+    static const char* SuiteSkipReason;
+    static bool SuiteFailed;
+    static const char* SuiteFailureReason;
+
+    static void SetUpTestSuite() {
+        SuiteSkip = false;
+        SuiteSkipReason = nullptr;
+        SuiteFailed = false;
+        SuiteFailureReason = nullptr;
+
+        if (TestingKernelMode) {
+            SuiteSkip = true;
+            SuiteSkipReason = "XDP map mode doesn't apply to kernel mode.";
+            return;
+        }
+
+        if (!UseDuoNic) {
+            SuiteSkip = true;
+            SuiteSkipReason = "XDP Map Mode requires DuoNic (--duoNic)";
+            return;
+        }
+
+        auto IfIndices = DiscoverDuoNicInterfaces();
+        if (IfIndices.empty()) {
+            SuiteSkip = true;
+            SuiteSkipReason = "No DuoNic interfaces found";
+            return;
+        }
+
+        //
+        // Probe whether the XDP driver supports map mode.
+        //
+        HANDLE ProbeMap = nullptr;
+        HRESULT Hr = XdpMapCreate(&ProbeMap, XDP_MAP_TYPE_XSKMAP);
+        if (FAILED(Hr)) {
+            SuiteSkip = true;
+            SuiteSkipReason = "XDP driver does not support map mode (XdpMapCreate failed)";
+            return;
+        }
+        CloseHandle(ProbeMap);
+
+        //
+        // Create XSKMAPs for each interface.
+        //
+        XdpMapState.InterfaceCount = (uint32_t)IfIndices.size();
+        memcpy(XdpMapState.IfIndices, IfIndices.data(),
+            sizeof(uint32_t) * IfIndices.size());
+        printf("WithXdpMapModeArgs: discovered %u DuoNic interface(s)\n",
+            XdpMapState.InterfaceCount);
+
+        for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+            Hr = XdpMapCreate(&XdpMapState.XskMaps[i], XDP_MAP_TYPE_XSKMAP);
+            if (FAILED(Hr)) {
+                for (uint32_t j = 0; j < i; j++) {
+                    CloseHandle(XdpMapState.XskMaps[j]);
+                    XdpMapState.XskMaps[j] = nullptr;
+                }
+                XdpMapState.InterfaceCount = 0;
+                SuiteFailed = true;
+                SuiteFailureReason = "XdpMapCreate failed for interface XSKMAP";
+                return;
+            }
+            printf("  IfIndex=%u, XskMap=%p\n",
+                XdpMapState.IfIndices[i], XdpMapState.XskMaps[i]);
+        }
+
+        //
+        // Initialize MsQuic with XDP/QTIP settings, then apply map config.
+        //
+        InitMsQuicLibrary();
+
+        QUIC_XDP_MAP_CONFIG MapConfigs[XDP_MAP_MODE_MAX_INTERFACES];
+        for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+            MapConfigs[i].InterfaceIndex = XdpMapState.IfIndices[i];
+            MapConfigs[i].MapHandle = (QUIC_XDP_MAP_HANDLE)XdpMapState.XskMaps[i];
+        }
+        if (QUIC_FAILED(MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                XdpMapState.InterfaceCount * sizeof(QUIC_XDP_MAP_CONFIG),
+                MapConfigs))) {
+            SuiteFailed = true;
+            SuiteFailureReason = "SetParam XDP_MAP_CONFIG failed";
+            return;
+        }
+
+        ConfigureDscp();
+        QuicTestInitialize();
     }
+
+    static void CleanupMaps() {
+        for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
+            if (XdpMapState.XskMaps[i]) {
+                CloseHandle(XdpMapState.XskMaps[i]);
+                XdpMapState.XskMaps[i] = nullptr;
+            }
+        }
+        XdpMapState.InterfaceCount = 0;
+    }
+
+    static void TearDownTestSuite() {
+        if (SuiteSkip || TestingKernelMode) return;
+        if (SuiteFailed) {
+            CleanupMaps();
+            if (MsQuic) {
+                delete MsQuic;
+                MsQuic = nullptr;
+            }
+            return;
+        }
+        UninitMsQuicLibrary();
+        CleanupMaps();
+    }
+
+    static ::std::vector<XdpMapModeArgs> Generate() {
+        ::std::vector<XdpMapModeArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool UseCibir : { false, true })
+            list.push_back({ Family, 0, 0, UseCibir });
+        return list;
+    }
+};
+
+bool WithXdpMapModeArgs::SuiteSkip = false;
+const char* WithXdpMapModeArgs::SuiteSkipReason = nullptr;
+bool WithXdpMapModeArgs::SuiteFailed = false;
+const char* WithXdpMapModeArgs::SuiteFailureReason = nullptr;
+
+std::ostream& operator << (std::ostream& o, const XdpMapModeArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.UseCibir ? "Cibir" : "NoCibir") << "/" <<
+        "ServerPort:" << (args.ServerPort) << "/" <<
+        "ClientPort:" << (args.ClientPort);
 }
 
-TEST(ParameterValidation, ValidateRegistrationParam) {
-    TestLogger Logger("QuicTestValidateRegistrationParam");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationParam)));
-    } else {
-        QuicTestRegistrationParam();
+TEST_P(WithXdpMapModeArgs, Handshake) {
+    if (SuiteSkip) {
+        GTEST_SKIP() << SuiteSkipReason;
     }
+    ASSERT_FALSE(SuiteFailed) << SuiteFailureReason;
+
+    auto Params = GetParam();
+    XdpMapModeRuleScope Scope(Params.UseCibir, UseQTIP);
+    Params.ClientPort = Scope.GetClientPort();
+    Params.ServerPort = Scope.GetServerPort();
+
+    TestLoggerT<ParamType> Logger("QuicTestXdpMapModeHandshake", Params);
+
+    QuicTestXdpMapModeHandshake(Params);
 }
 
-TEST(ParameterValidation, ValidateConfigurationParam) {
-    TestLogger Logger("QuicTestValidateConfigurationParam");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConfigurationParam)));
-    } else {
-        QuicTestConfigurationParam();
-    }
-}
+INSTANTIATE_TEST_SUITE_P(
+    XdpMapMode,
+    WithXdpMapModeArgs,
+    ::testing::ValuesIn(WithXdpMapModeArgs::Generate()));
+#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST(ParameterValidation, ValidateListenerParam) {
-    TestLogger Logger("QuicTestValidateListenerParam");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestListenerParam)));
-    } else {
-        QuicTestListenerParam();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateCommonParam, QuicTestCommonParam)
 
-TEST(ParameterValidation, ValidateConnectionParam) {
-    TestLogger Logger("QuicTestValidateConnectionParam");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionParam)));
-    } else {
-        QuicTestConnectionParam();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateRegistrationParam, QuicTestRegistrationParam)
 
-TEST(ParameterValidation, ValidateTlsParam) {
-    TestLogger Logger("QuicTestValidateTlsParam");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestTlsParam)));
-    } else {
-        QuicTestTlsParam();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateConfigurationParam, QuicTestConfigurationParam)
+
+QUIC_TEST_F(ParameterValidation, ValidateListenerParam, QuicTestListenerParam)
+
+QUIC_TEST_F(ParameterValidation, ValidateConnectionParam, QuicTestConnectionParam)
+
+QUIC_TEST_F(ParameterValidation, ValidateTlsParam, QuicTestTlsParam)
 
 TEST_P(WithBool, ValidateTlsHandshakeInfo) {
     TestLoggerT<ParamType> Logger("QuicTestValidateTlsHandshakeInfo", GetParam());
@@ -426,45 +564,17 @@ TEST_P(WithBool, ValidateTlsHandshakeInfo) {
     }
 }
 
-TEST(ParameterValidation, ValidateStreamParam) {
-    TestLogger Logger("QuicTestValidateStreamParam");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamParam)));
-    } else {
-        QuicTestStreamParam();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateStreamParam, QuicTestStreamParam)
 
-TEST(ParameterValidation, ValidateGetPerfCounters) {
-    TestLogger Logger("QuicTestGetPerfCounters");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestGetPerfCounters)));
-    } else {
-        QuicTestGetPerfCounters();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateGetPerfCounters, QuicTestGetPerfCounters)
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-TEST(ParameterValidation, ValidateEncryptDecryptPerfCounters) {
-    TestLogger Logger("QuicTestValidateEncryptDecryptPerfCounters");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateEncryptDecryptPerfCounters)));
-    } else {
-        QuicTestValidateEncryptDecryptPerfCounters();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateEncryptDecryptPerfCounters, QuicTestValidateEncryptDecryptPerfCounters)
 
-TEST(ParameterValidation, ConnQueueDelayStatistics) {
-    TestLogger Logger("QuicTestConnQueueDelayStatistics");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnQueueDelayStatistics)));
-    } else {
-        QuicTestConnQueueDelayStatistics();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ConnQueueDelayStatistics, QuicTestConnQueueDelayStatistics)
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST(ParameterValidation, ValidateConfiguration) {
+TEST_F(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) {
         GTEST_SKIP(); // Not supported with Schannel on WS2022
@@ -478,135 +588,37 @@ TEST(ParameterValidation, ValidateConfiguration) {
     }
 }
 
-TEST(ParameterValidation, ValidateListener) {
-    TestLogger Logger("QuicTestValidateListener");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateListener)));
-    } else {
-        QuicTestValidateListener();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateListener, QuicTestValidateListener)
 
-TEST(ParameterValidation, ValidateConnection) {
-    TestLogger Logger("QuicTestValidateConnection");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateConnection)));
-    } else {
-        QuicTestValidateConnection();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateConnection, QuicTestValidateConnection)
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-TEST(Handshake, ConnectionExportKeyingMaterial) {
-    TestLogger Logger("QuicTestConnectionExportKeyingMaterial");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionExportKeyingMaterial)));
-    } else {
-        QuicTestConnectionExportKeyingMaterial();
-    }
-}
+QUIC_TEST_F(Handshake, ConnectionExportKeyingMaterial, QuicTestConnectionExportKeyingMaterial)
 
-TEST(ParameterValidation, ValidateConnectionExportKeyingMaterial) {
-    TestLogger Logger("QuicTestValidateConnectionExportKeyingMaterial");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateConnectionExportKeyingMaterial)));
-    } else {
-        QuicTestValidateConnectionExportKeyingMaterial();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateConnectionExportKeyingMaterial, QuicTestValidateConnectionExportKeyingMaterial)
 
-TEST(ParameterValidation, ValidateConnectionPoolCreate) {
-    TestLogger Logger("QuicTestValidateConnectionPoolCreate");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateConnectionPoolCreate)));
-    } else {
-        QuicTestValidateConnectionPoolCreate();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateConnectionPoolCreate, QuicTestValidateConnectionPoolCreate)
 
-TEST(ParameterValidation, ValidateExecutionContext) {
-    TestLogger Logger("QuicTestValidateExecutionContext");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateExecutionContext)));
-    } else {
-        QuicTestValidateExecutionContext();
-    }
-}
-TEST(ParameterValidation, ValidatePartition) {
-    TestLogger Logger("QuicTestValidatePartition");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidatePartition)));
-    } else {
-        QuicTestValidatePartition();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateExecutionContext, QuicTestValidateExecutionContext)
+QUIC_TEST_F(ParameterValidation, ValidatePartition, QuicTestValidatePartition)
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
-    TestLogger Logger("RegistrationShutdownBeforeConnOpen");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationShutdownBeforeConnOpen)));
-    } else {
-        QuicTestRegistrationShutdownBeforeConnOpen();
-    }
-}
+QUIC_TEST_F(OwnershipValidation, RegistrationShutdownBeforeConnOpen, QuicTestRegistrationShutdownBeforeConnOpen)
 
-TEST(OwnershipValidation, RegistrationShutdownAfterConnOpen) {
-    TestLogger Logger("RegistrationShutdownAfterConnOpen");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationShutdownAfterConnOpen)));
-    } else {
-        QuicTestRegistrationShutdownAfterConnOpen();
-    }
-}
+QUIC_TEST_F(OwnershipValidation, RegistrationShutdownAfterConnOpen, QuicTestRegistrationShutdownAfterConnOpen)
 
-TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenBeforeStart) {
-    TestLogger Logger("RegistrationShutdownAfterConnOpenBeforeStart");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationShutdownAfterConnOpenBeforeStart)));
-    } else {
-        QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
-    }
-}
+QUIC_TEST_F(OwnershipValidation, RegistrationShutdownAfterConnOpenBeforeStart, QuicTestRegistrationShutdownAfterConnOpenBeforeStart)
 
-TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
-    TestLogger Logger("RegistrationShutdownAfterConnOpenAndStart");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationShutdownAfterConnOpenAndStart)));
-    } else {
-        QuicTestRegistrationShutdownAfterConnOpenAndStart();
-    }
-}
+QUIC_TEST_F(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart, QuicTestRegistrationShutdownAfterConnOpenAndStart)
 
-TEST(OwnershipValidation, ConnectionCloseBeforeStreamClose) {
-    TestLogger Logger("ConnectionCloseBeforeStreamClose");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionCloseBeforeStreamClose)));
-    } else {
-        QuicTestConnectionCloseBeforeStreamClose();
-    }
-}
+QUIC_TEST_F(OwnershipValidation, ConnectionCloseBeforeStreamClose, QuicTestConnectionCloseBeforeStreamClose)
 
-TEST_P(WithBool, ValidateStream) {
-    TestLoggerT<ParamType> Logger("QuicTestValidateStream", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateStream), GetParam()));
-    } else {
-        QuicTestValidateStream(GetParam());
-    }
-}
+QUIC_TEST_P(WithBool, ValidateStream, QuicTestValidateStream)
 
-TEST(ParameterValidation, CloseConnBeforeStreamFlush) {
-    TestLogger Logger("QuicTestCloseConnBeforeStreamFlush");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCloseConnBeforeStreamFlush)));
-    } else {
-        QuicTestCloseConnBeforeStreamFlush();
-    }
-}
+QUIC_TEST_F(ParameterValidation, CloseConnBeforeStreamFlush, QuicTestCloseConnBeforeStreamFlush)
 
 struct WithValidateConnectionEventArgs :
-    public testing::TestWithParam<ValidateConnectionEventArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<ValidateConnectionEventArgs> {
     static ::std::vector<ValidateConnectionEventArgs> Generate() {
         ::std::vector<ValidateConnectionEventArgs> list;
         for (uint32_t Test = 0; Test < 3; ++Test)
@@ -619,14 +631,7 @@ std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& a
     return o << args.Test;
 }
 
-TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
-    TestLoggerT<ParamType> Logger("QuicTestValidateConnectionEvents", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateConnectionEvents), GetParam()));
-    } else {
-        QuicTestValidateConnectionEvents(GetParam());
-    }
-}
+QUIC_TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents, QuicTestValidateConnectionEvents)
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
@@ -636,8 +641,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 
-struct WithValidateNetStatsConnEventArgs : public testing::Test,
-    public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
+struct WithValidateNetStatsConnEventArgs : public QuicTestFixture, public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
     static ::std::vector<ValidateNetStatsConnEventArgs> Generate() {
         ::std::vector<ValidateNetStatsConnEventArgs> list;
         for (uint32_t Test = 0; Test < 2; ++Test)
@@ -650,14 +654,7 @@ std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs&
     return o << args.Test;
 }
 
-TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
-    TestLoggerT<ParamType> Logger("QuicTestValidateNetStatsConnEvent", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateNetStatsConnEvent), GetParam()));
-    } else {
-        QuicTestValidateNetStatsConnEvent(GetParam());
-    }
-}
+QUIC_TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent, QuicTestValidateNetStatsConnEvent)
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
@@ -666,8 +663,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif
 
-struct WithValidateStreamEventArgs : public testing::Test,
-    public testing::WithParamInterface<ValidateStreamEventArgs> {
+struct WithValidateStreamEventArgs : public QuicTestFixture, public testing::WithParamInterface<ValidateStreamEventArgs> {
     static ::std::vector<ValidateStreamEventArgs> Generate() {
         ::std::vector<ValidateStreamEventArgs> list;
         for (uint32_t Test = 0; Test < 9; ++Test)
@@ -680,14 +676,7 @@ std::ostream& operator << (std::ostream& o, const ValidateStreamEventArgs& args)
     return o << args.Test;
 }
 
-TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
-    TestLoggerT<ParamType> Logger("QuicTestValidateStreamEvents", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateStreamEvents), GetParam()));
-    } else {
-        QuicTestValidateStreamEvents(GetParam());
-    }
-}
+QUIC_TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents, QuicTestValidateStreamEvents)
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
@@ -695,24 +684,10 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithValidateStreamEventArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-TEST(ParameterValidation, ValidateVersionSettings) {
-    TestLogger Logger("QuicTestVersionSettings");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVersionSettings)));
-    } else {
-        QuicTestVersionSettings();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateVersionSettings, QuicTestVersionSettings)
 #endif
 
-TEST(ParameterValidation, ValidateParamApi) {
-    TestLogger Logger("QuicTestValidateParamApi");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestValidateParamApi)));
-    } else {
-        QuicTestValidateParamApi();
-    }
-}
+QUIC_TEST_F(ParameterValidation, ValidateParamApi, QuicTestValidateParamApi)
 
 struct TlsConfigArgs {
     QUIC_CREDENTIAL_TYPE CredType;
@@ -764,7 +739,7 @@ std::ostream& operator << (std::ostream& o, const TlsConfigArgs& args) {
 }
 
 struct WithValidateTlsConfigArgs :
-    public testing::TestWithParam<TlsConfigArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<TlsConfigArgs> {
 
     static ::std::vector<TlsConfigArgs> Generate() {
         ::std::vector<TlsConfigArgs> List;
@@ -829,136 +804,37 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithValidateTlsConfigArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-TEST(Basic, RegistrationOpenClose) {
-    TestLogger Logger("QuicTestRegistrationOpenClose");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestRegistrationOpenClose)));
-    } else {
-        QuicTestRegistrationOpenClose();
-    }
-}
+QUIC_TEST_F(Basic, RegistrationOpenClose, QuicTestRegistrationOpenClose)
 #endif
 
-TEST(Basic, CreateListener) {
-    TestLogger Logger("QuicTestCreateListener");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCreateListener)));
-    } else {
-        QuicTestCreateListener();
-    }
-}
+QUIC_TEST_F(Basic, CreateListener, QuicTestCreateListener)
 
-TEST(Basic, StartListener) {
-    TestLogger Logger("QuicTestStartListener");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartListener)));
-    } else {
-        QuicTestStartListener();
-    }
-}
+QUIC_TEST_F(Basic, StartListener, QuicTestStartListener)
 
-TEST(Basic, StartListenerMultiAlpns) {
-    TestLogger Logger("QuicTestStartListenerMultiAlpns");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartListenerMultiAlpns)));
-    } else {
-        QuicTestStartListenerMultiAlpns();
-    }
-}
+QUIC_TEST_F(Basic, StartListenerMultiAlpns, QuicTestStartListenerMultiAlpns)
 
-TEST_P(WithFamilyArgs, StartListenerImplicit) {
-    TestLoggerT<ParamType> Logger("QuicTestStartListenerImplicit", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartListenerImplicit), GetParam()));
-    } else {
-        QuicTestStartListenerImplicit(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, StartListenerImplicit, QuicTestStartListenerImplicit)
 
-TEST(Basic, StartTwoListeners) {
-    TestLogger Logger("QuicTestStartTwoListeners");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartTwoListeners)));
-    } else {
-        QuicTestStartTwoListeners();
-    }
-}
+QUIC_TEST_F(Basic, StartTwoListeners, QuicTestStartTwoListeners)
 
-TEST(Basic, StartTwoListenersSameALPN) {
-    TestLogger Logger("QuicTestStartTwoListenersSameALPN");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartTwoListenersSameALPN)));
-    } else {
-        QuicTestStartTwoListenersSameALPN();
-    }
-}
+QUIC_TEST_F(Basic, StartTwoListenersSameALPN, QuicTestStartTwoListenersSameALPN)
 
-TEST_P(WithFamilyArgs, StartListenerExplicit) {
-    TestLoggerT<ParamType> Logger("QuicTestStartListenerExplicit", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStartListenerExplicit), GetParam()));
-    } else {
-        QuicTestStartListenerExplicit(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, StartListenerExplicit, QuicTestStartListenerExplicit)
 
-TEST(Basic, CreateConnection) {
-    TestLogger Logger("QuicTestCreateConnection");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCreateConnection)));
-    } else {
-        QuicTestCreateConnection();
-    }
-}
+QUIC_TEST_F(Basic, CreateConnection, QuicTestCreateConnection)
 
-TEST(Basic, ConnectionCloseFromCallback) {
-    TestLogger Logger("QuicTestConnectionCloseFromCallback");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionCloseFromCallback)));
-    } else {
-        QuicTestConnectionCloseFromCallback();
-    }
-}
+QUIC_TEST_F(Basic, ConnectionCloseFromCallback, QuicTestConnectionCloseFromCallback)
 
-TEST_P(WithBool, RejectConnection) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectionRejection", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionRejection), GetParam()));
-    } else {
-        QuicTestConnectionRejection(GetParam());
-    }
-}
+QUIC_TEST_P(WithBool, RejectConnection, QuicTestConnectionRejection)
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-TEST_P(WithFamilyArgs, Ecn) {
-    TestLoggerT<ParamType> Logger("Ecn", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestEcn), GetParam()));
-    } else {
-        QuicTestEcn(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, Ecn, QuicTestEcn)
 
-TEST_P(WithFamilyArgs, LocalPathChanges) {
-    TestLoggerT<ParamType> Logger("QuicTestLocalPathChanges", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestLocalPathChanges), GetParam()));
-    } else {
-        QuicTestLocalPathChanges(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, LocalPathChanges, QuicTestLocalPathChanges)
 
-TEST(Mtu, Settings) {
-    TestLogger Logger("QuicTestMtuSettings");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestMtuSettings)));
-    } else {
-        QuicTestMtuSettings();
-    }
-}
+QUIC_TEST_F(Mtu, Settings, QuicTestMtuSettings)
 
-struct WithMtuArgs : public testing::Test,
-    public testing::WithParamInterface<MtuArgs> {
+struct WithMtuArgs : public QuicTestFixture, public testing::WithParamInterface<MtuArgs> {
     static ::std::vector<MtuArgs> Generate() {
         ::std::vector<MtuArgs> list;
         for (int Family : { 4, 6 })
@@ -992,7 +868,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-TEST(Alpn, ValidAlpnLengths) {
+TEST_F(Alpn, ValidAlpnLengths) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
@@ -1004,42 +880,14 @@ TEST(Alpn, ValidAlpnLengths) {
     }
 }
 
-TEST(Alpn, InvalidAlpnLengths) {
-    TestLogger Logger("QuicTestInvalidAlpnLengths");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestInvalidAlpnLengths)));
-    } else {
-        QuicTestInvalidAlpnLengths();
-    }
-}
+QUIC_TEST_F(Alpn, InvalidAlpnLengths, QuicTestInvalidAlpnLengths)
 
-TEST(Alpn, ChangeAlpn) {
-    TestLogger Logger("QuicTestChangeAlpn");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestChangeAlpn)));
-    } else {
-        QuicTestChangeAlpn();
-    }
-}
+QUIC_TEST_F(Alpn, ChangeAlpn, QuicTestChangeAlpn)
 
 
-TEST_P(WithFamilyArgs, BindConnectionImplicit) {
-    TestLoggerT<ParamType> Logger("QuicTestBindConnectionImplicit", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestBindConnectionImplicit), GetParam()));
-    } else {
-        QuicTestBindConnectionImplicit(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, BindConnectionImplicit, QuicTestBindConnectionImplicit)
 
-TEST_P(WithFamilyArgs, BindConnectionExplicit) {
-    TestLoggerT<ParamType> Logger("QuicTestBindConnectionExplicit", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestBindConnectionExplicit), GetParam()));
-    } else {
-        QuicTestBindConnectionExplicit(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, BindConnectionExplicit, QuicTestBindConnectionExplicit)
 
 TEST_P(WithFamilyArgs, TestAddrFunctions) {
     TestLoggerT<ParamType> Logger("QuicTestAddrFunctions", GetParam());
@@ -1051,8 +899,7 @@ TEST_P(WithFamilyArgs, TestAddrFunctions) {
     }
 }
 
-struct WithHandshakeArgs1 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs> {
+struct WithHandshakeArgs1 : public QuicTestFixture, public testing::WithParamInterface<HandshakeArgs> {
 
     static ::std::vector<HandshakeArgs> Generate() {
         ::std::vector<HandshakeArgs> list;
@@ -1150,14 +997,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 #ifndef QUIC_DISABLE_SHARED_PORT_TESTS
-TEST_P(WithFamilyArgs, ClientSharedLocalPort) {
-    TestLoggerT<ParamType> Logger("QuicTestClientSharedLocalPort", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestClientSharedLocalPort), GetParam()));
-    } else {
-        QuicTestClientSharedLocalPort(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, ClientSharedLocalPort, QuicTestClientSharedLocalPort)
 #endif
 
 TEST_P(WithFamilyArgs, InterfaceBinding) {
@@ -1187,7 +1027,7 @@ TEST_P(WithFamilyArgs, RetryMemoryLimitConnect) {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct WithHandshakeArgs2 :
-    public testing::TestWithParam<HandshakeArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<HandshakeArgs> {
 
     static ::std::vector<HandshakeArgs> Generate() {
         ::std::vector<HandshakeArgs> list;
@@ -1214,7 +1054,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif
 
 struct WithHandshakeArgs3 :
-    public testing::TestWithParam<HandshakeArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<HandshakeArgs> {
 
     static ::std::vector<HandshakeArgs> Generate() {
         ::std::vector<HandshakeArgs> list;
@@ -1253,8 +1093,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 
-struct WithVersionNegotiationExtArgs : public testing::Test,
-    public testing::WithParamInterface<VersionNegotiationExtArgs> {
+struct WithVersionNegotiationExtArgs : public QuicTestFixture, public testing::WithParamInterface<VersionNegotiationExtArgs> {
 
     static ::std::vector<VersionNegotiationExtArgs> Generate() {
         ::std::vector<VersionNegotiationExtArgs> list;
@@ -1273,85 +1112,28 @@ std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& arg
         (args.DisableVNEServer ? "DisableServer" : "EnableServer");
 }
 
-TEST_P(WithFamilyArgs, VersionNegotiation) {
-    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVersionNegotiation), GetParam()));
-    } else {
-        QuicTestVersionNegotiation(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, VersionNegotiation, QuicTestVersionNegotiation)
 
-TEST_P(WithFamilyArgs, VersionNegotiationRetry) {
-    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiationRetry", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVersionNegotiationRetry), GetParam()));
-    } else {
-        QuicTestVersionNegotiationRetry(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, VersionNegotiationRetry, QuicTestVersionNegotiationRetry)
 
-TEST_P(WithFamilyArgs, CompatibleVersionNegotiationRetry) {
-    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationRetry", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCompatibleVersionNegotiationRetry), GetParam()));
-    } else {
-        QuicTestCompatibleVersionNegotiationRetry(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, CompatibleVersionNegotiationRetry, QuicTestCompatibleVersionNegotiationRetry)
 
-TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiation) {
-    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCompatibleVersionNegotiation), GetParam()));
-    } else {
-        QuicTestCompatibleVersionNegotiation(GetParam());
-    }
-}
+QUIC_TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiation, QuicTestCompatibleVersionNegotiation)
 
-TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultServer) {
-    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationDefaultServer", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCompatibleVersionNegotiationDefaultServer), GetParam()));
-    } else {
-        QuicTestCompatibleVersionNegotiationDefaultServer(GetParam());
-    }
-}
+QUIC_TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultServer, QuicTestCompatibleVersionNegotiationDefaultServer)
 
-TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient) {
-    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationDefaultClient", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCompatibleVersionNegotiationDefaultClient), GetParam()));
-    } else {
-        QuicTestCompatibleVersionNegotiationDefaultClient(GetParam());
-    }
-}
+QUIC_TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient, QuicTestCompatibleVersionNegotiationDefaultClient)
 
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithVersionNegotiationExtArgs,
     testing::ValuesIn(WithVersionNegotiationExtArgs::Generate()));
 
-TEST_P(WithFamilyArgs, IncompatibleVersionNegotiation) {
-    TestLoggerT<ParamType> Logger("IncompatibleVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestIncompatibleVersionNegotiation), GetParam()));
-    } else {
-        QuicTestIncompatibleVersionNegotiation(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, IncompatibleVersionNegotiation, QuicTestIncompatibleVersionNegotiation)
 
-TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
-    TestLoggerT<ParamType> Logger("FailedeVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestFailedVersionNegotiation), GetParam()));
-    } else {
-        QuicTestFailedVersionNegotiation(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, FailedVersionNegotiation, QuicTestFailedVersionNegotiation)
 
-struct WithFeatureSupportArgs : public testing::Test,
-    public testing::WithParamInterface<FeatureSupportArgs> {
+struct WithFeatureSupportArgs : public QuicTestFixture, public testing::WithParamInterface<FeatureSupportArgs> {
 
     static ::std::vector<FeatureSupportArgs> Generate() {
         ::std::vector<FeatureSupportArgs> list;
@@ -1370,23 +1152,9 @@ std::ostream& operator << (std::ostream& o, const FeatureSupportArgs& args) {
         (args.ClientSupport ? "Client Yes" : "Client No");
 }
 
-TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation) {
-    TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReliableResetNegotiation), GetParam()));
-    } else {
-        QuicTestReliableResetNegotiation(GetParam());
-    }
-}
+QUIC_TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation, QuicTestReliableResetNegotiation)
 
-TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation) {
-    TestLoggerT<ParamType> Logger("OneWayDelayNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestOneWayDelayNegotiation), GetParam()));
-    } else {
-        QuicTestOneWayDelayNegotiation(GetParam());
-    }
-}
+QUIC_TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation, QuicTestOneWayDelayNegotiation)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1396,7 +1164,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct WithCustomCertificateValidationArgs :
-    public testing::TestWithParam<CustomCertValidationArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<CustomCertValidationArgs> {
 
     static ::std::vector<CustomCertValidationArgs> Generate() {
         ::std::vector<CustomCertValidationArgs> list;
@@ -1414,41 +1182,13 @@ std::ostream& operator << (std::ostream& o, const CustomCertValidationArgs& args
 }
 
 
-TEST_P(WithCustomCertificateValidationArgs, CustomServerCertificateValidation) {
-    TestLoggerT<ParamType> Logger("QuicTestCustomServerCertificateValidation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomServerCertificateValidation), GetParam()));
-    } else {
-        QuicTestCustomServerCertificateValidation(GetParam());
-    }
-}
+QUIC_TEST_P(WithCustomCertificateValidationArgs, CustomServerCertificateValidation, QuicTestCustomServerCertificateValidation)
 
-TEST_P(WithCustomCertificateValidationArgs, CustomClientCertificateValidation) {
-    TestLoggerT<ParamType> Logger("QuicTestCustomClientCertificateValidation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomClientCertificateValidation), GetParam()));
-    } else {
-        QuicTestCustomClientCertificateValidation(GetParam());
-    }
-}
+QUIC_TEST_P(WithCustomCertificateValidationArgs, CustomClientCertificateValidation, QuicTestCustomClientCertificateValidation)
 
-TEST(Handshake, CustomServerCertValidationAfterShutdown) {
-    TestLogger Logger("QuicTestCustomServerCertValidationAfterShutdown");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomServerCertValidationAfterShutdown)));
-    } else {
-        QuicTestCustomServerCertValidationAfterShutdown();
-    }
-}
+QUIC_TEST_F(Handshake, CustomServerCertValidationAfterShutdown, QuicTestCustomServerCertValidationAfterShutdown)
 
-TEST(Handshake, CustomClientCertValidationAfterShutdown) {
-    TestLogger Logger("QuicTestCustomClientCertValidationAfterShutdown");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCustomClientCertValidationAfterShutdown)));
-    } else {
-        QuicTestCustomClientCertValidationAfterShutdown();
-    }
-}
+QUIC_TEST_F(Handshake, CustomClientCertValidationAfterShutdown, QuicTestCustomClientCertValidationAfterShutdown)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1456,7 +1196,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithCustomCertificateValidationArgs::Generate()));
 
 struct WithAcceptTicket :
-    public testing::TestWithParam<bool> {
+    public QuicTestFixture, public testing::WithParamInterface<bool> {
 };
 
 TEST_P(WithAcceptTicket, CustomTicketValidationAfterShutdown) {
@@ -1480,7 +1220,7 @@ INSTANTIATE_TEST_SUITE_P(
     });
 
 struct WithClientCertificateArgs :
-    public testing::TestWithParam<ClientCertificateArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<ClientCertificateArgs> {
 
     static ::std::vector<ClientCertificateArgs> Generate() {
         ::std::vector<ClientCertificateArgs> list;
@@ -1518,7 +1258,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 struct WithCibirExtensionParams :
-    public testing::TestWithParam<CibirExtensionParams> {
+    public QuicTestFixture, public testing::WithParamInterface<CibirExtensionParams> {
 
     static ::std::vector<CibirExtensionParams> Generate() {
         ::std::vector<CibirExtensionParams> list;
@@ -1536,14 +1276,7 @@ std::ostream& operator << (std::ostream& o, const CibirExtensionParams& args) {
         (args.Mode & 2 ? "Server/" : "");
 }
 
-TEST_P(WithCibirExtensionParams, CibirExtension) {
-    TestLoggerT<ParamType> Logger("QuicTestCibirExtension", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCibirExtension), GetParam()));
-    } else {
-        QuicTestCibirExtension(GetParam());
-    }
-}
+QUIC_TEST_P(WithCibirExtensionParams, CibirExtension, QuicTestCibirExtension)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1556,7 +1289,7 @@ INSTANTIATE_TEST_SUITE_P(
 #if QUIC_TEST_DISABLE_VNE_TP_GENERATION
 
 struct WithOddSizeVnTpParams :
-    public testing::TestWithParam<OddSizeVnTpParams> {
+    public QuicTestFixture, public testing::WithParamInterface<OddSizeVnTpParams> {
 
     static ::std::vector<OddSizeVnTpParams> Generate() {
         ::std::vector<OddSizeVnTpParams> list;
@@ -1573,50 +1306,21 @@ std::ostream& operator << (std::ostream& o, const OddSizeVnTpParams& args) {
         (int)args.VnTpSize;
 }
 
-TEST_P(WithOddSizeVnTpParams, OddSizeVnTp) {
-    TestLoggerT<ParamType> Logger("QuicTestVNTPOddSize", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPOddSize), GetParam()));
-    } else {
-        QuicTestVNTPOddSize(GetParam());
-    }
-}
+QUIC_TEST_P(WithOddSizeVnTpParams, OddSizeVnTp, QuicTestVNTPOddSize)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithOddSizeVnTpParams,
     testing::ValuesIn(WithOddSizeVnTpParams::Generate()));
 
-class WithVpnVersionParams : public testing::Test,
-    public testing::WithParamInterface<bool> {
+class WithVpnVersionParams : public QuicTestFixture, public testing::WithParamInterface<bool> {
 };
 
-TEST_P(WithVpnVersionParams, VnTpChosenVersionMismatch) {
-    TestLoggerT<ParamType> Logger("QuicTestVNTPChosenVersionMismatch", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPChosenVersionMismatch), GetParam()));
-    } else {
-        QuicTestVNTPChosenVersionMismatch(GetParam());
-    }
-}
+QUIC_TEST_P(WithVpnVersionParams, VnTpChosenVersionMismatch, QuicTestVNTPChosenVersionMismatch)
 
-TEST_P(WithVpnVersionParams, VnTpChosenVersionZero) {
-    TestLoggerT<ParamType> Logger("QuicTestVNTPChosenVersionZero", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPChosenVersionZero), GetParam()));
-    } else {
-        QuicTestVNTPChosenVersionZero(GetParam());
-    }
-}
+QUIC_TEST_P(WithVpnVersionParams, VnTpChosenVersionZero, QuicTestVNTPChosenVersionZero)
 
-TEST_P(WithVpnVersionParams, VnTpOtherVersionZero) {
-    TestLoggerT<ParamType> Logger("QuicTestVNTPOtherVersionZero", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestVNTPOtherVersionZero), GetParam()));
-    } else {
-        QuicTestVNTPOtherVersionZero(GetParam());
-    }
-}
+QUIC_TEST_P(WithVpnVersionParams, VnTpOtherVersionZero, QuicTestVNTPOtherVersionZero)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1627,7 +1331,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif
 
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
-TEST(CredValidation, ConnectExpiredServerCertificate) {
+TEST_F(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
@@ -1672,7 +1376,7 @@ TEST(CredValidation, ConnectExpiredServerCertificate) {
     }
 }
 
-TEST(CredValidation, ConnectValidServerCertificate) {
+TEST_F(CredValidation, ConnectValidServerCertificate) {
     QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
@@ -1716,7 +1420,7 @@ TEST(CredValidation, ConnectValidServerCertificate) {
     }
 }
 
-TEST(CredValidation, ConnectExpiredClientCertificate) {
+TEST_F(CredValidation, ConnectExpiredClientCertificate) {
     QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
@@ -1765,7 +1469,7 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
     }
 }
 
-TEST(CredValidation, ConnectValidClientCertificate) {
+TEST_F(CredValidation, ConnectValidClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022() || IsWindows2025()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
@@ -1821,7 +1525,7 @@ TEST(CredValidation, ConnectValidClientCertificate) {
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 struct WithHandshakeArgs4 :
-    public testing::TestWithParam<HandshakeArgs4> {
+    public QuicTestFixture, public testing::WithParamInterface<HandshakeArgs4> {
 
     static ::std::vector<HandshakeArgs4> Generate() {
         ::std::vector<HandshakeArgs4> list;
@@ -1891,59 +1595,17 @@ TEST_P(WithFamilyArgs, Unreachable) {
     }
 }
 
-TEST(HandshakeTest, InvalidAddress) {
-    TestLogger Logger("QuicTestConnectInvalidAddress");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectInvalidAddress)));
-    } else {
-        QuicTestConnectInvalidAddress();
-    }
-}
+QUIC_TEST_F(HandshakeTest, InvalidAddress, QuicTestConnectInvalidAddress)
 
-TEST_P(WithFamilyArgs, BadALPN) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectBadAlpn", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectBadAlpn), GetParam()));
-    } else {
-        QuicTestConnectBadAlpn(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, BadALPN, QuicTestConnectBadAlpn)
 
-TEST_P(WithFamilyArgs, BadSNI) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectBadSni", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectBadSni), GetParam()));
-    } else {
-        QuicTestConnectBadSni(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, BadSNI, QuicTestConnectBadSni)
 
-TEST_P(WithFamilyArgs, IpSNI) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectIpSni", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectIpSni), GetParam()));
-    } else {
-        QuicTestConnectIpSni(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, IpSNI, QuicTestConnectIpSni)
 
-TEST_P(WithFamilyArgs, ServerRejected) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectServerRejected", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectServerRejected), GetParam()));
-    } else {
-        QuicTestConnectServerRejected(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, ServerRejected, QuicTestConnectServerRejected)
 
-TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
-    TestLoggerT<ParamType> Logger("QuicTestClientBlockedSourcePort", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestClientBlockedSourcePort), GetParam()));
-    } else {
-        QuicTestClientBlockedSourcePort(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, ClientBlockedSourcePort, QuicTestClientBlockedSourcePort)
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
@@ -1964,7 +1626,7 @@ TEST_P(WithFamilyArgs, RebindPort) {
 }
 
 struct WithRebindPaddingArgs :
-    public testing::TestWithParam<RebindPaddingArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<RebindPaddingArgs> {
 
     static ::std::vector<RebindPaddingArgs> Generate() {
         ::std::vector<RebindPaddingArgs> list;
@@ -2051,33 +1713,12 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
     }
 }
 
-TEST_P(WithFamilyArgs, PathValidationTimeout) {
-    TestLoggerT<ParamType> Logger("QuicTestPathValidationTimeout", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestPathValidationTimeout), GetParam()));
-    } else {
-        QuicTestPathValidationTimeout(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, PathValidationTimeout, QuicTestPathValidationTimeout)
 
-TEST_P(WithFamilyArgs, PathValidationLastPathClose) {
-    TestLoggerT<ParamType> Logger("QuicTestPathValidationLastPathClose", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestPathValidationLastPathClose), GetParam()));
-    } else {
-        QuicTestPathValidationLastPathClose(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, PathValidationLastPathClose, QuicTestPathValidationLastPathClose)
 #endif
 
-TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
-    TestLoggerT<ParamType> Logger("QuicTestChangeMaxStreamID", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestChangeMaxStreamID), GetParam()));
-    } else {
-        QuicTestChangeMaxStreamID(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, ChangeMaxStreamIDs, QuicTestChangeMaxStreamID)
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, LoadBalanced) {
@@ -2093,7 +1734,7 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
 }
 
 struct WithHandshakeLossPatternsArgs :
-    public testing::TestWithParam<HandshakeLossPatternsArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<HandshakeLossPatternsArgs> {
 
     static ::std::vector<HandshakeLossPatternsArgs> Generate() {
         ::std::vector<HandshakeLossPatternsArgs> list;
@@ -2114,14 +1755,7 @@ std::ostream& operator << (std::ostream& o, const HandshakeLossPatternsArgs& arg
         (args.CcAlgo == QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ? "cubic" : "bbr");
 }
 
-TEST_P(WithHandshakeLossPatternsArgs, HandshakeSpecificLossPatterns) {
-    TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestHandshakeSpecificLossPatterns), GetParam()));
-    } else {
-        QuicTestHandshakeSpecificLossPatterns(GetParam());
-    }
-}
+QUIC_TEST_P(WithHandshakeLossPatternsArgs, HandshakeSpecificLossPatterns, QuicTestHandshakeSpecificLossPatterns)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -2130,7 +1764,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 struct WithShutdownDuringHandshakeArgs :
-    public testing::TestWithParam<ShutdownDuringHandshakeArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<ShutdownDuringHandshakeArgs> {
 
     static ::std::vector<ShutdownDuringHandshakeArgs> Generate() {
         ::std::vector<ShutdownDuringHandshakeArgs> list;
@@ -2144,14 +1778,7 @@ std::ostream& operator << (std::ostream& o, const ShutdownDuringHandshakeArgs& a
     return o << (args.ClientShutdown ? "Client" : "Server");
 }
 
-TEST_P(WithShutdownDuringHandshakeArgs, ShutdownDuringHandshake) {
-    TestLoggerT<ParamType> Logger("QuicTestShutdownDuringHandshake", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestShutdownDuringHandshake), GetParam()));
-    } else {
-        QuicTestShutdownDuringHandshake(GetParam());
-    }
-}
+QUIC_TEST_P(WithShutdownDuringHandshakeArgs, ShutdownDuringHandshake, QuicTestShutdownDuringHandshake)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -2161,7 +1788,7 @@ INSTANTIATE_TEST_SUITE_P(
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 
 struct WithConnectionPoolCreateArgs :
-    public testing::TestWithParam<ConnectionPoolCreateArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<ConnectionPoolCreateArgs> {
 
     static ::std::vector<ConnectionPoolCreateArgs> Generate() {
         ::std::vector<ConnectionPoolCreateArgs> list;
@@ -2189,14 +1816,7 @@ std::ostream& operator << (std::ostream& o, const ConnectionPoolCreateArgs& args
         (args.TestCibirSupport ? "TestCibir" : "NoCibir");
 }
 
-TEST_P(WithConnectionPoolCreateArgs, ConnectionPoolCreate) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectionPoolCreate", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionPoolCreate), GetParam()));
-    } else {
-        QuicTestConnectionPoolCreate(GetParam());
-    }
-}
+QUIC_TEST_P(WithConnectionPoolCreateArgs, ConnectionPoolCreate, QuicTestConnectionPoolCreate)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -2205,7 +1825,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct WithSendArgs :
-    public testing::TestWithParam<SendArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<SendArgs> {
 
     static ::std::vector<SendArgs> Generate() {
         ::std::vector<SendArgs> list;
@@ -2232,14 +1852,7 @@ std::ostream& operator << (std::ostream& o, const SendArgs& args) {
         (args.ServerInitiatedStreams ? "Server" : "Client");
 }
 
-TEST_P(WithSendArgs, Send) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_Send", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_Send), GetParam()));
-    } else {
-        QuicTestConnectAndPing_Send(GetParam());
-    }
-}
+QUIC_TEST_P(WithSendArgs, Send, QuicTestConnectAndPing_Send)
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
@@ -2271,7 +1884,7 @@ TEST_P(WithSendArgs, SendQtip) {
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct WithSendLargeArgs :
-    public testing::TestWithParam<SendLargeArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<SendLargeArgs> {
 
     static ::std::vector<SendLargeArgs> Generate() {
         ::std::vector<SendLargeArgs> list;
@@ -2301,14 +1914,7 @@ std::ostream& operator << (std::ostream& o, const SendLargeArgs& args) {
         (args.UseZeroRtt ? "0-RTT" : "1-RTT");
 }
 
-TEST_P(WithSendLargeArgs, SendLarge) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_SendLarge", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_SendLarge), GetParam()));
-    } else {
-        QuicTestConnectAndPing_SendLarge(GetParam());
-    }
-}
+QUIC_TEST_P(WithSendLargeArgs, SendLarge, QuicTestConnectAndPing_SendLarge)
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
@@ -2316,7 +1922,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithSendLargeArgs::Generate()));
 
 struct WithSendIntermittentlyArgs :
-    public testing::TestWithParam<SendIntermittentlyArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<SendIntermittentlyArgs> {
 
     static ::std::vector<SendIntermittentlyArgs> Generate() {
         ::std::vector<SendIntermittentlyArgs> list;
@@ -2339,14 +1945,7 @@ std::ostream& operator << (std::ostream& o, const SendIntermittentlyArgs& args) 
         (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer");
 }
 
-TEST_P(WithSendIntermittentlyArgs, SendIntermittently) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing_SendIntermittently", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndPing_SendIntermittently), GetParam()));
-    } else {
-        QuicTestConnectAndPing_SendIntermittently(GetParam());
-    }
-}
+QUIC_TEST_P(WithSendIntermittentlyArgs, SendIntermittently, QuicTestConnectAndPing_SendIntermittently)
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
@@ -2356,7 +1955,7 @@ INSTANTIATE_TEST_SUITE_P(
 #ifndef QUIC_DISABLE_0RTT_TESTS
 
 struct WithSend0RttArgs1 :
-    public testing::TestWithParam<Send0RttArgs1> {
+    public QuicTestFixture, public testing::WithParamInterface<Send0RttArgs1> {
 
     static ::std::vector<Send0RttArgs1> Generate() {
         ::std::vector<Send0RttArgs1> list;
@@ -2406,7 +2005,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithSend0RttArgs1::Generate()));
 
 struct WithSend0RttArgs2 :
-    public testing::TestWithParam<Send0RttArgs2> {
+    public QuicTestFixture, public testing::WithParamInterface<Send0RttArgs2> {
 
     static ::std::vector<Send0RttArgs2> Generate() {
         ::std::vector<Send0RttArgs2> list;
@@ -2448,34 +2047,13 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_DISABLE_0RTT_TESTS
 
-TEST_P(WithBool, IdleTimeout) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndIdle", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndIdle), GetParam()));
-    } else {
-        QuicTestConnectAndIdle(GetParam());
-    }
-}
+QUIC_TEST_P(WithBool, IdleTimeout, QuicTestConnectAndIdle)
 
-TEST(Misc, IdleDestCidChange) {
-    TestLogger Logger("QuicTestConnectAndIdleDestCidChange");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectAndIdleForDestCidChange)));
-    } else {
-        QuicTestConnectAndIdleForDestCidChange();
-    }
-}
+QUIC_TEST_F(Misc, IdleDestCidChange, QuicTestConnectAndIdleForDestCidChange)
 
-TEST(Misc, ServerDisconnect) {
-    TestLogger Logger("QuicTestServerDisconnect");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestServerDisconnect)));
-    } else {
-        QuicTestServerDisconnect();
-    }
-}
+QUIC_TEST_F(Misc, ServerDisconnect, QuicTestServerDisconnect)
 
-TEST(Misc, ClientDisconnect) {
+TEST_F(Misc, ClientDisconnect) {
     TestLogger Logger("QuicTestClientDisconnect");
     if (TestingKernelMode) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestClientDisconnect), false));
@@ -2484,37 +2062,16 @@ TEST(Misc, ClientDisconnect) {
     }
 }
 
-TEST(Misc, StatelessResetKey) {
-    TestLogger Logger("QuicTestStatelessResetKey");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStatelessResetKey)));
-    } else {
-        QuicTestStatelessResetKey();
-    }
-}
+QUIC_TEST_F(Misc, StatelessResetKey, QuicTestStatelessResetKey)
 
-TEST_P(WithFamilyArgs, ForcedKeyUpdate) {
-    TestLoggerT<ParamType> Logger("QuicTestForceKeyUpdate", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestForceKeyUpdate), GetParam()));
-    } else {
-        QuicTestForceKeyUpdate(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, ForcedKeyUpdate, QuicTestForceKeyUpdate)
 
-TEST_P(WithFamilyArgs, KeyUpdate) {
-    TestLoggerT<ParamType> Logger("QuicTestKeyUpdate", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestKeyUpdate), GetParam()));
-    } else {
-        QuicTestKeyUpdate(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, KeyUpdate, QuicTestKeyUpdate)
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 struct WithKeyUpdateRandomLossArgs :
-    public testing::TestWithParam<KeyUpdateRandomLossArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<KeyUpdateRandomLossArgs> {
 
     static ::std::vector<KeyUpdateRandomLossArgs> Generate() {
         ::std::vector<KeyUpdateRandomLossArgs> list;
@@ -2531,14 +2088,7 @@ std::ostream& operator << (std::ostream& o, const KeyUpdateRandomLossArgs& args)
         args.RandomLossPercentage;
 }
 
-TEST_P(WithKeyUpdateRandomLossArgs, RandomLoss) {
-    TestLoggerT<ParamType> Logger("QuicTestKeyUpdateRandomLoss", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestKeyUpdateRandomLoss), GetParam()));
-    } else {
-        QuicTestKeyUpdateRandomLoss(GetParam());
-    }
-}
+QUIC_TEST_P(WithKeyUpdateRandomLossArgs, RandomLoss, QuicTestKeyUpdateRandomLoss)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2548,7 +2098,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif
 
 struct WithAbortiveArgs :
-    public testing::TestWithParam<AbortiveArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<AbortiveArgs> {
 
     static ::std::vector<AbortiveArgs> Generate() {
         ::std::vector<AbortiveArgs> list;
@@ -2581,14 +2131,7 @@ std::ostream& operator << (std::ostream& o, const AbortiveArgs& args) {
         args.Flags.PendReceive;
 }
 
-TEST_P(WithAbortiveArgs, AbortiveShutdown) {
-    TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicAbortiveTransfers), GetParam()));
-    } else {
-        QuicAbortiveTransfers(GetParam());
-    }
-}
+QUIC_TEST_P(WithAbortiveArgs, AbortiveShutdown, QuicAbortiveTransfers)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2598,7 +2141,7 @@ INSTANTIATE_TEST_SUITE_P(
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 struct WithCancelOnLossArgs :
-    public testing::TestWithParam<CancelOnLossArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<CancelOnLossArgs> {
 
     static ::std::vector<CancelOnLossArgs> Generate() {
         ::std::vector<CancelOnLossArgs> list;
@@ -2612,14 +2155,7 @@ std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
     return o << "DropPackets: " << (args.DropPackets ? "true" : "false");
 }
 
-TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
-    TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicCancelOnLossSend), GetParam()));
-    } else {
-        QuicCancelOnLossSend(GetParam());
-    }
-}
+QUIC_TEST_P(WithCancelOnLossArgs, CancelOnLossSend, QuicCancelOnLossSend)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2629,7 +2165,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif
 
 struct WithCidUpdateArgs :
-    public testing::TestWithParam<CidUpdateArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<CidUpdateArgs> {
 
     static ::std::vector<CidUpdateArgs> Generate() {
         ::std::vector<CidUpdateArgs> list;
@@ -2646,14 +2182,7 @@ std::ostream& operator << (std::ostream& o, const CidUpdateArgs& args) {
         args.Iterations;
 }
 
-TEST_P(WithCidUpdateArgs, CidUpdate) {
-    TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestCidUpdate), GetParam()));
-    } else {
-        QuicTestCidUpdate(GetParam());
-    }
-}
+QUIC_TEST_P(WithCidUpdateArgs, CidUpdate, QuicTestCidUpdate)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2661,7 +2190,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithCidUpdateArgs::Generate()));
 
 struct WithReceiveResumeArgs :
-    public testing::TestWithParam<ReceiveResumeArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<ReceiveResumeArgs> {
 
     static ::std::vector<ReceiveResumeArgs> Generate() {
         ::std::vector<ReceiveResumeArgs> list;
@@ -2686,14 +2215,7 @@ std::ostream& operator << (std::ostream& o, const ReceiveResumeArgs& args) {
         (args.PauseFirst ? "PauseBeforeSend" : "PauseAfterSend");
 }
 
-TEST_P(WithReceiveResumeArgs, ReceiveResume) {
-    TestLoggerT<ParamType> Logger("QuicTestReceiveResume", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReceiveResume), GetParam()));
-    } else {
-        QuicTestReceiveResume(GetParam());
-    }
-}
+QUIC_TEST_P(WithReceiveResumeArgs, ReceiveResume, QuicTestReceiveResume)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2701,7 +2223,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithReceiveResumeArgs::Generate()));
 
 struct WithReceiveResumeNoDataArgs :
-    public testing::TestWithParam<ReceiveResumeNoDataArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<ReceiveResumeNoDataArgs> {
 
     static ::std::vector<ReceiveResumeNoDataArgs> Generate() {
         ::std::vector<ReceiveResumeNoDataArgs> list;
@@ -2718,14 +2240,7 @@ std::ostream& operator << (std::ostream& o, const ReceiveResumeNoDataArgs& args)
         (args.ShutdownType ? (args.ShutdownType == AbortShutdown ? "Abort" : "Graceful") : "NoShutdown");
 }
 
-TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
-    TestLoggerT<ParamType> Logger("QuicTestReceiveResumeNoData", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReceiveResumeNoData), GetParam()));
-    } else {
-        QuicTestReceiveResumeNoData(GetParam());
-    }
-}
+QUIC_TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData, QuicTestReceiveResumeNoData)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2741,135 +2256,44 @@ TEST_P(WithFamilyArgs, AckSendDelay) {
     }
 }
 
-TEST(Misc, AbortPausedReceive) {
-    TestLogger Logger("AbortPausedReceive");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestAbortReceive_Paused)));
-    } else {
-        QuicTestAbortReceive_Paused();
-    }
-}
+QUIC_TEST_F(Misc, AbortPausedReceive, QuicTestAbortReceive_Paused)
 
-TEST(Misc, AbortPendingReceive) {
-    TestLogger Logger("AbortPendingReceive");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestAbortReceive_Pending)));
-    } else {
-        QuicTestAbortReceive_Pending();
-    }
-}
+QUIC_TEST_F(Misc, AbortPendingReceive, QuicTestAbortReceive_Pending)
 
-TEST(Misc, AbortIncompleteReceive) {
-    TestLogger Logger("AbortIncompleteReceive");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestAbortReceive_Incomplete)));
-    } else {
-        QuicTestAbortReceive_Incomplete();
-    }
-}
+QUIC_TEST_F(Misc, AbortIncompleteReceive, QuicTestAbortReceive_Incomplete)
 
-TEST(Misc, SlowReceive) {
-    TestLogger Logger("SlowReceive");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestSlowReceive)));
-    } else {
-        QuicTestSlowReceive();
-    }
-}
+QUIC_TEST_F(Misc, SlowReceive, QuicTestSlowReceive)
 
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
 #ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
-TEST(Misc, NthAllocFail) {
-    TestLogger Logger("NthAllocFail");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNthAllocFail)));
-    } else {
-        QuicTestNthAllocFail();
-    }
-}
+QUIC_TEST_F(Misc, NthAllocFail, QuicTestNthAllocFail)
 #endif // QUIC_TEST_OPENSSL_FLAGS
 #endif // QUIC_TEST_ALLOC_FAILURES_ENABLED
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-TEST(Misc, NthPacketDrop) {
-    TestLogger Logger("NthPacketDrop");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestNthPacketDrop)));
-    } else {
-        QuicTestNthPacketDrop();
-    }
-}
+QUIC_TEST_F(Misc, NthPacketDrop, QuicTestNthPacketDrop)
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-TEST(Misc, StreamPriority) {
-    TestLogger Logger("StreamPriority");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamPriority)));
-    } else {
-        QuicTestStreamPriority();
-    }
-}
+QUIC_TEST_F(Misc, StreamPriority, QuicTestStreamPriority)
 
-TEST(Misc, StreamPriorityInfiniteLoop) {
-    TestLogger Logger("StreamPriorityInfiniteLoop");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamPriorityInfiniteLoop)));
-    } else {
-        QuicTestStreamPriorityInfiniteLoop();
-    }
-}
+QUIC_TEST_F(Misc, StreamPriorityInfiniteLoop, QuicTestStreamPriorityInfiniteLoop)
 
-TEST(Misc, StreamDifferentAbortErrors) {
-    TestLogger Logger("StreamDifferentAbortErrors");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamDifferentAbortErrors)));
-    } else {
-        QuicTestStreamDifferentAbortErrors();
-    }
-}
+QUIC_TEST_F(Misc, StreamDifferentAbortErrors, QuicTestStreamDifferentAbortErrors)
 
-TEST(Misc, StreamAbortRecvFinRace) {
-    TestLogger Logger("StreamAbortRecvFinRace");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAbortRecvFinRace)));
-    } else {
-        QuicTestStreamAbortRecvFinRace();
-    }
-}
+QUIC_TEST_F(Misc, StreamAbortRecvFinRace, QuicTestStreamAbortRecvFinRace)
 
 #ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
-TEST(Misc, StreamReliableReset) {
-    TestLogger Logger("StreamReliableReset");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamReliableReset)));
-    } else {
-        QuicTestStreamReliableReset();
-    }
-}
+QUIC_TEST_F(Misc, StreamReliableReset, QuicTestStreamReliableReset)
 
-TEST(Misc, StreamReliableResetMultipleSends) {
-    TestLogger Logger("StreamReliableResetMultipleSends");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamReliableResetMultipleSends)));
-    } else {
-        QuicTestStreamReliableResetMultipleSends();
-    }
-}
+QUIC_TEST_F(Misc, StreamReliableResetMultipleSends, QuicTestStreamReliableResetMultipleSends)
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-TEST(Misc, StreamMultiReceive) {
-    TestLogger Logger("StreamMultiReceive");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamMultiReceive)));
-    } else {
-        QuicTestStreamMultiReceive();
-    }
-}
+QUIC_TEST_F(Misc, StreamMultiReceive, QuicTestStreamMultiReceive)
 
 // App-provided receive buffer tests
 
-struct WithAppProvidedBuffersConfigArgs: public testing::TestWithParam<AppProvidedBuffersConfig> {
+struct WithAppProvidedBuffersConfigArgs: public QuicTestFixture, public testing::WithParamInterface<AppProvidedBuffersConfig> {
     static ::std::vector<AppProvidedBuffersConfig> Generate() {
         return {
             { 8, 0x500, 8, 0x500}, // Base scenario
@@ -2885,59 +2309,17 @@ std::ostream& operator << (std::ostream& o, const AppProvidedBuffersConfig& args
         "Additional:" << args.AdditionalBuffersNum << " buffers of " << args.AdditionalBuffersSize << "bytes.";
 }
 
-TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffers_ClientSend) {
-    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffers_ClientSend", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers_ClientSend), GetParam()));
-    } else {
-        QuicTestStreamAppProvidedBuffers_ClientSend(GetParam());
-    }
-}
+QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffers_ClientSend, QuicTestStreamAppProvidedBuffers_ClientSend)
 
-TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffers_ServerSend) {
-    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffers_ServerSend", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffers_ServerSend), GetParam()));
-    } else {
-        QuicTestStreamAppProvidedBuffers_ServerSend(GetParam());
-    }
-}
+QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffers_ServerSend, QuicTestStreamAppProvidedBuffers_ServerSend)
 
-TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream) {
-    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream), GetParam()));
-    } else {
-        QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream(GetParam());
-    }
-}
+QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream, QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream)
 
-TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer) {
-    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer), GetParam()));
-    } else {
-        QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer(GetParam());
-    }
-}
+QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer, QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer)
 
-TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream) {
-    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream), GetParam()));
-    } else {
-        QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream(GetParam());
-    }
-}
+QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream, QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream)
 
-TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer) {
-    TestLoggerT<ParamType> Logger("StreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer), GetParam()));
-    } else {
-        QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(GetParam());
-    }
-}
+QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer, QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2946,64 +2328,22 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
-    TestLogger Logger("StreamBlockUnblockBidiConnFlowControl");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamBlockUnblockConnFlowControl_Bidi)));
-    } else {
-        QuicTestStreamBlockUnblockConnFlowControl_Bidi();
-    }
-}
+QUIC_TEST_F(Misc, StreamBlockUnblockBidiConnFlowControl, QuicTestStreamBlockUnblockConnFlowControl_Bidi)
 
-TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
-    TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamBlockUnblockConnFlowControl_Unidi)));
-    } else {
-        QuicTestStreamBlockUnblockConnFlowControl_Unidi();
-    }
-}
+QUIC_TEST_F(Misc, StreamBlockUnblockUnidiConnFlowControl, QuicTestStreamBlockUnblockConnFlowControl_Unidi)
 
-TEST(Misc, StreamAbortConnFlowControl) {
-    TestLogger Logger("StreamAbortConnFlowControl");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAbortConnFlowControl)));
-    } else {
-        QuicTestStreamAbortConnFlowControl();
-    }
-}
+QUIC_TEST_F(Misc, StreamAbortConnFlowControl, QuicTestStreamAbortConnFlowControl)
 
-TEST(Basic, OperationPriority) {
-    TestLogger Logger("OperationPriority");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestOperationPriority)));
-    } else {
-        QuicTestOperationPriority();
-    }
-}
+QUIC_TEST_F(Basic, OperationPriority, QuicTestOperationPriority)
 
-TEST(Basic, ConnectionPriority) {
-    TestLogger Logger("ConnectionPriority");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectionPriority)));
-    } else {
-        QuicTestConnectionPriority();
-    }
-}
+QUIC_TEST_F(Basic, ConnectionPriority, QuicTestConnectionPriority)
 
 // Drill tests
 
-TEST(Drill, VarIntEncoder) {
-    TestLogger Logger("QuicDrillTestVarIntEncoder");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestVarIntEncoder)));
-    } else {
-        QuicDrillTestVarIntEncoder();
-    }
-}
+QUIC_TEST_F(Drill, VarIntEncoder, QuicDrillTestVarIntEncoder)
 
 struct WithDrillInitialPacketCidArgs:
-    public testing::TestWithParam<DrillInitialPacketCidArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<DrillInitialPacketCidArgs> {
 
     static ::std::vector<DrillInitialPacketCidArgs> Generate() {
         ::std::vector<DrillInitialPacketCidArgs> list;
@@ -3026,14 +2366,7 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketCidArgs& arg
         (args.CidLengthFieldValid ? "Valid" : "Invalid") << " length";
 }
 
-TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
-    TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestInitialCid), GetParam()));
-    } else {
-        QuicDrillTestInitialCid(GetParam());
-    }
-}
+QUIC_TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids, QuicDrillTestInitialCid)
 
 INSTANTIATE_TEST_SUITE_P(
     Drill,
@@ -3041,7 +2374,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithDrillInitialPacketCidArgs::Generate()));
 
 struct WithDrillInitialPacketTokenArgs:
-    public testing::TestWithParam<DrillInitialPacketTokenArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
 
     static ::std::vector<DrillInitialPacketTokenArgs> Generate() {
         ::std::vector<DrillInitialPacketTokenArgs> list;
@@ -3056,32 +2389,11 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& a
         (args.Family == 4 ? "v4" : "v6");
 }
 
-TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
-    TestLoggerT<ParamType> Logger("QuicDrillInitialPacketToken", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestInitialToken), GetParam()));
-    } else {
-        QuicDrillTestInitialToken(GetParam());
-    }
-}
+QUIC_TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken, QuicDrillTestInitialToken)
 
-TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestServerVNPacket) {
-    TestLoggerT<ParamType> Logger("QuicDrillTestServerVNPacket", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestServerVNPacket), GetParam()));
-    } else {
-        QuicDrillTestServerVNPacket(GetParam());
-    }
-}
+QUIC_TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestServerVNPacket, QuicDrillTestServerVNPacket)
 
-TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake) {
-    TestLoggerT<ParamType> Logger("QuicDrillTestKeyUpdateDuringHandshake", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicDrillTestKeyUpdateDuringHandshake), GetParam()));
-    } else {
-        QuicDrillTestKeyUpdateDuringHandshake(GetParam());
-    }
-}
+QUIC_TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake, QuicDrillTestKeyUpdateDuringHandshake)
 
 INSTANTIATE_TEST_SUITE_P(
     Drill,
@@ -3089,7 +2401,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithDrillInitialPacketTokenArgs::Generate()));
 
 struct WithDatagramNegotiationArgs :
-    public testing::TestWithParam<DatagramNegotiationArgs> {
+    public QuicTestFixture, public testing::WithParamInterface<DatagramNegotiationArgs> {
 
     static ::std::vector<DatagramNegotiationArgs> Generate() {
         ::std::vector<DatagramNegotiationArgs> list;
@@ -3106,43 +2418,22 @@ std::ostream& operator << (std::ostream& o, const DatagramNegotiationArgs& args)
         (args.DatagramReceiveEnabled ? "DatagramReceiveEnabled" : "DatagramReceiveDisabled");
 }
 
-TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
-    TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDatagramNegotiation), GetParam()));
-    } else {
-        QuicTestDatagramNegotiation(GetParam());
-    }
-}
+QUIC_TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation, QuicTestDatagramNegotiation)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithDatagramNegotiationArgs,
     testing::ValuesIn(WithDatagramNegotiationArgs::Generate()));
 
-TEST_P(WithFamilyArgs, DatagramSend) {
-    TestLoggerT<ParamType> Logger("QuicTestDatagramSend", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDatagramSend), GetParam()));
-    } else {
-        QuicTestDatagramSend(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, DatagramSend, QuicTestDatagramSend)
 
-TEST_P(WithFamilyArgs, DatagramDrop) {
-    TestLoggerT<ParamType> Logger("QuicTestDatagramDrop", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDatagramDrop), GetParam()));
-    } else {
-        QuicTestDatagramDrop(GetParam());
-    }
-}
+QUIC_TEST_P(WithFamilyArgs, DatagramDrop, QuicTestDatagramDrop)
 
 #ifdef _WIN32 // Storage tests only supported on Windows
 
 static BOOLEAN CanRunStorageTests = FALSE;
 
-TEST(Basic, TestStorage) {
+TEST_F(Basic, TestStorage) {
     if (!CanRunStorageTests) {
         GTEST_SKIP();
     }
@@ -3156,7 +2447,7 @@ TEST(Basic, TestStorage) {
 }
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-TEST(Basic, TestVersionStorage) {
+TEST_F(Basic, TestVersionStorage) {
     if (!CanRunStorageTests) {
         GTEST_SKIP();
     }
@@ -3171,7 +2462,7 @@ TEST(Basic, TestVersionStorage) {
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #ifdef DEBUG // This test needs a GetParam API that is only available in debug builds.
-TEST(ParameterValidation, RetryConfigSetting)
+TEST_F(ParameterValidation, RetryConfigSetting)
 {
     if (!CanRunStorageTests) {
         GTEST_SKIP();
@@ -3202,58 +2493,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithFamilyArgs,
     ::testing::ValuesIn(WithFamilyArgs::Generate()));
 
-#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-//
-// XDP Map Mode tests. These only run when --xdpMapMode is passed.
-// Each test reserves its own ports (keeping OS sockets open to prevent
-// reuse), creates XDP programs for those ports, and tears them down.
-//
-
-struct WithXdpMapModeArgs : public ::testing::TestWithParam<XdpMapModeArgs> {
-
-    static ::std::vector<XdpMapModeArgs> Generate() {
-        ::std::vector<XdpMapModeArgs> list;
-        for (int Family : { 4, 6 })
-        for (bool UseCibir : { false, true })
-            list.push_back({ Family, 0, 0, UseCibir });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const XdpMapModeArgs& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.UseCibir ? "Cibir" : "NoCibir") << "/" <<
-        "ServerPort:" << (args.ServerPort) << "/" <<
-        "ClientPort:" << (args.ClientPort);
-}
-
-TEST_P(WithXdpMapModeArgs, Handshake) {
-
-    if (TestingKernelMode) {
-        GTEST_SKIP() << "QuicTestXdpMapModeHandshake doesn't apply to kernel mode.";
-    }
-
-    if (!UseXdpMapMode) {
-        GTEST_SKIP() << "QuicTestXdpMapModeHandshake: XDP Map Mode not enabled (use --xdpMapMode)";
-    }
-
-    auto Params = GetParam();
-    XdpMapModeRuleScope Scope(Params.UseCibir, UseQTIP);
-    Params.ClientPort = Scope.GetClientPort();
-    Params.ServerPort = Scope.GetServerPort();
-
-    TestLoggerT<ParamType> Logger("QuicTestXdpMapModeHandshake", Params);
-
-    QuicTestXdpMapModeHandshake(Params);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    XdpMapMode,
-    WithXdpMapModeArgs,
-    ::testing::ValuesIn(WithXdpMapModeArgs::Generate()));
-#endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
-
 int main(int argc, char** argv) {
 #ifdef _WIN32
     //
@@ -3277,14 +2516,6 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
-        } else if (strcmp("--xdpMapMode", argv[i]) == 0) {
-#if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            UseXdpMapMode = true;
-            UseDuoNic = true; // Map mode implies DuoNic
-#else
-            printf("XDP Map Mode is only supported on Windows with preview features.\n");
-            return -1;
-#endif
         } else if (strcmp("--useQTIP", argv[i]) == 0) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             UseQTIP = true;

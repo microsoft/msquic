@@ -203,16 +203,11 @@ jobs:
       shell: pwsh
       timeout-minutes: 120
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
-    - name: Test (Map Mode Tests Only)
-      if: matrix.vec.xdp == 'xdp-prerelease'
-      shell: pwsh
-      timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} -Filter '*XdpMapMode*' -XdpMapMode
     - name: Test
       if: matrix.vec.os != 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ matrix.vec.xdpmapmode }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ matrix.vec.log || (inputs.log_level || 'Full.Light') }} -GenerateXmlResults ${{ matrix.vec.xdp && '-UseXdp' }} ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
     - name: Upload on Failure or Cancellation
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       if: failure() || cancelled()
