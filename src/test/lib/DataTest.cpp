@@ -4570,25 +4570,9 @@ QuicTestStreamReliableResetMultipleSends(
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 //
-// Regression test: verifies that ReliableOffset = 0 is treated as a valid
-// "first frame seen" value, not as the "no frame received yet" sentinel.
-//
-// Previously, QuicStreamProcessReliableResetFrame used (RecvMaxLength == 0)
-// as the sentinel to detect the first RELIABLE_RESET frame. This was wrong
-// because 0 is a valid ReliableOffset value. As a result, if a peer sent
-// RELIABLE_RESET(offset=0) followed by RELIABLE_RESET(offset=5000), the
-// second frame would incorrectly pass the check (RecvMaxLength was still 0
-// after the first frame) and bump the offset up to 5000 — violating the
-// spec's strictly-decreasing rule.
-//
-// The fix uses the RemoteCloseResetReliable flag as the sentinel instead.
-// This test confirms that after receiving RELIABLE_RESET(offset=0), the
-// server correctly tracks the received offset as 0 (i.e.
-// QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV returns 0, not INVALID_STATE).
-// If the old sentinel were still in place, the flag would still be set to
-// TRUE and RecvMaxLength would be 0, so RecvMaxLength == 0 would wrongly
-// look like "no frame received yet" — leaving the door open for a higher-
-// offset frame to pass the check.
+// Validates that a reliable-reset with offset 0 is handled properly: the
+// server correctly records the received offset as 0 and does not treat it
+// as "no frame received yet".
 //
 void
 QuicTestStreamReliableResetZeroOffset(
@@ -4610,10 +4594,11 @@ QuicTestStreamReliableResetZeroOffset(
     StreamReliableResetZeroOffset Context;
 
     //
-    // We need to send at least 1 byte so that QueuedSendOffset > 0 and
-    // SetReliableOffset(0) passes the "offset <= QueuedSendOffset" check.
+    // Send a few bytes so that QueuedSendOffset > 0 (required for
+    // SetReliableOffset(0) to pass the validation check) and so there
+    // is data beyond the reliable reset offset.
     //
-    const uint8_t SendData[1] = { 0 };
+    const uint8_t SendData[16] = { 0 };
     QUIC_BUFFER SendBuffer { sizeof(SendData), (uint8_t*)SendData };
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableResetZeroOffset::ConnCallback, &Context);
@@ -4630,7 +4615,6 @@ QuicTestStreamReliableResetZeroOffset(
     TEST_TRUE(Connection.HandshakeComplete);
     TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
-    CxPlatSleep(50); // Wait for things to idle out
 
     {
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableResetZeroOffset::ClientStreamCallback, &Context);
@@ -4638,15 +4622,15 @@ QuicTestStreamReliableResetZeroOffset(
         TEST_QUIC_SUCCEEDED(Stream.Start());
 
         //
-        // Send 1 byte so QueuedSendOffset >= 1, making SetReliableOffset(0) valid.
+        // Send data so QueuedSendOffset > 0, which is required for
+        // SetReliableOffset(0) to be valid, and so there is data after
+        // the reliable reset offset.
         //
         TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, nullptr));
 
         //
-        // Set ReliableOffset to 0 — this is the corner case. The old code used
-        // RecvMaxLength == 0 as "first frame not yet received", which means
-        // offset=0 looked like "not seen" even after it was processed, allowing
-        // a subsequent RELIABLE_RESET with a larger offset to slip through.
+        // Set ReliableOffset to 0 — this is the corner case where offset=0
+        // must be treated as a valid "frame received" value.
         //
         TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(0));
 
