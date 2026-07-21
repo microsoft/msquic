@@ -96,6 +96,7 @@ void QuicTestGetPerfCounters();
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void QuicTestValidateEncryptDecryptPerfCounters();
 void QuicTestConnQueueDelayStatistics();
+void QuicTestGetWorkerStatistics();
 #endif
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();

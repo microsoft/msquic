@@ -1539,6 +1539,83 @@ QuicLibrarySetGlobalParam(
     return Status;
 }
 
+//
+// Fills the caller's buffer with the per-worker statistics from the worker pool.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGetGlobalWorkerStatistics(
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+#ifdef _KERNEL_MODE
+    //
+    // Worker statistics are not supported in kernel mode, where the worker
+    // threads are not owned by the platform worker pool.
+    //
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+#else
+    QUIC_STATUS Status;
+
+    //
+    // Ensure the worker pool is not swapped / deleted concurrently
+    // (e.g. by MsQuicExecutionDelete).
+    //
+    CxPlatLockAcquire(&MsQuicLib.Lock);
+    CXPLAT_WORKER_POOL* WorkerPool = MsQuicLib.WorkerPool;
+    if (WorkerPool == NULL || !CxPlatWorkerPoolAddRef(WorkerPool, CXPLAT_WORKER_POOL_REF_STATS)) {
+        CxPlatLockRelease(&MsQuicLib.Lock);
+        return QUIC_STATUS_INVALID_STATE;
+    }
+    CxPlatLockRelease(&MsQuicLib.Lock);
+
+    uint32_t WorkerCount = CxPlatWorkerPoolGetCount(WorkerPool);
+    uint32_t RequiredSize =
+        sizeof(QUIC_WORKER_STATISTICS_LIST) +
+        WorkerCount * sizeof(QUIC_WORKER_STATISTICS);
+
+    if (*BufferLength < RequiredSize) {
+        *BufferLength = RequiredSize;
+        Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+        goto Release;
+    }
+
+    if (Buffer == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Release;
+    }
+
+    QUIC_WORKER_STATISTICS_LIST* List = (QUIC_WORKER_STATISTICS_LIST*)Buffer;
+    List->WorkerCount = WorkerCount;
+    List->WorkerStatsSize = sizeof(QUIC_WORKER_STATISTICS);
+
+    QUIC_WORKER_STATISTICS* Stats =
+        (QUIC_WORKER_STATISTICS*)((uint8_t*)Buffer + sizeof(QUIC_WORKER_STATISTICS_LIST));
+
+    const uint64_t Now = CxPlatTimeUs64();
+    for (uint32_t i = 0; i < WorkerCount; i++) {
+        CXPLAT_WORKER_STATISTICS WorkerStats = {0};
+        CxPlatWorkerPoolGetStatistics(WorkerPool, i, Now, &WorkerStats);
+        Stats[i].IdealProcessor = WorkerStats.IdealProcessor;
+        Stats[i].CumulativeActiveTimeUs = WorkerStats.CumulativeActiveTimeUs;
+        Stats[i].CumulativeWallTimeUs = WorkerStats.CumulativeWallTimeUs;
+    }
+
+    *BufferLength = RequiredSize;
+    Status = QUIC_STATUS_SUCCESS;
+
+Release:
+
+    CxPlatWorkerPoolRelease(WorkerPool, CXPLAT_WORKER_POOL_REF_STATS);
+
+    return Status;
+#endif // _KERNEL_MODE
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
@@ -1913,6 +1990,10 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+    case QUIC_PARAM_GLOBAL_WORKER_STATISTICS:
+        Status = QuicLibraryGetGlobalWorkerStatistics(BufferLength, Buffer);
+        break;
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -2916,14 +2997,24 @@ MsQuicExecutionCreate(
         //
         // Clean up any previous worker pool and create a new one.
         //
-        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_EXTERNAL);
-        MsQuicLib.WorkerPool =
-            CxPlatWorkerPoolCreateExternal(Count, Configs, Executions);
-        if (MsQuicLib.WorkerPool == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-        }
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+        CXPLAT_WORKER_POOL* OldWorkerPool = MsQuicLib.WorkerPool;
+        MsQuicLib.WorkerPool = NULL;
+        CxPlatLockRelease(&MsQuicLib.Lock);
 
-        MsQuicLib.CustomExecutions = TRUE;
+        CxPlatWorkerPoolDelete(OldWorkerPool, CXPLAT_WORKER_POOL_REF_EXTERNAL);
+
+        CXPLAT_WORKER_POOL* NewWorkerPool =
+            CxPlatWorkerPoolCreateExternal(Count, Configs, Executions);
+
+        if (NewWorkerPool == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+        } else {
+            CxPlatLockAcquire(&MsQuicLib.Lock);
+            MsQuicLib.WorkerPool = NewWorkerPool;
+            MsQuicLib.CustomExecutions = TRUE;
+            CxPlatLockRelease(&MsQuicLib.Lock);
+        }
     }
 
     QuicTraceEvent(
@@ -2951,9 +3042,13 @@ MsQuicExecutionDelete(
     UNREFERENCED_PARAMETER(Count);
     UNREFERENCED_PARAMETER(Executions);
 
-    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool, CXPLAT_WORKER_POOL_REF_EXTERNAL);
+    CxPlatLockAcquire(&MsQuicLib.Lock);
+    CXPLAT_WORKER_POOL* WorkerPool = MsQuicLib.WorkerPool;
     MsQuicLib.WorkerPool = NULL;
     MsQuicLib.CustomExecutions = FALSE;
+    CxPlatLockRelease(&MsQuicLib.Lock);
+
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_EXTERNAL);
 
     QuicTraceEvent(
         ApiExit,

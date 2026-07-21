@@ -170,6 +170,7 @@ pub const QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY: u32 = 16777227;
 pub const QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES: u32 = 16777228;
 pub const QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: u32 = 16777229;
 pub const QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG: u32 = 16777230;
+pub const QUIC_PARAM_GLOBAL_WORKER_STATISTICS: u32 = 16777231;
 pub const QUIC_PARAM_CONFIGURATION_SETTINGS: u32 = 50331648;
 pub const QUIC_PARAM_CONFIGURATION_TICKET_KEYS: u32 = 50331649;
 pub const QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS: u32 = 50331650;
@@ -514,6 +515,42 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, InterfaceIndex) - 0usize];
     ["Offset of field: QUIC_XDP_MAP_CONFIG::MapHandle"]
         [::std::mem::offset_of!(QUIC_XDP_MAP_CONFIG, MapHandle) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_WORKER_STATISTICS {
+    pub CumulativeActiveTimeUs: u64,
+    pub CumulativeWallTimeUs: u64,
+    pub IdealProcessor: u16,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_WORKER_STATISTICS"][::std::mem::size_of::<QUIC_WORKER_STATISTICS>() - 24usize];
+    ["Alignment of QUIC_WORKER_STATISTICS"]
+        [::std::mem::align_of::<QUIC_WORKER_STATISTICS>() - 8usize];
+    ["Offset of field: QUIC_WORKER_STATISTICS::CumulativeActiveTimeUs"]
+        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, CumulativeActiveTimeUs) - 0usize];
+    ["Offset of field: QUIC_WORKER_STATISTICS::CumulativeWallTimeUs"]
+        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, CumulativeWallTimeUs) - 8usize];
+    ["Offset of field: QUIC_WORKER_STATISTICS::IdealProcessor"]
+        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS, IdealProcessor) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_WORKER_STATISTICS_LIST {
+    pub WorkerCount: u32,
+    pub WorkerStatsSize: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_WORKER_STATISTICS_LIST"]
+        [::std::mem::size_of::<QUIC_WORKER_STATISTICS_LIST>() - 8usize];
+    ["Alignment of QUIC_WORKER_STATISTICS_LIST"]
+        [::std::mem::align_of::<QUIC_WORKER_STATISTICS_LIST>() - 4usize];
+    ["Offset of field: QUIC_WORKER_STATISTICS_LIST::WorkerCount"]
+        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS_LIST, WorkerCount) - 0usize];
+    ["Offset of field: QUIC_WORKER_STATISTICS_LIST::WorkerStatsSize"]
+        [::std::mem::offset_of!(QUIC_WORKER_STATISTICS_LIST, WorkerStatsSize) - 4usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

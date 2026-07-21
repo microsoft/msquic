@@ -102,6 +102,27 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     //
     BOOLEAN Running;
 
+    //
+    // Statistics tracking for active time measurement.
+    //
+    struct {
+        //
+        // Timestamp (in microseconds) when the worker thread started.
+        //
+        uint64_t StartedTimeUs;
+
+        //
+        // Timestamp (in microseconds) when the current active period started,
+        // or 0 when the worker is currently idle (waiting or yielding).
+        //
+        uint64_t ActiveStartTimeUs;
+
+        //
+        // Cumulative time (in microseconds) the worker was active (not waiting or yielding).
+        //
+        uint64_t CumulativeActiveTimeUs;
+    } Stats;
+
 } CXPLAT_WORKER;
 
 typedef struct CXPLAT_WORKER_POOL {
@@ -728,18 +749,55 @@ CxPlatProcessDynamicPoolAllocators(
     CxPlatLockRelease(&Worker->ECLock);
 }
 
+//
+// Marks the end of an active period, folding the elapsed active time into the
+// cumulative total and marking the worker idle (ActiveStartTimeUs == 0).
+//
+void
+CxPlatWorkerStatsPause(
+    _Inout_ CXPLAT_WORKER* Worker
+    )
+{
+    if (Worker->Stats.ActiveStartTimeUs != 0) {
+        Worker->Stats.CumulativeActiveTimeUs +=
+            CxPlatTimeDiff64(Worker->Stats.ActiveStartTimeUs, CxPlatTimeUs64());
+        Worker->Stats.ActiveStartTimeUs = 0;
+    }
+}
+
+//
+// Marks the start of an active period.
+//
+void
+CxPlatWorkerStatsResume(
+    _Inout_ CXPLAT_WORKER* Worker
+    )
+{
+    Worker->Stats.ActiveStartTimeUs = CxPlatTimeUs64();
+}
+
 void
 CxPlatProcessEvents(
     _In_ CXPLAT_WORKER* Worker
     )
 {
     CXPLAT_CQE Cqes[16];
+
+    if (Worker->State.WaitTime > 0) {
+        CxPlatWorkerStatsPause(Worker);
+    }
+
     uint32_t CqeCount =
         CxPlatEventQDequeue(
             &Worker->EventQ,
             Cqes,
             ARRAYSIZE(Cqes),
             Worker->State.WaitTime);
+
+    if (Worker->State.WaitTime > 0) {
+        CxPlatWorkerStatsResume(Worker);
+    }
+
     uint32_t CurrentCqeCount = CqeCount;
     CXPLAT_CQE* CurrentCqe = Cqes;
 
@@ -796,6 +854,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 
     Worker->State.ThreadID = CxPlatCurThreadID();
     Worker->Running = TRUE;
+    Worker->Stats.StartedTimeUs = CxPlatTimeUs64();
+    Worker->Stats.ActiveStartTimeUs = Worker->Stats.StartedTimeUs;
 
     while (!Worker->StoppedThread) {
 
@@ -816,7 +876,9 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         if (Worker->State.NoWorkCount == 0) {
             Worker->State.LastWorkTime = Worker->State.TimeNow;
         } else if (Worker->State.NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
+            CxPlatWorkerStatsPause(Worker);
             CxPlatSchedulerYield();
+            CxPlatWorkerStatsResume(Worker);
             Worker->State.NoWorkCount = 0;
         }
 
@@ -826,6 +888,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         }
     }
 
+    CxPlatWorkerStatsPause(Worker);
     Worker->Running = FALSE;
 
 #if DEBUG
@@ -838,4 +901,29 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         Worker);
 
     CXPLAT_THREAD_RETURN(0);
+}
+
+void
+CxPlatWorkerPoolGetStatistics(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint32_t Index,
+    _In_ uint64_t TimeNow,
+    _Out_ CXPLAT_WORKER_STATISTICS* Stats
+    )
+{
+    CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
+
+    CXPLAT_WORKER* Worker = &WorkerPool->Workers[Index];
+
+    Stats->IdealProcessor = Worker->IdealProcessor;
+    Stats->CumulativeWallTimeUs = CxPlatTimeDiff64(Worker->Stats.StartedTimeUs, TimeNow);
+    Stats->CumulativeActiveTimeUs = Worker->Stats.CumulativeActiveTimeUs;
+
+    //
+    // If the worker is currently active, include the in-progress active period.
+    //
+    const uint64_t ActiveStartTimeUs = Worker->Stats.ActiveStartTimeUs;
+    if (ActiveStartTimeUs != 0 && ActiveStartTimeUs < TimeNow) {
+        Stats->CumulativeActiveTimeUs += CxPlatTimeDiff64(ActiveStartTimeUs, TimeNow);
+    }
 }
