@@ -1716,6 +1716,115 @@ TEST(CredValidation, ConnectValidServerCertificate) {
     }
 }
 
+struct MultiCertArgs {
+    QUIC_CREDENTIAL_TYPE CredType;
+    CXPLAT_TEST_CERT_TYPE CertTypes[2];
+    QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedAlgs;
+
+    static ::std::vector<MultiCertArgs> Generate() {
+        ::std::vector<MultiCertArgs> List;
+
+        for (auto CredType : {
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE})
+        for (auto RsaCertFirst: {true, false})
+        for (auto AllowedAlg: {
+            QUIC_ALLOWED_CERTIFICATE_ALGORITHM_NONE,
+            QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA,
+            QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA,
+            QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA | QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA})
+            List.push_back({
+                CredType,
+                {RsaCertFirst ? CXPLAT_TEST_CERT_VALID_SERVER_RSA : CXPLAT_TEST_CERT_VALID_SERVER,
+                    RsaCertFirst ? CXPLAT_TEST_CERT_VALID_SERVER : CXPLAT_TEST_CERT_VALID_SERVER_RSA},
+                AllowedAlg});
+
+        return List;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS& flags) {
+    if (flags == QUIC_ALLOWED_CERTIFICATE_ALGORITHM_NONE) {
+        return o << "None";
+    }
+    if (flags & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA) {
+        o << "RSA";
+    }
+    if (flags & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA) {
+        o << "ECDSA";
+    }
+    return o;
+}
+
+std::ostream& operator << (std::ostream& o, const MultiCertArgs& args) {
+    return o << args.CredType << "/" << (args.CertTypes[0] == CXPLAT_TEST_CERT_VALID_SERVER_RSA ? "RSA first" : "ECDSA first") << "/" << args.AllowedAlgs << " allowed";
+}
+
+class WithMultiCertArgs : public testing::Test,
+    public testing::WithParamInterface<MultiCertArgs> {
+};
+
+TEST_P(WithMultiCertArgs, ConnectServerAllowedCertificateAlgorithms) {
+#ifdef QUIC_DISABLE_CERT_ALG_TESTS
+    GTEST_SKIP_("This TLS doesn't support multiple certificates per config yet");
+#endif
+    QUIC_RUN_CERT_ALG_VALIDATION Params;
+    ASSERT_TRUE(CxPlatGetTestCertificate(
+        GetParam().CertTypes[1],
+        TestingKernelMode ?
+            CXPLAT_SELF_SIGN_CERT_MACHINE :
+            CXPLAT_SELF_SIGN_CERT_USER,
+        GetParam().CredType,
+        &Params.CredConfig,
+        &Params.CertHash[1],
+        &Params.CertHashStore[1],
+        NULL,
+        NULL,
+        NULL,
+        NULL));
+
+    //
+    // The first certificate is retrieved second because CxPlatGetTestCertificate
+    // overwrites the settings in the CredConfig. This way, it'll point to the
+    // start of the array of CertHashes/CertHashStores.
+    //
+    ASSERT_TRUE(CxPlatGetTestCertificate(
+        GetParam().CertTypes[0],
+        TestingKernelMode ?
+            CXPLAT_SELF_SIGN_CERT_MACHINE :
+            CXPLAT_SELF_SIGN_CERT_USER,
+        GetParam().CredType,
+        &Params.CredConfig,
+        &Params.CertHash[0],
+        &Params.CertHashStore[0],
+        NULL,
+        NULL,
+        NULL,
+        NULL));
+
+    //
+    // Fix up the Credential config to support multiple certificates.
+    //
+    Params.CredConfig.Flags =
+        QUIC_CREDENTIAL_FLAG_SET_MULTIPLE;
+    Params.CredConfig.MultipleCount = 2;
+    Params.AllowedCertAlgs = GetParam().AllowedAlgs;
+
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestConnectValidServerCertificateAlgorithms), Params));
+    } else {
+        QuicTestConnectValidServerCertificateAlgorithms(Params);
+    }
+    CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
+}
+
+#if QUIC_TEST_FAILING_TEST_CERTIFICATES
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithMultiCertArgs,
+    testing::ValuesIn(MultiCertArgs::Generate()));
+#endif
+
 TEST(CredValidation, ConnectExpiredClientCertificate) {
     QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
