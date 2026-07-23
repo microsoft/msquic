@@ -561,7 +561,29 @@ QuicBindingAcceptConnection(
     }
     CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
-    Connection->Crypto.TlsState.ClientAlpnList = Info->ClientAlpnList;
+
+    //
+    // Copy the client's ALPN list into connection-owned memory. The list in
+    // Info points directly into the crypto receive buffer, which can be resized
+    // (and the underlying chunk freed) by subsequent CRYPTO data before the
+    // potentially delayed ALPN renegotiation reads it. Caching the raw pointer
+    // would result in a use-after-free, so we take a copy instead.
+    //
+    uint8_t* ClientAlpnList =
+        CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);
+    if (ClientAlpnList == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "ClientAlpnList",
+            Info->ClientAlpnListLength);
+        QuicConnTransportError(
+            Connection,
+            QUIC_ERROR_INTERNAL_ERROR);
+        goto Error;
+    }
+    CxPlatCopyMemory(ClientAlpnList, Info->ClientAlpnList, Info->ClientAlpnListLength);
+    Connection->Crypto.TlsState.ClientAlpnList = ClientAlpnList;
     Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
 
     //
