@@ -100,7 +100,7 @@ DllMain(
     switch (Reason) {
 
     case DLL_PROCESS_ATTACH:
-#ifndef _MT // Don't disable thread library calls with static CRT!
+#ifdef _DLL // Don't disable thread library calls with static CRT!
         DisableThreadLibraryCalls(Instance);
 #else
         UNREFERENCED_PARAMETER(Instance);
