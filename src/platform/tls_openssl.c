@@ -2869,18 +2869,6 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
         message_size = htonl(message_size) & 0x00ffffff;
 
         //
-        //make sure our message type is valid
-        //
-        if (message_type > SSL3_MT_FINISHED) {
-            //
-            // This is not a real handshake record
-            //
-            CXPLAT_FREE(Entry, QUIC_POOL_TLS_RECORD_ENTRY);
-            return -1;
-        }
-
-
-        //
         // Stop processing if this is a handshake finished record
         //
         if (message_type == SSL3_MT_FINISHED) {
@@ -3167,10 +3155,18 @@ CxPlatTlsProcessData(
                                  *BufferLength, &Consumed);
         if (MRet == 0) {
             //
-            // There was an allocation failure
-            // Indicate we consumed nothing
+            // There was a record processing failure.
+            // Indicate we consumed nothing and stop the handshake path.
             //
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "ProcessNewMessage failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
             Consumed = 0;
+            goto Exit;
         }
         *BufferLength = *BufferLength - (uint32_t)Consumed;
     }
