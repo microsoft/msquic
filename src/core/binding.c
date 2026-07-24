@@ -563,11 +563,8 @@ QuicBindingAcceptConnection(
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
 
     //
-    // Copy the client's ALPN list into connection-owned memory. The list in
-    // Info points directly into the crypto receive buffer, which can be resized
-    // (and the underlying chunk freed) by subsequent CRYPTO data before the
-    // potentially delayed ALPN renegotiation reads it. Caching the raw pointer
-    // would result in a use-after-free, so we take a copy instead.
+    // The Info->ClientAlpnList points directly into the crypto receive buffer and can
+    // be invalidated, so we take a copy instead.
     //
     uint8_t* ClientAlpnList =
         CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);

@@ -3472,24 +3472,14 @@ QuicConnRecvVerNeg(
 {
     uint32_t SupportedVersion = 0;
 
-    const uint8_t VnSourceCidLen =
-        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength];
-    const uint8_t* VnSourceCid =
-        Packet->VerNeg->DestCid + Packet->VerNeg->DestCidLength + sizeof(uint8_t);
-
-    //
-    // Validate that the packet's Source CID matches our current Destination CID
-    //
-    const QUIC_CID_LIST_ENTRY* DestCid = Connection->Paths[0].DestCid;
-    if (DestCid == NULL ||
-        VnSourceCidLen != DestCid->CID.Length ||
-        memcmp(VnSourceCid, DestCid->CID.Data, VnSourceCidLen) != 0) {
-        QuicPacketLogDrop(Connection, Packet, "Version Negotiation Source CID doesn't match our Destination CID");
-        return;
-    }
+    // TODO - Validate the packet's SourceCid is equal to our DestCid.
 
     const uint32_t* ServerVersionList =
-        (const uint32_t*)(VnSourceCid + VnSourceCidLen);
+        (const uint32_t*)(
+        Packet->VerNeg->DestCid +
+        Packet->VerNeg->DestCidLength +
+        sizeof(uint8_t) +                                         // SourceCidLength field size
+        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength]);  // SourceCidLength
     uint16_t ServerVersionListLength =
         (Packet->AvailBufferLength - (uint16_t)((uint8_t*)ServerVersionList - Packet->AvailBuffer)) / sizeof(uint32_t);
 
