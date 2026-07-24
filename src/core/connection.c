@@ -2579,6 +2579,9 @@ QuicConnSetConfiguration(
         if (QUIC_FAILED(Status)) {
             goto Cleanup;
         }
+        if (Connection->Crypto.TlsState.ClientAlpnList != NULL) {
+            CXPLAT_FREE(Connection->Crypto.TlsState.ClientAlpnList, QUIC_POOL_ALPN);
+        }
         Connection->Crypto.TlsState.ClientAlpnList = NULL;
         Connection->Crypto.TlsState.ClientAlpnListLength = 0;
     }

@@ -250,6 +250,11 @@ QuicCryptoUninitialize(
         }
         Crypto->TlsState.NegotiatedAlpn = NULL;
     }
+    if (Crypto->TlsState.ClientAlpnList != NULL) {
+        CXPLAT_FREE(Crypto->TlsState.ClientAlpnList, QUIC_POOL_ALPN);
+        Crypto->TlsState.ClientAlpnList = NULL;
+        Crypto->TlsState.ClientAlpnListLength = 0;
+    }
     if (Crypto->Initialized) {
         QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         QuicRangeUninitialize(&Crypto->SparseAckRanges);
