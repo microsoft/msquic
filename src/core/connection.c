@@ -3469,6 +3469,13 @@ QuicConnRecvVerNeg(
 {
     uint32_t SupportedVersion = 0;
 
+    //
+    // The Version Negotiation packet layout (see QUIC_VERSION_NEGOTIATION_PACKET)
+    // places the Source CID immediately after the Destination CID:
+    //
+    //   ... | DestCidLength (1) | DestCid (DestCidLength) |
+    //           SourceCidLength (1) | SourceCid (SourceCidLength) | SupportedVersions...
+    //
     const uint8_t VnSourceCidLen =
         Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength];
     const uint8_t* VnSourceCid =
@@ -3478,8 +3485,8 @@ QuicConnRecvVerNeg(
     // Validate that the packet's Source CID matches our current Destination CID
     //
     const QUIC_CID_LIST_ENTRY* DestCid = Connection->Paths[0].DestCid;
-    if (DestCid == NULL ||
-        VnSourceCidLen != DestCid->CID.Length ||
+    CXPLAT_DBG_ASSERT(DestCid != NULL);
+    if (VnSourceCidLen != DestCid->CID.Length ||
         memcmp(VnSourceCid, DestCid->CID.Data, VnSourceCidLen) != 0) {
         QuicPacketLogDrop(Connection, Packet, "Version Negotiation Source CID doesn't match our Destination CID");
         return;
