@@ -128,7 +128,7 @@ QuicConnAlloc(
     QuicSendInitialize(&Connection->Send, &Connection->Settings);
     QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
     QuicLossDetectionInitialize(&Connection->LossDetection);
-    QuicDatagramInitialize(&Connection->Datagram);
+    QuicDatagramInitialize(&Connection->Datagram, IsServer);
     QuicRangeInitialize(
         QUIC_MAX_RANGE_DECODE_ACKS,
         &Connection->DecodedAckRanges);
@@ -2603,6 +2603,22 @@ QuicConnSetConfiguration(
         ConnHandshakeStart,
         "[conn][%p] Handshake start",
         Connection);
+
+    if (QuicConnIsServer(Connection)) {
+        //
+        // Evaluate the datagram send state for a server. This is the first
+        // point at which both of its inputs are settled and there is an
+        // external owner to indicate the result to: the peer's transport
+        // parameters are processed before the listener hands the connection to
+        // the application, and `Started` selects the MTU that the max send
+        // length is derived from.
+        //
+        // A client's send state is evaluated once its peer's transport
+        // parameters arrive, which is always after it has an owner, so it needs
+        // nothing here.
+        //
+        QuicDatagramOnSendStateChanged(&Connection->Datagram);
+    }
 
     Status =
         QuicCryptoInitializeTls(

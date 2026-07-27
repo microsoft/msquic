@@ -111,6 +111,16 @@ QuicTestDatagramNegotiation(
 
                 TEST_TRUE(Server->GetDatagramSendEnabled()); // Client always enabled
 
+                //
+                // Being able to send datagrams is not enough; the app has to be
+                // told. For a server that indication comes once the connection
+                // is started, the first point at which its send state has an
+                // owner to be indicated to.
+                //
+                TEST_TRUE(Server->GetDatagramStateChangedCount() > 0);
+                TEST_TRUE(Server->GetIndicatedDatagramSendEnabled());
+                TEST_NOT_EQUAL(0, Server->GetIndicatedDatagramMaxSendLength());
+
                 CxPlatSleep(100); // Necessary?
 
                 if (DatagramReceiveEnabled) {

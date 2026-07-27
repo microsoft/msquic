@@ -106,6 +106,10 @@ class TestConnection
     uint32_t DatagramsLost{};
     uint32_t DatagramsAcknowledged{};
 
+    uint32_t DatagramStateChangedCount{};
+    bool IndicatedDatagramSendEnabled{false};
+    uint16_t IndicatedDatagramMaxSendLength{};
+
     const uint8_t* NegotiatedAlpn{};
     uint8_t NegotiatedAlpnLength{};
 
@@ -336,6 +340,25 @@ public:
         LockGuard LockScope{Lock};
         return DatagramsCanceled;
     }
+    //
+    // The state carried by the last QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED
+    // indicated to this connection, and how many have been indicated. Distinct
+    // from GetDatagramSendEnabled, which queries the live state whether or not
+    // the app was ever told about it.
+    //
+    uint32_t GetDatagramStateChangedCount() const {
+        LockGuard LockScope{Lock};
+        return DatagramStateChangedCount;
+    }
+    bool GetIndicatedDatagramSendEnabled() const {
+        LockGuard LockScope{Lock};
+        return IndicatedDatagramSendEnabled;
+    }
+    uint16_t GetIndicatedDatagramMaxSendLength() const {
+        LockGuard LockScope{Lock};
+        return IndicatedDatagramMaxSendLength;
+    }
+
     uint32_t GetDatagramsSuspectLost() const {
         LockGuard LockScope{Lock};
         return DatagramsSuspectLost;
