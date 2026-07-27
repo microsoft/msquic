@@ -151,7 +151,6 @@ jobs:
           { config: "Release", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
           { config: "Release", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-SanitizeAddress", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-SanitizeAddress", build: "-Test"  },
           { config: "Release", plat: "linux", os: "ubuntu-26.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
