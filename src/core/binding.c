@@ -563,25 +563,33 @@ QuicBindingAcceptConnection(
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
 
     //
-    // The Info->ClientAlpnList points directly into the crypto receive buffer and can
-    // be invalidated, so we take a copy instead.
+    // Info->ClientAlpnList points into the crypto receive buffer, which can be
+    // freed before ALPN (re)negotiation uses it (use-after-free). A single ALPN
+    // is identical to the negotiated ALPN, so if that lives in the never-freed
+    // SmallAlpnBuffer we alias it, otherwise take a heap copy.
     //
-    uint8_t* ClientAlpnList =
-        CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);
-    if (ClientAlpnList == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "ClientAlpnList",
-            Info->ClientAlpnListLength);
-        QuicConnTransportError(
-            Connection,
-            QUIC_ERROR_INTERNAL_ERROR);
-        goto Error;
+    if (Info->ClientAlpnListLength == (uint16_t)Info->ClientAlpnList[0] + 1 &&
+        NegotiatedAlpn == Connection->Crypto.TlsState.SmallAlpnBuffer) {
+        Connection->Crypto.TlsState.ClientAlpnList = NegotiatedAlpn;
+        Connection->Crypto.TlsState.ClientAlpnListLength = NegotiatedAlpnLength;
+    } else {
+        uint8_t* ClientAlpnList =
+            CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);
+        if (ClientAlpnList == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "ClientAlpnList",
+                Info->ClientAlpnListLength);
+            QuicConnTransportError(
+                Connection,
+                QUIC_ERROR_INTERNAL_ERROR);
+            goto Error;
+        }
+        CxPlatCopyMemory(ClientAlpnList, Info->ClientAlpnList, Info->ClientAlpnListLength);
+        Connection->Crypto.TlsState.ClientAlpnList = ClientAlpnList;
+        Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
     }
-    CxPlatCopyMemory(ClientAlpnList, Info->ClientAlpnList, Info->ClientAlpnListLength);
-    Connection->Crypto.TlsState.ClientAlpnList = ClientAlpnList;
-    Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
 
     //
     // Allow for the listener to decide if it wishes to accept the incoming
