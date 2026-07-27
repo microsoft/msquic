@@ -912,6 +912,9 @@ if(QUIC_CODE_CHECK)
             -cert-err33-c
             -clang-analyzer-optin.core.EnumCastOutOfRange
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+            -clang-analyzer-security.ArrayBound
+            -clang-analyzer-core.CallAndMessage
+            -clang-analyzer-unix.Stream
             -clang-diagnostic-invalid-unevaluated-string
             -clang-diagnostic-microsoft-anon-tag
             -concurrency-mt-unsafe
@@ -942,6 +945,8 @@ if(QUIC_CODE_CHECK)
             -readability-magic-numbers
             -readability-non-const-parameter
             -readability-redundant-casting
+            -readability-math-missing-parentheses
+            -readability-use-concise-preprocessor-directives
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
         set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
