@@ -292,7 +292,6 @@ QuicMainStart(
 
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
     TryGetValue(argc, argv, "hystart", &PerfDefaultHyStartEnabled);
-    TryGetValue(argc, argv, "histart", &PerfDefaultHyStartEnabled);
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
     TryGetValue(argc, argv, "dscp", &PerfDefaultDscpValue);
     if (PerfDefaultDscpValue > CXPLAT_MAX_DSCP) {
