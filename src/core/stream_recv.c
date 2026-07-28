@@ -1116,8 +1116,18 @@ QuicStreamReceiveComplete(
     //
     // Reclaim any buffer space comsumed by the app.
     //
-    if (Stream->RecvPendingLength == 0 ||
-        QuicRecvBufferDrain(&Stream->RecvBuffer, BufferLength)) {
+    if (Stream->RecvPendingLength == 0) {
+        //
+        // No receive is pending, so there is no space to reclaim: the
+        // indication carried no data, or the completion is one that arrived
+        // with nothing outstanding to complete. Whether anything is still
+        // waiting to be delivered is a question only the receive buffer can
+        // answer.
+        //
+        if (!QuicRecvBufferHasUnreadData(&Stream->RecvBuffer)) {
+            Stream->Flags.ReceiveDataPending = FALSE; // No more pending data to deliver.
+        }
+    } else if (QuicRecvBufferDrain(&Stream->RecvBuffer, BufferLength)) {
         Stream->Flags.ReceiveDataPending = FALSE; // No more pending data to deliver.
     }
 

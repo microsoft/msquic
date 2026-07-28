@@ -2837,6 +2837,15 @@ TEST(Misc, StreamAbortRecvFinRace) {
     }
 }
 
+TEST(Misc, StreamReceiveCompleteWithNoPendingReceive) {
+    TestLogger Logger("StreamReceiveCompleteWithNoPendingReceive");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamReceiveCompleteWithNoPendingReceive)));
+    } else {
+        QuicTestStreamReceiveCompleteWithNoPendingReceive();
+    }
+}
+
 #ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
 TEST(Misc, StreamReliableReset) {
     TestLogger Logger("StreamReliableReset");
