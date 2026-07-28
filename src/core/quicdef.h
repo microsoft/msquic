@@ -215,6 +215,12 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_MAX_CRYPTO_BATCH_COUNT             8
 
 //
+// Max total length (TLS wire format) of a client's ALPN list accepted in a
+// ClientHello. Bounds the pre-auth allocation cached for ALPN renegotiation.
+//
+#define QUIC_MAX_CLIENT_ALPN_LIST_LENGTH        4096
+
+//
 // The maximum number of received packets that may be processed in a single
 // flush operation.
 //
