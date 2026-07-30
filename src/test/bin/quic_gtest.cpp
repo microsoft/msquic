@@ -248,20 +248,24 @@ bool InvokeKernelTest(const std::string& Name, FunType, const ParamType& Params)
 // Macros that generate the standard test body boilerplate:
 // logger + kernel-mode dispatch + user-mode call.
 //
-#define QUIC_TEST_F(Suite, Name, Func)                                  \
-    TEST_F(Suite, Name) {                                               \
+#define TEST_UM_KM_F(Suite, Func)                                       \
+    TEST_F(Suite, Func) {                                               \
         TestLogger Logger(#Func);                                       \
         if (TestingKernelMode) {                                        \
             ASSERT_TRUE(InvokeKernelTest(FUNC(Func)));                  \
-        } else { Func(); }                                              \
+        } else {                                                        \
+            Func();                                                     \
+        }                                                               \
     }
 
-#define QUIC_TEST_P(Suite, Name, Func)                                  \
-    TEST_P(Suite, Name) {                                               \
+#define TEST_UM_KM_P(Suite, Func)                                       \
+    TEST_P(Suite, Func) {                                               \
         TestLoggerT<ParamType> Logger(#Func, GetParam());               \
         if (TestingKernelMode) {                                        \
             ASSERT_TRUE(InvokeKernelTest(FUNC(Func), GetParam()));      \
-        } else { Func(GetParam()); }                                    \
+        } else {                                                        \
+            Func(GetParam());                                           \
+        }                                                               \
     }
 
 //
@@ -324,19 +328,6 @@ protected:
     }
 };
 
-//
-// Fixture classes for plain test suites (TEST_F).
-//
-class ParameterValidation : public QuicTestFixture {};
-class Basic : public QuicTestFixture {};
-class Misc : public QuicTestFixture {};
-class OwnershipValidation : public QuicTestFixture {};
-class CredValidation : public QuicTestFixture {};
-class Handshake : public QuicTestFixture {};
-class Alpn : public QuicTestFixture {};
-class Mtu : public QuicTestFixture {};
-class HandshakeTest : public QuicTestFixture {};
-class Drill : public QuicTestFixture {};
 
 //
 // Common parameterized test fixtures.
@@ -354,11 +345,13 @@ struct WithFamilyArgs :
     }
 };
 
-QUIC_TEST_F(ParameterValidation, ValidateApi, QuicTestValidateApi)
 
-QUIC_TEST_F(ParameterValidation, ValidateRegistration, QuicTestValidateRegistration)
+class ParameterValidation : public QuicTestFixture {};
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateApi)
 
-QUIC_TEST_F(ParameterValidation, ValidateGlobalParam, QuicTestGlobalParam)
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateRegistration)
+
+TEST_UM_KM_F(ParameterValidation, QuicTestGlobalParam)
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_F(ParameterValidation, ValidateXdpMapConfigParam) {
@@ -511,17 +504,17 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(WithXdpMapModeArgs::Generate()));
 #endif // _WIN32 && QUIC_API_ENABLE_PREVIEW_FEATURES
 
-QUIC_TEST_F(ParameterValidation, ValidateCommonParam, QuicTestCommonParam)
+TEST_UM_KM_F(ParameterValidation, QuicTestCommonParam)
 
-QUIC_TEST_F(ParameterValidation, ValidateRegistrationParam, QuicTestRegistrationParam)
+TEST_UM_KM_F(ParameterValidation, QuicTestRegistrationParam)
 
-QUIC_TEST_F(ParameterValidation, ValidateConfigurationParam, QuicTestConfigurationParam)
+TEST_UM_KM_F(ParameterValidation, QuicTestConfigurationParam)
 
-QUIC_TEST_F(ParameterValidation, ValidateListenerParam, QuicTestListenerParam)
+TEST_UM_KM_F(ParameterValidation, QuicTestListenerParam)
 
-QUIC_TEST_F(ParameterValidation, ValidateConnectionParam, QuicTestConnectionParam)
+TEST_UM_KM_F(ParameterValidation, QuicTestConnectionParam)
 
-QUIC_TEST_F(ParameterValidation, ValidateTlsParam, QuicTestTlsParam)
+TEST_UM_KM_F(ParameterValidation, QuicTestTlsParam)
 
 TEST_P(WithBool, ValidateTlsHandshakeInfo) {
     TestLoggerT<ParamType> Logger("QuicTestValidateTlsHandshakeInfo", GetParam());
@@ -535,14 +528,14 @@ TEST_P(WithBool, ValidateTlsHandshakeInfo) {
     }
 }
 
-QUIC_TEST_F(ParameterValidation, ValidateStreamParam, QuicTestStreamParam)
+TEST_UM_KM_F(ParameterValidation, QuicTestStreamParam)
 
-QUIC_TEST_F(ParameterValidation, ValidateGetPerfCounters, QuicTestGetPerfCounters)
+TEST_UM_KM_F(ParameterValidation, QuicTestGetPerfCounters)
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-QUIC_TEST_F(ParameterValidation, ValidateEncryptDecryptPerfCounters, QuicTestValidateEncryptDecryptPerfCounters)
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateEncryptDecryptPerfCounters)
 
-QUIC_TEST_F(ParameterValidation, ConnQueueDelayStatistics, QuicTestConnQueueDelayStatistics)
+TEST_UM_KM_F(ParameterValidation, QuicTestConnQueueDelayStatistics)
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_F(ParameterValidation, ValidateConfiguration) {
@@ -559,34 +552,38 @@ TEST_F(ParameterValidation, ValidateConfiguration) {
     }
 }
 
-QUIC_TEST_F(ParameterValidation, ValidateListener, QuicTestValidateListener)
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateListener)
 
-QUIC_TEST_F(ParameterValidation, ValidateConnection, QuicTestValidateConnection)
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateConnection)
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-QUIC_TEST_F(Handshake, ConnectionExportKeyingMaterial, QuicTestConnectionExportKeyingMaterial)
 
-QUIC_TEST_F(ParameterValidation, ValidateConnectionExportKeyingMaterial, QuicTestValidateConnectionExportKeyingMaterial)
+class Handshake : public QuicTestFixture {};
+TEST_UM_KM_F(Handshake, QuicTestConnectionExportKeyingMaterial)
 
-QUIC_TEST_F(ParameterValidation, ValidateConnectionPoolCreate, QuicTestValidateConnectionPoolCreate)
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateConnectionExportKeyingMaterial)
 
-QUIC_TEST_F(ParameterValidation, ValidateExecutionContext, QuicTestValidateExecutionContext)
-QUIC_TEST_F(ParameterValidation, ValidatePartition, QuicTestValidatePartition)
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateConnectionPoolCreate)
+
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateExecutionContext)
+TEST_UM_KM_F(ParameterValidation, QuicTestValidatePartition)
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-QUIC_TEST_F(OwnershipValidation, RegistrationShutdownBeforeConnOpen, QuicTestRegistrationShutdownBeforeConnOpen)
 
-QUIC_TEST_F(OwnershipValidation, RegistrationShutdownAfterConnOpen, QuicTestRegistrationShutdownAfterConnOpen)
+class OwnershipValidation : public QuicTestFixture {};
+TEST_UM_KM_F(OwnershipValidation, QuicTestRegistrationShutdownBeforeConnOpen)
 
-QUIC_TEST_F(OwnershipValidation, RegistrationShutdownAfterConnOpenBeforeStart, QuicTestRegistrationShutdownAfterConnOpenBeforeStart)
+TEST_UM_KM_F(OwnershipValidation, QuicTestRegistrationShutdownAfterConnOpen)
 
-QUIC_TEST_F(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart, QuicTestRegistrationShutdownAfterConnOpenAndStart)
+TEST_UM_KM_F(OwnershipValidation, QuicTestRegistrationShutdownAfterConnOpenBeforeStart)
 
-QUIC_TEST_F(OwnershipValidation, ConnectionCloseBeforeStreamClose, QuicTestConnectionCloseBeforeStreamClose)
+TEST_UM_KM_F(OwnershipValidation, QuicTestRegistrationShutdownAfterConnOpenAndStart)
 
-QUIC_TEST_P(WithBool, ValidateStream, QuicTestValidateStream)
+TEST_UM_KM_F(OwnershipValidation, QuicTestConnectionCloseBeforeStreamClose)
 
-QUIC_TEST_F(ParameterValidation, CloseConnBeforeStreamFlush, QuicTestCloseConnBeforeStreamFlush)
+TEST_UM_KM_P(WithBool, QuicTestValidateStream)
+
+TEST_UM_KM_F(ParameterValidation, QuicTestCloseConnBeforeStreamFlush)
 
 struct WithValidateConnectionEventArgs :
     public QuicTestFixture, public testing::WithParamInterface<ValidateConnectionEventArgs> {
@@ -602,7 +599,7 @@ std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& a
     return o << args.Test;
 }
 
-QUIC_TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents, QuicTestValidateConnectionEvents)
+TEST_UM_KM_P(WithValidateConnectionEventArgs, QuicTestValidateConnectionEvents)
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
@@ -625,7 +622,7 @@ std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs&
     return o << args.Test;
 }
 
-QUIC_TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent, QuicTestValidateNetStatsConnEvent)
+TEST_UM_KM_P(WithValidateNetStatsConnEventArgs, QuicTestValidateNetStatsConnEvent)
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
@@ -647,7 +644,7 @@ std::ostream& operator << (std::ostream& o, const ValidateStreamEventArgs& args)
     return o << args.Test;
 }
 
-QUIC_TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents, QuicTestValidateStreamEvents)
+TEST_UM_KM_P(WithValidateStreamEventArgs, QuicTestValidateStreamEvents)
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
@@ -655,10 +652,10 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithValidateStreamEventArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-QUIC_TEST_F(ParameterValidation, ValidateVersionSettings, QuicTestVersionSettings)
+TEST_UM_KM_F(ParameterValidation, QuicTestVersionSettings)
 #endif
 
-QUIC_TEST_F(ParameterValidation, ValidateParamApi, QuicTestValidateParamApi)
+TEST_UM_KM_F(ParameterValidation, QuicTestValidateParamApi)
 
 struct TlsConfigArgs {
     QUIC_CREDENTIAL_TYPE CredType;
@@ -775,35 +772,39 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(WithValidateTlsConfigArgs::Generate()));
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-QUIC_TEST_F(Basic, RegistrationOpenClose, QuicTestRegistrationOpenClose)
+
+class Basic : public QuicTestFixture {};
+TEST_UM_KM_F(Basic, QuicTestRegistrationOpenClose)
 #endif
 
-QUIC_TEST_F(Basic, CreateListener, QuicTestCreateListener)
+TEST_UM_KM_F(Basic, QuicTestCreateListener)
 
-QUIC_TEST_F(Basic, StartListener, QuicTestStartListener)
+TEST_UM_KM_F(Basic, QuicTestStartListener)
 
-QUIC_TEST_F(Basic, StartListenerMultiAlpns, QuicTestStartListenerMultiAlpns)
+TEST_UM_KM_F(Basic, QuicTestStartListenerMultiAlpns)
 
-QUIC_TEST_P(WithFamilyArgs, StartListenerImplicit, QuicTestStartListenerImplicit)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestStartListenerImplicit)
 
-QUIC_TEST_F(Basic, StartTwoListeners, QuicTestStartTwoListeners)
+TEST_UM_KM_F(Basic, QuicTestStartTwoListeners)
 
-QUIC_TEST_F(Basic, StartTwoListenersSameALPN, QuicTestStartTwoListenersSameALPN)
+TEST_UM_KM_F(Basic, QuicTestStartTwoListenersSameALPN)
 
-QUIC_TEST_P(WithFamilyArgs, StartListenerExplicit, QuicTestStartListenerExplicit)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestStartListenerExplicit)
 
-QUIC_TEST_F(Basic, CreateConnection, QuicTestCreateConnection)
+TEST_UM_KM_F(Basic, QuicTestCreateConnection)
 
-QUIC_TEST_F(Basic, ConnectionCloseFromCallback, QuicTestConnectionCloseFromCallback)
+TEST_UM_KM_F(Basic, QuicTestConnectionCloseFromCallback)
 
-QUIC_TEST_P(WithBool, RejectConnection, QuicTestConnectionRejection)
+TEST_UM_KM_P(WithBool, QuicTestConnectionRejection)
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-QUIC_TEST_P(WithFamilyArgs, Ecn, QuicTestEcn)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestEcn)
 
-QUIC_TEST_P(WithFamilyArgs, LocalPathChanges, QuicTestLocalPathChanges)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestLocalPathChanges)
 
-QUIC_TEST_F(Mtu, Settings, QuicTestMtuSettings)
+
+class Mtu : public QuicTestFixture {};
+TEST_UM_KM_F(Mtu, QuicTestMtuSettings)
 
 struct WithMtuArgs : public QuicTestFixture, public testing::WithParamInterface<MtuArgs> {
     static ::std::vector<MtuArgs> Generate() {
@@ -839,6 +840,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
+
+class Alpn : public QuicTestFixture {};
 TEST_F(Alpn, ValidAlpnLengths) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
@@ -851,14 +854,14 @@ TEST_F(Alpn, ValidAlpnLengths) {
     }
 }
 
-QUIC_TEST_F(Alpn, InvalidAlpnLengths, QuicTestInvalidAlpnLengths)
+TEST_UM_KM_F(Alpn, QuicTestInvalidAlpnLengths)
 
-QUIC_TEST_F(Alpn, ChangeAlpn, QuicTestChangeAlpn)
+TEST_UM_KM_F(Alpn, QuicTestChangeAlpn)
 
 
-QUIC_TEST_P(WithFamilyArgs, BindConnectionImplicit, QuicTestBindConnectionImplicit)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestBindConnectionImplicit)
 
-QUIC_TEST_P(WithFamilyArgs, BindConnectionExplicit, QuicTestBindConnectionExplicit)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestBindConnectionExplicit)
 
 TEST_P(WithFamilyArgs, TestAddrFunctions) {
     TestLoggerT<ParamType> Logger("QuicTestAddrFunctions", GetParam());
@@ -968,7 +971,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 #ifndef QUIC_DISABLE_SHARED_PORT_TESTS
-QUIC_TEST_P(WithFamilyArgs, ClientSharedLocalPort, QuicTestClientSharedLocalPort)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestClientSharedLocalPort)
 #endif
 
 TEST_P(WithFamilyArgs, InterfaceBinding) {
@@ -1083,26 +1086,26 @@ std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& arg
         (args.DisableVNEServer ? "DisableServer" : "EnableServer");
 }
 
-QUIC_TEST_P(WithFamilyArgs, VersionNegotiation, QuicTestVersionNegotiation)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestVersionNegotiation)
 
-QUIC_TEST_P(WithFamilyArgs, VersionNegotiationRetry, QuicTestVersionNegotiationRetry)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestVersionNegotiationRetry)
 
-QUIC_TEST_P(WithFamilyArgs, CompatibleVersionNegotiationRetry, QuicTestCompatibleVersionNegotiationRetry)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestCompatibleVersionNegotiationRetry)
 
-QUIC_TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiation, QuicTestCompatibleVersionNegotiation)
+TEST_UM_KM_P(WithVersionNegotiationExtArgs, QuicTestCompatibleVersionNegotiation)
 
-QUIC_TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultServer, QuicTestCompatibleVersionNegotiationDefaultServer)
+TEST_UM_KM_P(WithVersionNegotiationExtArgs, QuicTestCompatibleVersionNegotiationDefaultServer)
 
-QUIC_TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient, QuicTestCompatibleVersionNegotiationDefaultClient)
+TEST_UM_KM_P(WithVersionNegotiationExtArgs, QuicTestCompatibleVersionNegotiationDefaultClient)
 
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithVersionNegotiationExtArgs,
     testing::ValuesIn(WithVersionNegotiationExtArgs::Generate()));
 
-QUIC_TEST_P(WithFamilyArgs, IncompatibleVersionNegotiation, QuicTestIncompatibleVersionNegotiation)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestIncompatibleVersionNegotiation)
 
-QUIC_TEST_P(WithFamilyArgs, FailedVersionNegotiation, QuicTestFailedVersionNegotiation)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestFailedVersionNegotiation)
 
 struct WithFeatureSupportArgs : public QuicTestFixture, public testing::WithParamInterface<FeatureSupportArgs> {
 
@@ -1123,9 +1126,9 @@ std::ostream& operator << (std::ostream& o, const FeatureSupportArgs& args) {
         (args.ClientSupport ? "Client Yes" : "Client No");
 }
 
-QUIC_TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation, QuicTestReliableResetNegotiation)
+TEST_UM_KM_P(WithFeatureSupportArgs, QuicTestReliableResetNegotiation)
 
-QUIC_TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation, QuicTestOneWayDelayNegotiation)
+TEST_UM_KM_P(WithFeatureSupportArgs, QuicTestOneWayDelayNegotiation)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1153,13 +1156,13 @@ std::ostream& operator << (std::ostream& o, const CustomCertValidationArgs& args
 }
 
 
-QUIC_TEST_P(WithCustomCertificateValidationArgs, CustomServerCertificateValidation, QuicTestCustomServerCertificateValidation)
+TEST_UM_KM_P(WithCustomCertificateValidationArgs, QuicTestCustomServerCertificateValidation)
 
-QUIC_TEST_P(WithCustomCertificateValidationArgs, CustomClientCertificateValidation, QuicTestCustomClientCertificateValidation)
+TEST_UM_KM_P(WithCustomCertificateValidationArgs, QuicTestCustomClientCertificateValidation)
 
-QUIC_TEST_F(Handshake, CustomServerCertValidationAfterShutdown, QuicTestCustomServerCertValidationAfterShutdown)
+TEST_UM_KM_F(Handshake, QuicTestCustomServerCertValidationAfterShutdown)
 
-QUIC_TEST_F(Handshake, CustomClientCertValidationAfterShutdown, QuicTestCustomClientCertValidationAfterShutdown)
+TEST_UM_KM_F(Handshake, QuicTestCustomClientCertValidationAfterShutdown)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1247,7 +1250,7 @@ std::ostream& operator << (std::ostream& o, const CibirExtensionParams& args) {
         (args.Mode & 2 ? "Server/" : "");
 }
 
-QUIC_TEST_P(WithCibirExtensionParams, CibirExtension, QuicTestCibirExtension)
+TEST_UM_KM_P(WithCibirExtensionParams, QuicTestCibirExtension)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1277,7 +1280,7 @@ std::ostream& operator << (std::ostream& o, const OddSizeVnTpParams& args) {
         (int)args.VnTpSize;
 }
 
-QUIC_TEST_P(WithOddSizeVnTpParams, OddSizeVnTp, QuicTestVNTPOddSize)
+TEST_UM_KM_P(WithOddSizeVnTpParams, QuicTestVNTPOddSize)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1287,11 +1290,11 @@ INSTANTIATE_TEST_SUITE_P(
 class WithVpnVersionParams : public QuicTestFixture, public testing::WithParamInterface<bool> {
 };
 
-QUIC_TEST_P(WithVpnVersionParams, VnTpChosenVersionMismatch, QuicTestVNTPChosenVersionMismatch)
+TEST_UM_KM_P(WithVpnVersionParams, QuicTestVNTPChosenVersionMismatch)
 
-QUIC_TEST_P(WithVpnVersionParams, VnTpChosenVersionZero, QuicTestVNTPChosenVersionZero)
+TEST_UM_KM_P(WithVpnVersionParams, QuicTestVNTPChosenVersionZero)
 
-QUIC_TEST_P(WithVpnVersionParams, VnTpOtherVersionZero, QuicTestVNTPOtherVersionZero)
+TEST_UM_KM_P(WithVpnVersionParams, QuicTestVNTPOtherVersionZero)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1302,6 +1305,8 @@ INSTANTIATE_TEST_SUITE_P(
 #endif
 
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
+
+class CredValidation : public QuicTestFixture {};
 TEST_F(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_CREDENTIAL_BLOB Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
@@ -1566,17 +1571,19 @@ TEST_P(WithFamilyArgs, Unreachable) {
     }
 }
 
-QUIC_TEST_F(HandshakeTest, InvalidAddress, QuicTestConnectInvalidAddress)
 
-QUIC_TEST_P(WithFamilyArgs, BadALPN, QuicTestConnectBadAlpn)
+class HandshakeTest : public QuicTestFixture {};
+TEST_UM_KM_F(HandshakeTest, QuicTestConnectInvalidAddress)
 
-QUIC_TEST_P(WithFamilyArgs, BadSNI, QuicTestConnectBadSni)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestConnectBadAlpn)
 
-QUIC_TEST_P(WithFamilyArgs, IpSNI, QuicTestConnectIpSni)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestConnectBadSni)
 
-QUIC_TEST_P(WithFamilyArgs, ServerRejected, QuicTestConnectServerRejected)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestConnectIpSni)
 
-QUIC_TEST_P(WithFamilyArgs, ClientBlockedSourcePort, QuicTestClientBlockedSourcePort)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestConnectServerRejected)
+
+TEST_UM_KM_P(WithFamilyArgs, QuicTestClientBlockedSourcePort)
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
@@ -1684,12 +1691,12 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
     }
 }
 
-QUIC_TEST_P(WithFamilyArgs, PathValidationTimeout, QuicTestPathValidationTimeout)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestPathValidationTimeout)
 
-QUIC_TEST_P(WithFamilyArgs, PathValidationLastPathClose, QuicTestPathValidationLastPathClose)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestPathValidationLastPathClose)
 #endif
 
-QUIC_TEST_P(WithFamilyArgs, ChangeMaxStreamIDs, QuicTestChangeMaxStreamID)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestChangeMaxStreamID)
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, LoadBalanced) {
@@ -1726,7 +1733,7 @@ std::ostream& operator << (std::ostream& o, const HandshakeLossPatternsArgs& arg
         (args.CcAlgo == QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ? "cubic" : "bbr");
 }
 
-QUIC_TEST_P(WithHandshakeLossPatternsArgs, HandshakeSpecificLossPatterns, QuicTestHandshakeSpecificLossPatterns)
+TEST_UM_KM_P(WithHandshakeLossPatternsArgs, QuicTestHandshakeSpecificLossPatterns)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1749,7 +1756,7 @@ std::ostream& operator << (std::ostream& o, const ShutdownDuringHandshakeArgs& a
     return o << (args.ClientShutdown ? "Client" : "Server");
 }
 
-QUIC_TEST_P(WithShutdownDuringHandshakeArgs, ShutdownDuringHandshake, QuicTestShutdownDuringHandshake)
+TEST_UM_KM_P(WithShutdownDuringHandshakeArgs, QuicTestShutdownDuringHandshake)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1787,7 +1794,7 @@ std::ostream& operator << (std::ostream& o, const ConnectionPoolCreateArgs& args
         (args.TestCibirSupport ? "TestCibir" : "NoCibir");
 }
 
-QUIC_TEST_P(WithConnectionPoolCreateArgs, ConnectionPoolCreate, QuicTestConnectionPoolCreate)
+TEST_UM_KM_P(WithConnectionPoolCreateArgs, QuicTestConnectionPoolCreate)
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1823,7 +1830,7 @@ std::ostream& operator << (std::ostream& o, const SendArgs& args) {
         (args.ServerInitiatedStreams ? "Server" : "Client");
 }
 
-QUIC_TEST_P(WithSendArgs, Send, QuicTestConnectAndPing_Send)
+TEST_UM_KM_P(WithSendArgs, QuicTestConnectAndPing_Send)
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
@@ -1885,7 +1892,7 @@ std::ostream& operator << (std::ostream& o, const SendLargeArgs& args) {
         (args.UseZeroRtt ? "0-RTT" : "1-RTT");
 }
 
-QUIC_TEST_P(WithSendLargeArgs, SendLarge, QuicTestConnectAndPing_SendLarge)
+TEST_UM_KM_P(WithSendLargeArgs, QuicTestConnectAndPing_SendLarge)
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
@@ -1916,7 +1923,7 @@ std::ostream& operator << (std::ostream& o, const SendIntermittentlyArgs& args) 
         (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer");
 }
 
-QUIC_TEST_P(WithSendIntermittentlyArgs, SendIntermittently, QuicTestConnectAndPing_SendIntermittently)
+TEST_UM_KM_P(WithSendIntermittentlyArgs, QuicTestConnectAndPing_SendIntermittently)
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
@@ -2018,11 +2025,13 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_DISABLE_0RTT_TESTS
 
-QUIC_TEST_P(WithBool, IdleTimeout, QuicTestConnectAndIdle)
+TEST_UM_KM_P(WithBool, QuicTestConnectAndIdle)
 
-QUIC_TEST_F(Misc, IdleDestCidChange, QuicTestConnectAndIdleForDestCidChange)
 
-QUIC_TEST_F(Misc, ServerDisconnect, QuicTestServerDisconnect)
+class Misc : public QuicTestFixture {};
+TEST_UM_KM_F(Misc, QuicTestConnectAndIdleForDestCidChange)
+
+TEST_UM_KM_F(Misc, QuicTestServerDisconnect)
 
 TEST_F(Misc, ClientDisconnect) {
     TestLogger Logger("QuicTestClientDisconnect");
@@ -2033,11 +2042,11 @@ TEST_F(Misc, ClientDisconnect) {
     }
 }
 
-QUIC_TEST_F(Misc, StatelessResetKey, QuicTestStatelessResetKey)
+TEST_UM_KM_F(Misc, QuicTestStatelessResetKey)
 
-QUIC_TEST_P(WithFamilyArgs, ForcedKeyUpdate, QuicTestForceKeyUpdate)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestForceKeyUpdate)
 
-QUIC_TEST_P(WithFamilyArgs, KeyUpdate, QuicTestKeyUpdate)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestKeyUpdate)
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
@@ -2059,7 +2068,7 @@ std::ostream& operator << (std::ostream& o, const KeyUpdateRandomLossArgs& args)
         args.RandomLossPercentage;
 }
 
-QUIC_TEST_P(WithKeyUpdateRandomLossArgs, RandomLoss, QuicTestKeyUpdateRandomLoss)
+TEST_UM_KM_P(WithKeyUpdateRandomLossArgs, QuicTestKeyUpdateRandomLoss)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2102,7 +2111,7 @@ std::ostream& operator << (std::ostream& o, const AbortiveArgs& args) {
         args.Flags.PendReceive;
 }
 
-QUIC_TEST_P(WithAbortiveArgs, AbortiveShutdown, QuicAbortiveTransfers)
+TEST_UM_KM_P(WithAbortiveArgs, QuicAbortiveTransfers)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2126,7 +2135,7 @@ std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
     return o << "DropPackets: " << (args.DropPackets ? "true" : "false");
 }
 
-QUIC_TEST_P(WithCancelOnLossArgs, CancelOnLossSend, QuicCancelOnLossSend)
+TEST_UM_KM_P(WithCancelOnLossArgs, QuicCancelOnLossSend)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2153,7 +2162,7 @@ std::ostream& operator << (std::ostream& o, const CidUpdateArgs& args) {
         args.Iterations;
 }
 
-QUIC_TEST_P(WithCidUpdateArgs, CidUpdate, QuicTestCidUpdate)
+TEST_UM_KM_P(WithCidUpdateArgs, QuicTestCidUpdate)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2186,7 +2195,7 @@ std::ostream& operator << (std::ostream& o, const ReceiveResumeArgs& args) {
         (args.PauseFirst ? "PauseBeforeSend" : "PauseAfterSend");
 }
 
-QUIC_TEST_P(WithReceiveResumeArgs, ReceiveResume, QuicTestReceiveResume)
+TEST_UM_KM_P(WithReceiveResumeArgs, QuicTestReceiveResume)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2211,7 +2220,7 @@ std::ostream& operator << (std::ostream& o, const ReceiveResumeNoDataArgs& args)
         (args.ShutdownType ? (args.ShutdownType == AbortShutdown ? "Abort" : "Graceful") : "NoShutdown");
 }
 
-QUIC_TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData, QuicTestReceiveResumeNoData)
+TEST_UM_KM_P(WithReceiveResumeNoDataArgs, QuicTestReceiveResumeNoData)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2227,40 +2236,40 @@ TEST_P(WithFamilyArgs, AckSendDelay) {
     }
 }
 
-QUIC_TEST_F(Misc, AbortPausedReceive, QuicTestAbortReceive_Paused)
+TEST_UM_KM_F(Misc, QuicTestAbortReceive_Paused)
 
-QUIC_TEST_F(Misc, AbortPendingReceive, QuicTestAbortReceive_Pending)
+TEST_UM_KM_F(Misc, QuicTestAbortReceive_Pending)
 
-QUIC_TEST_F(Misc, AbortIncompleteReceive, QuicTestAbortReceive_Incomplete)
+TEST_UM_KM_F(Misc, QuicTestAbortReceive_Incomplete)
 
-QUIC_TEST_F(Misc, SlowReceive, QuicTestSlowReceive)
+TEST_UM_KM_F(Misc, QuicTestSlowReceive)
 
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
 #ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
-QUIC_TEST_F(Misc, NthAllocFail, QuicTestNthAllocFail)
+TEST_UM_KM_F(Misc, QuicTestNthAllocFail)
 #endif // QUIC_TEST_OPENSSL_FLAGS
 #endif // QUIC_TEST_ALLOC_FAILURES_ENABLED
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-QUIC_TEST_F(Misc, NthPacketDrop, QuicTestNthPacketDrop)
+TEST_UM_KM_F(Misc, QuicTestNthPacketDrop)
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-QUIC_TEST_F(Misc, StreamPriority, QuicTestStreamPriority)
+TEST_UM_KM_F(Misc, QuicTestStreamPriority)
 
-QUIC_TEST_F(Misc, StreamPriorityInfiniteLoop, QuicTestStreamPriorityInfiniteLoop)
+TEST_UM_KM_F(Misc, QuicTestStreamPriorityInfiniteLoop)
 
-QUIC_TEST_F(Misc, StreamDifferentAbortErrors, QuicTestStreamDifferentAbortErrors)
+TEST_UM_KM_F(Misc, QuicTestStreamDifferentAbortErrors)
 
-QUIC_TEST_F(Misc, StreamAbortRecvFinRace, QuicTestStreamAbortRecvFinRace)
+TEST_UM_KM_F(Misc, QuicTestStreamAbortRecvFinRace)
 
 #ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
-QUIC_TEST_F(Misc, StreamReliableReset, QuicTestStreamReliableReset)
+TEST_UM_KM_F(Misc, QuicTestStreamReliableReset)
 
-QUIC_TEST_F(Misc, StreamReliableResetMultipleSends, QuicTestStreamReliableResetMultipleSends)
+TEST_UM_KM_F(Misc, QuicTestStreamReliableResetMultipleSends)
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-QUIC_TEST_F(Misc, StreamMultiReceive, QuicTestStreamMultiReceive)
+TEST_UM_KM_F(Misc, QuicTestStreamMultiReceive)
 
 // App-provided receive buffer tests
 
@@ -2280,17 +2289,17 @@ std::ostream& operator << (std::ostream& o, const AppProvidedBuffersConfig& args
         "Additional:" << args.AdditionalBuffersNum << " buffers of " << args.AdditionalBuffersSize << "bytes.";
 }
 
-QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffers_ClientSend, QuicTestStreamAppProvidedBuffers_ClientSend)
+TEST_UM_KM_P(WithAppProvidedBuffersConfigArgs, QuicTestStreamAppProvidedBuffers_ClientSend)
 
-QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffers_ServerSend, QuicTestStreamAppProvidedBuffers_ServerSend)
+TEST_UM_KM_P(WithAppProvidedBuffersConfigArgs, QuicTestStreamAppProvidedBuffers_ServerSend)
 
-QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream, QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream)
+TEST_UM_KM_P(WithAppProvidedBuffersConfigArgs, QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_AbortStream)
 
-QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer, QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer)
+TEST_UM_KM_P(WithAppProvidedBuffersConfigArgs, QuicTestStreamAppProvidedBuffersOutOfSpace_ClientSend_ProvideMoreBuffer)
 
-QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream, QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream)
+TEST_UM_KM_P(WithAppProvidedBuffersConfigArgs, QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_AbortStream)
 
-QUIC_TEST_P(WithAppProvidedBuffersConfigArgs, StreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer, QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer)
+TEST_UM_KM_P(WithAppProvidedBuffersConfigArgs, QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
@@ -2299,19 +2308,21 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-QUIC_TEST_F(Misc, StreamBlockUnblockBidiConnFlowControl, QuicTestStreamBlockUnblockConnFlowControl_Bidi)
+TEST_UM_KM_F(Misc, QuicTestStreamBlockUnblockConnFlowControl_Bidi)
 
-QUIC_TEST_F(Misc, StreamBlockUnblockUnidiConnFlowControl, QuicTestStreamBlockUnblockConnFlowControl_Unidi)
+TEST_UM_KM_F(Misc, QuicTestStreamBlockUnblockConnFlowControl_Unidi)
 
-QUIC_TEST_F(Misc, StreamAbortConnFlowControl, QuicTestStreamAbortConnFlowControl)
+TEST_UM_KM_F(Misc, QuicTestStreamAbortConnFlowControl)
 
-QUIC_TEST_F(Basic, OperationPriority, QuicTestOperationPriority)
+TEST_UM_KM_F(Basic, QuicTestOperationPriority)
 
-QUIC_TEST_F(Basic, ConnectionPriority, QuicTestConnectionPriority)
+TEST_UM_KM_F(Basic, QuicTestConnectionPriority)
 
 // Drill tests
 
-QUIC_TEST_F(Drill, VarIntEncoder, QuicDrillTestVarIntEncoder)
+
+class Drill : public QuicTestFixture {};
+TEST_UM_KM_F(Drill, QuicDrillTestVarIntEncoder)
 
 struct WithDrillInitialPacketCidArgs:
     public QuicTestFixture, public testing::WithParamInterface<DrillInitialPacketCidArgs> {
@@ -2337,7 +2348,7 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketCidArgs& arg
         (args.CidLengthFieldValid ? "Valid" : "Invalid") << " length";
 }
 
-QUIC_TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids, QuicDrillTestInitialCid)
+TEST_UM_KM_P(WithDrillInitialPacketCidArgs, QuicDrillTestInitialCid)
 
 INSTANTIATE_TEST_SUITE_P(
     Drill,
@@ -2360,11 +2371,11 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& a
         (args.Family == 4 ? "v4" : "v6");
 }
 
-QUIC_TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken, QuicDrillTestInitialToken)
+TEST_UM_KM_P(WithDrillInitialPacketTokenArgs, QuicDrillTestInitialToken)
 
-QUIC_TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestServerVNPacket, QuicDrillTestServerVNPacket)
+TEST_UM_KM_P(WithDrillInitialPacketTokenArgs, QuicDrillTestServerVNPacket)
 
-QUIC_TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake, QuicDrillTestKeyUpdateDuringHandshake)
+TEST_UM_KM_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake)
 
 INSTANTIATE_TEST_SUITE_P(
     Drill,
@@ -2389,16 +2400,16 @@ std::ostream& operator << (std::ostream& o, const DatagramNegotiationArgs& args)
         (args.DatagramReceiveEnabled ? "DatagramReceiveEnabled" : "DatagramReceiveDisabled");
 }
 
-QUIC_TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation, QuicTestDatagramNegotiation)
+TEST_UM_KM_P(WithDatagramNegotiationArgs, QuicTestDatagramNegotiation)
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithDatagramNegotiationArgs,
     testing::ValuesIn(WithDatagramNegotiationArgs::Generate()));
 
-QUIC_TEST_P(WithFamilyArgs, DatagramSend, QuicTestDatagramSend)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestDatagramSend)
 
-QUIC_TEST_P(WithFamilyArgs, DatagramDrop, QuicTestDatagramDrop)
+TEST_UM_KM_P(WithFamilyArgs, QuicTestDatagramDrop)
 
 #ifdef _WIN32 // Storage tests only supported on Windows
 
