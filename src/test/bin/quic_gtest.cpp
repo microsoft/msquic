@@ -380,33 +380,20 @@ TEST_F(ParameterValidation, ValidateXdpMapConfigParam) {
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 class XdpMapModeFixture : public QuicTestFixture {
 protected:
-    static bool SuiteSkip;
-    static const char* SuiteSkipReason;
-    static bool SuiteFailed;
-    static const char* SuiteFailureReason;
-
     static void SetUpTestSuite() {
-        SuiteSkip = false;
-        SuiteSkipReason = nullptr;
-        SuiteFailed = false;
-        SuiteFailureReason = nullptr;
-
         if (TestingKernelMode) {
-            SuiteSkip = true;
-            SuiteSkipReason = "XDP map mode doesn't apply to kernel mode.";
+            GTEST_SKIP() << "XDP map mode doesn't apply to kernel mode.";
             return;
         }
 
         if (!UseDuoNic) {
-            SuiteSkip = true;
-            SuiteSkipReason = "XDP Map Mode requires DuoNic (--duoNic)";
+            GTEST_SKIP() << "XDP Map Mode requires DuoNic (--duoNic)";
             return;
         }
 
         auto IfIndices = DiscoverDuoNicInterfaces();
         if (IfIndices.empty()) {
-            SuiteSkip = true;
-            SuiteSkipReason = "No DuoNic interfaces found";
+            GTEST_SKIP() << "No DuoNic interfaces found";
             return;
         }
 
@@ -416,8 +403,7 @@ protected:
         HANDLE ProbeMap = nullptr;
         HRESULT Hr = XdpMapCreate(&ProbeMap, XDP_MAP_TYPE_XSKMAP);
         if (FAILED(Hr)) {
-            SuiteSkip = true;
-            SuiteSkipReason = "XDP driver does not support map mode (XdpMapCreate failed)";
+            GTEST_SKIP() << "XDP driver does not support map mode (XdpMapCreate failed)";
             return;
         }
         CloseHandle(ProbeMap);
@@ -436,13 +422,8 @@ protected:
         for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
             Hr = XdpMapCreate(&XdpMapState.XskMaps[i], XDP_MAP_TYPE_XSKMAP);
             if (FAILED(Hr)) {
-                for (uint32_t j = 0; j < i; j++) {
-                    CloseHandle(XdpMapState.XskMaps[j]);
-                    XdpMapState.XskMaps[j] = nullptr;
-                }
-                XdpMapState.InterfaceCount = 0;
-                SuiteFailed = true;
-                SuiteFailureReason = "XdpMapCreate failed for interface XSKMAP";
+                CleanupMaps();
+                FAIL() << "XdpMapCreate failed for interface XSKMAP";
                 return;
             }
             QuicTraceLogInfo(
@@ -462,15 +443,11 @@ protected:
             MapConfigs[i].InterfaceIndex = XdpMapState.IfIndices[i];
             MapConfigs[i].MapHandle = (QUIC_XDP_MAP_HANDLE)XdpMapState.XskMaps[i];
         }
-        if (QUIC_FAILED(MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
-                XdpMapState.InterfaceCount * sizeof(QUIC_XDP_MAP_CONFIG),
-                MapConfigs))) {
-            SuiteFailed = true;
-            SuiteFailureReason = "SetParam XDP_MAP_CONFIG failed";
-            return;
-        }
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+            XdpMapState.InterfaceCount * sizeof(QUIC_XDP_MAP_CONFIG),
+            MapConfigs))) << "SetParam XDP_MAP_CONFIG failed";
 
         ConfigureDscp();
         QuicTestInitialize();
@@ -487,24 +464,12 @@ protected:
     }
 
     static void TearDownTestSuite() {
-        if (SuiteSkip || TestingKernelMode) return;
-        if (SuiteFailed) {
-            CleanupMaps();
-            if (MsQuic) {
-                delete MsQuic;
-                MsQuic = nullptr;
-            }
-            return;
+        if (MsQuic) {
+            UninitMsQuicLibrary();
         }
-        UninitMsQuicLibrary();
         CleanupMaps();
     }
 };
-
-bool XdpMapModeFixture::SuiteSkip = false;
-const char* XdpMapModeFixture::SuiteSkipReason = nullptr;
-bool XdpMapModeFixture::SuiteFailed = false;
-const char* XdpMapModeFixture::SuiteFailureReason = nullptr;
 
 //
 // Parameterized test class for XDP map-mode tests.
@@ -530,11 +495,6 @@ std::ostream& operator << (std::ostream& o, const XdpMapModeArgs& args) {
 }
 
 TEST_P(WithXdpMapModeArgs, Handshake) {
-    if (SuiteSkip) {
-        GTEST_SKIP() << SuiteSkipReason;
-    }
-    ASSERT_FALSE(SuiteFailed) << SuiteFailureReason;
-
     auto Params = GetParam();
     XdpMapModeRuleScope Scope(Params.UseCibir, UseQTIP);
     Params.ClientPort = Scope.GetClientPort();
