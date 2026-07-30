@@ -378,9 +378,8 @@ TEST_F(ParameterValidation, ValidateXdpMapConfigParam) {
 #endif
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-struct WithXdpMapModeArgs : public QuicTestFixture,
-    public ::testing::WithParamInterface<XdpMapModeArgs> {
-
+class XdpMapModeFixture : public QuicTestFixture {
+protected:
     static bool SuiteSkip;
     static const char* SuiteSkipReason;
     static bool SuiteFailed;
@@ -429,7 +428,9 @@ struct WithXdpMapModeArgs : public QuicTestFixture,
         XdpMapState.InterfaceCount = (uint32_t)IfIndices.size();
         memcpy(XdpMapState.IfIndices, IfIndices.data(),
             sizeof(uint32_t) * IfIndices.size());
-        printf("WithXdpMapModeArgs: discovered %u DuoNic interface(s)\n",
+        QuicTraceLogInfo(
+            XdpMapModeDiscovered,
+            "[test] XDP Map Mode: discovered %u DuoNic interface(s)",
             XdpMapState.InterfaceCount);
 
         for (uint32_t i = 0; i < XdpMapState.InterfaceCount; i++) {
@@ -444,8 +445,11 @@ struct WithXdpMapModeArgs : public QuicTestFixture,
                 SuiteFailureReason = "XdpMapCreate failed for interface XSKMAP";
                 return;
             }
-            printf("  IfIndex=%u, XskMap=%p\n",
-                XdpMapState.IfIndices[i], XdpMapState.XskMaps[i]);
+            QuicTraceLogInfo(
+                XdpMapModeInterface,
+                "[test] XDP Map Mode: IfIndex=%u, XskMap=%p",
+                XdpMapState.IfIndices[i],
+                XdpMapState.XskMaps[i]);
         }
 
         //
@@ -495,6 +499,18 @@ struct WithXdpMapModeArgs : public QuicTestFixture,
         UninitMsQuicLibrary();
         CleanupMaps();
     }
+};
+
+bool XdpMapModeFixture::SuiteSkip = false;
+const char* XdpMapModeFixture::SuiteSkipReason = nullptr;
+bool XdpMapModeFixture::SuiteFailed = false;
+const char* XdpMapModeFixture::SuiteFailureReason = nullptr;
+
+//
+// Parameterized test class for XDP map-mode tests.
+//
+struct WithXdpMapModeArgs : public XdpMapModeFixture,
+    public ::testing::WithParamInterface<XdpMapModeArgs> {
 
     static ::std::vector<XdpMapModeArgs> Generate() {
         ::std::vector<XdpMapModeArgs> list;
@@ -504,11 +520,6 @@ struct WithXdpMapModeArgs : public QuicTestFixture,
         return list;
     }
 };
-
-bool WithXdpMapModeArgs::SuiteSkip = false;
-const char* WithXdpMapModeArgs::SuiteSkipReason = nullptr;
-bool WithXdpMapModeArgs::SuiteFailed = false;
-const char* WithXdpMapModeArgs::SuiteFailureReason = nullptr;
 
 std::ostream& operator << (std::ostream& o, const XdpMapModeArgs& args) {
     return o <<
