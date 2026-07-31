@@ -779,6 +779,7 @@ QuicConnIsClosed(
     _In_ const QUIC_CONNECTION * const Connection
     )
 {
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: member pointer is valid.
     return Connection->State.ClosedLocally || Connection->State.ClosedRemotely;
 }
 

@@ -220,6 +220,7 @@ BbrCongestionControlGetCongestionWindow(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
+        // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: embedded Cc is valid.
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
 
     uint32_t MinCongestionWindow = kMinCwndInMss * DatagramPayloadLength;

@@ -912,8 +912,6 @@ if(QUIC_CODE_CHECK)
             -cert-err33-c
             -clang-analyzer-optin.core.EnumCastOutOfRange
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
-            -clang-analyzer-security.ArrayBound
-            -clang-analyzer-core.CallAndMessage
             -clang-analyzer-unix.Stream
             -clang-diagnostic-invalid-unevaluated-string
             -clang-diagnostic-microsoft-anon-tag
