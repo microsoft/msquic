@@ -2839,7 +2839,7 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 //       unless they appear first in the datagram.
 //
 // @warning Assumes the record buffer contains valid TLS handshake formatting.
-// @warning The function asserts that the message type is <= 20.
+// @warning The function asserts that the message type is <= SSL3_MT_COMPRESSED_CERTIFICATE.
 //
 static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 {
@@ -2867,6 +2867,17 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
         //message size is just the lower 3 bytes of the TLS record
         //
         message_size = htonl(message_size) & 0x00ffffff;
+
+        //
+        // Make sure our message type is valid.
+        //
+        if (message_type > SSL3_MT_COMPRESSED_CERTIFICATE) {
+            //
+            // This is not a real handshake record.
+            //
+            CXPLAT_FREE(Entry, QUIC_POOL_TLS_RECORD_ENTRY);
+            return -1;
+        }
 
         //
         // Stop processing if this is a handshake finished record
