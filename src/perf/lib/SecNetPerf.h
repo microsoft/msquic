@@ -50,6 +50,7 @@ typedef enum TCP_EXECUTION_PROFILE {
 extern QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile;
 extern TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile;
 extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
+extern uint8_t PerfDefaultHyStartEnabled;
 extern uint8_t PerfDefaultEcnEnabled;
 extern uint8_t PerfDefaultQeoAllowed;
 extern uint8_t PerfDefaultHighPriority;
