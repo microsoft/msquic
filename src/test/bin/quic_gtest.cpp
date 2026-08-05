@@ -556,9 +556,9 @@ TEST_UM_KM_F(ParameterValidation, QuicTestValidateListener)
 
 TEST_UM_KM_F(ParameterValidation, QuicTestValidateConnection)
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
 class Handshake : public QuicTestFixture {};
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_UM_KM_F(Handshake, QuicTestConnectionExportKeyingMaterial)
 
 TEST_UM_KM_F(ParameterValidation, QuicTestValidateConnectionExportKeyingMaterial)
