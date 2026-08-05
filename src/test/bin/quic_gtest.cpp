@@ -771,9 +771,9 @@ INSTANTIATE_TEST_SUITE_P(
     WithValidateTlsConfigArgs,
     testing::ValuesIn(WithValidateTlsConfigArgs::Generate()));
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-
 class Basic : public QuicTestFixture {};
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_UM_KM_F(Basic, QuicTestRegistrationOpenClose)
 #endif
 
