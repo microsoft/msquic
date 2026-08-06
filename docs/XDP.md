@@ -5,10 +5,14 @@ MsQuic does not support Linux XDP as a datapath.
 
 ## Installing XDP
 
-MsQuic consumes XDP as a binary dependency for its tests; it does not build XDP
-from source. The available packages — and the exact version pinned for each — are
-defined in [`scripts/xdp.json`](../scripts/xdp.json), which is the single source
-of truth. Each entry is keyed by a version moniker (e.g. `1.1`, `prerelease`).
+MsQuic consumes the XDP SDK headers from the
+[`Microsoft.XDP-for-Windows.Sdk`](https://www.nuget.org/packages/Microsoft.XDP-for-Windows.Sdk)
+NuGet package during Windows builds. It does not build XDP from source.
+
+MsQuic tests install XDP as a binary dependency. The available runtime packages
+and the exact version pinned for each are defined in
+[`scripts/xdp.json`](../scripts/xdp.json), which is the single source of truth.
+Each entry is keyed by a version moniker (e.g. `xdp-v1.1`, `xdp-prerelease`).
 
 To install XDP for testing, use `prepare-machine.ps1`, which downloads the
 runtime NuGet package, extracts it, and installs the driver via the package's

@@ -563,11 +563,6 @@ if ($ForBuild -or $ForContainerBuild) {
     Write-Host "Initializing clog submodule"
     git submodule init $RootDir/submodules/clog
 
-    if (!$IsLinux) {
-        Write-Host "Initializing XDP-for-Windows submodule"
-        git submodule init $RootDir/submodules/xdp-for-windows
-    }
-
     if ($Tls -eq "quictls") {
         Write-Host "Initializing quictls submodule"
         git submodule init $RootDir/submodules/quictls

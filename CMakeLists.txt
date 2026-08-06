@@ -965,6 +965,17 @@ if(QUIC_CODE_CHECK)
     endif()
 endif()
 
+if("${CX_PLATFORM}" STREQUAL "windows")
+    include(FetchContent)
+    FetchContent_Declare(
+        xdp_sdk
+        URL https://api.nuget.org/v3-flatcontainer/microsoft.xdp-for-windows.sdk/1.4.0/microsoft.xdp-for-windows.sdk.1.4.0.nupkg
+        URL_HASH SHA256=27332A319287FED2BB716C9C9F2B4B43CF56921421424437EEC87BBAE8ABE590
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    FetchContent_MakeAvailable(xdp_sdk)
+    set(XDP_INCLUDE_DIR "${xdp_sdk_SOURCE_DIR}/build/native/include")
+endif()
+
 add_subdirectory(src/inc)
 add_subdirectory(src/generated)
 
