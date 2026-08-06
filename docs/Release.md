@@ -12,7 +12,8 @@ As this date nears, make sure to upgrade to a supported version.
 
 | Version | Branch                                                              | Fork Date   | Release Date | End of Support |
 |---------|---------------------------------------------------------------------|-------------|--------------|----------------|
-| v2.5    | [release/2.5](https://github.com/microsoft/msquic/tree/release/2.5) | May 15 2025 | May 16 2025  | TBD            |
+| v2.6    | [release/2.6](https://github.com/microsoft/msquic/tree/release/2.6) | Aug 7 2026  | Aug 12 2026  | TBD            |
+| v2.5    | [release/2.5](https://github.com/microsoft/msquic/tree/release/2.5) | May 15 2025 | May 16 2025  | Sep 1 2027     |
 | v2.4    | [release/2.4](https://github.com/microsoft/msquic/tree/release/2.4) | Aug 5 2024  | Aug 16 2024  | Sep 1 2026     |
 
 ### Historical versions
