@@ -19,30 +19,6 @@
 #include "quic_gtest.h.clog.h"
 #endif
 
-//
-// Common test parameters.
-//
-// The test parameters below are used broadly across many tests.
-// Define test parameters specific to a test scenario directly above the test itself.
-//
-
-// A boolean test parameter.
-// Should generally be avoided in favor or a more specific parameter
-// or two independent tests.
-class WithBool : public testing::Test,
-    public testing::WithParamInterface<bool> {
-};
-
-// To run a test over IPv4 and IPv6.
-struct WithFamilyArgs :
-    public testing::Test,
-    public testing::WithParamInterface<FamilyArgs> {
-
-    static ::std::vector<FamilyArgs> Generate() {
-        return {{4}, {6}};
-    }
-};
-
 std::ostream& operator << (std::ostream& o, const FamilyArgs& args) {
     return o << (args.Family == 4 ? "v4" : "v6");
 }

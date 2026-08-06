@@ -100,6 +100,44 @@ tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseTEnd , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpMapModeDiscovered
+// [test] XDP Map Mode: discovered %u DuoNic interface(s)
+// QuicTraceLogInfo(
+            XdpMapModeDiscovered,
+            "[test] XDP Map Mode: discovered %u DuoNic interface(s)",
+            XdpMapState.InterfaceCount);
+// arg2 = arg2 = XdpMapState.InterfaceCount = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_XdpMapModeDiscovered
+#define _clog_3_ARGS_TRACE_XdpMapModeDiscovered(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_QUIC_GTEST_CPP, XdpMapModeDiscovered , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpMapModeInterface
+// [test] XDP Map Mode: IfIndex=%u, XskMap=%p
+// QuicTraceLogInfo(
+                XdpMapModeInterface,
+                "[test] XDP Map Mode: IfIndex=%u, XskMap=%p",
+                XdpMapState.IfIndices[i],
+                XdpMapState.XskMaps[i]);
+// arg2 = arg2 = XdpMapState.IfIndices[i] = arg2
+// arg3 = arg3 = XdpMapState.XskMaps[i] = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpMapModeInterface
+#define _clog_4_ARGS_TRACE_XdpMapModeInterface(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_QUIC_GTEST_CPP, XdpMapModeInterface , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for TestLogFailure
 // [test] FAILURE - %s:%d - %s
 // QuicTraceLogError(

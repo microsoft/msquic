@@ -12629,6 +12629,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpMapModeDiscovered": {
+      "ModuleProperites": {},
+      "TraceString": "[test] XDP Map Mode: discovered %u DuoNic interface(s)",
+      "UniqueId": "XdpMapModeDiscovered",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "XdpMapModeInserted": {
       "ModuleProperites": {},
       "TraceString": "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u, XskMap=%p, RxXsk=%p)",
@@ -12656,6 +12668,22 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpMapModeInterface": {
+      "ModuleProperites": {},
+      "TraceString": "[test] XDP Map Mode: IfIndex=%u, XskMap=%p",
+      "UniqueId": "XdpMapModeInterface",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
     },
     "XdpPartitionShutdown": {
       "ModuleProperites": {},
@@ -17269,9 +17297,19 @@
         "EncodingString": "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)"
       },
       {
+        "UniquenessHash": "63b9c013-0ff2-12cd-f035-d51753796aea",
+        "TraceID": "XdpMapModeDiscovered",
+        "EncodingString": "[test] XDP Map Mode: discovered %u DuoNic interface(s)"
+      },
+      {
         "UniquenessHash": "ef9c8310-696c-a60e-7004-f26815bf4101",
         "TraceID": "XdpMapModeInserted",
         "EncodingString": "[ixdp][%p] Map mode: inserted XSK for queue %u (IfIndex=%u, XskMap=%p, RxXsk=%p)"
+      },
+      {
+        "UniquenessHash": "83cda0fc-64c9-2bfb-5fa8-cdfc484686b5",
+        "TraceID": "XdpMapModeInterface",
+        "EncodingString": "[test] XDP Map Mode: IfIndex=%u, XskMap=%p"
       },
       {
         "UniquenessHash": "18009e0d-e738-467e-35c0-55ebabcbf31f",

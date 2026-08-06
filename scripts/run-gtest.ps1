@@ -62,9 +62,6 @@ as necessary.
 .PARAMETER DuoNic
     Uses DuoNic instead of loopback.
 
-.PARAMETER XdpMapMode
-    Uses XDP map mode with DuoNic.
-
 #>
 
 param (
@@ -135,9 +132,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$DuoNic = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$XdpMapMode = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$OsRunner = "",
@@ -409,9 +403,6 @@ function Start-TestCase([String]$Name) {
     if ($DuoNic) {
         $Arguments += " --duoNic"
     }
-    if ($XdpMapMode) {
-        $Arguments += " --xdpMapMode"
-    }
     if ($UseQtip) {
         $Arguments += " --useQTIP"
     }
@@ -458,9 +449,6 @@ function Start-AllTestCases {
     }
     if ($DuoNic) {
         $Arguments += " --duoNic"
-    }
-    if ($XdpMapMode) {
-        $Arguments += " --xdpMapMode"
     }
     if ($UseQtip) {
         $Arguments += " --useQTIP"
