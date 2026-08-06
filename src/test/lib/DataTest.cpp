@@ -4401,7 +4401,7 @@ struct StreamReliableResetZeroOffset {
             TestContext->ServerStream =
                 new(std::nothrow) MsQuicStream(
                     Event->PEER_STREAM_STARTED.Stream,
-                    CleanUpAutoDelete,
+                    CleanUpManual,
                     ServerStreamCallback,
                     Context);
         }
@@ -4652,6 +4652,8 @@ QuicTestStreamReliableResetZeroOffset(
         TEST_EQUAL(RecvOffset, 0ull);
 
         TEST_TRUE(Context.ShutdownErrorCode == AbortErrorCode);
+        delete Context.ServerStream;
+        Context.ServerStream = nullptr;
     }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
