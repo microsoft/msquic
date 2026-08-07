@@ -98,7 +98,7 @@ of truth. Each entry is keyed by a version moniker (e.g. <code>1.1</code>, <code
 runtime NuGet package, extracts it, and installs the driver via the package's
 own <code>xdp-setup.ps1</code>:</p>
 <pre><code class="lang-powershell"># Install the official (production-signed) XDP release.
-./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-v1.1
+./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-v1.4
 
 # Install a test-signed prerelease XDP package (requires test signing enabled).
 ./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-prerelease
