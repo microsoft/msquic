@@ -665,117 +665,117 @@ struct SetParamHelper {
 
 void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
 {
-    switch (GetRandom(38, ThreadID)) {
+    switch (GetRandom(39, ThreadID)) {
     case 0:
-        //Settings.MaxBytesPerKey = GetRandom(UINT64_MAX);
-        //Settings.IsSet.MaxBytesPerKey = TRUE;
+        Settings.MaxBytesPerKey = GetRandom(UINT64_MAX, ThreadID);
+        Settings.IsSet.MaxBytesPerKey = TRUE;
         break;
     case 1:
-        //Settings.HandshakeIdleTimeoutMs = GetRandom(UINT64_MAX);
-        //Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
+        Settings.HandshakeIdleTimeoutMs = GetRandom(UINT64_MAX, ThreadID);
+        Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
         break;
     case 2:
-        //Settings.IdleTimeoutMs = GetRandom(UINT64_MAX);
-        //Settings.IsSet.IdleTimeoutMs = TRUE;
+        Settings.IdleTimeoutMs = GetRandom(UINT64_MAX, ThreadID);
+        Settings.IsSet.IdleTimeoutMs = TRUE;
         break;
     case 3:
-        //Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom(UINT64_MAX);
-        //Settings.IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
+        Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom(UINT64_MAX, ThreadID);
+        Settings.IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
         break;
     case 4:
-        //Settings.TlsClientMaxSendBuffer = GetRandom(UINT32_MAX);
-        //Settings.IsSet.TlsClientMaxSendBuffer = TRUE;
+        Settings.TlsClientMaxSendBuffer = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.TlsClientMaxSendBuffer = TRUE;
         break;
     case 5:
-        //Settings.TlsServerMaxSendBuffer = GetRandom(UINT32_MAX);
-        //Settings.IsSet.TlsServerMaxSendBuffer = TRUE;
+        Settings.TlsServerMaxSendBuffer = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.TlsServerMaxSendBuffer = TRUE;
         break;
     case 6:
-        //Settings.StreamRecvWindowDefault = GetRandom(UINT32_MAX);
-        //Settings.IsSet.StreamRecvWindowDefault = TRUE;
+        Settings.StreamRecvWindowDefault = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.StreamRecvWindowDefault = TRUE;
         break;
     case 7:
-        //Settings.StreamRecvBufferDefault = GetRandom(UINT32_MAX);
-        //Settings.IsSet.StreamRecvBufferDefault = TRUE;
+        Settings.StreamRecvBufferDefault = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.StreamRecvBufferDefault = TRUE;
         break;
     case 8:
-        //Settings.ConnFlowControlWindow = GetRandom(UINT32_MAX);
-        //Settings.IsSet.ConnFlowControlWindow = TRUE;
+        Settings.ConnFlowControlWindow = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.ConnFlowControlWindow = TRUE;
         break;
     case 9:
-        //Settings.MaxWorkerQueueDelayUs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.MaxWorkerQueueDelayUs = TRUE;
+        Settings.MaxWorkerQueueDelayUs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.MaxWorkerQueueDelayUs = TRUE;
         break;
     case 10:
-        //Settings.MaxStatelessOperations = GetRandom(UINT32_MAX);
-        //Settings.IsSet.MaxStatelessOperations = TRUE;
+        Settings.MaxStatelessOperations = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.MaxStatelessOperations = TRUE;
         break;
     case 11:
-        //Settings.InitialWindowPackets = GetRandom(UINT32_MAX);
-        //Settings.IsSet.InitialWindowPackets = TRUE;
+        Settings.InitialWindowPackets = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.InitialWindowPackets = TRUE;
         break;
     case 12:
-        //Settings.SendIdleTimeoutMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.SendIdleTimeoutMs = TRUE;
+        Settings.SendIdleTimeoutMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.SendIdleTimeoutMs = TRUE;
         break;
     case 13:
-        //Settings.InitialRttMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.InitialRttMs = TRUE;
+        Settings.InitialRttMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.InitialRttMs = TRUE;
         break;
     case 14:
-        //Settings.MaxAckDelayMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.MaxAckDelayMs = TRUE;
+        Settings.MaxAckDelayMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.MaxAckDelayMs = TRUE;
         break;
     case 15:
-        //Settings.DisconnectTimeoutMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.DisconnectTimeoutMs = TRUE;
+        Settings.DisconnectTimeoutMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
         break;
     case 16:
-        //Settings.KeepAliveIntervalMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.KeepAliveIntervalMs = TRUE;
+        Settings.KeepAliveIntervalMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.KeepAliveIntervalMs = TRUE;
         break;
     case 17:
         Settings.CongestionControlAlgorithm = GetRandom((uint16_t)QUIC_CONGESTION_CONTROL_ALGORITHM_MAX, ThreadID);
         Settings.IsSet.CongestionControlAlgorithm = TRUE;
         break;
     case 18:
-        //Settings.PeerBidiStreamCount = GetRandom(UINT16_MAX);
-        //Settings.IsSet.PeerBidiStreamCount = TRUE;
+        Settings.PeerBidiStreamCount = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.IsSet.PeerBidiStreamCount = TRUE;
         break;
     case 19:
-        //Settings.PeerUnidiStreamCount = GetRandom(UINT16_MAX);
-        //Settings.IsSet.PeerUnidiStreamCount = TRUE;
+        Settings.PeerUnidiStreamCount = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.IsSet.PeerUnidiStreamCount = TRUE;
         break;
     case 20:
-        //Settings.MaxBindingStatelessOperations = GetRandom(UINT16_MAX);
-        //Settings.IsSet.MaxBindingStatelessOperations = TRUE;
+        Settings.MaxBindingStatelessOperations = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.IsSet.MaxBindingStatelessOperations = TRUE;
         break;
     case 21:
-        //Settings.StatelessOperationExpirationMs = GetRandom(UINT16_MAX);
-        //Settings.IsSet.StatelessOperationExpirationMs = TRUE;
+        Settings.StatelessOperationExpirationMs = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.IsSet.StatelessOperationExpirationMs = TRUE;
         break;
     case 22:
-        //Settings.MinimumMtu = GetRandom(UINT16_MAX);
-        //Settings.IsSet.MinimumMtu = TRUE;
+        Settings.MinimumMtu = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.IsSet.MinimumMtu = TRUE;
         break;
     case 23:
-        //Settings.MaximumMtu = GetRandom(UINT16_MAX);
-        //Settings.IsSet.MaximumMtu = TRUE;
+        Settings.MaximumMtu = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.IsSet.MaximumMtu = TRUE;
         break;
     case 24:
-        //Settings.SendBufferingEnabled = GetRandom((uint8_t)1);
-        //Settings.IsSet.SendBufferingEnabled = TRUE;
+        Settings.SendBufferingEnabled = GetRandom((uint8_t)2, ThreadID);
+        Settings.IsSet.SendBufferingEnabled = TRUE;
         break;
     case 25:
-        Settings.PacingEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.PacingEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.PacingEnabled = TRUE;
         break;
     case 26:
-        Settings.MigrationEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.MigrationEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.MigrationEnabled = TRUE;
         break;
     case 27:
-        Settings.DatagramReceiveEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.DatagramReceiveEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.DatagramReceiveEnabled = TRUE;
         break;
     case 28:
@@ -783,40 +783,52 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.ServerResumptionLevel = TRUE;
         break;
     case 29:
-        Settings.GreaseQuicBitEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.GreaseQuicBitEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.GreaseQuicBitEnabled = TRUE;
         break;
     case 30:
-        Settings.EcnEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.EcnEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.EcnEnabled = TRUE;
         break;
     case 31:
-        //Settings.MaxOperationsPerDrain = GetRandom(UINT8_MAX);
-        //Settings.IsSet.MaxOperationsPerDrain = TRUE;
+        Settings.MaxOperationsPerDrain = GetRandom((uint8_t)UINT8_MAX, ThreadID);
+        Settings.IsSet.MaxOperationsPerDrain = TRUE;
         break;
     case 32:
-        //Settings.MtuDiscoveryMissingProbeCount = GetRandom(UINT8_MAX);
-        //Settings.IsSet.MtuDiscoveryMissingProbeCount = TRUE;
+        Settings.MtuDiscoveryMissingProbeCount = GetRandom((uint8_t)UINT8_MAX, ThreadID);
+        Settings.IsSet.MtuDiscoveryMissingProbeCount = TRUE;
         break;
     case 33:
-        //Settings.DestCidUpdateIdleTimeoutMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
+        Settings.DestCidUpdateIdleTimeoutMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
         break;
     case 34:
-        Settings.HyStartEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.HyStartEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.HyStartEnabled = TRUE;
         break;
     case 35:
+        //
+        // Pinned to 0 (GetRandom(1)), NOT randomized to {0,1}: spin applies
+        // settings to already-started connections via SetParam, and enabling
+        // EncryptionOffloadAllowed post-start trips CXPLAT_FRE_ASSERT(FALSE) in
+        // QuicConnApplyNewSettings (src/core/connection.c ~7740) whenever it
+        // differs from the path's actual offload state. That is a spin false
+        // positive (production apps don't flip it after start), not a real bug.
+        //
         Settings.EncryptionOffloadAllowed = GetRandom((uint8_t)1, ThreadID);
         Settings.IsSet.EncryptionOffloadAllowed = TRUE;
         break;
     case 36:
-        Settings.ReliableResetEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.ReliableResetEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.ReliableResetEnabled = TRUE;
         break;
     case 37:
-        Settings.OneWayDelayEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.OneWayDelayEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.OneWayDelayEnabled = TRUE;
+        break;
+    case 38:
+        Settings.NetStatsEventEnabled = GetRandom((uint8_t)2, ThreadID);
+        Settings.IsSet.NetStatsEventEnabled = TRUE;
         break;
     default:
         break;
