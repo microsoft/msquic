@@ -99,8 +99,10 @@ CredScan, and will need to be suppressed as it's 3rd party and we can't fix it.<
 </ol>
 <p><strong>Note</strong> - You may also have to copy suppressions from other stages, similar to the process above.</p>
 <h3 id="regeneration-from-scratch">Regeneration from Scratch</h3>
-<p>To regenerate the <code>openssl.gdnsuppress</code> completely, create a temporary mscodehub PR that removes the <code>suppression:</code> <code>suppressionFile:</code> from <code>OneBranch.PullRequest.yml</code>.
-Then follow the instructions above to get the new suppression file, but completely copy over the existing one instead.</p>
+<p>To regenerate <code>openssl.gdnsuppress</code> completely, create a temporary ES pipeline
+change that removes <code>globalSdl.suppression.suppressionFile</code> from
+<code>.azure/repos/msquic-hotpatch.yml</code>. Then run the hotpatch pipeline and replace
+the existing suppression file with the generated one.</p>
 <blockquote>
 <p><strong>TODO</strong> - Perhaps we should automate the regeneration in a pipeline.</p>
 </blockquote>
