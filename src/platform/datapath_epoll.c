@@ -13,7 +13,7 @@ Environment:
 
 --*/
 
-#include "platform_internal.h" 
+#include "platform_internal.h"
 #include <fcntl.h>
 #include <linux/filter.h>
 #include <linux/in6.h>
