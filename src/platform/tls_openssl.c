@@ -2869,17 +2869,6 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
         message_size = htonl(message_size) & 0x00ffffff;
 
         //
-        // Make sure our message type is valid.
-        //
-        if (message_type > SSL3_MT_COMPRESSED_CERTIFICATE) {
-            //
-            // This is not a real handshake record.
-            //
-            CXPLAT_FREE(Entry, QUIC_POOL_TLS_RECORD_ENTRY);
-            return -1;
-        }
-
-        //
         // Stop processing if this is a handshake finished record
         //
         if (message_type == SSL3_MT_FINISHED) {
