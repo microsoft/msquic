@@ -17,7 +17,8 @@ Then all the tests can be run with:
 ```
 
 > **Note**
-> On Windows, `schannel` is the default TLS provider, but requires the latest Windows OS versions (Windows Server 2022 or Insider Preview) to function. If you don't have `schannel` use `openssl` to build and test.
+> On Windows, `schannel` is the default TLS provider, but requires the Windows Server 2022 or more
+> recent. `openssl` can be used as an alternative.
 
 ```PowerShell
 ./scripts/test.ps1 -Tls openssl
@@ -25,7 +26,7 @@ Then all the tests can be run with:
 
 Windows XDP datapath can be used unless a test explicitly specify loopback address by
 ```Powershell
-./scripts/test.ps1 -UseXdp xdp-v1.1
+./scripts/test.ps1 -UseXdp xdp-v1.4
 ```
 
 By default this will run all tests in series, with no log collection. To include log collection for failed tests, run:
