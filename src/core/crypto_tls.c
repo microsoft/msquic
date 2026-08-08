@@ -299,6 +299,15 @@ QuicCryptoTlsReadAlpnExtension(
     Info->ClientAlpnList = Buffer;
     Info->ClientAlpnListLength = BufferLength;
 
+    if (BufferLength > QUIC_MAX_CLIENT_ALPN_LIST_LENGTH) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Parse error. ReadTlsAlpn #4");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     //
     // Loop through the contents of the extension to ensure it is properly
     // formatted, even though we will return the whole extension.

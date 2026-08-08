@@ -561,8 +561,34 @@ QuicBindingAcceptConnection(
     }
     CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
-    Connection->Crypto.TlsState.ClientAlpnList = Info->ClientAlpnList;
-    Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
+
+    //
+    // Info->ClientAlpnList points into the crypto recv buffer (can be freed before ALPN
+    // renegotiation uses it). A single ALPN equals the negotiated ALPN, so alias
+    // it when stored in the never-freed SmallAlpnBuffer, otherwise heap-copy.
+    //
+    if (Info->ClientAlpnListLength == (uint16_t)Info->ClientAlpnList[0] + 1 &&
+        NegotiatedAlpn == Connection->Crypto.TlsState.SmallAlpnBuffer) {
+        Connection->Crypto.TlsState.ClientAlpnList = NegotiatedAlpn;
+        Connection->Crypto.TlsState.ClientAlpnListLength = NegotiatedAlpnLength;
+    } else {
+        uint8_t* ClientAlpnList =
+            CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);
+        if (ClientAlpnList == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "ClientAlpnList",
+                Info->ClientAlpnListLength);
+            QuicConnTransportError(
+                Connection,
+                QUIC_ERROR_INTERNAL_ERROR);
+            goto Error;
+        }
+        CxPlatCopyMemory(ClientAlpnList, Info->ClientAlpnList, Info->ClientAlpnListLength);
+        Connection->Crypto.TlsState.ClientAlpnList = ClientAlpnList;
+        Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
+    }
 
     //
     // Allow for the listener to decide if it wishes to accept the incoming
