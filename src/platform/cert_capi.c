@@ -530,43 +530,65 @@ Exit:
 QUIC_STATUS
 CxPlatCertCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ QUIC_CERTIFICATE** NewCertificate
+    _In_ uint32_t CredCount,
+    _Out_writes_(CredCount) QUIC_CERTIFICATE** NewCertificate
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t CreatedCerts = 0;
 
     if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
         if (CredConfig->CertificateHash == NULL && CredConfig->Principal == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
-            Status =
-                CxPlatCertLookupHash(
-                    CredConfig->CertificateHash,
-                    CredConfig->Principal,
-                    NewCertificate);
+            for (uint32_t i = 0; i < CredCount; ++i) {
+                Status =
+                    CxPlatCertLookupHash(
+                        (CredConfig->CertificateHash == NULL ? NULL: &CredConfig->CertificateHash[i]),
+                        CredConfig->Principal,
+                        NewCertificate + i);
+                if (FAILED(Status)) {
+                    CreatedCerts = i;
+                    break;
+                }
+            }
         }
 
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
         if (CredConfig->CertificateHashStore == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
-            Status =
-                CxPlatCertLookupHashStore(
-                    CredConfig->CertificateHashStore,
-                    CredConfig->Principal,
-                    NewCertificate);
+            for (uint32_t i = 0; i < CredCount; ++i) {
+                Status =
+                    CxPlatCertLookupHashStore(
+                        &CredConfig->CertificateHashStore[i],
+                        CredConfig->Principal,
+                        NewCertificate + i);
+                if (FAILED(Status)) {
+                    CreatedCerts = i;
+                    break;
+                }
+            }
         }
 
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         if (CredConfig->CertificateContext == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
+            CXPLAT_FRE_ASSERT(CredCount == 1);
             *NewCertificate = (QUIC_CERTIFICATE*)CredConfig->CertificateContext;
             Status = QUIC_STATUS_SUCCESS;
         }
 
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (FAILED(Status)) {
+        for (uint32_t i = 0; i < CreatedCerts; ++i) {
+            CxPlatCertFree(NewCertificate[i]);
+            NewCertificate[i] = NULL;
+        }
     }
 
     return Status;
