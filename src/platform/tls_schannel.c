@@ -796,7 +796,7 @@ CxPlatTlsAllocateAchContext(
     )
 {
     uint32_t CredCount =
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE ? CredConfig->MultipleCount : 1;
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CERT_COUNT ? CredConfig->CertificateCount : 1;
     size_t AchSize = sizeof(QUIC_ACH_CONTEXT) + (sizeof(SCHANNEL_CERT_HASH_STORE) * CredCount);
     QUIC_ACH_CONTEXT* AchContext = CXPLAT_ALLOC_NONPAGED(AchSize, QUIC_POOL_TLS_ACHCTX);
     if (AchContext == NULL) {
@@ -1050,8 +1050,8 @@ CxPlatTlsSecConfigCreate(
     }
 
     if (CredCount != 0 &&
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE) {
-        CredCount = CredConfig->MultipleCount;
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CERT_COUNT) {
+        CredCount = CredConfig->CertificateCount;
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&

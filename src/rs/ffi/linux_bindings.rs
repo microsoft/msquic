@@ -345,7 +345,7 @@ pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE:
 pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE:
     QUIC_CREDENTIAL_FLAGS = 1048576;
 pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_DISABLE_AIA: QUIC_CREDENTIAL_FLAGS = 2097152;
-pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_SET_MULTIPLE: QUIC_CREDENTIAL_FLAGS = 4194304;
+pub const QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_SET_CERT_COUNT: QUIC_CREDENTIAL_FLAGS = 4194304;
 pub type QUIC_CREDENTIAL_FLAGS = ::std::os::raw::c_uint;
 pub const QUIC_ALLOWED_CIPHER_SUITE_FLAGS_QUIC_ALLOWED_CIPHER_SUITE_NONE:
     QUIC_ALLOWED_CIPHER_SUITE_FLAGS = 0;
@@ -644,7 +644,7 @@ pub struct QUIC_CREDENTIAL_CONFIG {
     pub AsyncHandler: QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER,
     pub AllowedCipherSuites: QUIC_ALLOWED_CIPHER_SUITE_FLAGS,
     pub CaCertificateFile: *const ::std::os::raw::c_char,
-    pub MultipleCount: u32,
+    pub CertificateCount: u32,
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -698,8 +698,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, AllowedCipherSuites) - 40usize];
     ["Offset of field: QUIC_CREDENTIAL_CONFIG::CaCertificateFile"]
         [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, CaCertificateFile) - 48usize];
-    ["Offset of field: QUIC_CREDENTIAL_CONFIG::MultipleCount"]
-        [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, MultipleCount) - 56usize];
+    ["Offset of field: QUIC_CREDENTIAL_CONFIG::CertificateCount"]
+        [::std::mem::offset_of!(QUIC_CREDENTIAL_CONFIG, CertificateCount) - 56usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

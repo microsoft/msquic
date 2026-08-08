@@ -966,7 +966,7 @@ CxPlatTlsSecConfigCreate(
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_DISABLE_AIA ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE)) {
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_CERT_COUNT)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 

@@ -22,7 +22,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler;         // Optional w/ QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS
     QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;        // Optional w/ QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES
     const char* CaCertificateFile;                              // Optional w/ QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE
-    uint32_t MultipleCount;                                     // Optional w/ QUIC_CREDENTIAL_FLAG_SET_MULTIPLE
+    uint32_t CertificateCount;                                  // Optional w/ QUIC_CREDENTIAL_FLAG_SET_CERT_COUNT
     QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedCertAlgs;   // Optional w/ QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS
 } QUIC_CREDENTIAL_CONFIG;
 ```
@@ -168,9 +168,9 @@ Only valid for OpenSSL.
 
 The following flag can be set to explicitly disable AIA retrievals. Only valid on Windows.
 
-`QUIC_CREDENTIAL_FLAG_SET_MULTIPLE`
+`QUIC_CREDENTIAL_FLAG_SET_CERT_COUNT`
 
-Enable setting multiple certificates on the configuration. This changes the `CertificateHash` and `CertificateHashStore` members into pointers to an array, and the array length is read from the `MultipleCount` member. Only available on Schannel.
+Enable setting multiple certificates on the configuration. This changes the `CertificateHash` and `CertificateHashStore` members into pointers to an array, and the array length is read from the `CertificateCount` member. Only available on Schannel.
 
 #### `CertificateHash`
 
@@ -214,10 +214,10 @@ Optional pointer to CA certificate file that will be used when
 validating the peer certificate. This allows the use of a private CA.
 Must be used with `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE`.
 
-#### `MultipleCount`
+#### `CertificateCount`
 
 Count of credentials in array pointed to by `CertificateHash` or `CertificateHashStore`.
-Must be used with `QUIC_CREDENTIAL_FLAG_SET_MULTIPLE`.
+Must be used with `QUIC_CREDENTIAL_FLAG_SET_CERT_COUNT`.
 
 
 # Remarks

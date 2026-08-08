@@ -339,7 +339,7 @@ namespace Microsoft.Quic
         internal sbyte* CaCertificateFile;
 
         [NativeTypeName("uint32_t")]
-        internal uint MultipleCount;
+        internal uint CertificateCount;
 
         internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {
