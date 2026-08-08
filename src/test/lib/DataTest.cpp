@@ -3462,6 +3462,114 @@ QuicTestStreamAbortRecvFinRace(
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
 }
 
+struct StreamReceiveCompleteNoPendingReceive {
+    CxPlatEvent ReceiveEvent;
+    MsQuicStream* ServerStream {nullptr};
+    uint32_t ReceiveCount {0};
+    uint64_t FirstReceiveLength {0};
+    uint64_t LastReceiveOffset {0};
+    uint64_t LastReceiveLength {0};
+
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream*, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (StreamReceiveCompleteNoPendingReceive*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            if (TestContext->ReceiveCount == 0) {
+                TestContext->FirstReceiveLength = Event->RECEIVE.TotalBufferLength;
+            }
+            TestContext->LastReceiveOffset = Event->RECEIVE.AbsoluteOffset;
+            TestContext->LastReceiveLength = Event->RECEIVE.TotalBufferLength;
+            TestContext->ReceiveCount++;
+            TestContext->ReceiveEvent.Set();
+            return QUIC_STATUS_PENDING;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            auto TestContext = (StreamReceiveCompleteNoPendingReceive*)Context;
+            TestContext->ServerStream =
+                new(std::nothrow) MsQuicStream(
+                    Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, ServerStreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+//
+// Validates that a receive completion processed while no receive is pending
+// leaves the rest of the receive buffer deliverable. Such a completion carries
+// nothing to reclaim, and must not be taken to mean the buffer has been fully
+// drained: doing so silences every later receive indication, and the data
+// already buffered is never delivered.
+//
+void
+QuicTestStreamReceiveCompleteWithNoPendingReceive(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    StreamReceiveCompleteNoPendingReceive Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReceiveCompleteNoPendingReceive::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, MsQuicStream::NoOpCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+    const uint32_t SendLength = 100;
+    uint8_t RawBuffer[SendLength] = {0};
+    QUIC_BUFFER SendBuffer { SendLength, RawBuffer };
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_NONE));
+
+    TEST_TRUE(Context.ReceiveEvent.WaitTimeout(TestWaitTimeout));
+    TEST_EQUAL(SendLength, Context.FirstReceiveLength);
+
+    //
+    // Accept only half, which pauses receives with the rest still buffered, and
+    // leaves no receive pending.
+    //
+    Context.ServerStream->ReceiveComplete(SendLength / 2);
+
+    //
+    // Give the completion above time to be processed, so the one below is the
+    // case under test: a completion seen with no receive pending. The API
+    // contract is that it is ignored silently.
+    //
+    CxPlatSleep(500);
+    Context.ServerStream->ReceiveComplete(0);
+    CxPlatSleep(500);
+
+    //
+    // The half that was not accepted must still be delivered.
+    //
+    TEST_QUIC_SUCCEEDED(Context.ServerStream->ReceiveSetEnabled(true));
+
+    uint32_t Tries = 0;
+    while (Context.ReceiveCount < 2 && ++Tries < 20) {
+        CxPlatSleep(100);
+    }
+    TEST_TRUE(Context.ReceiveCount >= 2);
+    TEST_EQUAL(SendLength / 2, Context.LastReceiveOffset);
+    TEST_EQUAL(SendLength - SendLength / 2, Context.LastReceiveLength);
+}
+
 struct StreamAbortConnFlowControl {
     CxPlatEvent ClientStreamShutdownComplete;
     uint32_t StreamCount {0};

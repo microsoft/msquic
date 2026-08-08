@@ -638,6 +638,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamPriorityInfiniteLoop);
     RegisterTestFunction(QuicTestStreamDifferentAbortErrors);
     RegisterTestFunction(QuicTestStreamAbortRecvFinRace);
+    RegisterTestFunction(QuicTestStreamReceiveCompleteWithNoPendingReceive);
 #ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
     RegisterTestFunction(QuicTestStreamReliableReset);
     RegisterTestFunction(QuicTestStreamReliableResetMultipleSends);
