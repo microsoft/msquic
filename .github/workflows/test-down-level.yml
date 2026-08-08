@@ -24,17 +24,14 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          # v2.3
-          { release: "2.3.11",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.3.11",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
-          { release: "2.3.11",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          # v2.4
-          { release: "2.4.10",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.4.10",  os: "ubuntu-24.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.4.10",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
-          { release: "2.4.10",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.4.10",  os: "windows-2025", arch: "x64", tls: "schannel", imgtls: "schannel" },
-          { release: "2.4.10",  os: "windows-2025", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          # v2.5
+          { release: "2.5.9",  os: "ubuntu-24.04", arch: "x64", tls: "quictls" },
+          { release: "2.5.9",  os: "windows-2025", arch: "x64", tls: "schannel" },
+          { release: "2.5.9",  os: "windows-2025", arch: "x64", tls: "quictls"},
+          # v2.6
+          { release: "2.6.0",  os: "ubuntu-24.04", arch: "x64", tls: "quictls" },
+          { release: "2.6.0",  os: "windows-2025", arch: "x64", tls: "schannel" },
+          { release: "2.6.0",  os: "windows-2025", arch: "x64", tls: "quictls" },
         ]
     runs-on: ${{ matrix.vec.os }}
     name: Test
@@ -54,7 +51,7 @@ jobs:
       shell: pwsh
       run: |
         $osName = "${{runner.os}}".ToLower()
-        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.vec.release}}/msquic_${{runner.os}}_${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}_test.zip" -OutFile "artifacts/test.zip"
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.vec.release}}/msquic_${{runner.os}}_${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}_test.zip" -OutFile "artifacts/test.zip"
         Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}
     - name: Run Tests (Linux)
       if: runner.os == 'Linux'
