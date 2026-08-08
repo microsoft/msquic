@@ -1151,7 +1151,8 @@ QuicStreamSendWrite(
     }
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT) {
-        QUIC_RELIABLE_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, Stream->MaxSentLength, Stream->ReliableOffsetSend };
+        uint64_t FinalSize = CXPLAT_MAX(Stream->MaxSentLength, Stream->ReliableOffsetSend);
+        QUIC_RELIABLE_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, FinalSize, Stream->ReliableOffsetSend };
 
         if (QuicReliableResetFrameEncode(
                 &Frame,
