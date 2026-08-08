@@ -118,6 +118,7 @@ QuicSendCanSendFlagsNow(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: embedded Send is valid.
     if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
         if (Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] != NULL &&
             CxPlatListIsEmpty(&Send->SendStreams)) {
