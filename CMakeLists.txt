@@ -965,6 +965,25 @@ if(QUIC_CODE_CHECK)
     endif()
 endif()
 
+if("${CX_PLATFORM}" STREQUAL "windows")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/scripts/xdp.json" XDP_METADATA)
+    string(JSON XDP_SDK_PACKAGE GET "${XDP_METADATA}" sdk package)
+    string(JSON XDP_SDK_VERSION GET "${XDP_METADATA}" sdk version)
+    string(JSON XDP_SDK_SHA256 GET "${XDP_METADATA}" sdk sha256)
+    string(TOLOWER "${XDP_SDK_PACKAGE}" XDP_SDK_PACKAGE_LOWER)
+    set(XDP_SDK_URL
+        "https://api.nuget.org/v3-flatcontainer/${XDP_SDK_PACKAGE_LOWER}/${XDP_SDK_VERSION}/${XDP_SDK_PACKAGE_LOWER}.${XDP_SDK_VERSION}.nupkg")
+
+    include(FetchContent)
+    FetchContent_Declare(
+        xdp_sdk
+        URL "${XDP_SDK_URL}"
+        URL_HASH "SHA256=${XDP_SDK_SHA256}"
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    FetchContent_MakeAvailable(xdp_sdk)
+    set(XDP_INCLUDE_DIR "${xdp_sdk_SOURCE_DIR}/build/native/include")
+endif()
+
 add_subdirectory(src/inc)
 add_subdirectory(src/generated)
 

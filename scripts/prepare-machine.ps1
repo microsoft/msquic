@@ -238,7 +238,8 @@ function Install-Xdp-Driver {
     $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
     $XdpEntry = $XdpJson.$XdpVersion
     if ($null -eq $XdpEntry) {
-        Write-Error "Unknown XDP version '$XdpVersion'. Available versions: $($XdpJson.PSObject.Properties.Name -join ', ')"
+        $XdpVersions = $XdpJson.PSObject.Properties.Name | Where-Object { $_ -ne "sdk" }
+        Write-Error "Unknown XDP version '$XdpVersion'. Available versions: $($XdpVersions -join ', ')"
     }
     $XdpArch = Get-XdpArch
     $XdpInstaller = $XdpEntry.PSObject.Properties[$XdpArch]
@@ -562,11 +563,6 @@ if ($ForKernel) {
 if ($ForBuild -or $ForContainerBuild) {
     Write-Host "Initializing clog submodule"
     git submodule init $RootDir/submodules/clog
-
-    if (!$IsLinux) {
-        Write-Host "Initializing XDP-for-Windows submodule"
-        git submodule init $RootDir/submodules/xdp-for-windows
-    }
 
     if ($Tls -eq "quictls") {
         Write-Host "Initializing quictls submodule"

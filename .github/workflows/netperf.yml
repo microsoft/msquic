@@ -19,7 +19,6 @@ on:
     - src/perf/**
     - submodules/quictls/**
     - submodules/openssl/**
-    - submodules/xdp-for-windows/**
   pull_request:
     branches:
     - main
@@ -37,7 +36,6 @@ on:
     - src/perf/**
     - submodules/quictls/**
     - submodules/openssl/**
-    - submodules/xdp-for-windows/**
 
 concurrency:
   # Cancel any workflow currently in progress for the same PR.
