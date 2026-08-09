@@ -2555,18 +2555,6 @@ CxPlatTlsInitialize(
         goto Exit;
     }
 
-    //
-    // Both the fuzzer and the HandshakeSpecificLossPattern tests have some
-    // issues with larger key shares as introduced by ML-KEM support in openssl
-    // The former doesn't expect Client/Server hellos to span multiple udp datagrams
-    // and hits a buffer space assertion failure, while the latter times out on loss
-    // recovery.  So for now mimic the key shares that schannel offers to work around
-    // that
-    //
-    // TODO: Remove this when the above tests are tolerant of addition of ML-KEM keyshares
-    //
-    SSL_set1_groups_list(TlsContext->Ssl, "secp256r1:x25519");
-
     if (!SSL_set_quic_tls_cbs(TlsContext->Ssl, OpenSslQuicDispatch, NULL)) {
         QuicTraceEvent(
             TlsError,
