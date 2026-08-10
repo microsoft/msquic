@@ -2885,11 +2885,15 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
         //
         if (message_type == SSL3_MT_FINISHED) {
             //
-            // Trim the buffer so we end on a record boundary
-            // Everything after the HandShakeFinished record
-            // Is just padding
+            // message_size is untrusted: only ever trim (never grow) RecLen.
+            // Reject an over-length FINISHED to avoid an OOB read downstream.
             //
-            Entry->RecLen = total_message_size + message_size + 4;
+            size_t finished_end = total_message_size + (size_t)message_size + 4;
+            if (finished_end > Entry->RecLen) {
+                CXPLAT_FREE(Entry, QUIC_POOL_TLS_RECORD_ENTRY);
+                return -1;
+            }
+            Entry->RecLen = finished_end;
             goto insert_now;
         }
 
