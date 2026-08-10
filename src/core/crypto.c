@@ -486,6 +486,7 @@ QuicCryptoHandshakeConfirmed(
     )
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: embedded Crypto is valid.
     Connection->State.HandshakeConfirmed = TRUE;
 
     if (SignalBinding) {
