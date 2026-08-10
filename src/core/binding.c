@@ -563,15 +563,11 @@ QuicBindingAcceptConnection(
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
 
     //
-    // Info->ClientAlpnList points into the crypto recv buffer (can be freed before ALPN
-    // renegotiation uses it). A single ALPN equals the negotiated ALPN, so alias
-    // it when stored in the never-freed SmallAlpnBuffer, otherwise heap-copy.
+    // Info->ClientAlpnList points into the crypto recv buffer, which can be freed
+    // before ALPN renegotiation. A single ALPN is redundant with the negotiated
+    // ALPN, so store nothing; otherwise take a heap copy.
     //
-    if (Info->ClientAlpnListLength == (uint16_t)Info->ClientAlpnList[0] + 1 &&
-        NegotiatedAlpn == Connection->Crypto.TlsState.SmallAlpnBuffer) {
-        Connection->Crypto.TlsState.ClientAlpnList = NegotiatedAlpn;
-        Connection->Crypto.TlsState.ClientAlpnListLength = NegotiatedAlpnLength;
-    } else {
+    if (Info->ClientAlpnListLength != (uint16_t)Info->ClientAlpnList[0] + 1) {
         uint8_t* ClientAlpnList =
             CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);
         if (ClientAlpnList == NULL) {

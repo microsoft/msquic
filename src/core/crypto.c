@@ -251,12 +251,7 @@ QuicCryptoUninitialize(
         Crypto->TlsState.NegotiatedAlpn = NULL;
     }
     if (Crypto->TlsState.ClientAlpnList != NULL) {
-        //
-        // Skip the free when ClientAlpnList aliases the inline SmallAlpnBuffer.
-        //
-        if (Crypto->TlsState.ClientAlpnList != Crypto->TlsState.SmallAlpnBuffer) {
-            CXPLAT_FREE(Crypto->TlsState.ClientAlpnList, QUIC_POOL_ALPN);
-        }
+        CXPLAT_FREE(Crypto->TlsState.ClientAlpnList, QUIC_POOL_ALPN);
         Crypto->TlsState.ClientAlpnList = NULL;
         Crypto->TlsState.ClientAlpnListLength = 0;
     }
@@ -3133,11 +3128,21 @@ QuicCryptoReNegotiateAlpn(
     }
 
     const uint8_t* NewNegotiatedAlpn = NULL;
+    const uint8_t* ClientAlpnList = Connection->Crypto.TlsState.ClientAlpnList;
+    uint16_t ClientAlpnListLength = Connection->Crypto.TlsState.ClientAlpnListLength;
+    if (ClientAlpnList == NULL) {
+        //
+        // A single ALPN isn't stored separately; it equals the negotiated ALPN.
+        //
+        ClientAlpnList = PrevNegotiatedAlpn;
+        ClientAlpnListLength = (uint16_t)PrevNegotiatedAlpn[0] + 1;
+    }
+
     while (AlpnListLength != 0) {
         const uint8_t* Result =
             CxPlatTlsAlpnFindInList(
-                Connection->Crypto.TlsState.ClientAlpnListLength,
-                Connection->Crypto.TlsState.ClientAlpnList,
+                ClientAlpnListLength,
+                ClientAlpnList,
                 AlpnList[0],
                 AlpnList + 1);
         if (Result != NULL) {

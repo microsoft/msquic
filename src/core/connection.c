@@ -2579,11 +2579,7 @@ QuicConnSetConfiguration(
         if (QUIC_FAILED(Status)) {
             goto Cleanup;
         }
-        //
-        // Skip the free when ClientAlpnList aliases the inline SmallAlpnBuffer.
-        //
-        if (Connection->Crypto.TlsState.ClientAlpnList != NULL &&
-            Connection->Crypto.TlsState.ClientAlpnList != Connection->Crypto.TlsState.SmallAlpnBuffer) {
+        if (Connection->Crypto.TlsState.ClientAlpnList != NULL) {
             CXPLAT_FREE(Connection->Crypto.TlsState.ClientAlpnList, QUIC_POOL_ALPN);
         }
         Connection->Crypto.TlsState.ClientAlpnList = NULL;
