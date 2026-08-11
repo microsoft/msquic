@@ -558,7 +558,8 @@ CxPlatTlsAddHandshakeDataCallback(
         (uint64_t)Length,
         (uint32_t)Level);
 
-    if (Length + TlsState->BufferLength > 0xF000) {
+    if (TlsState->BufferLength > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE ||
+        Length > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE - TlsState->BufferLength) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -568,14 +569,20 @@ CxPlatTlsAddHandshakeDataCallback(
         return -1;
     }
 
-    if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
+    size_t RequiredBufferLength = Length + TlsState->BufferLength;
+    if (RequiredBufferLength > (size_t)TlsState->BufferAllocLength) {
         //
         // Double the allocated buffer length until there's enough room for the
         // new data.
         //
         uint16_t NewBufferAllocLength = TlsState->BufferAllocLength;
-        while (Length + TlsState->BufferLength > (size_t)NewBufferAllocLength) {
-            NewBufferAllocLength <<= 1;
+        while (RequiredBufferLength > (size_t)NewBufferAllocLength) {
+            if (NewBufferAllocLength == 0 ||
+                NewBufferAllocLength > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE / 2) {
+                NewBufferAllocLength = CXPLAT_TLS_MAX_SEND_BUFFER_SIZE;
+            } else {
+                NewBufferAllocLength <<= 1;
+            }
         }
 
         uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);

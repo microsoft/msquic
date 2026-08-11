@@ -235,6 +235,8 @@ typedef enum CXPLAT_TLS_EARLY_DATA_STATE {
 
 } CXPLAT_TLS_EARLY_DATA_STATE;
 
+#define CXPLAT_TLS_MAX_SEND_BUFFER_SIZE 0xF000
+
 //
 // The output processing state.
 //
