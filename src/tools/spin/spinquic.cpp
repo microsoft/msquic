@@ -807,14 +807,8 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.HyStartEnabled = TRUE;
         break;
     case 35:
-        //
-        // Pinned to 0 (GetRandom(1)), NOT randomized to {0,1}: spin applies
-        // settings to already-started connections via SetParam, and enabling
-        // EncryptionOffloadAllowed post-start trips CXPLAT_FRE_ASSERT(FALSE) in
-        // QuicConnApplyNewSettings (src/core/connection.c ~7740) whenever it
-        // differs from the path's actual offload state. That is a spin false
-        // positive (production apps don't flip it after start), not a real bug.
-        //
+        // Pinned to 0: enabling this post-start trips a FRE_ASSERT in
+        // QuicConnApplyNewSettings (spin false positive, not a product bug).
         Settings.EncryptionOffloadAllowed = GetRandom((uint8_t)1, ThreadID);
         Settings.IsSet.EncryptionOffloadAllowed = TRUE;
         break;
