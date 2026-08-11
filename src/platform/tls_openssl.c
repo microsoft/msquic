@@ -2881,35 +2881,31 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 
 
         //
-        // Stop processing if this is a handshake finished record
-        //
-        if (message_type == SSL3_MT_FINISHED) {
-            //
-            // message_size is untrusted: only ever trim (never grow) RecLen.
-            // Reject an over-length FINISHED to avoid an OOB read downstream.
-            //
-            size_t finished_end = total_message_size + (size_t)message_size + 4;
-            if (finished_end > Entry->RecLen) {
-                CXPLAT_FREE(Entry, QUIC_POOL_TLS_RECORD_ENTRY);
-                return -1;
-            }
-            Entry->RecLen = finished_end;
-            goto insert_now;
-        }
-
-        //
-        // If this message is larger then the total record length
-        // then we need to create an Incomplete record as its remainder
-        // is in the next datagram
-        // also, if this is an epoch key change message (8 is EncryptedExtensions)
-        // then we need to split it as rcv_rec expects that
-        // Note we only need to force the split if the epoch change
-        // isn't the first message in this record
+        // If this message extends past the end of the record, its remainder
+        // is in a later datagram, so it is incomplete. This also bounds the
+        // untrusted message_size against the buffer we actually received.
         //
         if (total_message_size + message_size + 4 > Entry->RecLen) {
             Incomplete = 1;
         }
 
+        //
+        // A handshake FINISHED ends the flight; everything after it is just
+        // padding. If the message is complete, trim the record to its
+        // boundary and insert it. If it is incomplete, fall through to the
+        // incomplete handling below to wait for the remainder, so RecLen is
+        // never grown past the buffer (which would cause an OOB read).
+        //
+        if (message_type == SSL3_MT_FINISHED && Incomplete == 0) {
+            Entry->RecLen = total_message_size + message_size + 4;
+            goto insert_now;
+        }
+
+        //
+        // An epoch key change message (8 is EncryptedExtensions) must be
+        // split as rcv_rec expects it isolated, but only if it isn't the
+        // first message in this record.
+        //
         if ((message_type == 8) && (total_message_size != 0)) {
             force_split = 1;
         }
