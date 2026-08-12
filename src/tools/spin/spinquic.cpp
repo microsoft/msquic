@@ -723,7 +723,7 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.InitialRttMs = TRUE;
         break;
     case 14:
-        Settings.MaxAckDelayMs = GetRandom(UINT32_MAX, ThreadID) | 1;
+        Settings.MaxAckDelayMs = GetRandom(UINT32_MAX, ThreadID);
         Settings.IsSet.MaxAckDelayMs = TRUE;
         break;
     case 15:
