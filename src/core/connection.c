@@ -2333,6 +2333,12 @@ QuicConnGenerateLocalTransportParameters(
         MsQuicLib.ExecutionConfig != NULL &&
         MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs != 0 ?
             0 : MS_TO_US(MsQuicLib.TimerResolutionMs);
+    //
+    // Ensure the advertised MaxAckDelay is not below MinAckDelay.
+    //
+    if (LocalTP->MinAckDelay > MS_TO_US(LocalTP->MaxAckDelay)) {
+        LocalTP->MaxAckDelay = US_TO_MS_CEIL(LocalTP->MinAckDelay);
+    }
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     LocalTP->Flags =
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
