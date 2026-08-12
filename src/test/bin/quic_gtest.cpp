@@ -14,6 +14,7 @@
 
 #include <array>
 #include <vector>
+#include <algorithm>
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 #define XDP_API_VERSION 3

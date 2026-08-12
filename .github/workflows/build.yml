@@ -122,7 +122,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux, android]
-        os: ['ubuntu-22.04', 'ubuntu-24.04']
+        os: ['ubuntu-22.04', 'ubuntu-24.04', 'ubuntu-26.04']
         arch: [x86, x64]
         tls: [quictls, openssl]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
