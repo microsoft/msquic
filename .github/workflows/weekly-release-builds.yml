@@ -36,4 +36,4 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         echo "Triggering Build workflow for ${{ matrix.branch }}"
-        gh workflow run build.yml --ref "${{ matrix.branch }}"
+        gh workflow run build.yml --repo "${{ github.repository }}" --ref "${{ matrix.branch }}"

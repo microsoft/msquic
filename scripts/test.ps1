@@ -238,7 +238,7 @@ $RootArtifactDir = $BuildConfig.ArtifactsDir
 
 if ($XdpMapMode) {
     if ([string]::IsNullOrEmpty($UseXdp)) {
-        Write-Error "-XdpMapMode requires -UseXdp to specify an XDP version (e.g. 'xdp-prerelease')."
+        Write-Error "-XdpMapMode requires -UseXdp to specify an XDP version (e.g. 'xdp-v1.4')."
     }
 }
 

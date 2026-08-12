@@ -118,6 +118,7 @@ QuicSendCanSendFlagsNow(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: embedded Send is valid.
     if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
         if (Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] != NULL &&
             CxPlatListIsEmpty(&Send->SendStreams)) {
@@ -1492,6 +1493,15 @@ QuicSendFlush(
     }
 
     QuicPacketBuilderCleanup(&Builder);
+
+    if (Builder.InitialKeysDiscarded &&
+        (Send->SendFlags != 0 || !CxPlatListIsEmpty(&Send->SendStreams))) {
+        //
+        // Initial keys were discarded mid-flush, which may have freed
+        // send allowance. Schedule a new flush if anything is still queued.
+        //
+        Result = QUIC_SEND_INCOMPLETE;
+    }
 
     QuicTraceLogConnVerbose(
         SendFlushComplete,

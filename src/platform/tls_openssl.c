@@ -2839,7 +2839,6 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 //       unless they appear first in the datagram.
 //
 // @warning Assumes the record buffer contains valid TLS handshake formatting.
-// @warning The function asserts that the message type is <= 20.
 //
 static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 {
@@ -3164,10 +3163,18 @@ CxPlatTlsProcessData(
                                  *BufferLength, &Consumed);
         if (MRet == 0) {
             //
-            // There was an allocation failure
-            // Indicate we consumed nothing
+            // There was a record processing failure.
+            // Indicate we consumed nothing and stop the handshake path.
             //
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "ProcessNewMessage failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
             Consumed = 0;
+            goto Exit;
         }
         *BufferLength = *BufferLength - (uint32_t)Consumed;
     }
