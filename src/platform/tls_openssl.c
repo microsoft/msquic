@@ -3286,6 +3286,31 @@ more_handshake:
                     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                     goto Exit;
                 }
+
+                const uint8_t* TransportParams = NULL;
+                size_t TransportParamLen = 0;
+                SSL_get_peer_quic_transport_params(
+                    TlsContext->Ssl,
+                    &TransportParams,
+                    &TransportParamLen);
+                if (TransportParams == NULL || TransportParamLen == 0) {
+                    QuicTraceLogConnError(
+                        OpenSslMissingTransportParameters,
+                        TlsContext->Connection,
+                        "No transport parameters received");
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    goto Exit;
+                }
+                if (!TlsContext->PeerTPReceived) {
+                    TlsContext->PeerTPReceived = TRUE;
+                    if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
+                            TlsContext->Connection,
+                            (uint16_t)TransportParamLen,
+                            TransportParams)) {
+                        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                        goto Exit;
+                    }
+                }
             } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
                 !TlsContext->PeerCertReceived) {
                 QUIC_STATUS ValidationResult =
