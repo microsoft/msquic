@@ -2869,7 +2869,7 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
         message_size = htonl(message_size) & 0x00ffffff;
 
         //
-        //make sure our message type is valid
+        // Make sure our message type is valid
         //
         if (message_type > SSL3_MT_FINISHED) {
             //
