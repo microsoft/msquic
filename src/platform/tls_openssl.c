@@ -2882,19 +2882,16 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 
         //
         // If this message extends past the end of the record, its remainder
-        // is in a later datagram, so it is incomplete. This also bounds the
-        // untrusted message_size against the buffer we actually received.
+        // is in a later datagram, so it is incomplete.
         //
         if (total_message_size + message_size + 4 > Entry->RecLen) {
             Incomplete = 1;
         }
 
         //
-        // A handshake FINISHED ends the flight; everything after it is just
-        // padding. If the message is complete, trim the record to its
-        // boundary and insert it. If it is incomplete, fall through to the
-        // incomplete handling below to wait for the remainder, so RecLen is
-        // never grown past the buffer (which would cause an OOB read).
+        // A complete handshake FINISHED ends the flight, so trim the record
+        // to its end and ignore any padding that follows. An incomplete one
+        // is handled like any other incomplete message below.
         //
         if (message_type == SSL3_MT_FINISHED && Incomplete == 0) {
             Entry->RecLen = total_message_size + message_size + 4;
