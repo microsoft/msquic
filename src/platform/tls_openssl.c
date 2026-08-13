@@ -3287,13 +3287,7 @@ more_handshake:
                     goto Exit;
                 }
 
-                const uint8_t* TransportParams = NULL;
-                size_t TransportParamLen = 0;
-                SSL_get_peer_quic_transport_params(
-                    TlsContext->Ssl,
-                    &TransportParams,
-                    &TransportParamLen);
-                if (TransportParams == NULL || TransportParamLen == 0) {
+                if (AData->PeerTp == NULL || AData->PeerTpLen == 0) {
                     QuicTraceLogConnError(
                         OpenSslMissingTransportParameters,
                         TlsContext->Connection,
@@ -3305,8 +3299,8 @@ more_handshake:
                     TlsContext->PeerTPReceived = TRUE;
                     if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                             TlsContext->Connection,
-                            (uint16_t)TransportParamLen,
-                            TransportParams)) {
+                            (uint16_t)AData->PeerTpLen,
+                            AData->PeerTp)) {
                         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                         goto Exit;
                     }
