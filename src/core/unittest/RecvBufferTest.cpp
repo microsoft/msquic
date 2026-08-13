@@ -562,7 +562,7 @@ TEST(RecvBufferGrowthTest, WriteGrowthOverflow)
         QUIC_STATUS_OUT_OF_MEMORY,
         QuicRecvBufferWrite(
             &RecvBuf.RecvBuf,
-            QUIC_RECV_BUFFER_MAX_VIRTUAL_LENGTH,
+            0x80000000U,
             sizeof(WriteBuffer),
             &WriteBuffer,
             UINT32_MAX,

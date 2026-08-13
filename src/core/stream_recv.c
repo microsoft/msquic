@@ -807,7 +807,7 @@ QuicStreamOnBytesDelivered(
         const uint32_t MaxVirtualBufferLength =
             Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED ?
                 UINT32_MAX :
-                QUIC_RECV_BUFFER_MAX_VIRTUAL_LENGTH;
+                0x80000000U;
         if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
             Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow &&
             Stream->RecvBuffer.VirtualBufferLength < MaxVirtualBufferLength) {
