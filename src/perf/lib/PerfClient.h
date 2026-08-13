@@ -170,6 +170,7 @@ struct PerfClient {
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
             .SetSendBufferingEnabled(false)
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
+            .SetHyStartEnabled(PerfDefaultHyStartEnabled)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
             .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
         CredentialConfig};

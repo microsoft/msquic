@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download Failure Artifacts
-      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       continue-on-error: true
       with:
         pattern: ${{ inputs.artifact-pattern }}
@@ -38,7 +38,7 @@ jobs:
         merge-multiple: false
 
     - name: Create or Update Issue
-      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       env:
         LOG_DIRS: ${{ inputs.log-dirs }}
         LABELS: ${{ inputs.labels }}

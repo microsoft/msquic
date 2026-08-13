@@ -421,7 +421,9 @@ inline char QuicHalfByteToStr(UCHAR b)
 }
 
 struct CidStr {
-    char Data[256];
+    // 2 hex chars per byte + NUL, sized for any uint8_t Length so the
+    // constructor can never write OOB.
+    char Data[2 * UINT8_MAX + 1];
 
     CidStr(ULONG64 Addr, UCHAR Length) {
         if (Length == 0) {

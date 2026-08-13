@@ -84,6 +84,11 @@ typedef struct QUIC_PACKET_BUILDER {
     uint8_t WrittenConnectionCloseFrame : 1;
 
     //
+    // Initial keys were discarded during this flush.
+    //
+    uint8_t InitialKeysDiscarded : 1;
+
+    //
     // The total number of datagrams that have been created.
     //
     uint8_t TotalCountDatagrams;
