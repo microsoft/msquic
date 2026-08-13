@@ -2905,31 +2905,28 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 
 
         //
-        // Stop processing if this is a handshake finished record
-        //
-        if (message_type == SSL3_MT_FINISHED) {
-            //
-            // Trim the buffer so we end on a record boundary
-            // Everything after the HandShakeFinished record
-            // Is just padding
-            //
-            Entry->RecLen = total_message_size + message_size + 4;
-            goto insert_now;
-        }
-
-        //
-        // If this message is larger then the total record length
-        // then we need to create an Incomplete record as its remainder
-        // is in the next datagram
-        // also, if this is an epoch key change message (8 is EncryptedExtensions)
-        // then we need to split it as rcv_rec expects that
-        // Note we only need to force the split if the epoch change
-        // isn't the first message in this record
+        // If this message extends past the end of the record, its remainder
+        // is in a later datagram, so it is incomplete.
         //
         if (total_message_size + message_size + 4 > Entry->RecLen) {
             Incomplete = 1;
         }
 
+        //
+        // A complete handshake FINISHED ends the flight, so trim the record
+        // to its end and ignore any padding that follows. An incomplete one
+        // is handled like any other incomplete message below.
+        //
+        if (message_type == SSL3_MT_FINISHED && Incomplete == 0) {
+            Entry->RecLen = total_message_size + message_size + 4;
+            goto insert_now;
+        }
+
+        //
+        // An epoch key change message (8 is EncryptedExtensions) must be
+        // split as rcv_rec expects it isolated, but only if it isn't the
+        // first message in this record.
+        //
         if ((message_type == 8) && (total_message_size != 0)) {
             force_split = 1;
         }
