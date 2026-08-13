@@ -1468,6 +1468,20 @@ CheckSentPackets:
                 Connection,
                 "Incorrect ACK encryption level");
             *InvalidAckBlock = TRUE;
+
+            //
+            // These packets have already been unlinked from the SentPackets and
+            // LostPackets lists, so the whole AckedPackets list must be returned
+            // to the pool here. Otherwise the metadata (and the resources held
+            // by its frames) would leak, since the pool is owned by the
+            // partition and is not reclaimed when the connection is destroyed.
+            //
+            AckedPacketsIterator = AckedPackets;
+            while (AckedPacketsIterator != NULL) {
+                QUIC_SENT_PACKET_METADATA* LeakedPacket = AckedPacketsIterator;
+                AckedPacketsIterator = AckedPacketsIterator->Next;
+                QuicSentPacketPoolReturnPacketMetadata(LeakedPacket, Connection);
+            }
             return;
         }
 
@@ -1702,6 +1716,15 @@ QuicLossDetectionProcessAckFrame(
                 &Connection->DecodedAckRanges,
                 InvalidFrame,
                 FrameType == QUIC_FRAME_ACK_1 ? &Ecn : NULL);
+
+            if (*InvalidFrame) {
+                //
+                // The ACK acknowledged a packet with a different encryption
+                // level than the frame, which is a protocol violation. Fail the
+                // frame so the connection is torn down by the caller.
+                //
+                Result = FALSE;
+            }
         }
     }
 
