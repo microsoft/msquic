@@ -18,6 +18,13 @@ typedef enum QUIC_RECV_BUF_MODE {
 } QUIC_RECV_BUF_MODE;
 
 //
+// The maximum virtual buffer length for an internally-managed receive buffer.
+// This is the largest power of two that fits in a uint32_t, ensuring the buffer
+// doubling logic never overflows.
+//
+#define QUIC_RECV_BUFFER_MAX_VIRTUAL_LENGTH 0x80000000U
+
+//
 // Represents a single contiguous range of bytes.
 //
 typedef struct QUIC_RECV_CHUNK {
