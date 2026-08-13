@@ -804,8 +804,13 @@ QuicStreamOnBytesDelivered(
         //
         // Limit stream FC window growth by the connection FC window size.
         //
+        const uint32_t MaxVirtualBufferLength =
+            Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED ?
+                UINT32_MAX :
+                0x80000000U;
         if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
-            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
+            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow &&
+            Stream->RecvBuffer.VirtualBufferLength < MaxVirtualBufferLength) {
             uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
             if (CxPlatTimeDiff64(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
@@ -830,7 +835,7 @@ QuicStreamOnBytesDelivered(
                 //
 
                 uint64_t NewLength = (uint64_t)Stream->RecvBuffer.VirtualBufferLength * 2;
-                NewLength = CXPLAT_MIN(NewLength, UINT32_MAX);
+                NewLength = CXPLAT_MIN(NewLength, MaxVirtualBufferLength);
 
                 QuicRecvBufferIncreaseVirtualBufferLength(
                     &Stream->RecvBuffer,
