@@ -1331,8 +1331,7 @@ QuicLossDetectionProcessAckBlocks(
 
             //
             // Earlier ACK blocks may have already moved packets into the
-            // AckedPackets list, so fall through to the shared cleanup to
-            // return them to the pool rather than leaking them.
+            // AckedPackets list
             //
             goto CleanupAckedPackets;
         }
