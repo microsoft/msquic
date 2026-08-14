@@ -1328,7 +1328,13 @@ QuicLossDetectionProcessAckBlocks(
                 AckBlock->Low,
                 QuicRangeGetHigh(AckBlock));
             QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
-            return;
+
+            //
+            // Earlier ACK blocks may have already moved packets into the
+            // AckedPackets list, so fall through to the shared cleanup to
+            // return them to the pool rather than leaking them.
+            //
+            goto CleanupAckedPackets;
         }
 
         //
@@ -1473,13 +1479,7 @@ CheckSentPackets:
             // These packets were already unlinked from the SentPackets/
             // LostPackets lists, so return them to the (partition-owned) pool
             //
-            AckedPacketsIterator = AckedPackets;
-            while (AckedPacketsIterator != NULL) {
-                QUIC_SENT_PACKET_METADATA* LeakedPacket = AckedPacketsIterator;
-                AckedPacketsIterator = AckedPacketsIterator->Next;
-                QuicSentPacketPoolReturnPacketMetadata(LeakedPacket, Connection);
-            }
-            return;
+            goto CleanupAckedPackets;
         }
 
         uint64_t PacketRtt = CxPlatTimeDiff64(PacketMeta->SentTime, TimeNow);
@@ -1636,6 +1636,8 @@ CheckSentPackets:
     }
 
     LossDetection->ProbeCount = 0;
+
+CleanupAckedPackets:
 
     AckedPacketsIterator = AckedPackets;
     while (AckedPacketsIterator != NULL) {
