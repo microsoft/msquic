@@ -1470,11 +1470,8 @@ CheckSentPackets:
             *InvalidAckBlock = TRUE;
 
             //
-            // These packets have already been unlinked from the SentPackets and
-            // LostPackets lists, so the whole AckedPackets list must be returned
-            // to the pool here. Otherwise the metadata (and the resources held
-            // by its frames) would leak, since the pool is owned by the
-            // partition and is not reclaimed when the connection is destroyed.
+            // These packets were already unlinked from the SentPackets/
+            // LostPackets lists, so return them to the (partition-owned) pool
             //
             AckedPacketsIterator = AckedPackets;
             while (AckedPacketsIterator != NULL) {
@@ -1719,9 +1716,8 @@ QuicLossDetectionProcessAckFrame(
 
             if (*InvalidFrame) {
                 //
-                // The ACK acknowledged a packet with a different encryption
-                // level than the frame, which is a protocol violation. Fail the
-                // frame so the connection is torn down by the caller.
+                // ProcessAckBlocks flagged the frame as invalid, so fail the
+                // frame here to have the connection torn down by the caller.
                 //
                 Result = FALSE;
             }
