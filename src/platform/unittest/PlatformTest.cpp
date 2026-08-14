@@ -64,6 +64,37 @@ TEST(PlatformTest, QuicAddrParsing)
     }
 }
 
+TEST(PlatformTest, QuicAddrIpToString)
+{
+    struct TestEntry {
+        const char* Input;
+        const char* Expected;
+    };
+
+    const TestEntry TestData[] = {
+        { "0.0.0.0", "0.0.0.0" },
+        { "127.0.0.1:443", "127.0.0.1" },
+        { "255.255.255.255:65535", "255.255.255.255" },
+        { "[::]:65535", "::" },
+        { "[::1]:443", "::1" },
+        { "[::ffff:192.0.2.128]:443", "::ffff:192.0.2.128" },
+        { "[fe80::9c3a:b64d:6249:1de8%3]:443", "fe80::9c3a:b64d:6249:1de8" },
+        { "[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" }
+    };
+
+    for (const auto& Entry : TestData) {
+        QUIC_ADDR Addr{};
+        QUIC_ADDR_STR AddrStr{};
+        (void)QuicAddrFromString(Entry.Input, 0, &Addr);
+        ASSERT_TRUE(QuicAddrIpToString(&Addr, &AddrStr));
+        ASSERT_STREQ(Entry.Expected, AddrStr.Address);
+    }
+
+    QUIC_ADDR InvalidAddr{};
+    QUIC_ADDR_STR AddrStr{};
+    ASSERT_FALSE(QuicAddrIpToString(&InvalidAddr, &AddrStr));
+}
+
 TEST(PlatformTest, CxPlatIsIpLiteral)
 {
     struct TestEntry {

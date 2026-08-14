@@ -315,6 +315,38 @@ QuicAddrHash(
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
 
 //
+// Represents an IP address and (optionally) port number as a string.
+//
+typedef struct QUIC_ADDR_STR {
+    char Address[64];
+} QUIC_ADDR_STR;
+
+QUIC_INLINE
+_Success_(return != FALSE)
+BOOLEAN
+QuicAddrIpToString(
+    _In_ const QUIC_ADDR* Addr,
+    _Out_ QUIC_ADDR_STR* AddrStr
+    )
+{
+    const void* IpAddress;
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        IpAddress = &Addr->Ipv4.sin_addr;
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET6) {
+        IpAddress = &Addr->Ipv6.sin6_addr;
+    } else {
+        return FALSE;
+    }
+    // The Rtl address-to-string functions are not supported by GameCore.
+    return
+        InetNtopA(
+            Addr->si_family,
+            (void*)IpAddress,
+            AddrStr->Address,
+            sizeof(AddrStr->Address)) != NULL;
+}
+
+//
 // Rtl String API's are not allowed in gamecore
 //
 #if WINAPI_FAMILY != WINAPI_FAMILY_GAMES
@@ -363,13 +395,6 @@ CxPlatIsIpLiteral(
 
     return FALSE;
 }
-
-//
-// Represents an IP address and (optionally) port number as a string.
-//
-typedef struct QUIC_ADDR_STR {
-    char Address[64];
-} QUIC_ADDR_STR;
 
 QUIC_INLINE
 _Success_(return != FALSE)

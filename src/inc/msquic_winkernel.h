@@ -362,6 +362,23 @@ typedef struct QUIC_ADDR_STR {
 
 QUIC_INLINE
 BOOLEAN
+QuicAddrIpToString(
+    _In_ const QUIC_ADDR* Addr,
+    _Out_ QUIC_ADDR_STR* AddrStr
+    )
+{
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        RtlIpv4AddressToStringA(&Addr->Ipv4.sin_addr, AddrStr->Address);
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET6) {
+        RtlIpv6AddressToStringA(&Addr->Ipv6.sin6_addr, AddrStr->Address);
+    } else {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+QUIC_INLINE
+BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
