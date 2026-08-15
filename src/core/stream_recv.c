@@ -807,7 +807,9 @@ QuicStreamOnBytesDelivered(
         if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
             Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
             uint64_t TimeThreshold =
-                ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
+                ((Stream->RecvWindowBytesDelivered *
+                  QuicPathSetGetActivePath(&Stream->Connection->Paths)->SmoothedRtt) /
+                 RecvBufferDrainThreshold);
             if (CxPlatTimeDiff64(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
@@ -840,7 +842,7 @@ QuicStreamOnBytesDelivered(
                         Stream,
                         "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
                         (uint32_t)NewLength,
-                        Stream->Connection->Paths[0].MinRtt,
+                        QuicPathSetGetActivePath(&Stream->Connection->Paths)->MinRtt,
                         TimeNow,
                         Stream->RecvWindowLastUpdate);
                 }

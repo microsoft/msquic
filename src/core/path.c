@@ -7,9 +7,16 @@ Abstract:
 
     Per path functionality for the connection.
 
-TODO:
-
-    Make Path ETW events.
+TODO guhetier:
+    - Improve Path ETW events
+    - Enforce invariants
+        - path[0] is the "active" path and there is always an active path on a started connection
+            - the connection is shutdown rather than having no active path
+        - define an index for a "new" path
+            - does it make sense to have multiple new paths?
+    - change the API so that updating the array is a defered operation that is done only when path are not referenced by an iterator
+    - unit tests
+    - respect of the spec, especially for ID sizes, etc...
 
 --*/
 
@@ -22,7 +29,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathInitialize(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
+    _Out_ QUIC_PATH* Path
     )
 {
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
@@ -47,26 +54,51 @@ QuicPathInitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathSetInitialize(
+    _Out_ QUIC_PATH_SET* PathSet,
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    CxPlatZeroMemory(PathSet, sizeof(*PathSet));
+    QuicPathInitialize(Connection, &PathSet->Paths[0]);
+    PathSet->Paths[0].IsActive = TRUE;
+    PathSet->Count = 1;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_PATH*
+QuicPathSetGetActivePath(
+    _In_ const QUIC_PATH_SET* PathSet
+    )
+{
+    CXPLAT_DBG_ASSERT(PathSet->Count > 0);
+    CXPLAT_DBG_ASSERT(PathSet->Paths[0].IsActive);
+    return (QUIC_PATH*)&PathSet->Paths[0];
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicPathRemove(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t Index
     )
 {
-    CXPLAT_DBG_ASSERT(Connection->PathsCount <= QUIC_MAX_PATH_COUNT);
-    if (Connection->PathsCount == 0 ||
+    QUIC_PATH_SET* PathSet = &Connection->Paths;
+    CXPLAT_DBG_ASSERT(PathSet->Count <= QUIC_MAX_PATH_COUNT);
+    if (PathSet->Count == 0 ||
         Index >= QUIC_MAX_PATH_COUNT ||
-        !Connection->Paths[Index].InUse) {
+        !PathSet->Paths[Index].InUse) {
         CXPLAT_TEL_ASSERTMSG(
-            Connection->PathsCount > 0 &&
+            PathSet->Count > 0 &&
             Index < QUIC_MAX_PATH_COUNT &&
-            Connection->Paths[Index].InUse,
+            PathSet->Paths[Index].InUse,
             "Double or out-of-range path removal!");
         return FALSE;
     }
-    CXPLAT_DBG_ASSERT(Index < Connection->PathsCount);
+    CXPLAT_DBG_ASSERT(Index < PathSet->Count);
 
-    const QUIC_PATH* Path = &Connection->Paths[Index];
+    const QUIC_PATH* Path = &PathSet->Paths[Index];
     CXPLAT_DBG_ASSERT(Path->InUse);
     QuicTraceEvent(
         ConnPathRemoved,
@@ -74,7 +106,7 @@ QuicPathRemove(
         Connection,
         Path->ID);
 
-    if (Connection->PathsCount == 1) {
+    if (PathSet->Count == 1) {
         //
         // Last remaining path. Silently close per RFC 9000 sections 8.2.4 +
         // 10.2, but leave the Paths array intact so in-flight operations see
@@ -91,14 +123,15 @@ QuicPathRemove(
     }
 
     if (Index == 0) {
+        CXPLAT_DBG_ASSERT(PathSet->Count > 1);
         //
         // Removing the active path while other paths exist. Promote the best
         // available fallback: prefer a peer-validated path, otherwise accept
         // any path.
         //
         uint8_t FallbackIndex = 1;
-        for (uint8_t j = 1; j < Connection->PathsCount; ++j) {
-            if (Connection->Paths[j].IsPeerValidated) {
+        for (uint8_t j = 1; j < PathSet->Count; ++j) {
+            if (PathSet->Paths[j].IsPeerValidated) {
                 FallbackIndex = j;
                 break;
             }
@@ -108,8 +141,8 @@ QuicPathRemove(
             Connection,
             "Path[%hhu] removed; falling back to Path[%hhu]",
             Path->ID,
-            Connection->Paths[FallbackIndex].ID);
-        QuicPathSetActive(Connection, &Connection->Paths[FallbackIndex]);
+            PathSet->Paths[FallbackIndex].ID);
+        QuicPathSetActive(Connection, &PathSet->Paths[FallbackIndex]);
         //
         // After the swap the old active path now lives at FallbackIndex.
         // Fall through to remove it there.
@@ -118,21 +151,21 @@ QuicPathRemove(
     }
 
 #if DEBUG
-    if (Connection->Paths[Index].DestCid) {
-        QUIC_CID_CLEAR_PATH(Connection->Paths[Index].DestCid);
+    if (PathSet->Paths[Index].DestCid) {
+        QUIC_CID_CLEAR_PATH(PathSet->Paths[Index].DestCid);
     }
 #endif
 
-    if (Index + 1 < Connection->PathsCount) {
+    if (Index + 1 < PathSet->Count) {
         CxPlatMoveMemory(
-            Connection->Paths + Index,
-            Connection->Paths + Index + 1,
-            (Connection->PathsCount - Index - 1) * sizeof(QUIC_PATH));
+            PathSet->Paths + Index,
+            PathSet->Paths + Index + 1,
+            (PathSet->Count - Index - 1) * sizeof(QUIC_PATH));
     }
 
-    Connection->PathsCount--;
+    PathSet->Count--;
     // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: new index is valid.
-    Connection->Paths[Connection->PathsCount].InUse = FALSE;
+    PathSet->Paths[PathSet->Count].InUse = FALSE;
     return TRUE;
 }
 
@@ -223,10 +256,11 @@ QuicConnGetPathByID(
     _Out_ uint8_t* Index
     )
 {
-    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-        if (Connection->Paths[i].ID == ID) {
+    QUIC_PATH_SET* PathSet = &Connection->Paths;
+    for (uint8_t i = 0; i < PathSet->Count; ++i) {
+        if (PathSet->Paths[i].ID == ID) {
             *Index = i;
-            return &Connection->Paths[i];
+            return &PathSet->Paths[i];
         }
     }
     return NULL;
@@ -240,13 +274,14 @@ QuicConnGetPathForPacket(
     _In_ const QUIC_RX_PACKET* Packet
     )
 {
-    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+    QUIC_PATH_SET* PathSet = &Connection->Paths;
+    for (uint8_t i = 0; i < PathSet->Count; ++i) {
         if (!QuicAddrCompare(
                 &Packet->Route->LocalAddress,
-                &Connection->Paths[i].Route.LocalAddress) ||
+                &PathSet->Paths[i].Route.LocalAddress) ||
             !QuicAddrCompare(
                 &Packet->Route->RemoteAddress,
-                &Connection->Paths[i].Route.RemoteAddress)) {
+                &PathSet->Paths[i].Route.RemoteAddress)) {
             if (!Connection->State.HandshakeConfirmed) {
                 //
                 // Ignore packets on any other paths until connected/confirmed.
@@ -255,26 +290,26 @@ QuicConnGetPathForPacket(
             }
             continue;
         }
-        return &Connection->Paths[i];
+        return &PathSet->Paths[i];
     }
 
-    if (Connection->PathsCount == QUIC_MAX_PATH_COUNT) {
+    if (PathSet->Count == QUIC_MAX_PATH_COUNT) {
         //
         // See if any old paths share the same remote address, and is just a rebind.
         // If so, remove the old paths.
         // NB: Traversing the array backwards is simpler and more efficient here due
         // to the array shifting that happens in QuicPathRemove.
         //
-        for (int i = Connection->PathsCount - 1; i > 0; i--) {
-            if (!Connection->Paths[i].IsActive
-                && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompare(&Packet->Route->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
+        for (int i = PathSet->Count - 1; i > 0; i--) {
+            if (!PathSet->Paths[i].IsActive
+                && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&PathSet->Paths[i].Route.RemoteAddress)
+                && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &PathSet->Paths[i].Route.RemoteAddress)
+                && QuicAddrCompare(&Packet->Route->LocalAddress, &PathSet->Paths[i].Route.LocalAddress)) {
                 QuicPathRemove(Connection, (uint8_t)i);
             }
         }
 
-        if (Connection->PathsCount == QUIC_MAX_PATH_COUNT) {
+        if (PathSet->Count == QUIC_MAX_PATH_COUNT) {
             //
             // Already tracking the maximum number of paths, and can't free
             // any more.
@@ -283,25 +318,26 @@ QuicConnGetPathForPacket(
         }
     }
 
-    if (Connection->PathsCount > 1) {
+    if (PathSet->Count > 1) {
         //
         // Make room for the new path (at index 1).
         //
         CxPlatMoveMemory(
-            &Connection->Paths[2],
-            &Connection->Paths[1],
-            (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
+            &PathSet->Paths[2],
+            &PathSet->Paths[1],
+            (PathSet->Count - 1) * sizeof(QUIC_PATH));
     }
 
-    CXPLAT_DBG_ASSERT(Connection->PathsCount < QUIC_MAX_PATH_COUNT);
-    QUIC_PATH* Path = &Connection->Paths[1];
+    CXPLAT_DBG_ASSERT(PathSet->Count < QUIC_MAX_PATH_COUNT);
+    QUIC_PATH* Path = &PathSet->Paths[1];
     QuicPathInitialize(Connection, Path);
-    Connection->PathsCount++;
+    PathSet->Count++;
 
-    if (Connection->Paths[0].DestCid->CID.Length == 0) {
-        Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
+    QUIC_PATH* ActivePath = QuicPathSetGetActivePath(PathSet);
+    if (ActivePath->DestCid->CID.Length == 0) {
+        Path->DestCid = ActivePath->DestCid; // TODO - Copy instead?
     }
-    Path->Binding = Connection->Paths[0].Binding;
+    Path->Binding = ActivePath->Binding;
     QuicCopyRouteInfo(&Path->Route, Packet->Route);
     QuicPathValidate(Path);
 
@@ -316,16 +352,17 @@ QuicPathSetActive(
     )
 {
     BOOLEAN UdpPortChangeOnly = FALSE;
-    if (Path == &Connection->Paths[0]) {
+    QUIC_PATH* ActivePath = QuicPathSetGetActivePath(&Connection->Paths);
+    if (Path == ActivePath) {
         CXPLAT_DBG_ASSERT(!Path->IsActive);
         Path->IsActive = TRUE;
     } else {
         CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
         UdpPortChangeOnly =
-            QuicAddrGetFamily(&Path->Route.RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].Route.RemoteAddress) &&
-            QuicAddrCompareIp(&Path->Route.RemoteAddress, &Connection->Paths[0].Route.RemoteAddress);
+            QuicAddrGetFamily(&Path->Route.RemoteAddress) == QuicAddrGetFamily(&ActivePath->Route.RemoteAddress) &&
+            QuicAddrCompareIp(&Path->Route.RemoteAddress, &ActivePath->Route.RemoteAddress);
 
-        QUIC_PATH PrevActivePath = Connection->Paths[0];
+        QUIC_PATH PrevActivePath = *ActivePath;
 
         PrevActivePath.IsActive = FALSE;
         Path->IsActive = TRUE;
@@ -336,7 +373,7 @@ QuicPathSetActive(
             Path->IsMinMtuValidated = PrevActivePath.IsMinMtuValidated;
         }
 
-        Connection->Paths[0] = *Path;
+        *ActivePath = *Path;
         *Path = PrevActivePath;
     }
 
@@ -344,7 +381,7 @@ QuicPathSetActive(
         ConnPathActive,
         "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
         Connection,
-        Connection->Paths[0].ID,
+        ActivePath->ID,
         UdpPortChangeOnly);
 
     if (!UdpPortChangeOnly) {

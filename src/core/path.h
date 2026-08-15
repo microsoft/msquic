@@ -206,7 +206,44 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathInitialize(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
+    _Out_ QUIC_PATH* Path
+    );
+
+typedef struct QUIC_PATH_SET {
+    //
+    // Exactly one path is active at all time, the rest (if any) are other tracked paths,
+    // sorted from most to least recently used.
+    // Per-path state. The first entry in the list is the active path. All the
+    // rest (if any) are other tracked paths, sorted from most to least recently
+    // used.
+    //
+    _Field_size_(Count)
+    QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
+
+    //
+    // Number of paths currently tracked.
+    //
+    _Field_range_(0, QUIC_MAX_PATH_COUNT)
+    uint8_t Count;
+
+} QUIC_PATH_SET;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathSetInitialize(
+    _Out_ QUIC_PATH_SET* PathSet,
+    // TODO guhetier: Provide parameters, not the full connection
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Provide the active path.
+// There is always an active path on a connection.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_PATH*
+QuicPathSetGetActivePath(
+    _In_ const QUIC_PATH_SET* PathSet
     );
 
 //

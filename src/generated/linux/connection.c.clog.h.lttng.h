@@ -792,9 +792,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, FirstCidUsage,
                 PathDiscarded,
                 Connection,
                 "Removing invalid path[%hhu]",
-                Connection->Paths[i].ID);
+                PathSet->Paths[i].ID);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[i].ID = arg3
+// arg3 = arg3 = PathSet->Paths[i].ID = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathDiscarded,
     TP_ARGS(
@@ -926,9 +926,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme,
             LocalInterfaceSet,
             Connection,
             "Local interface set to %u",
-            Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id);
+            QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress.Ipv6.sin6_scope_id);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id = arg3
+// arg3 = arg3 = QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress.Ipv6.sin6_scope_id = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, LocalInterfaceSet,
     TP_ARGS(
@@ -2075,9 +2075,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAssignWorker,
         ConnEcnCapable,
         "[conn][%p] Ecn: IsCapable=%hu",
         Connection,
-        Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE);
+        QuicPathSetGetActivePath(&Connection->Paths)->EcnValidationState ==
+            ECN_VALIDATION_CAPABLE);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE = arg3
+// arg3 = arg3 = QuicPathSetGetActivePath(&Connection->Paths)->EcnValidationState ==
+            ECN_VALIDATION_CAPABLE = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnEcnCapable,
     TP_ARGS(
@@ -2529,9 +2531,13 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPathValidationTimeout,
                 ConnLocalAddrRemoved,
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
-                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
+                CASTED_CLOG_BYTEARRAY(
+                    sizeof(QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress),
+                    &QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress));
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress) = arg3
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(
+                    sizeof(QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress),
+                    &QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrRemoved,
     TP_ARGS(

@@ -745,9 +745,9 @@ tracepoint(CLOG_CONNECTION_C, FirstCidUsage , arg1, arg3);\
                 PathDiscarded,
                 Connection,
                 "Removing invalid path[%hhu]",
-                Connection->Paths[i].ID);
+                PathSet->Paths[i].ID);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[i].ID = arg3
+// arg3 = arg3 = PathSet->Paths[i].ID = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_PathDiscarded
 #define _clog_4_ARGS_TRACE_PathDiscarded(uniqueId, arg1, encoded_arg_string, arg3)\
@@ -863,9 +863,9 @@ tracepoint(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme , arg1, arg3);\
             LocalInterfaceSet,
             Connection,
             "Local interface set to %u",
-            Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id);
+            QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress.Ipv6.sin6_scope_id);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id = arg3
+// arg3 = arg3 = QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress.Ipv6.sin6_scope_id = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LocalInterfaceSet
 #define _clog_4_ARGS_TRACE_LocalInterfaceSet(uniqueId, arg1, encoded_arg_string, arg3)\
@@ -1851,9 +1851,11 @@ tracepoint(CLOG_CONNECTION_C, ConnAssignWorker , arg2, arg3);\
         ConnEcnCapable,
         "[conn][%p] Ecn: IsCapable=%hu",
         Connection,
-        Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE);
+        QuicPathSetGetActivePath(&Connection->Paths)->EcnValidationState ==
+            ECN_VALIDATION_CAPABLE);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE = arg3
+// arg3 = arg3 = QuicPathSetGetActivePath(&Connection->Paths)->EcnValidationState ==
+            ECN_VALIDATION_CAPABLE = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ConnEcnCapable
 #define _clog_4_ARGS_TRACE_ConnEcnCapable(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -2238,9 +2240,13 @@ tracepoint(CLOG_CONNECTION_C, ConnPathValidationTimeout , arg2, arg3);\
                 ConnLocalAddrRemoved,
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
-                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
+                CASTED_CLOG_BYTEARRAY(
+                    sizeof(QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress),
+                    &QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress));
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress) = arg3
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(
+                    sizeof(QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress),
+                    &QuicPathSetGetActivePath(&Connection->Paths)->Route.LocalAddress) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ConnLocalAddrRemoved
 #define _clog_5_ARGS_TRACE_ConnLocalAddrRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
