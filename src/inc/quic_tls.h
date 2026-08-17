@@ -36,9 +36,7 @@ typedef struct QUIC_TLS_SECRETS QUIC_TLS_SECRETS;
 #define TLS_SMALL_ALPN_BUFFER_SIZE  16
 
 //
-// The maximum size of the TLS handshake send buffer. Handshake data that would
-// grow the buffer beyond this limit is rejected. Kept below UINT16_MAX so the
-// uint16_t buffer length fields can always represent the allocation.
+// Max TLS handshake send buffer size.
 //
 #define CXPLAT_TLS_MAX_SEND_BUFFER_SIZE 0xF000U
 

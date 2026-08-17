@@ -572,8 +572,7 @@ CxPlatTlsAddHandshakeDataCallback(
     if (RequiredBufferLength > (size_t)TlsState->BufferAllocLength) {
         //
         // Double the allocated buffer length until there's enough room for the
-        // new data. The doubling is done with a size_t to avoid overflowing the
-        // uint16_t length, then clamped to UINT16_MAX.
+        // new data.
         //
         size_t GrownBufferAllocLength = TlsState->BufferAllocLength;
         while (RequiredBufferLength > GrownBufferAllocLength) {
