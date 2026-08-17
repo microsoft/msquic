@@ -558,7 +558,11 @@ CxPlatTlsAddHandshakeDataCallback(
         (uint64_t)Length,
         (uint32_t)Level);
 
-    if (Length + TlsState->BufferLength > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE) {
+    //
+    // Make sure that we don't violate handshake data lengths. 
+    //
+    size_t RequiredBufferLength = Length + TlsState->BufferLength;
+    if (RequiredBufferLength > 0xF000) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -568,7 +572,6 @@ CxPlatTlsAddHandshakeDataCallback(
         return -1;
     }
 
-    size_t RequiredBufferLength = Length + TlsState->BufferLength;
     if (RequiredBufferLength > (size_t)TlsState->BufferAllocLength) {
         //
         // Double the allocated buffer length until there's enough room for the

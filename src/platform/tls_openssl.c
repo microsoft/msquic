@@ -329,9 +329,10 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
         (uint32_t)AData->Level);
 
     //
-    // Make sure that we don't violate handshake data lengths
+    // Make sure that we don't violate handshake data lengths.
     //
-    if (BufLen + TlsState->BufferLength > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE) {
+    size_t RequiredBufferLength = BufLen + TlsState->BufferLength;
+    if (RequiredBufferLength > 0xF000) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -341,7 +342,6 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
         return -1;
     }
 
-    size_t RequiredBufferLength = BufLen + TlsState->BufferLength;
     if (RequiredBufferLength > (size_t)TlsState->BufferAllocLength) {
         //
         // Double the allocated buffer length until there's enough room for the

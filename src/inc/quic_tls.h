@@ -36,11 +36,6 @@ typedef struct QUIC_TLS_SECRETS QUIC_TLS_SECRETS;
 #define TLS_SMALL_ALPN_BUFFER_SIZE  16
 
 //
-// Max TLS handshake send buffer size.
-//
-#define CXPLAT_TLS_MAX_SEND_BUFFER_SIZE 0xF000U
-
-//
 // The size of the header required by the TLS layer.
 //
 extern uint16_t CxPlatTlsTPHeaderSize;
