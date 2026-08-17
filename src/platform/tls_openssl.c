@@ -331,8 +331,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
     //
     // Make sure that we don't violate handshake data lengths
     //
-    if (TlsState->BufferLength > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE ||
-        BufLen > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE - TlsState->BufferLength) {
+    if (BufLen + TlsState->BufferLength > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -346,17 +345,16 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
     if (RequiredBufferLength > (size_t)TlsState->BufferAllocLength) {
         //
         // Double the allocated Buffer length until there's enough room for the
-        // new data.
-        // 
-        uint16_t NewBufferAllocLength = TlsState->BufferAllocLength;
-        while (RequiredBufferLength > (size_t)NewBufferAllocLength) {
-            if (NewBufferAllocLength == 0 ||
-                NewBufferAllocLength > CXPLAT_TLS_MAX_SEND_BUFFER_SIZE / 2) {
-                NewBufferAllocLength = CXPLAT_TLS_MAX_SEND_BUFFER_SIZE;
-            } else {
-                NewBufferAllocLength <<= 1;
-            }
+        // new data. The doubling is done with a size_t to avoid overflowing the
+        // uint16_t length, then clamped to UINT16_MAX.
+        //
+        size_t GrownBufferAllocLength = TlsState->BufferAllocLength;
+        while (RequiredBufferLength > GrownBufferAllocLength) {
+            GrownBufferAllocLength <<= 1;
         }
+        uint16_t NewBufferAllocLength =
+            GrownBufferAllocLength > UINT16_MAX ?
+                UINT16_MAX : (uint16_t)GrownBufferAllocLength;
 
         uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
         if (NewBuffer == NULL) {
