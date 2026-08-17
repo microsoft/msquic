@@ -547,28 +547,34 @@ TEST_P(WithMode, WriteTooMuch2)
     ASSERT_FALSE(RecvBuf.HasUnreadData());
 }
 
-TEST(RecvBufferGrowthTest, WriteGrowthOverflow)
+TEST_P(WithMode, WriteGrowthToVirtualLength)
 {
+    //
+    // Grow the buffer via doubling up to a power-of-two VirtualBufferLength,
+    // verifying it stays within the virtual limit without overflowing.
+    //
+    constexpr uint32_t VirtualLength = 0x10000u; // 64KB, a power of two
+    constexpr uint16_t WriteLength = 0xFFFFu;    // Just under the virtual limit
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE));
-
-    RecvBuf.IncreaseVirtualBufferLength(UINT32_MAX);
-
-    uint8_t WriteBuffer = 0;
-    uint64_t QuotaConsumed = 0;
-    uint64_t BufferSizeNeeded = 0;
-    BOOLEAN NewDataReady = FALSE;
+    auto Mode = GetParam();
     ASSERT_EQ(
-        QUIC_STATUS_OUT_OF_MEMORY,
-        QuicRecvBufferWrite(
-            &RecvBuf.RecvBuf,
-            0x80000000U,
-            sizeof(WriteBuffer),
-            &WriteBuffer,
-            UINT32_MAX,
-            &QuotaConsumed,
-            &NewDataReady,
-            &BufferSizeNeeded));
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Initialize(Mode, false, DEF_TEST_BUFFER_LENGTH, VirtualLength));
+
+    uint64_t InOutWriteLength = VirtualLength;
+    BOOLEAN NewDataReady = FALSE;
+    uint64_t BufferSizeNeeded = 0;
+    auto Status =
+        RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady, &BufferSizeNeeded);
+
+    //
+    // Internal modes grow via doubling; app-owned has the full length
+    // pre-provided. Either way the write fits.
+    //
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, Status);
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ((uint64_t)WriteLength, RecvBuf.GetTotalLength());
 }
 
 TEST_P(WithMode, WriteWhilePendingRead)

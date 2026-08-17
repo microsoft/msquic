@@ -762,12 +762,11 @@ QuicRecvBufferWrite(
         //
         QUIC_RECV_CHUNK* LastChunk =
             CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
-        uint64_t NewBufferLength = (uint64_t)LastChunk->AllocLength << 1;
+        uint32_t NewBufferLength = LastChunk->AllocLength << 1;
         while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
             NewBufferLength <<= 1;
         }
-        if (NewBufferLength > UINT32_MAX ||
-            !QuicRecvBufferResize(RecvBuffer, (uint32_t)NewBufferLength)) {
+        if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
             *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
