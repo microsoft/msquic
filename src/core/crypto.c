@@ -3121,12 +3121,6 @@ QuicCryptoReNegotiateAlpn(
     CXPLAT_DBG_ASSERT(AlpnListLength > 0);
 
     const uint8_t* PrevNegotiatedAlpn = Connection->Crypto.TlsState.NegotiatedAlpn;
-    if (AlpnList[0] == PrevNegotiatedAlpn[0]) {
-        if (memcmp(AlpnList + 1, PrevNegotiatedAlpn + 1, AlpnList[0]) == 0) {
-            return QUIC_STATUS_SUCCESS;
-        }
-    }
-
     const uint8_t* NewNegotiatedAlpn = NULL;
     const uint8_t* ClientAlpnList = Connection->Crypto.TlsState.ClientAlpnList;
     uint16_t ClientAlpnListLength = Connection->Crypto.TlsState.ClientAlpnListLength;
@@ -3151,6 +3145,12 @@ QuicCryptoReNegotiateAlpn(
         }
         AlpnListLength -= AlpnList[0] + 1;
         AlpnList += AlpnList[0] + 1;
+    }
+
+    if (Connection->Crypto.TlsState.ClientAlpnList != NULL) {
+        CXPLAT_FREE(Connection->Crypto.TlsState.ClientAlpnList, QUIC_POOL_ALPN);
+        Connection->Crypto.TlsState.ClientAlpnList = NULL;
+        Connection->Crypto.TlsState.ClientAlpnListLength = 0;
     }
 
     if (NewNegotiatedAlpn == NULL) {
