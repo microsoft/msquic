@@ -430,12 +430,6 @@ typedef struct QUIC_CONNECTION {
     uint8_t SourceCidLimit;
 
     //
-    // TODO guhetier: Move to the PATH_SET
-    // The next identifier to use for a new path.
-    //
-    uint8_t NextPathId;
-
-    //
     // Indicates whether a worker is currently processing a connection.
     // N.B. Multi-threaded access, synchronized by worker's connection lock.
     //

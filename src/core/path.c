@@ -26,14 +26,16 @@ TODO guhetier:
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+static
 void
 QuicPathInitialize(
+    _In_ uint8_t PathId,
     _In_ QUIC_CONNECTION* Connection,
     _Out_ QUIC_PATH* Path
     )
 {
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
-    Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
+    Path->ID = PathId; // TODO - Check for duplicates after wrap around?
     Path->InUse = TRUE;
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = Connection->Settings.MinimumMtu;
@@ -61,7 +63,7 @@ QuicPathSetInitialize(
     )
 {
     CxPlatZeroMemory(PathSet, sizeof(*PathSet));
-    QuicPathInitialize(Connection, &PathSet->Paths[0]);
+    QuicPathInitialize(PathSet->NextPathId++, Connection, &PathSet->Paths[0]);
     PathSet->Paths[0].IsActive = TRUE;
     PathSet->Count = 1;
 }
@@ -330,7 +332,7 @@ QuicConnGetPathForPacket(
 
     CXPLAT_DBG_ASSERT(PathSet->Count < QUIC_MAX_PATH_COUNT);
     QUIC_PATH* Path = &PathSet->Paths[1];
-    QuicPathInitialize(Connection, Path);
+    QuicPathInitialize(PathSet->NextPathId++, Connection, Path);
     PathSet->Count++;
 
     QUIC_PATH* ActivePath = QuicPathSetGetActivePath(PathSet);
