@@ -596,6 +596,17 @@ CxPlatDataPathGetLocalAddresses(
     );
 
 //
+// Get a local address that would be used to reach a given remote address.
+// Currently only used by the connection pool.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathGetLocalAddressForRemote(
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _Out_ QUIC_ADDR* LocalAddress
+    );
+
+//
 // Gets the list of Gateway server addresses.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
