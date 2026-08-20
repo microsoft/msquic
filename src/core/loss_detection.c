@@ -1332,7 +1332,7 @@ QuicLossDetectionProcessAckBlocks(
 
             //
             // Earlier ACK blocks may have moved packets into AckedPackets, so
-            // go to cleanup. The connection is already being torn down.
+            // go to cleanup.
             //
             Result = FALSE;
             goto Exit;
