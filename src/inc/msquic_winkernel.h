@@ -371,6 +371,7 @@ QuicAddrIpToString(
     _Out_ QUIC_ADDR_STR* AddrStr
     )
 {
+    AddrStr->Address[0] = '\0';
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         RtlIpv4AddressToStringA(&Addr->Ipv4.sin_addr, AddrStr->Address);
     } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET6) {

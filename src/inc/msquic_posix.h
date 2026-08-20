@@ -455,7 +455,7 @@ QuicAddr6FromString(
             return FALSE;
         }
 
-        size_t AddrLength = BracketEnd - AddrStr - 1;
+        const size_t AddrLength = BracketEnd - AddrStr - 1;
         if (AddrLength >= sizeof(TmpAddrStr)) {
             return FALSE;
         }
@@ -463,10 +463,14 @@ QuicAddr6FromString(
         TmpAddrStr[AddrLength] = '\0';
         Addr->Ipv6.sin6_port = htons(atoi(BracketEnd+2));
     } else {
-        if (strlen(AddrStr) >= sizeof(TmpAddrStr)) {
+        const size_t AddrLength = strlen(AddrStr);
+        if (AddrLength >= sizeof(TmpAddrStr)) {
             return FALSE;
         }
-        strcpy(TmpAddrStr, AddrStr);
+        //
+        // Copy the string including the null terminator.
+        //
+        memcpy(TmpAddrStr, AddrStr, AddrLength + 1);
     }
 
     Addr->Ipv6.sin6_scope_id = 0;
@@ -541,6 +545,7 @@ QuicAddrIpToString(
     )
 {
     const void* IpAddress;
+    AddrStr->Address[0] = '\0';
     if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
         IpAddress = &Addr->Ipv4.sin_addr;
     } else if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6) {

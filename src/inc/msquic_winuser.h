@@ -334,6 +334,7 @@ QuicAddrIpToString(
     )
 {
     const void* IpAddress;
+    AddrStr->Address[0] = '\0';
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         IpAddress = &Addr->Ipv4.sin_addr;
     } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET6) {
