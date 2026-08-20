@@ -1281,7 +1281,7 @@ QuicLossDetectionOnZeroRttRejected(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicLossDetectionProcessAckBlocks(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
@@ -1293,6 +1293,7 @@ QuicLossDetectionProcessAckBlocks(
     _In_opt_ QUIC_ACK_ECN_EX* Ecn
     )
 {
+    BOOLEAN Result = TRUE;
     QUIC_SENT_PACKET_METADATA* AckedPackets = NULL;
     QUIC_SENT_PACKET_METADATA** AckedPacketsTail = &AckedPackets;
 
@@ -1328,7 +1329,13 @@ QuicLossDetectionProcessAckBlocks(
                 AckBlock->Low,
                 QuicRangeGetHigh(AckBlock));
             QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
-            return;
+
+            //
+            // Earlier ACK blocks may have moved packets into AckedPackets, so
+            // go to cleanup.
+            //
+            Result = FALSE;
+            goto Exit;
         }
 
         //
@@ -1445,7 +1452,7 @@ CheckSentPackets:
         //
         // Nothing was acknowledged, so we can exit now.
         //
-        return;
+        goto Exit;
     }
 
     uint64_t LargestAckedPacketNum = 0;
@@ -1468,7 +1475,8 @@ CheckSentPackets:
                 Connection,
                 "Incorrect ACK encryption level");
             *InvalidAckBlock = TRUE;
-            return;
+            Result = FALSE;
+            goto Exit;
         }
 
         uint64_t PacketRtt = CxPlatTimeDiff64(PacketMeta->SentTime, TimeNow);
@@ -1626,6 +1634,8 @@ CheckSentPackets:
 
     LossDetection->ProbeCount = 0;
 
+Exit:
+
     AckedPacketsIterator = AckedPackets;
     while (AckedPacketsIterator != NULL) {
         QUIC_SENT_PACKET_METADATA* PacketMeta = AckedPacketsIterator;
@@ -1633,11 +1643,9 @@ CheckSentPackets:
         QuicSentPacketPoolReturnPacketMetadata(PacketMeta, Connection);
     }
 
-    //
-    // At least one packet was ACKed. If all packets were ACKed then we'll
-    // cancel the timer; otherwise we'll reset the timer.
-    //
     QuicLossDetectionUpdateTimer(LossDetection, FALSE);
+
+    return Result;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1693,15 +1701,17 @@ QuicLossDetectionProcessAckFrame(
 
             AckDelay <<= Connection->PeerTransportParams.AckDelayExponent;
 
-            QuicLossDetectionProcessAckBlocks(
-                LossDetection,
-                Path,
-                Packet,
-                EncryptLevel,
-                AckDelay,
-                &Connection->DecodedAckRanges,
-                InvalidFrame,
-                FrameType == QUIC_FRAME_ACK_1 ? &Ecn : NULL);
+            if (!QuicLossDetectionProcessAckBlocks(
+                    LossDetection,
+                    Path,
+                    Packet,
+                    EncryptLevel,
+                    AckDelay,
+                    &Connection->DecodedAckRanges,
+                    InvalidFrame,
+                    FrameType == QUIC_FRAME_ACK_1 ? &Ecn : NULL)) {
+                Result = FALSE;
+            }
         }
     }
 
