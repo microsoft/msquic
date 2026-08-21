@@ -754,6 +754,60 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
+#if defined(CX_PLATFORM_LINUX) && !defined(CXPLAT_USE_IO_URING)
+TEST_P(DataPathTest, UdpDynamicPortNoReuse)
+{
+    if (CxPlatProcCount() < 2) {
+        GTEST_SKIP() << "SO_REUSEPORT requires multiple datapath partitions";
+    }
+
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+
+    QuicAddr LocalAddress = GetNewLocalAddr(false);
+    CxPlatSocket NonPartitionedSocket(Datapath, &LocalAddress.SockAddr);
+    VERIFY_QUIC_SUCCESS(NonPartitionedSocket.GetInitStatus());
+
+    CxPlatSocket Socket(
+        Datapath,
+        &LocalAddress.SockAddr,
+        nullptr,
+        nullptr,
+        CXPLAT_SOCKET_FLAG_PARTITIONED);
+    VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
+    QUIC_ADDR AssignedAddress = Socket.GetLocalAddress();
+    ASSERT_NE(QuicAddrGetPort(&AssignedAddress), (uint16_t)0);
+
+    int ProbeSocket =
+        socket(
+            GetParam() == 4 ? AF_INET : AF_INET6,
+            SOCK_DGRAM,
+            IPPROTO_UDP);
+    ASSERT_NE(INVALID_SOCKET, ProbeSocket);
+    int ReusePort = TRUE;
+    int SetOptionResult =
+        setsockopt(
+            ProbeSocket,
+            SOL_SOCKET,
+            SO_REUSEPORT,
+            &ReusePort,
+            sizeof(ReusePort));
+    if (SetOptionResult != 0) {
+        close(ProbeSocket);
+        FAIL() << "setsockopt(SO_REUSEPORT) failed";
+    }
+    int BindResult =
+        bind(
+            ProbeSocket,
+            &AssignedAddress.Ip,
+            GetParam() == 4 ? sizeof(AssignedAddress.Ipv4) : sizeof(AssignedAddress.Ipv6));
+    int BindError = errno;
+    close(ProbeSocket);
+    ASSERT_EQ(SOCKET_ERROR, BindResult);
+    ASSERT_EQ(EADDRINUSE, BindError);
+}
+#endif
+
 TEST_F(DataPathTest, UdpRebind)
 {
     CxPlatDataPath Datapath(&EmptyUdpCallbacks);
