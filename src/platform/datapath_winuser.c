@@ -972,6 +972,40 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathGetLocalAddressForRemote(
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _Out_ QUIC_ADDR* LocalAddress
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    SOCKET Socket = socket(RemoteAddress->si_family, SOCK_DGRAM, IPPROTO_UDP);
+    if (Socket == INVALID_SOCKET) {
+        return HRESULT_FROM_WIN32(WSAGetLastError());
+    }
+
+    const int RemoteAddressLength =
+        RemoteAddress->si_family == AF_INET ?
+            sizeof(RemoteAddress->Ipv4) :
+            sizeof(RemoteAddress->Ipv6);
+    if (connect(Socket, (PSOCKADDR)RemoteAddress, RemoteAddressLength) == SOCKET_ERROR) {
+        Status = HRESULT_FROM_WIN32(WSAGetLastError());
+        goto Error;
+    }
+
+    CxPlatZeroMemory(LocalAddress, sizeof(*LocalAddress));
+    int LocalAddressLength = sizeof(*LocalAddress);
+    if (getsockname(Socket, (PSOCKADDR)LocalAddress, &LocalAddressLength) == SOCKET_ERROR) {
+        Status = HRESULT_FROM_WIN32(WSAGetLastError());
+        goto Error;
+    }
+
+Error:
+    closesocket(Socket);
+    return Status;
+}
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(QUIC_SUCCEEDED(return))
