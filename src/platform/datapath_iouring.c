@@ -617,6 +617,10 @@ CxPlatSocketContextInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result = 0;
     int Option = 0;
+    const BOOLEAN IsDynamicPartitionedListener =
+        Config->RemoteAddress == NULL &&
+        (Config->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED) != 0 &&
+        (Config->LocalAddress == NULL || QuicAddrGetPort(Config->LocalAddress) == 0);
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
 
@@ -897,10 +901,10 @@ CxPlatSocketContextInitialize(
         }
 
         //
-        // Only set SO_REUSEPORT on a server socket, otherwise the client could be
-        // assigned a server port (unless it's forcing sharing).
+        // Don't set SO_REUSEPORT for dynamic partitioned listeners.
         //
-        if ((Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
+        if (!IsDynamicPartitionedListener &&
+            (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
             SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
             // The port is shared across processors.
