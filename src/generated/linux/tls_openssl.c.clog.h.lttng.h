@@ -140,6 +140,25 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for OpenSslMissingTransportParameters
+// [conn][%p] No transport parameters received
+// QuicTraceLogConnError(
+                        OpenSslMissingTransportParameters,
+                        TlsContext->Connection,
+                        "No transport parameters received");
+// arg1 = arg1 = TlsContext->Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
+    TP_ARGS(
+        const void *, arg1),
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for OpenSslHandshakeDataStart
 // [conn][%p] Writing Handshake data starts at %u
 // QuicTraceLogConnInfo(
