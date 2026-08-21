@@ -5769,15 +5769,9 @@ QuicConnRecvDatagrams(
         CXPLAT_DBG_ASSERT(Packet->ReleaseDeferred == IsDeferred);
         Packet->ReleaseDeferred = FALSE;
 
-        QUIC_PATH* DatagramPath = QuicConnGetPathForPacket(Connection, Packet);
-        if (DatagramPath == NULL) {
-            QuicPacketLogDrop(Connection, Packet, "Max paths already tracked");
-            goto Drop;
-        }
-
-        CxPlatUpdateRoute(&DatagramPath->Route, Packet->Route);
-
-        if (DatagramPath != CurrentPath) {
+        if (CurrentPath == NULL) {
+            CurrentPath = QuicConnGetPathForPacket(Connection, Packet);
+        } else if (!QuicPathMatchPacket(CurrentPath, Packet)) {
             if (BatchCount != 0) {
                 //
                 // This datagram is from a different path than the current
@@ -5793,8 +5787,19 @@ QuicConnRecvDatagrams(
                     &RecvState);
                 BatchCount = 0;
             }
-            CurrentPath = DatagramPath;
+            //
+            // Path lookup can modify the path array, so only do it after the
+            // current batch no longer holds a path pointer.
+            //
+            CurrentPath = QuicConnGetPathForPacket(Connection, Packet);
         }
+
+        if (CurrentPath == NULL) {
+            QuicPacketLogDrop(Connection, Packet, "Max paths already tracked");
+            goto Drop;
+        }
+
+        CxPlatUpdateRoute(&CurrentPath->Route, Packet->Route);
 
         if (!IsDeferred) {
             Connection->Stats.Recv.TotalBytes += Packet->BufferLength;

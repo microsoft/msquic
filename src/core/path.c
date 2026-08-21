@@ -258,6 +258,22 @@ QuicConnGetPathByID(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicPathMatchPacket(
+    _In_ const QUIC_PATH* Path,
+    _In_ const QUIC_RX_PACKET* Packet
+    )
+{
+    return
+        QuicAddrCompare(
+            &Packet->Route->LocalAddress,
+            &Path->Route.LocalAddress) &&
+        QuicAddrCompare(
+            &Packet->Route->RemoteAddress,
+            &Path->Route.RemoteAddress);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathForPacket(

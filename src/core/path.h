@@ -334,6 +334,13 @@ QuicConnGetPathByID(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicPathMatchPacket(
+    _In_ const QUIC_PATH* Path,
+    _In_ const QUIC_RX_PACKET* Packet
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathForPacket(
