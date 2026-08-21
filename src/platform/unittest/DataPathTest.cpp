@@ -765,6 +765,9 @@ TEST_P(DataPathTest, UdpDynamicPortNoReuse)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
 
     QuicAddr LocalAddress = GetNewLocalAddr(false);
+    CxPlatSocket NonPartitionedSocket(Datapath, &LocalAddress.SockAddr);
+    VERIFY_QUIC_SUCCESS(NonPartitionedSocket.GetInitStatus());
+
     CxPlatSocket Socket(
         Datapath,
         &LocalAddress.SockAddr,

@@ -897,11 +897,12 @@ CxPlatSocketContextInitialize(
         }
 
         //
-        // Only set SO_REUSEPORT when the listening port isn't dynamic.
+        // Multi-socket bindings need SO_REUSEPORT to bind the same port.
         //
-        if ((Config->RemoteAddress != NULL ||
-                Config->LocalAddress == NULL || QuicAddrGetPort(Config->LocalAddress) != 0) &&
-            (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
+        if (((Config->RemoteAddress != NULL && (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE)) ||
+                (Config->RemoteAddress == NULL &&
+                    (Config->LocalAddress == NULL || QuicAddrGetPort(Config->LocalAddress) != 0 ||
+                        SocketContext->Binding->NumPerProcessorSockets))) &&
             SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
             // The port is shared across processors.
