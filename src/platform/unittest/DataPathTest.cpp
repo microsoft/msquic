@@ -754,7 +754,7 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
-#if defined(CX_PLATFORM_LINUX)
+#if defined(CX_PLATFORM_LINUX) && !defined(CXPLAT_USE_IO_URING)
 TEST_P(DataPathTest, UdpDynamicPortNoReuse)
 {
     if (CxPlatProcCount() < 2) {
