@@ -754,7 +754,7 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
-#if defined(CX_PLATFORM_LINUX)
+#if defined(CX_PLATFORM_LINUX) && !defined(CXPLAT_USE_IO_URING)
 TEST_P(DataPathTest, UdpDynamicPortNoReuse)
 {
     if (CxPlatProcCount() < 2) {
@@ -764,52 +764,16 @@ TEST_P(DataPathTest, UdpDynamicPortNoReuse)
     CxPlatDataPath Datapath(&EmptyUdpCallbacks);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
 
-    for (CXPLAT_SOCKET_FLAGS Flags : {
-            CXPLAT_SOCKET_FLAG_NONE,
-            CXPLAT_SOCKET_FLAG_PARTITIONED}) {
-        QuicAddr LocalAddress = GetNewLocalAddr(false);
-        CxPlatSocket Socket(Datapath, &LocalAddress.SockAddr, nullptr, nullptr, Flags);
-        VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
-        QUIC_ADDR AssignedAddress = Socket.GetLocalAddress();
-        ASSERT_NE(QuicAddrGetPort(&AssignedAddress), (uint16_t)0);
-
-        int ProbeSocket =
-            socket(
-                GetParam() == 4 ? AF_INET : AF_INET6,
-                SOCK_DGRAM,
-                IPPROTO_UDP);
-        ASSERT_NE(INVALID_SOCKET, ProbeSocket);
-        int ReusePort = TRUE;
-        int SetOptionResult =
-            setsockopt(
-                ProbeSocket,
-                SOL_SOCKET,
-                SO_REUSEPORT,
-                &ReusePort,
-                sizeof(ReusePort));
-        if (SetOptionResult != 0) {
-            close(ProbeSocket);
-            FAIL() << "setsockopt(SO_REUSEPORT) failed";
-        }
-        int BindResult =
-            bind(
-                ProbeSocket,
-                &AssignedAddress.Ip,
-                GetParam() == 4 ? sizeof(AssignedAddress.Ipv4) : sizeof(AssignedAddress.Ipv6));
-        int BindError = errno;
-        close(ProbeSocket);
-        ASSERT_EQ(SOCKET_ERROR, BindResult);
-        ASSERT_EQ(EADDRINUSE, BindError);
-    }
-
-    QuicAddr FixedAddress = GetNewLocalAddr();
-    CxPlatSocket FixedSocket(Datapath, &FixedAddress.SockAddr);
-    while (FixedSocket.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
-        FixedAddress.SetPort(GetNextPort());
-        FixedSocket.CreateUdp(Datapath, &FixedAddress.SockAddr);
-    }
-    VERIFY_QUIC_SUCCESS(FixedSocket.GetInitStatus());
-    QUIC_ADDR FixedAssignedAddress = FixedSocket.GetLocalAddress();
+    QuicAddr LocalAddress = GetNewLocalAddr(false);
+    CxPlatSocket Socket(
+        Datapath,
+        &LocalAddress.SockAddr,
+        nullptr,
+        nullptr,
+        CXPLAT_SOCKET_FLAG_PARTITIONED);
+    VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
+    QUIC_ADDR AssignedAddress = Socket.GetLocalAddress();
+    ASSERT_NE(QuicAddrGetPort(&AssignedAddress), (uint16_t)0);
 
     int ProbeSocket =
         socket(
@@ -832,11 +796,12 @@ TEST_P(DataPathTest, UdpDynamicPortNoReuse)
     int BindResult =
         bind(
             ProbeSocket,
-            &FixedAssignedAddress.Ip,
-            GetParam() == 4 ? sizeof(FixedAssignedAddress.Ipv4) : sizeof(FixedAssignedAddress.Ipv6));
+            &AssignedAddress.Ip,
+            GetParam() == 4 ? sizeof(AssignedAddress.Ipv4) : sizeof(AssignedAddress.Ipv6));
     int BindError = errno;
     close(ProbeSocket);
-    ASSERT_EQ(0, BindResult) << "bind failed with " << BindError;
+    ASSERT_EQ(SOCKET_ERROR, BindResult);
+    ASSERT_EQ(EADDRINUSE, BindError);
 }
 #endif
 
