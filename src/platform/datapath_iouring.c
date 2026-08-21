@@ -901,15 +901,14 @@ CxPlatSocketContextInitialize(
         }
 
         //
-        // Non-partitioned listeners need SO_REUSEPORT for their per-processor
-        // sockets. Dynamic partitioned listeners keep their assigned port exclusive,
-        // while connected sockets enable reuse only when explicitly sharing.
+        // With multiple datapath partitions, server sockets use SO_REUSEPORT except
+        // for dynamic partitioned listeners; clients use it only when sharing.
         //
         if (!IsDynamicPartitionedListener &&
             (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
             SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
-            // The port is shared across processors.
+            // Enable port sharing.
             //
             Option = TRUE;
             Result =
