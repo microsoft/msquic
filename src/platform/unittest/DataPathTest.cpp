@@ -754,6 +754,7 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
+// This behavior is specific to the Linux epoll datapath.
 #if defined(CX_PLATFORM_LINUX) && !defined(__FreeBSD__) && !defined(CXPLAT_USE_IO_URING)
 TEST_P(DataPathTest, UdpDynamicPortNoReuse)
 {

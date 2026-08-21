@@ -723,6 +723,9 @@ CxPlatSocketContextInitialize(
         }
 
         //
+        // Only set SO_REUSEPORT on a server socket, otherwise the client could be
+        // assigned a server port (unless it's forcing sharing).
+        //
         // Dynamic partitioned listeners use a single socket here, so keep their
         // assigned port exclusive. io_uring retains SO_REUSEPORT because it creates
         // per-processor sockets for partitioned listeners.
