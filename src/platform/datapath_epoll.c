@@ -723,14 +723,15 @@ CxPlatSocketContextInitialize(
         }
 
         //
-        // With multiple datapath partitions, server sockets use SO_REUSEPORT except
-        // for dynamic partitioned listeners; clients use it only when sharing.
+        // Dynamic partitioned listeners use a single socket here, so keep their
+        // assigned port exclusive. io_uring retains SO_REUSEPORT because it creates
+        // per-processor sockets for partitioned listeners.
         //
         if (!IsDynamicPartitionedListener &&
             (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
             SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
-            // Enable port sharing.
+            // The port is shared across processors.
             //
             Option = TRUE;
             Result =

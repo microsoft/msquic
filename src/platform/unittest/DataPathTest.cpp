@@ -754,9 +754,10 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
-#if defined(CX_PLATFORM_LINUX) && !defined(CXPLAT_USE_IO_URING)
+#if defined(CX_PLATFORM_LINUX) && !defined(__FreeBSD__) && !defined(CXPLAT_USE_IO_URING)
 TEST_P(DataPathTest, UdpDynamicPortNoReuse)
 {
+    // The default datapath creates one partition per processor.
     if (CxPlatProcCount() < 2) {
         GTEST_SKIP() << "SO_REUSEPORT requires multiple datapath partitions";
     }
@@ -765,6 +766,7 @@ TEST_P(DataPathTest, UdpDynamicPortNoReuse)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
 
     QuicAddr LocalAddress = GetNewLocalAddr(false);
+    // A non-partitioned multi-context bind still requires SO_REUSEPORT.
     CxPlatSocket NonPartitionedSocket(Datapath, &LocalAddress.SockAddr);
     VERIFY_QUIC_SUCCESS(NonPartitionedSocket.GetInitStatus());
 
