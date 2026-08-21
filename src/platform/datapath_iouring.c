@@ -617,6 +617,9 @@ CxPlatSocketContextInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result = 0;
     int Option = 0;
+    const BOOLEAN IsDynamicListener =
+        Config->RemoteAddress == NULL &&
+        (Config->LocalAddress == NULL || QuicAddrGetPort(Config->LocalAddress) == 0);
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
 
@@ -897,10 +900,11 @@ CxPlatSocketContextInitialize(
         }
 
         //
-        // Only set SO_REUSEPORT on a server socket, otherwise the client could be
-        // assigned a server port (unless it's forcing sharing).
+        // Dynamic listeners use a single socket without SO_REUSEPORT so the
+        // assigned port cannot be shared with another endpoint.
         //
-        if ((Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
+        if (!IsDynamicListener &&
+            (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
             SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
             // The port is shared across processors.
@@ -1258,8 +1262,12 @@ SocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
+    const BOOLEAN IsPartitioned =
+        Config->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED || Config->RemoteAddress != NULL;
+    const BOOLEAN HasFixedLocalPort =
+        Config->LocalAddress != NULL && QuicAddrGetPort(Config->LocalAddress) != 0;
+    const BOOLEAN NumPerProcessorSockets =
+        HasFixedLocalPort && !IsPartitioned && Datapath->PartitionCount > 1;
     const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
@@ -1315,14 +1323,16 @@ SocketCreateUdp(
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
                 Config,
-                Config->RemoteAddress ? Config->PartitionIndex : (i % Datapath->PartitionCount),
+                IsPartitioned ? Config->PartitionIndex :
+                    (NumPerProcessorSockets ? (i % Datapath->PartitionCount) :
+                        (CxPlatProcCurrentNumber() % Datapath->PartitionCount)),
                 Binding->Type);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
     }
 
-    if (IsServerSocket) {
+    if (NumPerProcessorSockets) {
         //
         // The return value is being ignored here, as if a system does not support
         // bpf we still want the server to work. If this happens, the sockets will
