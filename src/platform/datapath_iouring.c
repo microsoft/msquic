@@ -900,8 +900,8 @@ CxPlatSocketContextInitialize(
         }
 
         //
-        // Dynamic listeners use a single socket without SO_REUSEPORT so the
-        // assigned port cannot be shared with another endpoint.
+        // Don't set SO_REUSEPORT for dynamic listeners so the assigned port
+        // isn't shared with another endpoint.
         //
         if (!IsDynamicListener &&
             (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
