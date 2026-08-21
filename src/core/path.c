@@ -7,17 +7,6 @@ Abstract:
 
     Per path functionality for the connection.
 
-TODO guhetier:
-    - Improve Path ETW events
-    - Enforce invariants
-        - path[0] is the "active" path and there is always an active path on a started connection
-            - the connection is shutdown rather than having no active path
-        - define an index for a "new" path
-            - does it make sense to have multiple new paths?
-    - change the API so that updating the array is a defered operation that is done only when path are not referenced by an iterator
-    - unit tests
-    - respect of the spec, especially for ID sizes, etc...
-
 --*/
 
 #include "precomp.h"
