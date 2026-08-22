@@ -22,6 +22,8 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
     QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;// Optional
     const char* CaCertificateFile;                      // Optional
+    const uint8_t* CaCertificateBlob;                   // Optional
+    uint32_t CaCertificateBlobLength;                   // Optional
 } QUIC_CREDENTIAL_CONFIG;
 ```
 
@@ -159,7 +161,15 @@ Obtain the peer certificate using a faster in-process API call. Only available o
 
 `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE`
 
-Enable CA certificate file provided in the `CaCertificateFile` member.
+Enable CA certificate store file whose filename is provided in the `CaCertificateFile` member.
+This is a text file containing certificates in `-----BEGIN CERTIFICATE-----` / `-----END CERTIFICATE-----` blocks.
+The file may also contain certificate revocation lists (CRLs) in `-----BEGIN X509 CRL-----` / `-----END X509 CRL-----` blocks.
+Only valid for OpenSSL.
+
+`QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_BLOB`
+
+Enable CA certificate store blob provided in memory by the `CaCertificateBlob` and `CaCertificateBlobLength` members.
+Its format is the same as used for `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE`.
 Only valid for OpenSSL.
 
 `QUIC_CREDENTIAL_FLAG_DISABLE_AIA`
@@ -204,9 +214,20 @@ A set of flags indicating which cipher suites are available to negotiate. Must b
 
 #### `CaCertificateFile`
 
-Optional pointer to CA certificate file that will be used when
+Optional pointer to CA certificate filename that will be used when
 validating the peer certificate. This allows the use of a private CA.
 Must be used with `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE`.
+
+#### `CaCertificateBlob`
+
+Optional pointer to CA certificate data that will be used when
+validating the peer certificate. This allows the use of a private CA.
+Must be used with `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_BLOB` and `CaCertificateBlobLength`.
+
+#### `CaCertificateBlobLength`
+
+Optional length of CA certificate data pointed to by `CaCertificateBlob`.
+Must be used with `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_BLOB` and `CaCertificateBlob`.
 
 # Remarks
 
