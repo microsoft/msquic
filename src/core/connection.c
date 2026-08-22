@@ -126,10 +126,10 @@ QuicConnAlloc(
     QuicSendBufferInitialize(&Connection->SendBuffer);
     QuicOperationQueueInitialize(&Connection->OperQ);
     QuicSendInitialize(&Connection->Send, &Connection->Settings);
+    QuicPathSetInitialize(&Connection->Paths, Connection);
     QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
     QuicLossDetectionInitialize(&Connection->LossDetection);
     QuicDatagramInitialize(&Connection->Datagram);
-    QuicPathSetInitialize(&Connection->Paths, Connection);
 
     QuicRangeInitialize(
         QUIC_MAX_RANGE_DECODE_ACKS,
