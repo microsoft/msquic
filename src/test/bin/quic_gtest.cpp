@@ -2778,6 +2778,15 @@ TEST(Misc, SlowReceive) {
     }
 }
 
+TEST(Misc, StreamZeroLengthSend) {
+    TestLogger Logger("StreamZeroLengthSend");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamZeroLengthSend)));
+    } else {
+        QuicTestStreamZeroLengthSend();
+    }
+}
+
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
 #ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST(Misc, NthAllocFail) {

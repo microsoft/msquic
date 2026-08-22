@@ -849,6 +849,10 @@ QuicTestAbortReceive_Incomplete(
 void
 QuicTestSlowReceive(
     );
+        
+void
+QuicTestStreamZeroLengthSend(
+    );
 
 void
 QuicTestNthAllocFail(
