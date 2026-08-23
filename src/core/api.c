@@ -2144,3 +2144,332 @@ Error:
 
     return Status;
 }
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionReceivePause(
+    _In_ _Pre_defensive_ HQUIC Handle
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_RECEIVE_PAUSE,
+        Handle);
+
+    if (!IS_CONN_HANDLE(Handle)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Connection = (QUIC_CONNECTION*)Handle;
+
+    CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Connection->State.Freed);
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection,
+        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
+        !Connection->State.HandleClosed);
+
+    //
+    // The connection must be past the handshake completion (Connected)
+    // before we can manipulate flow control. Otherwise, the peer might not
+    // have initialized its own state.
+    //
+    if (!Connection->State.Connected) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
+
+    //
+    // Don't allow nested pauses - the function is idempotent but the second
+    // call is a no-op.
+    //
+    if (Connection->State.ReceivePaused) {
+        Status = QUIC_STATUS_SUCCESS;
+        goto Error;
+    }
+
+    Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CONN_RECV_PAUSE operation",
+            0);
+        goto Error;
+    }
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_RECV_PAUSE;
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_PENDING;
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionReceiveResume(
+    _In_ _Pre_defensive_ HQUIC Handle
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_RECEIVE_RESUME,
+        Handle);
+
+    if (!IS_CONN_HANDLE(Handle)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Connection = (QUIC_CONNECTION*)Handle;
+
+    CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Connection->State.Freed);
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection,
+        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
+        !Connection->State.HandleClosed);
+
+    //
+    // The connection must be past the handshake completion (Connected)
+    // before we can manipulate flow control.
+    //
+    if (!Connection->State.Connected) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
+
+    //
+    // Don't allow resuming if not paused - the function is idempotent but the
+    // second call is a no-op.
+    //
+    if (!Connection->State.ReceivePaused) {
+        Status = QUIC_STATUS_SUCCESS;
+        goto Error;
+    }
+
+    Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CONN_RECV_RESUME operation",
+            0);
+        goto Error;
+    }
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_RECV_RESUME;
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_PENDING;
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicStreamReceivePause(
+    _In_ _Pre_defensive_ HQUIC Handle
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_STREAM* Stream;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_STREAM_RECEIVE_PAUSE,
+        Handle);
+
+    if (!IS_STREAM_HANDLE(Handle)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Stream = (QUIC_STREAM*)Handle;
+
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
+
+    Connection = Stream->Connection;
+
+    //
+    // Don't allow nested pauses - the function is idempotent but the second
+    // call is a no-op.
+    //
+    if (Stream->Flags.ReceivePaused) {
+        Status = QUIC_STATUS_SUCCESS;
+        goto Error;
+    }
+
+    //
+    // The connection must be past the handshake completion (Connected)
+    // before we can manipulate flow control.
+    //
+    if (!Connection->State.Connected) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
+
+    Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "STRM_RECV_PAUSE operation",
+            0);
+        goto Error;
+    }
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_PAUSE;
+    Oper->API_CALL.Context->STRM_RECV_SET_ENABLED.Stream = Stream;
+
+    //
+    // Async stream operations need to hold a ref on the stream so that the
+    // stream isn't freed before the operation can be processed. The ref is
+    // released after the operation is processed.
+    //
+    QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_PENDING;
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicStreamReceiveResume(
+    _In_ _Pre_defensive_ HQUIC Handle
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_STREAM* Stream;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_STREAM_RECEIVE_RESUME,
+        Handle);
+
+    if (!IS_STREAM_HANDLE(Handle)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Stream = (QUIC_STREAM*)Handle;
+
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
+
+    Connection = Stream->Connection;
+
+    //
+    // Don't allow resuming if not paused - the function is idempotent but the
+    // second call is a no-op.
+    //
+    if (!Stream->Flags.ReceivePaused) {
+        Status = QUIC_STATUS_SUCCESS;
+        goto Error;
+    }
+
+    //
+    // The connection must be past the handshake completion (Connected)
+    // before we can manipulate flow control.
+    //
+    if (!Connection->State.Connected) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
+
+    Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "STRM_RECV_RESUME operation",
+            0);
+        goto Error;
+    }
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_RESUME;
+    Oper->API_CALL.Context->STRM_RECV_SET_ENABLED.Stream = Stream;
+
+    //
+    // Async stream operations need to hold a ref on the stream so that the
+    // stream isn't freed before the operation can be processed. The ref is
+    // released after the operation is processed.
+    //
+    QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_PENDING;
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}

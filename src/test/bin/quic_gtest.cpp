@@ -2828,6 +2828,17 @@ TEST(Misc, StreamDifferentAbortErrors) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(Misc, StreamReceivePauseResume) {
+    TestLogger Logger("StreamReceivePauseResume");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamReceivePauseResume)));
+    } else {
+        QuicTestStreamReceivePauseResume();
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 TEST(Misc, StreamAbortRecvFinRace) {
     TestLogger Logger("StreamAbortRecvFinRace");
     if (TestingKernelMode) {

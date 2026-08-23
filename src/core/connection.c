@@ -7831,6 +7831,70 @@ QuicConnExportKeyingMaterial(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicConnRecvPause(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    //
+    // Be defensive about double-pause calls (e.g., two pause ops queued).
+    // The flag is the source of truth; if already paused this is a no-op.
+    //
+    if (Connection->State.ReceivePaused) {
+        return;
+    }
+
+    Connection->State.ReceivePaused = TRUE;
+
+    //
+    // Trigger sending of a MAX_DATA frame with the value zero so the peer
+    // learns that we have no receive capacity. The local Send.MaxData is
+    // deliberately left untouched: lowering it would cause any STREAM
+    // frames already in flight from before MAX_DATA reaches the peer to
+    // be rejected with FLOW_CONTROL_ERROR per RFC 9000 sec 19.10, killing
+    // the connection. Keeping Send.MaxData at its real value means those
+    // in-flight frames are still within our original window and will be
+    // accepted normally.
+    //
+    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_MAX_DATA);
+    QuicSendQueueFlush(&Connection->Send, REASON_CONNECTION_FLOW_CONTROL);
+
+    QuicTraceLogConnInfo(
+        ConnReceivePause,
+        Connection,
+        "Pausing receive on connection");
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnRecvResume(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    //
+    // Be defensive about resume-without-pause.
+    //
+    if (!Connection->State.ReceivePaused) {
+        return;
+    }
+
+    Connection->State.ReceivePaused = FALSE;
+
+    //
+    // Trigger sending of a MAX_DATA frame. Send.MaxData was never lowered
+    // during the pause, so this restores the peer's view to our real
+    // current allowance.
+    //
+    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_MAX_DATA);
+    QuicSendQueueFlush(&Connection->Send, REASON_CONNECTION_FLOW_CONTROL);
+
+    QuicTraceLogConnInfo(
+        ConnReceiveResume,
+        Connection,
+        "Resuming receive on connection");
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicConnProcessApiOperation(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_API_CONTEXT* ApiCtx
@@ -7895,6 +7959,14 @@ QuicConnProcessApiOperation(
         }
         break;
 
+    case QUIC_API_TYPE_CONN_RECV_PAUSE:
+        QuicConnRecvPause(Connection);
+        break;
+
+    case QUIC_API_TYPE_CONN_RECV_RESUME:
+        QuicConnRecvResume(Connection);
+        break;
+
     case QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION:
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
         QuicCryptoCustomTicketValidationComplete(
@@ -7943,6 +8015,20 @@ QuicConnProcessApiOperation(
             QuicStreamRecvSetEnabledState(
                 ApiCtx->STRM_RECV_SET_ENABLED.Stream,
                 ApiCtx->STRM_RECV_SET_ENABLED.IsEnabled);
+        break;
+
+    case QUIC_API_TYPE_STRM_RECV_PAUSE:
+        QuicStreamRecvPause(ApiCtx->STRM_RECV_SET_ENABLED.Stream);
+        QuicStreamRelease(
+            ApiCtx->STRM_RECV_SET_ENABLED.Stream,
+            QUIC_STREAM_REF_OPERATION);
+        break;
+
+    case QUIC_API_TYPE_STRM_RECV_RESUME:
+        QuicStreamRecvResume(ApiCtx->STRM_RECV_SET_ENABLED.Stream);
+        QuicStreamRelease(
+            ApiCtx->STRM_RECV_SET_ENABLED.Stream,
+            QUIC_STREAM_REF_OPERATION);
         break;
 
     case QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS:

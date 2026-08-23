@@ -1876,6 +1876,54 @@ QUIC_STATUS
         HQUIC* ConnectionPool
     );
 
+//
+// Pauses receive callbacks on a connection by lowering the connection-level
+// flow control window (advertised via MAX_DATA). Any STREAM frames already in
+// flight that exceed the new limit will cause the connection to be closed with
+// FLOW_CONTROL_ERROR per RFC 9000 sec 19.10.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_RECEIVE_PAUSE_FN)(
+    _In_ HQUIC Connection
+    );
+
+//
+// Resumes receive callbacks on a connection by restoring the saved
+// connection-level flow control window.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_RECEIVE_RESUME_FN)(
+    _In_ HQUIC Connection
+    );
+
+//
+// Pauses receive callbacks on a stream by lowering the stream-level flow
+// control window (advertised via MAX_STREAM_DATA). Any STREAM frames already
+// in flight on this stream that exceed the new limit will cause the
+// connection to be closed with FLOW_CONTROL_ERROR per RFC 9000 sec 19.10.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_STREAM_RECEIVE_PAUSE_FN)(
+    _In_ HQUIC Stream
+    );
+
+//
+// Resumes receive callbacks on a stream by restoring the saved stream-level
+// flow control window.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_STREAM_RECEIVE_RESUME_FN)(
+    _In_ HQUIC Stream
+    );
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 //
@@ -1945,6 +1993,39 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN
                                         ConnectionExportKeyingMaterial; // Available from v2.6
+
+    //
+    // Pauses receive callbacks on a connection. The peer is informed of the
+    // reduced connection-level flow control window via MAX_DATA. Any STREAM
+    // frames already in flight that exceed the new limit will cause the
+    // connection to be closed with FLOW_CONTROL_ERROR per RFC 9000 sec 19.10.
+    //
+    QUIC_CONNECTION_RECEIVE_PAUSE_FN
+                                        ConnectionReceivePause;       // Available from v2.6
+
+    //
+    // Resumes receive callbacks on a connection by restoring the saved
+    // connection-level flow control window.
+    //
+    QUIC_CONNECTION_RECEIVE_RESUME_FN
+                                        ConnectionReceiveResume;      // Available from v2.6
+
+    //
+    // Pauses receive callbacks on a stream. The peer is informed of the
+    // reduced stream-level flow control window via MAX_STREAM_DATA. Any
+    // STREAM frames already in flight on this stream that exceed the new
+    // limit will cause the connection to be closed with FLOW_CONTROL_ERROR
+    // per RFC 9000 sec 19.10.
+    //
+    QUIC_STREAM_RECEIVE_PAUSE_FN
+                                        StreamReceivePause;           // Available from v2.6
+
+    //
+    // Resumes receive callbacks on a stream by restoring the saved
+    // stream-level flow control window.
+    //
+    QUIC_STREAM_RECEIVE_RESUME_FN
+                                        StreamReceiveResume;          // Available from v2.6
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;

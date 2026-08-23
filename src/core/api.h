@@ -298,6 +298,34 @@ MsQuicStreamReceiveSetEnabled(
     _In_ BOOLEAN IsEnabled
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionReceivePause(
+    _In_ _Pre_defensive_ HQUIC Handle
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionReceiveResume(
+    _In_ _Pre_defensive_ HQUIC Handle
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicStreamReceivePause(
+    _In_ _Pre_defensive_ HQUIC Handle
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicStreamReceiveResume(
+    _In_ _Pre_defensive_ HQUIC Handle
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API

@@ -2263,6 +2263,8 @@ MsQuicOpenVersion(
     Api->ConnectionStart = MsQuicConnectionStart;
     Api->ConnectionSetConfiguration = MsQuicConnectionSetConfiguration;
     Api->ConnectionSendResumptionTicket = MsQuicConnectionSendResumptionTicket;
+    Api->ConnectionReceivePause = MsQuicConnectionReceivePause;
+    Api->ConnectionReceiveResume = MsQuicConnectionReceiveResume;
     Api->ConnectionResumptionTicketValidationComplete = MsQuicConnectionResumptionTicketValidationComplete;
     Api->ConnectionCertificateValidationComplete = MsQuicConnectionCertificateValidationComplete;
 
@@ -2273,6 +2275,8 @@ MsQuicOpenVersion(
     Api->StreamSend = MsQuicStreamSend;
     Api->StreamReceiveComplete = MsQuicStreamReceiveComplete;
     Api->StreamReceiveSetEnabled = MsQuicStreamReceiveSetEnabled;
+    Api->StreamReceivePause = MsQuicStreamReceivePause;
+    Api->StreamReceiveResume = MsQuicStreamReceiveResume;
     Api->StreamProvideReceiveBuffers = MsQuicStreamProvideReceiveBuffers;
 
     Api->DatagramSend = MsQuicDatagramSend;

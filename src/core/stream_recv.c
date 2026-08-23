@@ -303,10 +303,12 @@ QuicStreamProcessResetFrame(
             // as a result.
             //
             uint64_t FlowControlIncrease = FinalSize - TotalReadLength;
-            Stream->Connection->Send.MaxData += FlowControlIncrease;
-            QuicSendSetSendFlag(
-                &Stream->Connection->Send,
-                QUIC_CONN_SEND_FLAG_MAX_DATA);
+            if (!Stream->Connection->State.ReceivePaused) {
+                Stream->Connection->Send.MaxData += FlowControlIncrease;
+                QuicSendSetSendFlag(
+                    &Stream->Connection->Send,
+                    QUIC_CONN_SEND_FLAG_MAX_DATA);
+            }
         }
 
         QuicTraceEvent(
@@ -785,104 +787,110 @@ QuicStreamOnBytesDelivered(
     const uint64_t RecvBufferDrainThreshold =
         Stream->RecvBuffer.VirtualBufferLength / QUIC_RECV_BUFFER_DRAIN_RATIO;
 
-    Stream->RecvWindowBytesDelivered += BytesDelivered;
-    Stream->Connection->Send.MaxData += BytesDelivered;
+    if (!Stream->Connection->State.ReceivePaused) {
+        Stream->Connection->Send.MaxData += BytesDelivered;
 
-    Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator += BytesDelivered;
-    if (Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator >=
-        Stream->Connection->Settings.ConnFlowControlWindow / QUIC_RECV_BUFFER_DRAIN_RATIO) {
-        Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator = 0;
+        Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator += BytesDelivered;
+        if (Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator >=
+            Stream->Connection->Settings.ConnFlowControlWindow / QUIC_RECV_BUFFER_DRAIN_RATIO) {
+            Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator = 0;
+            QuicSendSetSendFlag(
+                &Stream->Connection->Send,
+                QUIC_CONN_SEND_FLAG_MAX_DATA);
+        }
+    }
+
+    if (!Stream->Flags.ReceivePaused) {
+
+        Stream->RecvWindowBytesDelivered += BytesDelivered;
+
+        if (Stream->RecvWindowBytesDelivered >= RecvBufferDrainThreshold) {
+
+            uint64_t TimeNow = CxPlatTimeUs64();
+
+            //
+            // Limit stream FC window growth by the connection FC window size.
+            //
+            if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
+                Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
+                uint64_t TimeThreshold =
+                    ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
+                if (CxPlatTimeDiff64(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
+
+                    //
+                    // Buffer tuning:
+                    //
+                    // VirtualBufferLength limits the connection's throughput to:
+                    //   R = VirtualBufferLength / RTT
+                    //
+                    // We've delivered data at an average rate of at least:
+                    //   R / QUIC_RECV_BUFFER_DRAIN_RATIO
+                    //
+                    // Double VirtualBufferLength to make sure it doesn't limit
+                    // throughput.
+                    //
+                    // Mainly people complain about flow control when it limits
+                    // throughput. But if we grow the buffer limit and then the app
+                    // stops receiving data, bytes will pile up in the buffer. We could
+                    // add logic to shrink the buffer when the app absorb rate is too
+                    // low.
+                    //
+
+                    uint64_t NewLength = (uint64_t)Stream->RecvBuffer.VirtualBufferLength * 2;
+                    NewLength = CXPLAT_MIN(NewLength, UINT32_MAX);
+
+                    QuicRecvBufferIncreaseVirtualBufferLength(
+                        &Stream->RecvBuffer,
+                        (uint32_t)NewLength);
+
+                    QuicTraceLogStreamVerbose(
+                        IncreaseRxBuffer,
+                        Stream,
+                        "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
+                        (uint32_t)NewLength,
+                        Stream->Connection->Paths[0].MinRtt,
+                        TimeNow,
+                        Stream->RecvWindowLastUpdate);
+                }
+            }
+
+            Stream->RecvWindowLastUpdate = TimeNow;
+            Stream->RecvWindowBytesDelivered = 0;
+
+        } else if (!(Stream->Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK)) {
+            //
+            // We haven't hit the drain limit AND we don't have any ACKs to send
+            // immediately, so we don't need to immediately update the max stream data
+            // values.
+            //
+            return;
+        }
+
+        //
+        // Advance MaxAllowedRecvOffset.
+        //
+
+        QuicTraceLogStreamVerbose(
+            UpdateFlowControl,
+            Stream,
+            "Updating flow control window");
+
+        CXPLAT_DBG_ASSERT(
+            Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength >=
+            Stream->MaxAllowedRecvOffset);
+
+        Stream->MaxAllowedRecvOffset =
+            Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
+
         QuicSendSetSendFlag(
             &Stream->Connection->Send,
             QUIC_CONN_SEND_FLAG_MAX_DATA);
+        QuicSendSetStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_MAX_DATA,
+            FALSE);
     }
-
-    if (Stream->RecvWindowBytesDelivered >= RecvBufferDrainThreshold) {
-
-        uint64_t TimeNow = CxPlatTimeUs64();
-
-        //
-        // Limit stream FC window growth by the connection FC window size.
-        //
-        if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
-            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
-            uint64_t TimeThreshold =
-                ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
-            if (CxPlatTimeDiff64(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
-
-                //
-                // Buffer tuning:
-                //
-                // VirtualBufferLength limits the connection's throughput to:
-                //   R = VirtualBufferLength / RTT
-                //
-                // We've delivered data at an average rate of at least:
-                //   R / QUIC_RECV_BUFFER_DRAIN_RATIO
-                //
-                // Double VirtualBufferLength to make sure it doesn't limit
-                // throughput.
-                //
-                // Mainly people complain about flow control when it limits
-                // throughput. But if we grow the buffer limit and then the app
-                // stops receiving data, bytes will pile up in the buffer. We could
-                // add logic to shrink the buffer when the app absorb rate is too
-                // low.
-                //
-
-                uint64_t NewLength = (uint64_t)Stream->RecvBuffer.VirtualBufferLength * 2;
-                NewLength = CXPLAT_MIN(NewLength, UINT32_MAX);
-
-                QuicRecvBufferIncreaseVirtualBufferLength(
-                    &Stream->RecvBuffer,
-                    (uint32_t)NewLength);
-
-                QuicTraceLogStreamVerbose(
-                    IncreaseRxBuffer,
-                    Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
-                    (uint32_t)NewLength,
-                    Stream->Connection->Paths[0].MinRtt,
-                    TimeNow,
-                    Stream->RecvWindowLastUpdate);
-            }
-        }
-
-        Stream->RecvWindowLastUpdate = TimeNow;
-        Stream->RecvWindowBytesDelivered = 0;
-
-    } else if (!(Stream->Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK)) {
-        //
-        // We haven't hit the drain limit AND we don't have any ACKs to send
-        // immediately, so we don't need to immediately update the max stream data
-        // values.
-        //
-        return;
-    }
-
-    //
-    // Advance MaxAllowedRecvOffset.
-    //
-
-    QuicTraceLogStreamVerbose(
-        UpdateFlowControl,
-        Stream,
-        "Updating flow control window");
-
-    CXPLAT_DBG_ASSERT(
-        Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength >=
-        Stream->MaxAllowedRecvOffset);
-
-    Stream->MaxAllowedRecvOffset =
-        Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
-
-    QuicSendSetSendFlag(
-        &Stream->Connection->Send,
-        QUIC_CONN_SEND_FLAG_MAX_DATA);
-    QuicSendSetStreamSendFlag(
-        &Stream->Connection->Send,
-        Stream,
-        QUIC_STREAM_SEND_FLAG_MAX_DATA,
-        FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

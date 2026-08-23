@@ -1115,7 +1115,20 @@ QuicStreamSendWrite(
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_MAX_DATA) {
 
-        QUIC_MAX_STREAM_DATA_EX Frame = { Stream->ID, Stream->MaxAllowedRecvOffset };
+        //
+        // When receive is paused, advertise BaseOffset so the peer
+        // stops sending new data on this stream. The local
+        // MaxAllowedRecvOffset is left untouched: any STREAM frames
+        // already in flight from before MAX_STREAM_DATA reaches the
+        // peer are still within our original window and will be accepted
+        // normally.
+        //
+        QUIC_MAX_STREAM_DATA_EX Frame = {
+            Stream->ID,
+            Stream->Flags.ReceivePaused
+                ? Stream->RecvBuffer.BaseOffset
+                : Stream->MaxAllowedRecvOffset
+        };
 
         if (QuicMaxStreamDataFrameEncode(
                 &Frame,

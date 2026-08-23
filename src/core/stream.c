@@ -1019,16 +1019,21 @@ QuicStreamProvideRecvBuffers(
         // Update the maximum allowed received offset if the new chunks caused an update of the
         // virtual buffer size.
         //
-        uint64_t NewMaxAllowedRecvOffset =
-            Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
-        if (Stream->MaxAllowedRecvOffset < NewMaxAllowedRecvOffset) {
-            Stream->MaxAllowedRecvOffset =
+        // Skip the update while the stream is receive-paused so the peer
+        // doesn't see a larger window than what we advertised at pause time.
+        //
+        if (!Stream->Flags.ReceivePaused) {
+            uint64_t NewMaxAllowedRecvOffset =
                 Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
-            QuicSendSetStreamSendFlag(
-                &Stream->Connection->Send,
-                Stream,
-                QUIC_STREAM_SEND_FLAG_MAX_DATA,
-                FALSE);
+            if (Stream->MaxAllowedRecvOffset < NewMaxAllowedRecvOffset) {
+                Stream->MaxAllowedRecvOffset =
+                    Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
+                QuicSendSetStreamSendFlag(
+                    &Stream->Connection->Send,
+                    Stream,
+                    QUIC_STREAM_SEND_FLAG_MAX_DATA,
+                    FALSE);
+            }
         }
     }
     return Status;
@@ -1054,4 +1059,86 @@ QuicStreamNotifyReceiveBufferNeeded(
         Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded);
 
     (void)QuicStreamIndicateEvent(Stream, &Event);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamRecvPause(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    //
+    // Be defensive about double-pause calls (e.g., two pause ops queued).
+    //
+    if (Stream->Flags.ReceivePaused) {
+        return;
+    }
+
+    Stream->Flags.ReceivePaused = TRUE;
+
+    //
+    // Trigger sending of a MAX_STREAM_DATA frame with the value BaseOffset
+    // so the peer learns that we have no receive capacity on this stream.
+    // The local MaxAllowedRecvOffset is deliberately left untouched:
+    // lowering it would cause any STREAM frames already in flight from
+    // before MAX_STREAM_DATA reaches the peer to be rejected with
+    // FLOW_CONTROL_ERROR per RFC 9000 sec 19.10, killing the connection.
+    // Keeping MaxAllowedRecvOffset at its real value means those in-flight
+    // frames are still within our original window and will be accepted
+    // normally.
+    //
+    QuicSendSetStreamSendFlag(
+        &Stream->Connection->Send,
+        Stream,
+        QUIC_STREAM_SEND_FLAG_MAX_DATA,
+        FALSE);
+    QuicSendSetSendFlag(
+        &Stream->Connection->Send,
+        QUIC_CONN_SEND_FLAG_MAX_DATA);
+    QuicSendQueueFlush(
+        &Stream->Connection->Send,
+        REASON_STREAM_FLOW_CONTROL);
+
+    QuicTraceLogStreamInfo(
+        StreamReceivePause,
+        Stream,
+        "Pausing receive on stream");
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamRecvResume(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    //
+    // Be defensive about resume-without-pause.
+    //
+    if (!Stream->Flags.ReceivePaused) {
+        return;
+    }
+
+    Stream->Flags.ReceivePaused = FALSE;
+
+    //
+    // Trigger sending of a MAX_STREAM_DATA frame. MaxAllowedRecvOffset
+    // was never lowered during the pause, so this restores the peer's view
+    // to our real current allowance.
+    //
+    QuicSendSetStreamSendFlag(
+        &Stream->Connection->Send,
+        Stream,
+        QUIC_STREAM_SEND_FLAG_MAX_DATA,
+        FALSE);
+    QuicSendSetSendFlag(
+        &Stream->Connection->Send,
+        QUIC_CONN_SEND_FLAG_MAX_DATA);
+    QuicSendQueueFlush(
+        &Stream->Connection->Send,
+        REASON_STREAM_FLOW_CONTROL);
+
+    QuicTraceLogStreamInfo(
+        StreamReceiveResume,
+        Stream,
+        "Resuming receive on stream");
 }

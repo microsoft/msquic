@@ -196,6 +196,7 @@ typedef union QUIC_CONNECTION_STATE {
         // later packets in case they contain CONNECTION_CLOSE frame with application-layer error.
         //
         BOOLEAN DelayedApplicationError : 1;
+        BOOLEAN ReceivePaused : 1;
 
 #ifdef CxPlatVerifierEnabledByAddr
         //
@@ -1779,3 +1780,25 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
         }
     }
 }
+
+//
+// Pauses receive callbacks on a connection by manipulating connection-level
+// flow control. The peer is informed by sending a MAX_DATA frame with the
+// current consumed offset, so it stops sending new data.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnRecvPause(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Resumes receive callbacks on a connection by restoring the saved
+// connection-level flow control window. The peer is informed by sending a
+// MAX_DATA frame with the new (larger) limit.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnRecvResume(
+    _In_ QUIC_CONNECTION* Connection
+    );

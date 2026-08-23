@@ -159,6 +159,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN InWaitingList           : 1;    // The stream is currently in the waiting list for stream id FC.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
+        BOOLEAN ReceivePaused           : 1;
     };
 } QUIC_STREAM_FLAGS;
 
@@ -1076,4 +1077,26 @@ void
 QuicStreamNotifyReceiveBufferNeeded(
     _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLengthNeeded
+    );
+
+//
+// Pauses receive callbacks on a stream by manipulating stream-level flow
+// control. The peer is informed by sending a MAX_STREAM_DATA frame with the
+// current consumed offset, so it stops sending new data on this stream.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamRecvPause(
+    _In_ QUIC_STREAM* Stream
+    );
+
+//
+// Resumes receive callbacks on a stream by restoring the saved stream-level
+// flow control window. The peer is informed by sending a MAX_STREAM_DATA
+// frame with the new (larger) limit.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamRecvResume(
+    _In_ QUIC_STREAM* Stream
     );

@@ -689,7 +689,17 @@ QuicSendWriteFrames(
 
         if ((Send->SendFlags & QUIC_CONN_SEND_FLAG_MAX_DATA)) {
 
-            QUIC_MAX_DATA_EX Frame = { Send->MaxData };
+            //
+            // When receive is paused, advertise a zero limit so the peer
+            // stops sending new data. The local Send.MaxData is left
+            // untouched: any STREAM frames already in flight from before
+            // MAX_DATA reaches the peer are still within our original
+            // window and will be accepted normally instead of being
+            // rejected with FLOW_CONTROL_ERROR.
+            //
+            QUIC_MAX_DATA_EX Frame = {
+                Connection->State.ReceivePaused ? 0 : Send->MaxData
+            };
 
             if (QuicMaxDataFrameEncode(
                     &Frame,

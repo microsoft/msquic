@@ -1,4 +1,13 @@
-# Testing MsQuic
+
+## Hosts File Configuration
+
+For certain tests to run correctly, especially those involving IPv6 loopback, ensure the following line is present in your `/etc/hosts` file:
+
+```
+::1 ip6-localhost
+```
+
+This configuration is necessary to enable proper IPv6 loopback testing within the MsQuic framework.
 
 ## Running the Tests
 

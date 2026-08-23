@@ -867,6 +867,10 @@ QuicTestStreamPriorityInfiniteLoop(
     );
 
 void
+QuicTestStreamReceivePauseResume(
+    );
+
+void
 QuicTestStreamDifferentAbortErrors(
     );
 

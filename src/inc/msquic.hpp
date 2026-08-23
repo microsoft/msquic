@@ -1237,6 +1237,20 @@ struct MsQuicConnection {
         MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
     }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    QUIC_STATUS
+    PauseReceive() noexcept {
+        return MsQuic->ConnectionReceivePause(Handle);
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    QUIC_STATUS
+    ResumeReceive() noexcept {
+        return MsQuic->ConnectionReceiveResume(Handle);
+    }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
     void
     Close(
     ) noexcept {
@@ -1738,6 +1752,20 @@ struct MsQuicStream {
         ) noexcept {
         return MsQuic->StreamReceiveSetEnabled(Handle, IsEnabled ? TRUE : FALSE);
     }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    QUIC_STATUS
+    PauseReceive() noexcept {
+        return MsQuic->StreamReceivePause(Handle);
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    QUIC_STATUS
+    ResumeReceive() noexcept {
+        return MsQuic->StreamReceiveResume(Handle);
+    }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
     QUIC_STATUS
     GetID(_Out_ QUIC_UINT62* ID) const noexcept {

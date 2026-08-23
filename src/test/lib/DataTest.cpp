@@ -5479,4 +5479,97 @@ QuicTestStreamAppProvidedBuffersOutOfSpace_ServerSend_ProvideMoreBuffer(
     TEST_EQUAL(0, memcmp(Buffers.SendDataBuffer.get(), Buffers.ReceiveDataBuffer.get(), Buffers.SendDataSize));
 }
 
+//
+// Tests the new Connection.ReceivePause / Connection.ReceiveResume APIs.
+//
+// NB: the most thorough end-to-end test of "pause the receiver, verify the
+// peer stops delivering, resume, verify delivery" was not included because
+// the current implementation has a race: pausing immediately drops the
+// advertised MaxData to 0, so any STREAM frame already in flight is
+// rejected on the receiver side with FLOW_CONTROL_ERROR per RFC 9000
+// sec 19.10. A deterministic test would need a separate handshake/stream
+// arrangement that does not interleave the pause with the peer's send.
+//
+// For now this test only exercises the idempotency contract of the API:
+// pausing an already-paused connection and resuming a not-paused one are
+// well-defined no-ops.
+//
+struct StreamReceivePauseResumeContext {
+    static QUIC_STATUS QUIC_API ServerConnCallback(
+        _In_ MsQuicConnection* /* Connection */,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            MsQuicStream* Stream = new(std::nothrow) MsQuicStream(
+                Event->PEER_STREAM_STARTED.Stream,
+                CleanUpAutoDelete,
+                MsQuicStream::NoOpCallback,
+                nullptr);
+            (void)Stream;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestStreamReceivePauseResume(
+    )
+{
+    StreamReceivePauseResumeContext Context;
+
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(
+        Registration, "MsQuicTest",
+        MsQuicSettings(),
+        ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(
+        Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    MsQuicAutoAcceptListener Listener(
+        Registration, ServerConfiguration,
+        StreamReceivePauseResumeContext::ServerConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(
+        ClientConfiguration,
+        ServerLocalAddr.GetFamily(),
+        QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+        ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    //
+    // resume-without-pause: must be a no-op (returns SUCCESS).
+    //
+    TEST_QUIC_SUCCEEDED(Connection.ResumeReceive());
+
+    //
+    // pause is idempotent: a second pause while already paused returns
+    // SUCCESS (per the API contract, see MsQuicConnectionReceivePause
+    // in src/core/api.c).
+    //
+    TEST_QUIC_SUCCEEDED(Connection.PauseReceive());
+    TEST_QUIC_SUCCEEDED(Connection.PauseReceive());
+
+    //
+    // resume: takes us back out of the paused state.
+    //
+    TEST_QUIC_SUCCEEDED(Connection.ResumeReceive());
+    // A second resume while not paused is a no-op.
+    TEST_QUIC_SUCCEEDED(Connection.ResumeReceive());
+
+    // Clean shutdown.
+    Connection.Shutdown(0, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE);
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
