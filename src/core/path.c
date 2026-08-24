@@ -69,6 +69,50 @@ QuicPathGetActive(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateActive(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_PATH_SET* PathSet = &Connection->Paths;
+    QUIC_PATH* ActivePath = QuicPathSetGetActivePath(PathSet);
+    if (PathSet->NextActivePathId == ActivePath->ID) {
+        //
+        // The active path hasn't changed, nothing to do.
+        //
+        return;
+    }
+
+    uint8_t ActivePathIndex = 0;
+    QUIC_PATH* NewActivePath =
+        QuicConnGetPathByID(
+            Connection,
+            PathSet->NextActivePathId,
+            &ActivePathIndex);
+    CXPLAT_DBG_ASSERT(NewActivePath != NULL);
+
+    QuicPathSetActive(Connection, NewActivePath);
+
+    ActivePath = QuicPathSetGetActivePath(PathSet);
+    QuicTraceEvent(
+        ConnRemoteAddrAdded,
+        "[conn][%p] New Remote IP: %!ADDR!",
+        Connection,
+        CASTED_CLOG_BYTEARRAY(
+            sizeof(ActivePath->Route.RemoteAddress),
+            &ActivePath->Route.RemoteAddress)); // TODO - Addr removed event?
+
+    QUIC_CONNECTION_EVENT Event;
+    Event.Type = QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED;
+    Event.PEER_ADDRESS_CHANGED.Address = &ActivePath->Route.RemoteAddress;
+    QuicTraceLogConnVerbose(
+        IndicatePeerAddrChanged,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
+    (void)QuicConnIndicateEvent(Connection, &Event);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicPathRemove(
     _In_ QUIC_CONNECTION* Connection,
@@ -91,6 +135,9 @@ QuicPathRemove(
 
     const QUIC_PATH* Path = &PathSet->Paths[Index];
     CXPLAT_DBG_ASSERT(Path->InUse);
+    CXPLAT_DBG_ASSERT(
+        PathSet->NextActivePathId == QuicPathSetGetActivePath(PathSet)->ID ||
+        Path->ID != PathSet->NextActivePathId);
     QuicTraceEvent(
         ConnPathRemoved,
         "[conn][%p] Path[%hhu] Removed",
@@ -304,6 +351,7 @@ QuicConnGetPathForPacket(
         //
         for (int i = PathSet->Count - 1; i > 0; i--) {
             if (!PathSet->Paths[i].IsActive
+                && PathSet->Paths[i].ID != PathSet->NextActivePathId
                 && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&PathSet->Paths[i].Route.RemoteAddress)
                 && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &PathSet->Paths[i].Route.RemoteAddress)
                 && QuicAddrCompare(&Packet->Route->LocalAddress, &PathSet->Paths[i].Route.LocalAddress)) {
@@ -389,6 +437,7 @@ QuicPathSetActive(
     if (!UdpPortChangeOnly) {
         QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
     }
+    Connection->Paths.NextActivePathId = ActivePath->ID;
     CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
     CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
 }

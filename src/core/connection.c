@@ -1168,6 +1168,10 @@ QuicConnReplaceRetiredCids(
                 NonActivePathCidRetired,
                 Connection,
                 "Non-active path has no replacement for retired CID.");
+            //
+            // A path pending deferred activation is still considered non-active here and
+            // may be removed. CID replacement will be deferred in the next stack layer.
+            //
             CXPLAT_DBG_ASSERT(i != 0);
             QuicPathRemove(Connection, i--);
             continue;
@@ -5488,7 +5492,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvPostProcessing(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH** Path,
+    _Inout_ QUIC_PATH* CurrentPath,
     _In_ QUIC_RX_PACKET* Packet
     )
 {
@@ -5512,10 +5516,10 @@ QuicConnRecvPostProcessing(
         }
     }
 
-    if (!(*Path)->GotValidPacket) {
-        (*Path)->GotValidPacket = TRUE;
+    if (!CurrentPath->GotValidPacket) {
+        CurrentPath->GotValidPacket = TRUE;
 
-        if (!(*Path)->IsActive) {
+        if (!CurrentPath->IsActive) {
 
             //
             // This is the first valid packet received on this non-active path.
@@ -5523,8 +5527,8 @@ QuicConnRecvPostProcessing(
             // sent back out.
             //
 
-            if ((*Path)->DestCid == NULL ||
-                (PeerUpdatedCid && (*Path)->DestCid->CID.Length != 0)) {
+            if (CurrentPath->DestCid == NULL ||
+                (PeerUpdatedCid && CurrentPath->DestCid->CID.Length != 0)) {
                 //
                 // TODO - What if the peer (client) only sends a single CID and
                 // rebinding happens? Should we support using the same CID over?
@@ -5536,27 +5540,27 @@ QuicConnRecvPostProcessing(
                         "[conn][%p] ERROR, %s.",
                         Connection,
                         "No unused CID for new path");
-                    (*Path)->GotValidPacket = FALSE; // Don't have a new CID to use!!!
-                    (*Path)->DestCid = NULL;
+                    CurrentPath->GotValidPacket = FALSE; // Don't have a new CID to use!!!
+                    CurrentPath->DestCid = NULL;
                     return;
                 }
-                CXPLAT_DBG_ASSERT(NewDestCid != (*Path)->DestCid);
-                (*Path)->DestCid = NewDestCid;
-                QUIC_CID_SET_PATH(Connection, (*Path)->DestCid, (*Path));
-                (*Path)->DestCid->CID.UsedLocally = TRUE;
+                CXPLAT_DBG_ASSERT(NewDestCid != CurrentPath->DestCid);
+                CurrentPath->DestCid = NewDestCid;
+                QUIC_CID_SET_PATH(Connection, CurrentPath->DestCid, CurrentPath);
+                CurrentPath->DestCid->CID.UsedLocally = TRUE;
             }
 
-            CXPLAT_DBG_ASSERT((*Path)->DestCid != NULL);
-            QuicPathValidate((*Path));
-            (*Path)->SendChallenge = TRUE;
-            (*Path)->PathValidationStartTime = CxPlatTimeUs64();
+            CXPLAT_DBG_ASSERT(CurrentPath->DestCid != NULL);
+            QuicPathValidate(CurrentPath);
+            CurrentPath->SendChallenge = TRUE;
+            CurrentPath->PathValidationStartTime = CxPlatTimeUs64();
 
             //
             // NB: The path challenge payload is initialized here and reused
             // for any retransmits, but the spec requires a new payload in each
             // path challenge.
             //
-            CxPlatRandom(sizeof((*Path)->Challenge), (*Path)->Challenge);
+            CxPlatRandom(sizeof(CurrentPath->Challenge), CurrentPath->Challenge);
 
             //
             // We need to also send a challenge on the active path to make sure
@@ -5587,39 +5591,23 @@ QuicConnRecvPostProcessing(
         // If we didn't initiate the CID change locally, we need to
         // respond to this change with a change of our own.
         //
-        if (!(*Path)->InitiatedCidUpdate) {
-            QuicConnRetireCurrentDestCid(Connection, *Path);
+        if (!CurrentPath->InitiatedCidUpdate) {
+            QuicConnRetireCurrentDestCid(Connection, CurrentPath);
         } else {
-            (*Path)->InitiatedCidUpdate = FALSE;
+            CurrentPath->InitiatedCidUpdate = FALSE;
         }
     }
 
     if (Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
-        !(*Path)->IsActive && (*Path)->InUse) {
+        CurrentPath->ID != Connection->Paths.NextActivePathId &&
+        CurrentPath->InUse) {
         //
-        // The peer has sent a non-probing frame on a path other than the active
-        // one. This signals their intent to switch active paths.
+        // Non-probing frames on a new path indicate the peer migrated to a new address.
+        // Mark this path for activation (activating it invalidates pointers to path, so this
+        // is deferred after the receive loop).
         //
-        QuicPathSetActive(Connection, *Path);
-        *Path = QuicPathGetActive(&Connection->Paths);
-
-        QuicTraceEvent(
-            ConnRemoteAddrAdded,
-            "[conn][%p] New Remote IP: %!ADDR!",
-            Connection,
-            CASTED_CLOG_BYTEARRAY(
-                sizeof(QuicPathGetActive(&Connection->Paths)->Route.RemoteAddress),
-                &QuicPathGetActive(&Connection->Paths)->Route.RemoteAddress)); // TODO - Addr removed event?
-
-        QUIC_CONNECTION_EVENT Event;
-        Event.Type = QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED;
-        Event.PEER_ADDRESS_CHANGED.Address = &(*Path)->Route.RemoteAddress;
-        QuicTraceLogConnVerbose(
-            IndicatePeerAddrChanged,
-            Connection,
-            "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
-        (void)QuicConnIndicateEvent(Connection, &Event);
+        Connection->Paths.NextActivePathId = CurrentPath->ID;
     }
 }
 
@@ -5685,11 +5673,12 @@ QuicConnRecvDatagramBatch(
             }
         } else if (QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
-            QuicConnRecvPostProcessing(Connection, &Path, Packet);
+            QuicConnRecvPostProcessing(Connection, Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
             if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
-                !Path->Binding->Partitioned && !Connection->State.Partitioned && Path->IsActive &&
+                !Path->Binding->Partitioned && !Connection->State.Partitioned &&
+                Path->ID == Connection->Paths.NextActivePathId &&
                 !Path->PartitionUpdated && Packet->CompletelyValid &&
                 (Packets[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Packets[i]->PartitionIndex % MsQuicLib.PartitionCount;
@@ -5994,6 +5983,13 @@ QuicConnRecvDatagrams(
             QuicPathRemove(Connection, (uint8_t)i);
         }
     }
+
+    //
+    // The active path might have changed, update it.
+    // This invalidates pointers to paths.
+    //
+    QuicPathUpdateActive(Connection);
+
     if (!Connection->State.UpdateWorker && Connection->State.Connected &&
         !Connection->State.ShutdownComplete && RecvState.UpdatePartitionId) {
         //

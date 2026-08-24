@@ -221,6 +221,11 @@ typedef struct QUIC_PATH_SET {
     //
     uint8_t NextPathId;
 
+    //
+    // ID of the path that will be set active at the end of the next packet receive loop.
+    //
+    uint8_t NextActivePathId;
+
 } QUIC_PATH_SET;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -238,6 +243,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_PATH*
 QuicPathGetActive(
     _In_ const QUIC_PATH_SET* PathSet
+    );
+
+//
+// Update the active path to PathSet->NextActivePathId
+// Invalidates pointers to paths.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateActive(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
