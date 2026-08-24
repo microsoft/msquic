@@ -147,7 +147,7 @@ Supported only by Windows currently.
 
 `-Tls <schannel/openssl>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
 
-`-UseExternalOpenSSL` Links against an external/system OpenSSL (**3.5.0 or newer**) instead of building OpenSSL from the submodules. Only valid together with `-Tls openssl`. Both `libssl` and `libcrypto` are dynamically linked from the system, so neither the `openssl` nor `quictls` submodule is required. If the system OpenSSL is older than 3.5.0 the build fails during CMake configuration with an "unsuitable version" error. When OpenSSL is installed outside the default system locations, add `-OpenSSLRootDir <path>` to point at it. For example, on a distro that ships OpenSSL 3.5+ (e.g. Ubuntu 26.04):
+`-UseExternalOpenSSL` Links against an external/system OpenSSL (**3.5.0 or newer**) instead of building OpenSSL from the submodules. Only valid together with `-Tls openssl`. By default both `libssl` and `libcrypto` are dynamically linked from the system, so neither the `openssl` nor `quictls` submodule is required. If `-Static` is also specified, the external OpenSSL is linked statically instead (when the corresponding static libraries are available). If the system OpenSSL is older than 3.5.0 the build fails during CMake configuration with an "unsuitable version" error. When OpenSSL is installed outside the default system locations, add `-OpenSSLRootDir <path>` to point at it. For example, on a distro that ships OpenSSL 3.5+ (e.g. Ubuntu 26.04):
 
 ```PowerShell
 ./scripts/build.ps1 -Tls openssl -UseExternalOpenSSL
