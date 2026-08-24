@@ -1261,6 +1261,15 @@ QuicConnGenerateNewSourceCids(
     );
 
 //
+// Get an unused destination CID from the list provided by the peer.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_CID_LIST_ENTRY*
+QuicConnGetUnusedDestCid(
+    _In_ const QUIC_CONNECTION* Connection
+    );
+
+//
 // Retires the currently used destination connection ID.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -1107,13 +1107,11 @@ QuicConnRetireCurrentDestCid(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+void
 QuicConnOnRetirePriorToUpdated(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    BOOLEAN ReplaceRetiredCids = FALSE;
-
     for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
             Entry != &Connection->DestCids;
             Entry = Entry->Flink) {
@@ -1127,78 +1125,8 @@ QuicConnOnRetirePriorToUpdated(
             continue;
         }
 
-        if (DestCid->CID.UsedLocally) {
-            ReplaceRetiredCids = TRUE;
-        }
-
-        QUIC_CID_CLEAR_PATH(DestCid);
         QuicConnRetireCid(Connection, DestCid);
     }
-
-    return ReplaceRetiredCids;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicConnReplaceRetiredCids(
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    QUIC_PATH_SET* PathSet = &Connection->Paths;
-    CXPLAT_DBG_ASSERT(PathSet->Count <= QUIC_MAX_PATH_COUNT);
-    for (uint8_t i = 0; i < PathSet->Count; ++i) {
-        QUIC_PATH* Path = &PathSet->Paths[i];
-        if (Path->DestCid == NULL || !Path->DestCid->CID.Retired) {
-            continue;
-        }
-
-        QUIC_CID_VALIDATE_NULL(Connection, Path->DestCid); // Previously cleared on retire.
-        QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
-        if (NewDestCid == NULL) {
-            if (Path->IsActive) {
-                QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Active path has no replacement for retired CID");
-                QuicConnSilentlyAbort(Connection); // Must silently abort because we can't send anything now.
-                return FALSE;
-            }
-            QuicTraceLogConnWarning(
-                NonActivePathCidRetired,
-                Connection,
-                "Non-active path has no replacement for retired CID.");
-            //
-            // A path pending deferred activation is still considered non-active here and
-            // may be removed. CID replacement will be deferred in the next stack layer.
-            //
-            CXPLAT_DBG_ASSERT(i != 0);
-            QuicPathRemove(Connection, i--);
-            continue;
-        }
-
-        CXPLAT_DBG_ASSERT(NewDestCid != Path->DestCid);
-        Path->DestCid = NewDestCid;
-        QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
-        Path->DestCid->CID.UsedLocally = TRUE;
-        Path->InitiatedCidUpdate = TRUE;
-        QuicPathValidate(Path);
-    }
-
-#if DEBUG
-    for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
-            Entry != &Connection->DestCids;
-            Entry = Entry->Flink) {
-        QUIC_CID_LIST_ENTRY* DestCid =
-            CXPLAT_CONTAINING_RECORD(
-                Entry,
-                QUIC_CID_LIST_ENTRY,
-                Link);
-        CXPLAT_DBG_ASSERT(!DestCid->CID.Retired || DestCid->AssignedPath == NULL);
-    }
-#endif
-
-    return TRUE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -5058,10 +4986,9 @@ QuicConnRecvFrames(
                 break; // Ignore frame if we are closed.
             }
 
-            BOOLEAN ReplaceRetiredCids = FALSE;
             if (Connection->RetirePriorTo < Frame.RetirePriorTo) {
                 Connection->RetirePriorTo = Frame.RetirePriorTo;
-                ReplaceRetiredCids = QuicConnOnRetirePriorToUpdated(Connection);
+                QuicConnOnRetirePriorToUpdated(Connection);
             }
 
             if (QuicConnGetDestCidFromSeq(Connection, Frame.Sequence, FALSE) == NULL) {
@@ -5076,11 +5003,7 @@ QuicConnRecvFrames(
                         "Allocation of '%s' failed. (%llu bytes)",
                         "new DestCid",
                         sizeof(QUIC_CID_LIST_ENTRY) + Frame.Length);
-                    if (ReplaceRetiredCids) {
-                        QuicConnSilentlyAbort(Connection);
-                    } else {
-                        QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, NULL);
-                    }
+                    QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, NULL);
                     return FALSE;
                 }
 
@@ -5109,17 +5032,9 @@ QuicConnRecvFrames(
                         "[conn][%p] ERROR, %s.",
                         Connection,
                         "Peer exceeded CID limit");
-                    if (ReplaceRetiredCids) {
-                        QuicConnSilentlyAbort(Connection);
-                    } else {
-                        QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
-                    }
+                    QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
                     return FALSE;
                 }
-            }
-
-            if (ReplaceRetiredCids && !QuicConnReplaceRetiredCids(Connection)) {
-                return FALSE;
             }
 
             AckEliciting = TRUE;
@@ -5982,6 +5897,10 @@ QuicConnRecvDatagrams(
                 PathSet->Paths[i].ID);
             QuicPathRemove(Connection, (uint8_t)i);
         }
+    }
+
+    if (!QuicPathSetUpdateDestCids(PathSet, Connection)) {
+        return;
     }
 
     //
