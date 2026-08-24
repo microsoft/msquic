@@ -269,6 +269,13 @@ QuicPathRemove(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicPathSetUpdateDestCids(
+    _In_ QUIC_PATH_SET* PathSet,
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathSetAllowance(
     _In_ QUIC_CONNECTION* Connection,

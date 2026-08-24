@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for NonActivePathCidRetired
+// [conn][%p] Non-active path has no replacement for retired CID.
+// QuicTraceLogConnWarning(
+                NonActivePathCidRetired,
+                Connection,
+                "Non-active path has no replacement for retired CID.");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PATH_C, NonActivePathCidRetired,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PathActiveFallback
 // [conn][%p] Path[%u] removed; falling back to Path[%u]
 // QuicTraceLogConnInfo(
@@ -163,6 +182,29 @@ TRACEPOINT_EVENT(CLOG_PATH_C, ConnPathRemoved,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnError
+// [conn][%p] ERROR, %s.
+// QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Active path has no replacement for retired CID");
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Active path has no replacement for retired CID" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PATH_C, ConnError,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
     )
 )
 

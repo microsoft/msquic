@@ -207,6 +207,68 @@ QuicPathRemove(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicPathSetUpdateDestCids(
+    _In_ QUIC_PATH_SET* PathSet,
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    for (uint8_t i = 0; i < PathSet->Count; ++i) {
+        QUIC_PATH* Path = &PathSet->Paths[i];
+        if (Path->DestCid != NULL && !Path->DestCid->CID.Retired) {
+            continue;
+        }
+
+        if (Path->DestCid != NULL) {
+            QUIC_CID_CLEAR_PATH(Path->DestCid);
+            Path->DestCid = NULL;
+        }
+
+        QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
+        if (NewDestCid == NULL) {
+            if (Path->IsActive || Path->ID == PathSet->NextActivePathId) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Active path has no replacement for retired CID");
+                QuicConnSilentlyAbort(Connection);
+                return FALSE;
+            }
+
+            QuicTraceLogConnWarning(
+                NonActivePathCidRetired,
+                Connection,
+                "Non-active path has no replacement for retired CID.");
+            CXPLAT_DBG_ASSERT(i != 0);
+            QuicPathRemove(Connection, i--);
+            continue;
+        }
+
+        Path->DestCid = NewDestCid;
+        QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
+        Path->DestCid->CID.UsedLocally = TRUE;
+        Path->InitiatedCidUpdate = TRUE;
+        QuicPathValidate(Path);
+    }
+
+#if DEBUG
+    for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+            Entry != &Connection->DestCids;
+            Entry = Entry->Flink) {
+        QUIC_CID_LIST_ENTRY* DestCid =
+            CXPLAT_CONTAINING_RECORD(
+                Entry,
+                QUIC_CID_LIST_ENTRY,
+                Link);
+        CXPLAT_DBG_ASSERT(!DestCid->CID.Retired || DestCid->AssignedPath == NULL);
+    }
+#endif
+
+    return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathSetAllowance(
     _In_ QUIC_CONNECTION* Connection,
