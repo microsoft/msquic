@@ -162,7 +162,7 @@ GenerateX509Cert(
         goto Exit;
     }
 
-    X509_set_version(Cert, 3);
+    X509_set_version(Cert, X509_VERSION_3);
 
     Ret = ASN1_INTEGER_set(X509_get_serialNumber(Cert), 1);
     if (Ret != 1) {
