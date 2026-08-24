@@ -62,7 +62,7 @@ jobs:
         scripts/test.ps1 -AZP -Config ${{matrix.vec.config}} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
-      run: scripts/test.ps1 -AZP -Config ${{matrix.vec.config}} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
+      run: scripts/test.ps1 -AZP -Config ${{matrix.vec.config}} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner windows-2025 -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
 
   Complete:
     name: Down Level Complete
