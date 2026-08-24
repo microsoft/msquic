@@ -761,6 +761,10 @@ Error:
         "[ api] Exit %u",
         Status);
 
+#pragma warning(suppress:6101) // Output is written by the worker thread via
+                                // ApiCtx.CONN_EXPORT_KEYING_MATERIAL.Output when the
+                                // queued operation completes; the analyzer can't see
+                                // across that indirection. (FALSE POSITIVE)
     return Status;
 }
 
@@ -1920,6 +1924,10 @@ Error:
         "[ api] Exit %u",
         Status);
 
+#pragma warning(suppress:6101) // Buffer is written by the worker thread via
+                                // ApiCtx.GET_PARAM.Buffer when the queued operation
+                                // completes; the analyzer can't see across that
+                                // indirection. (FALSE POSITIVE)
     return Status;
 }
 

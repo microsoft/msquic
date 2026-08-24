@@ -104,6 +104,8 @@ CxPlatStorageOpen(
     QUIC_STATUS Status;
     CXPLAT_STORAGE* Storage = NULL;
 
+    *NewStorage = NULL;
+
     char FullKeyName[256] = CXPLAT_BASE_REG_PATH;
 
     if (Path != NULL) {
