@@ -396,7 +396,7 @@ QuicPathSetActive(
     BOOLEAN UdpPortChangeOnly = FALSE;
     uint8_t PathIndex;
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
-    CXPLAT_FRE_ASSERT(Path != NULL);
+    CXPLAT_DBG_ASSERT(Path != NULL);
 
     QUIC_PATH* ActivePath = QuicPathGetActive(&Connection->Paths);
     if (Path == ActivePath) {
