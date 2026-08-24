@@ -70,6 +70,8 @@ static void InitializeMockConnection(
     QUIC_CONNECTION& Connection,
     uint16_t Mtu)
 {
+    Connection.Paths.Count = 1;
+    Connection.Paths.NextPathId = 1;
     Connection.Paths.Paths[0].Mtu = Mtu;
     Connection.Paths.Paths[0].IsActive = TRUE;
     Connection.Send.NextPacketNumber = 0;
