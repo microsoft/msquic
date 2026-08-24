@@ -83,15 +83,7 @@ QuicPathUpdateActive(
         return;
     }
 
-    uint8_t ActivePathIndex = 0;
-    QUIC_PATH* NewActivePath =
-        QuicConnGetPathByID(
-            Connection,
-            PathSet->NextActivePathId,
-            &ActivePathIndex);
-    CXPLAT_DBG_ASSERT(NewActivePath != NULL);
-
-    QuicPathSetActive(Connection, NewActivePath);
+    QuicPathSetActive(Connection, PathSet->NextActivePathId);
 
     ActivePath = QuicPathSetGetActivePath(PathSet);
     QuicTraceEvent(
@@ -180,7 +172,7 @@ QuicPathRemove(
             "Path[%hhu] removed; falling back to Path[%hhu]",
             Path->ID,
             PathSet->Paths[FallbackIndex].ID);
-        QuicPathSetActive(Connection, &PathSet->Paths[FallbackIndex]);
+        QuicPathSetActive(Connection, PathSet->Paths[FallbackIndex].ID);
         //
         // After the swap the old active path now lives at FallbackIndex.
         // Fall through to remove it there.
@@ -398,10 +390,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathSetActive(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
+    _In_ uint8_t PathId
     )
 {
     BOOLEAN UdpPortChangeOnly = FALSE;
+    uint8_t PathIndex;
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
+    CXPLAT_FRE_ASSERT(Path != NULL);
+
     QUIC_PATH* ActivePath = QuicPathGetActive(&Connection->Paths);
     if (Path == ActivePath) {
         CXPLAT_DBG_ASSERT(!Path->IsActive);

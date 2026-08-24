@@ -335,7 +335,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathSetActive(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
+    _In_ uint8_t PathId
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
