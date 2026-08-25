@@ -1628,7 +1628,7 @@ Exit:
 
     if (!Result) {
         //
-        // An invalid ACK block was detected; fail the connection.
+        // A protocol violation was detected; fail the connection.
         //
         QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
     }
