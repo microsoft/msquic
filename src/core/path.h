@@ -270,7 +270,14 @@ QuicPathRemove(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-QuicPathSetUpdateDestCids(
+QuicPathUpdateDestCid(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateDestCids(
     _In_ QUIC_PATH_SET* PathSet,
     _In_ QUIC_CONNECTION* Connection
     );
