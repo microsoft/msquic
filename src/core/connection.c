@@ -5442,31 +5442,6 @@ QuicConnRecvPostProcessing(
             // sent back out.
             //
 
-            if (CurrentPath->DestCid == NULL ||
-                (PeerUpdatedCid && CurrentPath->DestCid->CID.Length != 0)) {
-                //
-                // TODO - What if the peer (client) only sends a single CID and
-                // rebinding happens? Should we support using the same CID over?
-                //
-                QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
-                if (NewDestCid == NULL) {
-                    QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "No unused CID for new path");
-                    CurrentPath->GotValidPacket = FALSE; // Don't have a new CID to use!!!
-                    CurrentPath->DestCid = NULL;
-                    return;
-                }
-                CXPLAT_DBG_ASSERT(NewDestCid != CurrentPath->DestCid);
-                CurrentPath->DestCid = NewDestCid;
-                QUIC_CID_SET_PATH(Connection, CurrentPath->DestCid, CurrentPath);
-                CurrentPath->DestCid->CID.UsedLocally = TRUE;
-            }
-
-            CXPLAT_DBG_ASSERT(CurrentPath->DestCid != NULL);
-            QuicPathValidate(CurrentPath);
             CurrentPath->SendChallenge = TRUE;
             CurrentPath->PathValidationStartTime = CxPlatTimeUs64();
 
@@ -5899,8 +5874,21 @@ QuicConnRecvDatagrams(
         }
     }
 
-    if (!QuicPathSetUpdateDestCids(PathSet, Connection)) {
-        return;
+    //
+    // If the peer has migrated to a new path, provide a destination CID to the new path if needed.
+    // If none is available, reject the migration.
+    //
+    QUIC_PATH* ActivePath = QuicPathSetGetActivePath(PathSet);
+    if (PathSet->NextActivePathId != ActivePath->ID) {
+        uint8_t NextActivePathIndex;
+        QUIC_PATH* NextActivePath =
+            QuicConnGetPathByID(Connection, PathSet->NextActivePathId, &NextActivePathIndex);
+        CXPLAT_DBG_ASSERT(NextActivePath != NULL);
+        if (NextActivePath->DestCid == NULL &&
+            !QuicPathUpdateDestCid(Connection, NextActivePath))
+        {
+            PathSet->NextActivePathId = ActivePath->ID;
+        }
     }
 
     //
@@ -5908,6 +5896,8 @@ QuicConnRecvDatagrams(
     // This invalidates pointers to paths.
     //
     QuicPathUpdateActive(Connection);
+
+    QuicPathUpdateDestCids(PathSet, Connection);
 
     if (!Connection->State.UpdateWorker && Connection->State.Connected &&
         !Connection->State.ShutdownComplete && RecvState.UpdatePartitionId) {

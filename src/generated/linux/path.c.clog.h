@@ -37,9 +37,9 @@ extern "C" {
 // Decoder Ring for NonActivePathCidRetired
 // [conn][%p] Non-active path has no replacement for retired CID.
 // QuicTraceLogConnWarning(
-                NonActivePathCidRetired,
-                Connection,
-                "Non-active path has no replacement for retired CID.");
+            NonActivePathCidRetired,
+            Connection,
+            "Non-active path has no replacement for retired CID.");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_NonActivePathCidRetired
@@ -199,10 +199,10 @@ tracepoint(CLOG_PATH_C, ConnPathRemoved , arg2, arg3);\
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Active path has no replacement for retired CID");
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Active path has no replacement for retired CID");
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = "Active path has no replacement for retired CID" = arg3
 ----------------------------------------------------------*/
