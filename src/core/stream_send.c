@@ -1221,7 +1221,18 @@ QuicStreamSendWrite(
         } else {
             RanOutOfRoom = TRUE;
         }
+    } else if ((Stream->SendFlags & QUIC_STREAM_SEND_FLAG_DATA) &&
+               !QuicStreamHasPendingStreamData(Stream)) {
+        //
+        // The DATA flag is set but there is nothing queued to write. Clear it
+        // here so a stale flag doesn't suppress QuicSendQueueFlushForStream for
+        // subsequent sends. QuicStreamHasPendingStreamData compares send
+        // offsets only, so this does not fire when data is pending but blocked
+        // by flow control or by the peer not yet allowing the stream.
+        //
+        Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_DATA;
     }
+    
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_DATA_BLOCKED) {
 
