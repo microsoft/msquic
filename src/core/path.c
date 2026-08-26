@@ -292,7 +292,9 @@ QuicPathUpdateDestCids(
                 Entry,
                 QUIC_CID_LIST_ENTRY,
                 Link);
-        CXPLAT_DBG_ASSERT(!DestCid->CID.Retired || DestCid->AssignedPath == NULL);
+        CXPLAT_DBG_ASSERT(
+            !DestCid->CID.Retired ||
+            DestCid->AssignedPathId == UINT16_MAX);
     }
 #endif
 }

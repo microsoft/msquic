@@ -192,7 +192,7 @@ typedef struct QUIC_PATH {
     CXPLAT_DBG_ASSERT( \
         (Path)->DestCid == NULL || \
         (Path)->DestCid->CID.Length == 0 || \
-        ((Path)->DestCid->AssignedPath == (Path) && \
+        ((Path)->DestCid->AssignedPathId == (Path)->ID && \
          (Path)->DestCid->CID.UsedLocally))
 #else
 #define QuicPathValidate(Path) UNREFERENCED_PARAMETER(Path)
