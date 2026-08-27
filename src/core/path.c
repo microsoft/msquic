@@ -75,7 +75,7 @@ QuicPathUpdateActive(
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    QUIC_PATH* ActivePath = QuicPathSetGetActivePath(PathSet);
+    QUIC_PATH* ActivePath = QuicPathGetActive(PathSet);
     if (PathSet->NextActivePathId == ActivePath->ID) {
         //
         // The active path hasn't changed, nothing to do.
@@ -85,7 +85,7 @@ QuicPathUpdateActive(
 
     QuicPathSetActive(Connection, PathSet->NextActivePathId);
 
-    ActivePath = QuicPathSetGetActivePath(PathSet);
+    ActivePath = QuicPathGetActive(PathSet);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
         "[conn][%p] New Remote IP: %!ADDR!",
@@ -128,7 +128,7 @@ QuicPathRemove(
     const QUIC_PATH* Path = &PathSet->Paths[Index];
     CXPLAT_DBG_ASSERT(Path->InUse);
     CXPLAT_DBG_ASSERT(
-        PathSet->NextActivePathId == QuicPathSetGetActivePath(PathSet)->ID ||
+        PathSet->NextActivePathId == QuicPathGetActive(PathSet)->ID ||
         Path->ID != PathSet->NextActivePathId);
     QuicTraceEvent(
         ConnPathRemoved,
