@@ -443,7 +443,9 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_DATAPATH_FEATURES)
 typedef enum CXPLAT_SOCKET_FLAGS {
     CXPLAT_SOCKET_FLAG_NONE         = 0x00000000,
     CXPLAT_SOCKET_FLAG_PCP          = 0x00000001, // Socket is used for internal PCP support
-    CXPLAT_SOCKET_FLAG_SHARE        = 0x00000002, // Forces sharing of the address and port
+    CXPLAT_SOCKET_FLAG_SHARE        = 0x00000002, // Forces sharing unless the datapath keeps
+                                                  // a dynamically assigned partitioned listener
+                                                  // port exclusive.
     CXPLAT_SOCKET_SERVER_OWNED      = 0x00000004, // Indicates socket is a listener socket
     CXPLAT_SOCKET_FLAG_XDP          = 0x00000008, // Socket will use XDP
     CXPLAT_SOCKET_FLAG_QTIP         = 0x00000010, // Socket will use QTIP
