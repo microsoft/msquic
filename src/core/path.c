@@ -283,12 +283,7 @@ QuicConnGetPathForPacket(
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
     for (uint8_t i = 0; i < PathSet->Count; ++i) {
-        if (!QuicAddrCompare(
-                &Packet->Route->LocalAddress,
-                &PathSet->Paths[i].Route.LocalAddress) ||
-            !QuicAddrCompare(
-                &Packet->Route->RemoteAddress,
-                &PathSet->Paths[i].Route.RemoteAddress)) {
+        if (!QuicPathMatchPacket(&PathSet->Paths[i], Packet)) {
             if (!Connection->State.HandshakeConfirmed) {
                 //
                 // Ignore packets on any other paths until connected/confirmed.
