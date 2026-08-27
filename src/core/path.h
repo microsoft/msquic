@@ -332,13 +332,6 @@ QuicPathSetValid(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicPathSetActive(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t PathId
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 _Success_(return != NULL)
 QUIC_PATH*
