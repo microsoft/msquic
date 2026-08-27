@@ -83,8 +83,7 @@ QuicPathUpdateActive(
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    QUIC_PATH* ActivePath = QuicPathGetActive(PathSet);
-    if (PathSet->NextActivePathId == ActivePath->ID) {
+    if (PathSet->NextActivePathId == QuicPathGetActive(PathSet)->ID) {
         //
         // The active path hasn't changed, nothing to do.
         //
@@ -93,7 +92,7 @@ QuicPathUpdateActive(
 
     QuicPathSetActive(Connection, PathSet->NextActivePathId);
 
-    ActivePath = QuicPathGetActive(PathSet);
+    QUIC_PATH* ActivePath = QuicPathGetActive(PathSet);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
         "[conn][%p] New Remote IP: %!ADDR!",
