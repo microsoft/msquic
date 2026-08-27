@@ -111,6 +111,25 @@ public:
         }
         return true;
     }
+    template<typename T>
+    bool TryGetRandomFull(T* Val, uint16_t ThreadId = 0) {
+        if (ThreadId == NumSpinThread) {
+            mux.lock();
+        }
+        int type_size = sizeof(T);
+        if (!CheckBoundary(ThreadId, type_size)) {
+            if (ThreadId == NumSpinThread) {
+                mux.unlock();
+            }
+            return false;
+        }
+        memcpy(Val, &data[Ptrs[ThreadId]] + EachSize[ThreadId] * ThreadId, type_size);
+        Ptrs[ThreadId] += type_size;
+        if (ThreadId == NumSpinThread) {
+            mux.unlock();
+        }
+        return true;
+    }
     size_t GetIterateCount(uint16_t ThreadId) {
         return NumIterated[ThreadId];
     }
@@ -135,6 +154,22 @@ T GetRandom(T UpperBound, uint16_t ThreadID = UINT16_MAX) {
         (void)FuzzData->TryGetRandom((uint64_t)UpperBound, &out, ThreadID);
     }
     return (T)out;
+}
+
+template<typename T>
+T GetRandom(uint16_t ThreadID = UINT16_MAX) {
+    // Unbounded: fills the full width of T, so the type maximum (which a modulo
+    // bound can never produce) is reachable.
+    if (FuzzData && ThreadID != UINT16_MAX) {
+        T val = 0;
+        (void)FuzzData->TryGetRandomFull<T>(&val, ThreadID);
+        return val;
+    }
+    uint64_t acc = 0;
+    for (size_t i = 0; i < sizeof(T); ++i) {
+        acc = (acc << 8) | (uint64_t)(rand() & 0xff);
+    }
+    return (T)acc;
 }
 
 template<typename T>
@@ -667,71 +702,71 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
 {
     switch (GetRandom(39, ThreadID)) {
     case 0:
-        Settings.MaxBytesPerKey = GetRandom(UINT64_MAX, ThreadID);
+        Settings.MaxBytesPerKey = GetRandom<uint64_t>(ThreadID);
         Settings.IsSet.MaxBytesPerKey = TRUE;
         break;
     case 1:
-        Settings.HandshakeIdleTimeoutMs = GetRandom(UINT64_MAX, ThreadID);
+        Settings.HandshakeIdleTimeoutMs = GetRandom<uint64_t>(ThreadID);
         Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
         break;
     case 2:
-        Settings.IdleTimeoutMs = GetRandom(UINT64_MAX, ThreadID);
+        Settings.IdleTimeoutMs = GetRandom<uint64_t>(ThreadID);
         Settings.IsSet.IdleTimeoutMs = TRUE;
         break;
     case 3:
-        Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom(UINT64_MAX, ThreadID);
+        Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom<uint64_t>(ThreadID);
         Settings.IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
         break;
     case 4:
-        Settings.TlsClientMaxSendBuffer = GetRandom(UINT32_MAX, ThreadID);
+        Settings.TlsClientMaxSendBuffer = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.TlsClientMaxSendBuffer = TRUE;
         break;
     case 5:
-        Settings.TlsServerMaxSendBuffer = GetRandom(UINT32_MAX, ThreadID);
+        Settings.TlsServerMaxSendBuffer = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.TlsServerMaxSendBuffer = TRUE;
         break;
     case 6:
-        Settings.StreamRecvWindowDefault = GetRandom(UINT32_MAX, ThreadID);
+        Settings.StreamRecvWindowDefault = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.StreamRecvWindowDefault = TRUE;
         break;
     case 7:
-        Settings.StreamRecvBufferDefault = GetRandom(UINT32_MAX, ThreadID);
+        Settings.StreamRecvBufferDefault = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.StreamRecvBufferDefault = TRUE;
         break;
     case 8:
-        Settings.ConnFlowControlWindow = GetRandom(UINT32_MAX, ThreadID);
+        Settings.ConnFlowControlWindow = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.ConnFlowControlWindow = TRUE;
         break;
     case 9:
-        Settings.MaxWorkerQueueDelayUs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.MaxWorkerQueueDelayUs = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.MaxWorkerQueueDelayUs = TRUE;
         break;
     case 10:
-        Settings.MaxStatelessOperations = GetRandom(UINT32_MAX, ThreadID);
+        Settings.MaxStatelessOperations = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.MaxStatelessOperations = TRUE;
         break;
     case 11:
-        Settings.InitialWindowPackets = GetRandom(UINT32_MAX, ThreadID);
+        Settings.InitialWindowPackets = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.InitialWindowPackets = TRUE;
         break;
     case 12:
-        Settings.SendIdleTimeoutMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.SendIdleTimeoutMs = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.SendIdleTimeoutMs = TRUE;
         break;
     case 13:
-        Settings.InitialRttMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.InitialRttMs = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.InitialRttMs = TRUE;
         break;
     case 14:
-        Settings.MaxAckDelayMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.MaxAckDelayMs = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.MaxAckDelayMs = TRUE;
         break;
     case 15:
-        Settings.DisconnectTimeoutMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.DisconnectTimeoutMs = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.DisconnectTimeoutMs = TRUE;
         break;
     case 16:
-        Settings.KeepAliveIntervalMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.KeepAliveIntervalMs = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.KeepAliveIntervalMs = TRUE;
         break;
     case 17:
@@ -739,27 +774,27 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.CongestionControlAlgorithm = TRUE;
         break;
     case 18:
-        Settings.PeerBidiStreamCount = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.PeerBidiStreamCount = GetRandom<uint16_t>(ThreadID);
         Settings.IsSet.PeerBidiStreamCount = TRUE;
         break;
     case 19:
-        Settings.PeerUnidiStreamCount = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.PeerUnidiStreamCount = GetRandom<uint16_t>(ThreadID);
         Settings.IsSet.PeerUnidiStreamCount = TRUE;
         break;
     case 20:
-        Settings.MaxBindingStatelessOperations = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.MaxBindingStatelessOperations = GetRandom<uint16_t>(ThreadID);
         Settings.IsSet.MaxBindingStatelessOperations = TRUE;
         break;
     case 21:
-        Settings.StatelessOperationExpirationMs = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.StatelessOperationExpirationMs = GetRandom<uint16_t>(ThreadID);
         Settings.IsSet.StatelessOperationExpirationMs = TRUE;
         break;
     case 22:
-        Settings.MinimumMtu = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.MinimumMtu = GetRandom<uint16_t>(ThreadID);
         Settings.IsSet.MinimumMtu = TRUE;
         break;
     case 23:
-        Settings.MaximumMtu = GetRandom((uint16_t)UINT16_MAX, ThreadID);
+        Settings.MaximumMtu = GetRandom<uint16_t>(ThreadID);
         Settings.IsSet.MaximumMtu = TRUE;
         break;
     case 24:
@@ -791,15 +826,15 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.EcnEnabled = TRUE;
         break;
     case 31:
-        Settings.MaxOperationsPerDrain = GetRandom((uint8_t)UINT8_MAX, ThreadID);
+        Settings.MaxOperationsPerDrain = GetRandom<uint8_t>(ThreadID);
         Settings.IsSet.MaxOperationsPerDrain = TRUE;
         break;
     case 32:
-        Settings.MtuDiscoveryMissingProbeCount = GetRandom((uint8_t)UINT8_MAX, ThreadID);
+        Settings.MtuDiscoveryMissingProbeCount = GetRandom<uint8_t>(ThreadID);
         Settings.IsSet.MtuDiscoveryMissingProbeCount = TRUE;
         break;
     case 33:
-        Settings.DestCidUpdateIdleTimeoutMs = GetRandom(UINT32_MAX, ThreadID);
+        Settings.DestCidUpdateIdleTimeoutMs = GetRandom<uint32_t>(ThreadID);
         Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
         break;
     case 34:
@@ -893,7 +928,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection, uint16_t ThreadID)
     case QUIC_PARAM_CONN_CIBIR_ID:                       // bytes[]
         if (FuzzData) {
             // assume 8 byte buffer for now
-            uint64_t Buffer = GetRandom(UINT64_MAX, ThreadID);
+            uint64_t Buffer = GetRandom<uint64_t>(ThreadID);
             memcpy(RandomBuffer, &Buffer, sizeof(RandomBuffer));
         } else {
             CxPlatRandom(sizeof(RandomBuffer), RandomBuffer);
@@ -926,12 +961,12 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID)
     case QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE:                  // QUIC_ADDR
         break; // Get Only
     case QUIC_PARAM_STREAM_PRIORITY:                                // uint16_t
-        Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, (uint16_t)GetRandom(UINT16_MAX, ThreadID));
+        Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, GetRandom<uint16_t>(ThreadID));
         break;
     case QUIC_PARAM_STREAM_STATISTICS:
         break; // Get Only
     case QUIC_PARAM_STREAM_RELIABLE_OFFSET:
-        Helper.SetUint64(QUIC_PARAM_STREAM_RELIABLE_OFFSET, (uint64_t)GetRandom(UINT64_MAX, ThreadID));
+        Helper.SetUint64(QUIC_PARAM_STREAM_RELIABLE_OFFSET, GetRandom<uint64_t>(ThreadID));
     default:
         break;
     }
