@@ -5777,7 +5777,6 @@ QuicConnRecvDatagrams(
                 // This datagram is from a different path than the current
                 // batch. Flush the current batch before continuing.
                 //
-                CXPLAT_DBG_ASSERT(CurrentPath != NULL);
                 QuicConnRecvDatagramBatch(
                     Connection,
                     CurrentPath,
