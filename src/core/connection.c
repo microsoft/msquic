@@ -5878,7 +5878,7 @@ QuicConnRecvDatagrams(
     // If the peer has migrated to a new path, provide a destination CID to the new path if needed.
     // If none is available, reject the migration.
     //
-    QUIC_PATH* ActivePath = QuicPathSetGetActivePath(PathSet);
+    QUIC_PATH* ActivePath = QuicPathGetActive(PathSet);
     if (PathSet->NextActivePathId != ActivePath->ID) {
         uint8_t NextActivePathIndex;
         QUIC_PATH* NextActivePath =
