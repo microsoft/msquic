@@ -118,9 +118,7 @@ set(QUIC_OPENSSL_LIB_DIR "" CACHE PATH "Path to OpenSSL library directory")
 set(QUIC_OPENSSL_SYMBOL_PREFIX "" CACHE STRING "If non-empty, namespace-prefix every symbol in the bundled OpenSSL static archives (Linux only) so the resulting binary can coexist in the same process with another OpenSSL copy. See docs/OpenSSLSymbolPrefix.md")
 set(QUIC_OPENSSL_ROOT_DIR "" CACHE PATH "Path to OpenSSL root directory")
 
-# QUIC_USE_SYSTEM_LIBCRYPTO only affects the bundled (submodule) OpenSSL build,
-# where it dynamically links the system libcrypto while static-linking the
-# submodule-built libssl. QUIC_USE_EXTERNAL_OPENSSL skips the submodule build
+# QUIC_USE_EXTERNAL_OPENSSL skips the submodule build
 # entirely and dynamically links both libssl and libcrypto from the system, so
 # QUIC_USE_SYSTEM_LIBCRYPTO would be silently ignored. Reject the combination
 # loudly instead of letting it appear to take effect.
