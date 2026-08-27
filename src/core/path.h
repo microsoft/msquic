@@ -204,11 +204,8 @@ CXPLAT_STATIC_ASSERT(
 
 typedef struct QUIC_PATH_SET {
     //
-    // Exactly one path is active at all time, the rest (if any) are other tracked paths,
-    // sorted from most to least recently used.
-    // Per-path state. The first entry in the list is the active path. All the
-    // rest (if any) are other tracked paths, sorted from most to least recently
-    // used.
+    // Per-path state. The first entry is the active path; the remaining
+    // entries are other tracked paths.
     //
     _Field_size_(Count)
     QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
