@@ -155,7 +155,7 @@ CubicCongestionControlReset(
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(QuicPathSetGetActivePath(&Connection->Paths));
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
     Cubic->SlowStartThreshold = UINT32_MAX;
     Cubic->MinRttInCurrentRound = UINT32_MAX;
     Cubic->HyStartRoundEnd = Connection->Send.NextPacketNumber;
@@ -195,8 +195,8 @@ CubicCongestionControlGetSendAllowance(
     } else if (
         !TimeSinceLastSendValid ||
         !Connection->Settings.PacingEnabled ||
-        !QuicPathSetGetActivePath(&Connection->Paths)->GotFirstRttSample ||
-        QuicPathSetGetActivePath(&Connection->Paths)->SmoothedRtt < QUIC_MIN_PACING_RTT) {
+        !QuicPathGetActive(&Connection->Paths)->GotFirstRttSample ||
+        QuicPathGetActive(&Connection->Paths)->SmoothedRtt < QUIC_MIN_PACING_RTT) {
         //
         // We're not in the necessary state to pace.
         //
@@ -232,7 +232,7 @@ CubicCongestionControlGetSendAllowance(
             Cubic->LastSendAllowance +
             (uint32_t)(
                 (EstimatedWnd * TimeSinceLastSend) /
-                QuicPathSetGetActivePath(&Connection->Paths)->SmoothedRtt);
+                QuicPathGetActive(&Connection->Paths)->SmoothedRtt);
         if (SendAllowance < Cubic->LastSendAllowance || // Overflow case
             SendAllowance > (Cubic->CongestionWindow - Cubic->BytesInFlight)) {
             SendAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
@@ -281,7 +281,7 @@ CubicCongestionControlOnCongestionEvent(
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(QuicPathSetGetActivePath(&Connection->Paths));
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
     QuicTraceEvent(
         ConnCongestionV2,
         "[conn][%p] Congestion event: IsEcn=%hu",
@@ -315,7 +315,7 @@ CubicCongestionControlOnCongestionEvent(
             Connection);
         Connection->Stats.Send.PersistentCongestionCount++;
 
-        QuicPathSetGetActivePath(&Connection->Paths)->Route.State =
+        QuicPathGetActive(&Connection->Paths)->Route.State =
             RouteSuspected; // used only for RAW datapath
 
         Cubic->IsInPersistentCongestion = TRUE;
@@ -426,7 +426,7 @@ CubicCongestionControlGetNetworkStatistics(
     )
 {
     const QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
-    const QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths);
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
 
     NetworkStatistics->BytesInFlight = Cubic->BytesInFlight;
     NetworkStatistics->PostedBytes = Connection->SendBuffer.PostedBytes;
@@ -572,7 +572,7 @@ CubicCongestionControlOnDataAcknowledged(
         CXPLAT_DBG_ASSERT(Cubic->CongestionWindow >= Cubic->SlowStartThreshold);
 
         const uint16_t DatagramPayloadLength =
-            QuicPathGetDatagramPayloadSize(QuicPathSetGetActivePath(&Connection->Paths));
+            QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
         //
         // We require steady ACK feedback to justify window growth. If there is
@@ -584,8 +584,8 @@ CubicCongestionControlOnDataAcknowledged(
             const uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cubic->TimeOfLastAck, TimeNowUs);
             if (TimeSinceLastAck > MS_TO_US((uint64_t)Cubic->SendIdleTimeoutMs) &&
                 TimeSinceLastAck >
-                    (QuicPathSetGetActivePath(&Connection->Paths)->SmoothedRtt +
-                     4 * QuicPathSetGetActivePath(&Connection->Paths)->RttVariance)) {
+                    (QuicPathGetActive(&Connection->Paths)->SmoothedRtt +
+                     4 * QuicPathGetActive(&Connection->Paths)->RttVariance)) {
                 Cubic->TimeOfCongAvoidStart += TimeSinceLastAck;
                 if (CxPlatTimeAtOrBefore64(TimeNowUs, Cubic->TimeOfCongAvoidStart)) {
                     Cubic->TimeOfCongAvoidStart = TimeNowUs;
@@ -695,7 +695,7 @@ Exit:
     Cubic->TimeOfLastAckValid = TRUE;
 
     if (Connection->Settings.NetStatsEventEnabled) {
-        const QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths);
+        const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_NETWORK_STATISTICS;
         Event.NETWORK_STATISTICS.BytesInFlight = Cubic->BytesInFlight;
@@ -833,7 +833,7 @@ CubicCongestionControlLogOutFlowStatus(
     )
 {
     const QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    const QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths);
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
     const QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QuicTraceEvent(
@@ -928,7 +928,7 @@ CubicCongestionControlInitialize(
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(QuicPathSetGetActivePath(&Connection->Paths));
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
     Cubic->SlowStartThreshold = UINT32_MAX;
     Cubic->SendIdleTimeoutMs = Settings->SendIdleTimeoutMs;
     Cubic->InitialWindowPackets = Settings->InitialWindowPackets;

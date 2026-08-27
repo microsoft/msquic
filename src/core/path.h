@@ -239,7 +239,7 @@ QuicPathSetInitialize(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_PATH*
-QuicPathSetGetActivePath(
+QuicPathGetActive(
     _In_ const QUIC_PATH_SET* PathSet
     );
 

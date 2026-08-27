@@ -1360,7 +1360,7 @@ QuicBindingCreateConnection(
     }
 
     BindingRefAdded = TRUE;
-    QuicPathSetGetActivePath(&NewConnection->Paths)->Binding = Binding;
+    QuicPathGetActive(&NewConnection->Paths)->Binding = Binding;
 
     if (!QuicLookupAddRemoteHash(
             &Binding->Lookup,

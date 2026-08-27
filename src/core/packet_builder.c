@@ -856,7 +856,7 @@ QuicPacketBuilderFinalize(
 
     if (Builder->EncryptionOverhead != 0 &&
         !(Builder->Key->Type == QUIC_PACKET_KEY_1_RTT &&
-          QuicPathSetGetActivePath(&Connection->Paths)->EncryptionOffloading)) {
+          QuicPathGetActive(&Connection->Paths)->EncryptionOffloading)) {
 
         //
         // Encrypt the data.

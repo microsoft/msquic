@@ -59,7 +59,7 @@ QuicPathSetInitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_PATH*
-QuicPathSetGetActivePath(
+QuicPathGetActive(
     _In_ const QUIC_PATH_SET* PathSet
     )
 {
@@ -324,7 +324,7 @@ QuicConnGetPathForPacket(
     QuicPathInitialize(PathSet->NextPathId++, Connection, Path);
     PathSet->Count++;
 
-    QUIC_PATH* ActivePath = QuicPathSetGetActivePath(PathSet);
+    QUIC_PATH* ActivePath = QuicPathGetActive(PathSet);
     if (ActivePath->DestCid->CID.Length == 0) {
         Path->DestCid = ActivePath->DestCid; // TODO - Copy instead?
     }
@@ -343,7 +343,7 @@ QuicPathSetActive(
     )
 {
     BOOLEAN UdpPortChangeOnly = FALSE;
-    QUIC_PATH* ActivePath = QuicPathSetGetActivePath(&Connection->Paths);
+    QUIC_PATH* ActivePath = QuicPathGetActive(&Connection->Paths);
     if (Path == ActivePath) {
         CXPLAT_DBG_ASSERT(!Path->IsActive);
         Path->IsActive = TRUE;

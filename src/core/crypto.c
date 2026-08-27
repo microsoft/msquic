@@ -495,7 +495,7 @@ QuicCryptoHandshakeConfirmed(
     Connection->State.HandshakeConfirmed = TRUE;
 
     if (SignalBinding) {
-        QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths);
+        QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
         CXPLAT_DBG_ASSERT(Path->Binding != NULL);
         QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
     }
@@ -1675,7 +1675,7 @@ QuicCryptoProcessTlsCompletion(
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
         CXPLAT_DBG_ASSERT(Connection->Paths.Count == 1);
-        QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths);
+        QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
         CXPLAT_DBG_ASSERT(Path->IsActive);
 
         if (Connection->Settings.EncryptionOffloadAllowed) {
@@ -1938,7 +1938,7 @@ QuicCryptoProcessData(
             QuicCryptoValidate(Crypto);
 
             Info.QuicVersion = Connection->Stats.QuicVersion;
-            QUIC_PATH* ActivePath = QuicPathSetGetActivePath(&Connection->Paths);
+            QUIC_PATH* ActivePath = QuicPathGetActive(&Connection->Paths);
             Info.LocalAddress = &ActivePath->Route.LocalAddress;
             Info.RemoteAddress = &ActivePath->Route.RemoteAddress;
             Info.CryptoBufferLength = Buffer.Length;

@@ -894,7 +894,7 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    const QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths);
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
     UNREFERENCED_PARAMETER(Path);
 
     QuicTraceEvent(
@@ -1295,7 +1295,7 @@ QuicConnGetSourceCidFromSeq(
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
                 QuicBindingRemoveSourceConnectionID(
-                    QuicPathSetGetActivePath(&Connection->Paths)->Binding,
+                    QuicPathGetActive(&Connection->Paths)->Binding,
                     SourceCid,
                     Entry);
                 QuicTraceEvent(

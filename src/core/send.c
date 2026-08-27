@@ -1216,7 +1216,7 @@ QuicSendFlush(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths);
+    QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
@@ -1293,7 +1293,7 @@ QuicSendFlush(
             uint64_t ThreePtosInUs =
                 QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
-                    QuicPathSetGetActivePath(&Connection->Paths),
+                    QuicPathGetActive(&Connection->Paths),
                     QUIC_CLOSE_PTO_COUNT);
             Builder.Path->EcnTestingEndingTime = TimeNow + ThreePtosInUs;
         }

@@ -271,7 +271,7 @@ QuicDatagramOnSendStateChanged(
                     QUIC_DPLPMTUD_MIN_MTU,
                     QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
         } else {
-            const QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths);
+            const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
             MtuMaxSendLength =
                 QuicCalculateDatagramLength(
                     QuicAddrGetFamily(&Path->Route.RemoteAddress),

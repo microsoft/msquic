@@ -283,7 +283,7 @@ QuicLossDetectionUpdateTimer(
         return;
     }
 
-    QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths); // TODO - Is this right?
+    QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths); // TODO - Is this right?
 
     if (!Path->IsPeerValidated && Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
         //
@@ -924,7 +924,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         uint64_t TwoPto =
             QuicLossDetectionComputeProbeTimeout(
                 LossDetection,
-                QuicPathSetGetActivePath(&Connection->Paths), // TODO - Is this right?
+                QuicPathGetActive(&Connection->Paths), // TODO - Is this right?
                 2);
         while ((Packet = LossDetection->LostPackets) != NULL &&
                 Packet->PacketNumber < LossDetection->LargestAck &&
@@ -953,7 +953,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         // This implementation excludes kGranularity from the calculation,
         // because it is not needed to keep timers from firing early.
         //
-        const QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths); // TODO - Correct?
+        const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths); // TODO - Correct?
         uint64_t Rtt = CXPLAT_MAX(Path->SmoothedRtt, Path->LatestRttSample);
         uint64_t TimeReorderThreshold = QUIC_TIME_REORDER_THRESHOLD(Rtt);
         uint64_t LargestLostPacketNumber = 0;
@@ -1184,7 +1184,7 @@ QuicLossDetectionDiscardPackets(
     QuicLossValidate(LossDetection);
 
     if (AckedRetransmittableBytes > 0) {
-        const QUIC_PATH* Path = QuicPathSetGetActivePath(&Connection->Paths); // TODO - Correct?
+        const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths); // TODO - Correct?
 
         QUIC_ACK_EVENT AckEvent = {
             .IsImplicit = TRUE,
