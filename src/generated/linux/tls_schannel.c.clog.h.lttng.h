@@ -501,11 +501,11 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsError,
 // Decoder Ring for TlsErrorStatus
 // [ tls][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    Status,
-                    "Convert SNI to unicode");
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                Status,
+                "Convert SNI to unicode");
 // arg2 = arg2 = TlsContext->Connection = arg2
 // arg3 = arg3 = Status = arg3
 // arg4 = arg4 = "Convert SNI to unicode" = arg4
