@@ -222,7 +222,7 @@ typedef struct QUIC_PATH_SET {
     uint8_t NextPathId;
 
     //
-    // ID of the path that will be set active at the end of the next packet receive loop.
+    // ID of the active path, or the path pending activation.
     //
     uint8_t NextActivePathId;
 
