@@ -1873,6 +1873,35 @@ QuicConnStart(
         goto Exit;
     }
 
+    if (ServerName == NULL) {
+        //
+        // If a server name is not provided, use the IP address for server certificate validation.
+        //
+        QUIC_ADDR_STR RemoteAddressString;
+        if (!QuicAddrIpToString(&Path->Route.RemoteAddress, &RemoteAddressString)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Failed to convert remote address to server name");
+            goto Exit;
+        }
+
+        const size_t ServerNameLength = strlen(RemoteAddressString.Address);
+        ServerName = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_SERVERNAME);
+        if (ServerName == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Server name",
+                ServerNameLength + 1);
+            goto Exit;
+        }
+        CxPlatCopyMemory((char*)ServerName, RemoteAddressString.Address, ServerNameLength + 1);
+    }
+
     QuicAddrSetPort(&Path->Route.RemoteAddress, ServerPort);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
