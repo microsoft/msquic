@@ -508,7 +508,7 @@ typedef struct QUIC_ADDR_STR {
 // Formats only the IP literal, excluding the port and IPv6 brackets. For
 // example, an IPv6 address with port 443 is formatted as "2001:db8::1".
 //
-QUIC_INLINE
+inline
 BOOLEAN
 QuicAddrIpToString(
     _In_ const QUIC_ADDR* Addr,
@@ -537,7 +537,7 @@ QuicAddrIpToString(
 // required around IPv6 when a port is present. For example, an IPv6 address
 // with port 443 is formatted as "[2001:db8::1]:443".
 //
-QUIC_INLINE
+inline
 BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
