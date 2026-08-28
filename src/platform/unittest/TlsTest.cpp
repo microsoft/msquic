@@ -335,7 +335,8 @@ protected:
             CXPLAT_SEC_CONFIG* SecConfiguration,
             bool MultipleAlpns = false,
             uint16_t TPLen = 64,
-            QUIC_BUFFER* Ticket = nullptr
+            QUIC_BUFFER* Ticket = nullptr,
+            const char* ServerName = "localhost"
             )
         {
             CXPLAT_TLS_CONFIG Config = {0};
@@ -349,7 +350,7 @@ protected:
                 (uint8_t*)CXPLAT_ALLOC_NONPAGED(CxPlatTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = CxPlatTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
-            Config.ServerName = "localhost";
+            Config.ServerName = ServerName;
             if (Ticket) {
                 ASSERT_NE(nullptr, Ticket->Buffer);
                 //ASSERT_NE((uint32_t)0, Ticket->Length);
@@ -1393,6 +1394,27 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
 }
 
 #ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
+TEST_F(TlsTest, ServerCertificateReferenceIdentityMismatch)
+{
+    CxPlatClientSecConfigCa ClientConfig(
+        QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE);
+    CxPlatServerSecConfigCa ServerConfig(
+        QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE);
+
+    for (const char* ServerName : {"not-localhost", "127.0.0.1"}) {
+        TlsContext ServerContext, ClientContext;
+        ClientContext.InitializeClient(ClientConfig, false, 64, nullptr, ServerName);
+        ServerContext.InitializeServer(ServerConfig);
+        DoHandshake(
+            ServerContext,
+            ClientContext,
+            DefaultFragmentSize,
+            false,
+            false,
+            true);
+    }
+}
+
 TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
 {
     CxPlatClientSecConfigCa ClientConfig(

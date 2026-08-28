@@ -1542,6 +1542,7 @@ CxPlatTlsInitialize(
     CXPLAT_TLS* TlsContext = NULL;
 
     CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+    CXPLAT_DBG_ASSERT(Config->IsServer || Config->ServerName != NULL);
 
     if (Config->IsServer != !(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         QuicTraceEvent(
@@ -1819,23 +1820,22 @@ CxPlatTlsWriteDataToSchannel(
         // side, and have a few special differences in this code path.
         //
         CXPLAT_DBG_ASSERT(TlsContext->IsServer == FALSE);
+        CXPLAT_DBG_ASSERT(TlsContext->SNI != NULL);
 
-        if (TlsContext->SNI != NULL) {
 #ifdef _KERNEL_MODE
-            TargetServerName = &ServerName;
-            QUIC_STATUS Status = CxPlatTlsUtf8ToUnicodeString(TlsContext->SNI, TargetServerName, QUIC_POOL_TLS_SNI);
+        TargetServerName = &ServerName;
+        QUIC_STATUS Status = CxPlatTlsUtf8ToUnicodeString(TlsContext->SNI, TargetServerName, QUIC_POOL_TLS_SNI);
 #else
-            QUIC_STATUS Status = CxPlatUtf8ToWideChar(TlsContext->SNI, QUIC_POOL_TLS_SNI, &TargetServerName);
+        QUIC_STATUS Status = CxPlatUtf8ToWideChar(TlsContext->SNI, QUIC_POOL_TLS_SNI, &TargetServerName);
 #endif
-            if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    Status,
-                    "Convert SNI to unicode");
-                return CXPLAT_TLS_RESULT_ERROR;
-            }
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                Status,
+                "Convert SNI to unicode");
+            return CXPLAT_TLS_RESULT_ERROR;
         }
 
         //

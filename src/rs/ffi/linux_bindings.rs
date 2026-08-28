@@ -224,11 +224,11 @@ pub type QUIC_ADDRESS_FAMILY = sa_family_t;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_ADDR_STR {
-    pub Address: [::std::os::raw::c_char; 64usize],
+    pub Address: [::std::os::raw::c_char; 65usize],
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_ADDR_STR"][::std::mem::size_of::<QUIC_ADDR_STR>() - 64usize];
+    ["Size of QUIC_ADDR_STR"][::std::mem::size_of::<QUIC_ADDR_STR>() - 65usize];
     ["Alignment of QUIC_ADDR_STR"][::std::mem::align_of::<QUIC_ADDR_STR>() - 1usize];
     ["Offset of field: QUIC_ADDR_STR::Address"]
         [::std::mem::offset_of!(QUIC_ADDR_STR, Address) - 0usize];
