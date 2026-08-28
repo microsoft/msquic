@@ -75,6 +75,25 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathQeoDisabled,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePeerAddrChanged
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED
+// QuicTraceLogConnVerbose(
+        IndicatePeerAddrChanged,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PATH_C, IndicatePeerAddrChanged,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPathInitialized
 // [conn][%p] Path[%hhu] Initialized
 // QuicTraceEvent(
@@ -92,6 +111,35 @@ TRACEPOINT_EVENT(CLOG_PATH_C, ConnPathInitialized,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnRemoteAddrAdded
+// [conn][%p] New Remote IP: %!ADDR!
+// QuicTraceEvent(
+        ConnRemoteAddrAdded,
+        "[conn][%p] New Remote IP: %!ADDR!",
+        Connection,
+        CASTED_CLOG_BYTEARRAY(
+            sizeof(ActivePath->Route.RemoteAddress),
+            &ActivePath->Route.RemoteAddress));
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(
+            sizeof(ActivePath->Route.RemoteAddress),
+            &ActivePath->Route.RemoteAddress) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PATH_C, ConnRemoteAddrAdded,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
     )
 )
 

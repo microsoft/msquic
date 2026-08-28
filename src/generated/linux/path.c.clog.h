@@ -18,6 +18,10 @@
 #define _clog_MACRO_QuicTraceLogConnInfo  1
 #define QuicTraceLogConnInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceLogConnVerbose
+#define _clog_MACRO_QuicTraceLogConnVerbose  1
+#define QuicTraceLogConnVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -88,6 +92,24 @@ tracepoint(CLOG_PATH_C, PathQeoDisabled , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePeerAddrChanged
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED
+// QuicTraceLogConnVerbose(
+        IndicatePeerAddrChanged,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePeerAddrChanged
+#define _clog_3_ARGS_TRACE_IndicatePeerAddrChanged(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_PATH_C, IndicatePeerAddrChanged , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPathInitialized
 // [conn][%p] Path[%hhu] Initialized
 // QuicTraceEvent(
@@ -101,6 +123,30 @@ tracepoint(CLOG_PATH_C, PathQeoDisabled , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_ConnPathInitialized
 #define _clog_4_ARGS_TRACE_ConnPathInitialized(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PATH_C, ConnPathInitialized , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnRemoteAddrAdded
+// [conn][%p] New Remote IP: %!ADDR!
+// QuicTraceEvent(
+        ConnRemoteAddrAdded,
+        "[conn][%p] New Remote IP: %!ADDR!",
+        Connection,
+        CASTED_CLOG_BYTEARRAY(
+            sizeof(ActivePath->Route.RemoteAddress),
+            &ActivePath->Route.RemoteAddress));
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(
+            sizeof(ActivePath->Route.RemoteAddress),
+            &ActivePath->Route.RemoteAddress) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnRemoteAddrAdded
+#define _clog_5_ARGS_TRACE_ConnRemoteAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
+tracepoint(CLOG_PATH_C, ConnRemoteAddrAdded , arg2, arg3_len, arg3);\
 
 #endif
 
