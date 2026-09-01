@@ -214,6 +214,16 @@ MsQuicConnectionSendResumptionTicket(
         const uint8_t* ResumptionData
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionExportKeyingMaterial(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ _Pre_defensive_ const QUIC_KEYING_MATERIAL_CONFIG* Config,
+    _Out_writes_bytes_(Config->OutputLength)
+        uint8_t* Output
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API

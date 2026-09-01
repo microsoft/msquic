@@ -39,6 +39,7 @@ extern "C" {
 #define MS_TO_NS100(x)  ((x)*10000)
 #define NS100_TO_MS(x)  ((x)/10000)
 #define US_TO_MS(x)     ((x) / 1000)
+#define US_TO_MS_CEIL(x) (((x) + 999) / 1000)
 #define MS_TO_US(x)     ((x) * 1000)
 #define US_TO_S(x)      ((x) / (1000 * 1000))
 #define S_TO_US(x)      ((x) * 1000 * 1000)
@@ -195,6 +196,25 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+//
+// Small Computation Helpers
+//
+
+//
+// Exponentially weighted moving average
+//
+QUIC_INLINE
+uint64_t
+CxPlatEwma(
+    _In_ uint64_t Average,
+    _In_ uint64_t Sample,
+    _In_ uint64_t Weight
+    )
+{
+    CXPLAT_DBG_ASSERT(Weight > 0);
+    return ((Weight - 1) * Average + Sample) / Weight;
+}
 
 //
 // Library Initialization

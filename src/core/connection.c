@@ -827,11 +827,11 @@ QuicConnUpdateRtt(
 
     } else {
         if (Path->SmoothedRtt > LatestRtt) {
-            Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
+            Path->RttVariance = CxPlatEwma(Path->RttVariance, Path->SmoothedRtt - LatestRtt, 4);
         } else {
-            Path->RttVariance = (3 * Path->RttVariance + LatestRtt - Path->SmoothedRtt) / 4;
+            Path->RttVariance = CxPlatEwma(Path->RttVariance, LatestRtt - Path->SmoothedRtt, 4);
         }
-        Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
+        Path->SmoothedRtt = CxPlatEwma(Path->SmoothedRtt, LatestRtt, 8);
     }
 
     if (OurSendTimestamp != UINT64_MAX) {
@@ -847,7 +847,7 @@ QuicConnUpdateRtt(
         } else {
             Path->OneWayDelayLatest =
                 (uint64_t)((int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - Connection->Stats.Timing.PhaseShift);
-            Path->OneWayDelay = (7 * Path->OneWayDelay + Path->OneWayDelayLatest) / 8;
+            Path->OneWayDelay = CxPlatEwma(Path->OneWayDelay, Path->OneWayDelayLatest, 8);
         }
     }
 
@@ -1873,6 +1873,35 @@ QuicConnStart(
         goto Exit;
     }
 
+    if (ServerName == NULL) {
+        //
+        // If a server name is not provided, use the IP address for server certificate validation.
+        //
+        QUIC_ADDR_STR RemoteAddressString;
+        if (!QuicAddrIpToString(&Path->Route.RemoteAddress, &RemoteAddressString)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Failed to convert remote address to server name");
+            goto Exit;
+        }
+
+        const size_t ServerNameLength = strlen(RemoteAddressString.Address);
+        ServerName = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_SERVERNAME);
+        if (ServerName == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Server name",
+                ServerNameLength + 1);
+            goto Exit;
+        }
+        CxPlatCopyMemory((char*)ServerName, RemoteAddressString.Address, ServerNameLength + 1);
+    }
+
     QuicAddrSetPort(&Path->Route.RemoteAddress, ServerPort);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
@@ -1988,6 +2017,16 @@ Exit:
     }
 
     if (QUIC_FAILED(Status)) {
+        if (StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY) {
+            //
+            // This connection was created internally (e.g. by the connection
+            // pool) and was never returned to the application. Suppress the
+            // shutdown-complete notification by clearing the callback handler.
+            // The connection stays externally owned; the creating context is
+            // responsible for closing it and releasing the owner reference.
+            //
+            Connection->ClientCallbackHandler = NULL;
+        }
         QuicConnCloseLocally(
             Connection,
             StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY ?
@@ -2323,6 +2362,12 @@ QuicConnGenerateLocalTransportParameters(
         MsQuicLib.ExecutionConfig != NULL &&
         MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs != 0 ?
             0 : MS_TO_US(MsQuicLib.TimerResolutionMs);
+    //
+    // Ensure the advertised MaxAckDelay is not below MinAckDelay.
+    //
+    if (LocalTP->MinAckDelay > MS_TO_US(LocalTP->MaxAckDelay)) {
+        LocalTP->MaxAckDelay = US_TO_MS_CEIL(LocalTP->MinAckDelay);
+    }
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     LocalTP->Flags =
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -2569,8 +2614,6 @@ QuicConnSetConfiguration(
         if (QUIC_FAILED(Status)) {
             goto Cleanup;
         }
-        Connection->Crypto.TlsState.ClientAlpnList = NULL;
-        Connection->Crypto.TlsState.ClientAlpnListLength = 0;
     }
 
     Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
@@ -3459,14 +3502,31 @@ QuicConnRecvVerNeg(
 {
     uint32_t SupportedVersion = 0;
 
-    // TODO - Validate the packet's SourceCid is equal to our DestCid.
+    //
+    // The Version Negotiation packet layout (see QUIC_VERSION_NEGOTIATION_PACKET)
+    // places the Source CID immediately after the Destination CID:
+    //
+    //   ... | DestCidLength (1) | DestCid (DestCidLength) |
+    //           SourceCidLength (1) | SourceCid (SourceCidLength) | SupportedVersions...
+    //
+    const uint8_t VnSourceCidLen =
+        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength];
+    const uint8_t* VnSourceCid =
+        Packet->VerNeg->DestCid + Packet->VerNeg->DestCidLength + sizeof(uint8_t);
+
+    //
+    // Validate that the packet's Source CID matches our current Destination CID
+    //
+    const QUIC_CID_LIST_ENTRY* DestCid = Connection->Paths[0].DestCid;
+    CXPLAT_DBG_ASSERT(DestCid != NULL);
+    if (VnSourceCidLen != DestCid->CID.Length ||
+        memcmp(VnSourceCid, DestCid->CID.Data, VnSourceCidLen) != 0) {
+        QuicPacketLogDrop(Connection, Packet, "Version Negotiation Source CID doesn't match our Destination CID");
+        return;
+    }
 
     const uint32_t* ServerVersionList =
-        (const uint32_t*)(
-        Packet->VerNeg->DestCid +
-        Packet->VerNeg->DestCidLength +
-        sizeof(uint8_t) +                                         // SourceCidLength field size
-        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength]);  // SourceCidLength
+        (const uint32_t*)(VnSourceCid + VnSourceCidLen);
     uint16_t ServerVersionListLength =
         (Packet->AvailBufferLength - (uint16_t)((uint8_t*)ServerVersionList - Packet->AvailBuffer)) / sizeof(uint32_t);
 
@@ -3586,6 +3646,7 @@ QuicConnRecvRetry(
 
     if (!QuicVersionNegotiationExtIsVersionClientSupported(Connection, Packet->LH->Version)) {
         QuicPacketLogDrop(Connection, Packet, "Retry Version not supported by client");
+        return;
     }
 
     const QUIC_VERSION_INFO* VersionInfo = NULL;
@@ -4215,14 +4276,20 @@ QuicConnRecvDecryptAndAuthenticate(
             PacketDecrypt,
             "[pack][%llu] Decrypting",
             Packet->PacketId);
-        if (QUIC_FAILED(
+        uint64_t DecryptStart = CxPlatTimeUs64();
+        QUIC_STATUS DecryptStatus =
             CxPlatDecrypt(
                 Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->PacketKey,
                 Iv,
                 Packet->HeaderLength,   // HeaderLength
                 Packet->AvailBuffer,    // Header
                 Packet->PayloadLength,  // BufferLength
-                (uint8_t*)Payload))) {  // Buffer
+                (uint8_t*)Payload);     // Buffer
+        QuicPerfCounterAdd(
+            Connection->Partition,
+            QUIC_PERF_COUNTER_DECRYPT_DURATION_US,
+            (int64_t)CxPlatTimeDiff64(DecryptStart, CxPlatTimeUs64()));
+        if (QUIC_FAILED(DecryptStatus)) {
 
             //
             // Check for a stateless reset packet.
@@ -5538,7 +5605,7 @@ QuicConnRecvPostProcessing(
 
     if (Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
-        !(*Path)->IsActive) {
+        !(*Path)->IsActive && (*Path)->InUse) {
         //
         // The peer has sent a non-probing frame on a path other than the active
         // one. This signals their intent to switch active paths.
@@ -7096,6 +7163,24 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, RttVariance)) {
         Stats->RttVariance = (uint32_t)Path->RttVariance;
     }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ConnectionQueueDelayAvgUs)) {
+        Stats->ConnectionQueueDelayAvgUs = Connection->Stats.Schedule.QueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ConnectionQueueDelayMaxUs)) {
+        Stats->ConnectionQueueDelayMaxUs = Connection->Stats.Schedule.QueueDelayMaxUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendQueueDelayAvgUs)) {
+        Stats->SendQueueDelayAvgUs = Connection->Stats.Schedule.SendQueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendQueueDelayMaxUs)) {
+        Stats->SendQueueDelayMaxUs = Connection->Stats.Schedule.SendQueueDelayMaxUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ReceiveQueueDelayAvgUs)) {
+        Stats->ReceiveQueueDelayAvgUs = Connection->Stats.Schedule.ReceiveQueueDelayAvgUs;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, ReceiveQueueDelayMaxUs)) {
+        Stats->ReceiveQueueDelayMaxUs = Connection->Stats.Schedule.ReceiveQueueDelayMaxUs;
+    }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
 
@@ -7742,6 +7827,42 @@ QuicConnApplyNewSettings(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnExportKeyingMaterial(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_KEYING_MATERIAL_CONFIG* Config,
+    _Out_writes_bytes_(Config->OutputLength)
+        uint8_t* Output
+    )
+{
+    //
+    // The keying material is derived from the connection's TLS secrets: the
+    // handshake must be complete and the TLS context must still be present.
+    //
+    if (!Connection->State.Connected ||
+        !Connection->Crypto.TlsState.HandshakeComplete ||
+        Connection->Crypto.TLS == NULL) {
+        QuicTraceLogConnWarning(
+            ExportKeyingMaterialInvalidState,
+            Connection,
+            "Cannot export keying material [Connected=%hhu, HandshakeComplete=%hhu, HasTls=%hhu]",
+            Connection->State.Connected,
+            Connection->Crypto.TlsState.HandshakeComplete,
+            (uint8_t)(Connection->Crypto.TLS != NULL));
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    return
+        CxPlatTlsExportKeyingMaterial(
+            Connection->Crypto.TLS,
+            Config->Label,
+            Config->Context,
+            Config->ContextLength,
+            Output,
+            Config->OutputLength);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessApiOperation(
     _In_ QUIC_CONNECTION* Connection,
@@ -7783,7 +7904,7 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.Family,
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort,
-                QUIC_CONN_START_FLAG_NONE);
+                ApiCtx->CONN_START.Flags);
         ApiCtx->CONN_START.ServerName = NULL;
         break;
 
@@ -7898,6 +8019,14 @@ QuicConnProcessApiOperation(
         QuicDatagramSendFlush(&Connection->Datagram);
         break;
 
+    case QUIC_API_TYPE_CONN_EXPORT_KEYING_MATERIAL:
+        Status =
+            QuicConnExportKeyingMaterial(
+                Connection,
+                ApiCtx->CONN_EXPORT_KEYING_MATERIAL.Config,
+                ApiCtx->CONN_EXPORT_KEYING_MATERIAL.Output);
+        break;
+
     default:
         CXPLAT_TEL_ASSERT(FALSE);
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -7937,6 +8066,37 @@ QuicConnProcessExpiredTimer(
         break;
     default:
         CXPLAT_FRE_ASSERT(FALSE);
+        break;
+    }
+}
+
+//
+// Update a connection operation delay statistics
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnUpdateOperQueueDelay(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_OPERATION* Oper
+    )
+{
+    uint32_t DelayUs = CxPlatTimeDiff32(Oper->QueueTimeUs, CxPlatTimeUs32());
+
+    switch (Oper->Type) {
+
+    case QUIC_OPER_TYPE_FLUSH_RECV:
+        Connection->Stats.Schedule.ReceiveQueueDelayAvgUs =
+            (uint32_t)CxPlatEwma(Connection->Stats.Schedule.ReceiveQueueDelayAvgUs, DelayUs, 8);
+        Connection->Stats.Schedule.ReceiveQueueDelayMaxUs =
+            CXPLAT_MAX(Connection->Stats.Schedule.ReceiveQueueDelayMaxUs, DelayUs);
+        break;
+    case QUIC_OPER_TYPE_FLUSH_SEND:
+        Connection->Stats.Schedule.SendQueueDelayAvgUs =
+            (uint32_t)CxPlatEwma(Connection->Stats.Schedule.SendQueueDelayAvgUs, DelayUs, 8);
+        Connection->Stats.Schedule.SendQueueDelayMaxUs =
+            CXPLAT_MAX(Connection->Stats.Schedule.SendQueueDelayMaxUs, DelayUs);
+        break;
+    default:
         break;
     }
 }
@@ -7990,6 +8150,7 @@ QuicConnDrainOperations(
         }
 
         QuicOperLog(Connection, Oper);
+        QuicConnUpdateOperQueueDelay(Connection, Oper);
 
         BOOLEAN FreeOper = Oper->FreeAfterProcess;
 

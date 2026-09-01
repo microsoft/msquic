@@ -1719,6 +1719,14 @@ CxPlatSocketContextRecvComplete(
             Datagram = (DATAPATH_RX_PACKET*)
                 ((char*)Datagram + SocketContext->DatapathPartition->Datapath->RecvBlockStride);
         }
+
+        if (IoBlock->RefCount == 0) {
+            //
+            // Nothing referenced the block (e.g. a zero-length datagram)
+            // Return it to the pool here to avoid leaking it.
+            //
+            CxPlatPoolFree(IoBlock);
+        }
     }
 
     if (BytesTransferred == 0 || DatagramHead == NULL) {

@@ -359,10 +359,9 @@ QuicPacketBuilderPrepare(
         // are not limiting Handshake packets.
         //
         if (QuicConnIsClient(Connection) && NewPacketKeyType == QUIC_PACKET_KEY_HANDSHAKE) {
-            QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
-            //
-            // Ensure we don't keep a dangling pointer to the freed INITIAL keys.
-            //
+            if (QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL)) {
+                Builder->InitialKeysDiscarded = TRUE;
+            }
             Builder->Key = NULL;
         }
 
@@ -875,16 +874,20 @@ QuicPacketBuilderFinalize(
         uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
         QuicCryptoCombineIvAndPacketNumber(Builder->Key->Iv, (uint8_t*) &Builder->Metadata->PacketNumber, Iv);
 
-        QUIC_STATUS Status;
-        if (QUIC_FAILED(
-            Status =
+        uint64_t EncryptStart = CxPlatTimeUs64();
+        QUIC_STATUS Status =
             CxPlatEncrypt(
                 Builder->Key->PacketKey,
                 Iv,
                 Builder->HeaderLength,
                 Header,
                 PayloadLength,
-                Payload))) {
+                Payload);
+        QuicPerfCounterAdd(
+            Connection->Partition,
+            QUIC_PERF_COUNTER_ENCRYPT_DURATION_US,
+            (int64_t)CxPlatTimeDiff64(EncryptStart, CxPlatTimeUs64()));
+        if (QUIC_FAILED(Status)) {
             QuicConnFatalError(Connection, Status, "Encryption failure");
             goto Exit;
         }

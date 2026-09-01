@@ -215,12 +215,11 @@ xcode-select --install
 
 ### Windows
 
-Ensure the corresponding "MSVC v142 - VS 2019 (or 2022) C++ (_Arch_) build tools" are installed for the target arch, e.g. selecting "Desktop development with C++" only includes x64/x86 but not ARM64 by default.
-
-VS 2019
+Ensure the corresponding "MSVC v142 - VS 2026 (or 2022) C++ (_Arch_) build tools" are installed for the target arch, e.g. selecting "Desktop development with C++" only includes x64/x86 but not ARM64 by default.
+VS 2026
 ```
 mkdir build && cd build
-cmake -G 'Visual Studio 16 2019' -A x64 ..
+cmake -G 'Visual Studio 18 2026' -A x64 ..
 ```
 
 VS 2022

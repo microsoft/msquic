@@ -333,6 +333,84 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpMapInsertFailed
+// [ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x
+// QuicTraceLogVerbose(
+                XdpMapInsertFailed,
+                "[ixdp][%p] XdpMapInsert failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                Interface,
+                Interface->IfIndex,
+                j,
+                XskMap,
+                Queue->RxXsk,
+                Hr);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = j = arg4
+// arg5 = arg5 = XskMap = arg5
+// arg6 = arg6 = Queue->RxXsk = arg6
+// arg7 = arg7 = Hr = arg7
+----------------------------------------------------------*/
+#ifndef _clog_8_ARGS_TRACE_XdpMapInsertFailed
+#define _clog_8_ARGS_TRACE_XdpMapInsertFailed(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapInsertFailed , arg2, arg3, arg4, arg5, arg6, arg7);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpMapDeleteFailed
+// [ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x
+// QuicTraceLogVerbose(
+                            XdpMapDeleteFailed,
+                            "[ixdp][%p] XdpMapDelete failed for IfIndex=%u, QueueId=%u, XskMap=%p, RxXsk=%p, Hr=0x%x",
+                            Interface,
+                            Interface->IfIndex,
+                            k,
+                            XskMap,
+                            Interface->Queues[k].RxXsk,
+                            DeleteHr);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = k = arg4
+// arg5 = arg5 = XskMap = arg5
+// arg6 = arg6 = Interface->Queues[k].RxXsk = arg6
+// arg7 = arg7 = DeleteHr = arg7
+----------------------------------------------------------*/
+#ifndef _clog_8_ARGS_TRACE_XdpMapDeleteFailed
+#define _clog_8_ARGS_TRACE_XdpMapDeleteFailed(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapDeleteFailed , arg2, arg3, arg4, arg5, arg6, arg7);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpMapModeConfigured
+// [ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)
+// QuicTraceLogVerbose(
+            XdpMapModeConfigured,
+            "[ixdp][%p] Map mode configured for IfIndex=%u (MapHandle=%p)",
+            Interface,
+            Interface->IfIndex,
+            XskMap);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = XskMap = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_XdpMapModeConfigured
+#define _clog_5_ARGS_TRACE_XdpMapModeConfigured(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpMapModeConfigured , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(

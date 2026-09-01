@@ -13,7 +13,7 @@ body:
     validations:
       required: true
     attributes:
-      label: Proposed solution
+      label: Motivation
       description: What are the benefits/reasons for having this feature?
   - type: textarea
     attributes:

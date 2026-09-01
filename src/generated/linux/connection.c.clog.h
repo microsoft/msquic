@@ -489,6 +489,30 @@ tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ExportKeyingMaterialInvalidState
+// [conn][%p] Cannot export keying material [Connected=%hhu, HandshakeComplete=%hhu, HasTls=%hhu]
+// QuicTraceLogConnWarning(
+            ExportKeyingMaterialInvalidState,
+            Connection,
+            "Cannot export keying material [Connected=%hhu, HandshakeComplete=%hhu, HasTls=%hhu]",
+            Connection->State.Connected,
+            Connection->Crypto.TlsState.HandshakeComplete,
+            (uint8_t)(Connection->Crypto.TLS != NULL));
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.Connected = arg3
+// arg4 = arg4 = Connection->Crypto.TlsState.HandshakeComplete = arg4
+// arg5 = arg5 = (uint8_t)(Connection->Crypto.TLS != NULL) = arg5
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ExportKeyingMaterialInvalidState
+#define _clog_6_ARGS_TRACE_ExportKeyingMaterialInvalidState(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
+tracepoint(CLOG_CONNECTION_C, ExportKeyingMaterialInvalidState , arg1, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for CloseComplete
 // [conn][%p] Connection close complete
 // QuicTraceLogConnInfo(

@@ -958,9 +958,24 @@ QuicStreamFrameSkip(
         QUIC_STOP_SENDING_EX Frame;
         return QuicStopSendingFrameDecode(BufferLength, Buffer, Offset, &Frame);
     }
-    default: { // QUIC_FRAME_STREAM*
+    case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+        QUIC_RELIABLE_RESET_STREAM_EX Frame;
+        return QuicReliableResetFrameDecode(BufferLength, Buffer, Offset, &Frame);
+    }
+    case QUIC_FRAME_STREAM:
+    case QUIC_FRAME_STREAM_1:
+    case QUIC_FRAME_STREAM_2:
+    case QUIC_FRAME_STREAM_3:
+    case QUIC_FRAME_STREAM_4:
+    case QUIC_FRAME_STREAM_5:
+    case QUIC_FRAME_STREAM_6:
+    case QUIC_FRAME_STREAM_7: {
         QUIC_STREAM_EX Frame;
         return QuicStreamFrameDecode(FrameType, BufferLength, Buffer, Offset, &Frame);
+    }
+    default: {
+        CXPLAT_DBG_ASSERT(FALSE);
+        return FALSE;
     }
     }
 }

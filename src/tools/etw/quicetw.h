@@ -6,6 +6,7 @@
 --*/
 
 #include "quic_platform.h"
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 #include "msquic.h"
 #include <evntrace.h>
 #include <evntcons.h>

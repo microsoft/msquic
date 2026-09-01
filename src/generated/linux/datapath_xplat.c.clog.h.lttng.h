@@ -36,11 +36,27 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, WarnNoXdpForCibirSockets,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathRawInitFailRawOnly
+// [  dp] Raw-only mode: raw datapath required but failed to initialize
+// QuicTraceLogVerbose(
+            DatapathRawInitFailRawOnly,
+            "[  dp] Raw-only mode: raw datapath required but failed to initialize");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, DatapathRawInitFailRawOnly,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathInitFail
 // [  dp] Failed to initialize datapath, status:%d
 // QuicTraceLogVerbose(
-            DatapathInitFail,
-            "[  dp] Failed to initialize datapath, status:%d", Status);
+                DatapathInitFail,
+                "[  dp] Failed to initialize datapath, status:%d", Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, DatapathInitFail,
@@ -100,5 +116,28 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, ErrNoXdpForQtip,
     TP_ARGS(
 ), 
     TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH (raw-only)",
+            sizeof(CXPLAT_DATAPATH));
+// arg2 = arg2 = "CXPLAT_DATAPATH (raw-only)" = arg2
+// arg3 = arg3 = sizeof(CXPLAT_DATAPATH) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
     )
 )

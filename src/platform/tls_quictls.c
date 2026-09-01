@@ -27,6 +27,7 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
+#include "openssl/x509v3.h"
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
@@ -123,9 +124,9 @@ typedef struct CXPLAT_TLS {
     const uint8_t* AlpnBuffer;
 
     //
-    // On client side stores a NULL terminated SNI.
+    // Server name used for SNI and certificate validation.
     //
-    const char* SNI;
+    const char* ServerName;
 
     //
     // Ssl - A SSL object associated with the connection.
@@ -267,7 +268,7 @@ CxPlatTlsCertificateVerifyCallback(
                     CxPlatCertVerifyRawCertificate(
                         OpenSSLCertBuffer,
                         OpenSSLCertLength,
-                        TlsContext->SNI,
+                        TlsContext->ServerName,
                         TlsContext->SecConfig->Flags,
                         IsDeferredValidationOrClientAuth?
                             (uint32_t*)&ValidationResult :
@@ -558,7 +559,12 @@ CxPlatTlsAddHandshakeDataCallback(
         (uint64_t)Length,
         (uint32_t)Level);
 
-    if (Length + TlsState->BufferLength > 0xF000) {
+    //
+    // Cap the buffer at 0x8000, the largest power of two that fits a uint16_t,
+    // so the doubling growth below cannot overflow.
+    //
+    size_t RequiredBufferLength = Length + TlsState->BufferLength;
+    if (RequiredBufferLength > 0x8000) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -568,13 +574,13 @@ CxPlatTlsAddHandshakeDataCallback(
         return -1;
     }
 
-    if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
+    if (RequiredBufferLength > (size_t)TlsState->BufferAllocLength) {
         //
         // Double the allocated buffer length until there's enough room for the
         // new data.
         //
         uint16_t NewBufferAllocLength = TlsState->BufferAllocLength;
-        while (Length + TlsState->BufferLength > (size_t)NewBufferAllocLength) {
+        while (RequiredBufferLength > (size_t)NewBufferAllocLength) {
             NewBufferAllocLength <<= 1;
         }
 
@@ -1661,6 +1667,7 @@ CxPlatTlsInitialize(
     UNREFERENCED_PARAMETER(State);
 
     CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+    CXPLAT_DBG_ASSERT(Config->IsServer || Config->ServerName != NULL);
     if (Config->SecConfig == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
@@ -1694,35 +1701,30 @@ CxPlatTlsInitialize(
         "TLS context Created");
 
     if (!Config->IsServer) {
-
-        if (Config->ServerName != NULL) {
-
-            ServerNameLength = (uint16_t)strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH);
-            if (ServerNameLength == QUIC_MAX_SNI_LENGTH) {
-                QuicTraceEvent(
-                    TlsError,
-                    "[ tls][%p] ERROR, %s.",
-                    TlsContext->Connection,
-                    "SNI Too Long");
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                goto Exit;
-            }
-
-            if (!CxPlatIsIpLiteral(Config->ServerName)) {
-                TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
-                if (TlsContext->SNI == NULL) {
-                    QuicTraceEvent(
-                        AllocFailure,
-                        "Allocation of '%s' failed. (%llu bytes)",
-                        "SNI",
-                        ServerNameLength + 1);
-                    Status = QUIC_STATUS_OUT_OF_MEMORY;
-                    goto Exit;
-                }
-
-                memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
-            }
+        ServerNameLength = (uint16_t)strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH);
+        if (ServerNameLength == QUIC_MAX_SNI_LENGTH) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Server name too long");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Exit;
         }
+
+        TlsContext->ServerName =
+            CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
+        if (TlsContext->ServerName == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Server name",
+                ServerNameLength + 1);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+
+        memcpy((char*)TlsContext->ServerName, Config->ServerName, ServerNameLength + 1);
     }
 
     //
@@ -1746,7 +1748,34 @@ CxPlatTlsInitialize(
         SSL_set_accept_state(TlsContext->Ssl);
     } else {
         SSL_set_connect_state(TlsContext->Ssl);
-        SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
+        X509_VERIFY_PARAM* VerifyParam = SSL_get0_param(TlsContext->Ssl);
+        X509_VERIFY_PARAM_set_hostflags(
+            VerifyParam,
+            X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+
+        BOOLEAN IsIpLiteral =
+            X509_VERIFY_PARAM_set1_ip_asc(VerifyParam, TlsContext->ServerName) == 1;
+        if (!IsIpLiteral &&
+            X509_VERIFY_PARAM_set1_host(VerifyParam, TlsContext->ServerName, 0) != 1) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Setting certificate reference identity failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        if (!IsIpLiteral &&
+            SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->ServerName) != 1) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Setting SNI failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
         SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
     }
 
@@ -1846,9 +1875,9 @@ CxPlatTlsUninitialize(
             TlsContext->Connection,
             "Cleaning up");
 
-        if (TlsContext->SNI != NULL) {
-            CXPLAT_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
-            TlsContext->SNI = NULL;
+        if (TlsContext->ServerName != NULL) {
+            CXPLAT_FREE(TlsContext->ServerName, QUIC_POOL_TLS_SNI);
+            TlsContext->ServerName = NULL;
         }
 
         if (TlsContext->Ssl != NULL) {
@@ -2367,6 +2396,39 @@ CxPlatTlsParamGet(
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsExportKeyingMaterial(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_z_ const char* Label,
+    _In_reads_bytes_opt_(ContextLength)
+        const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _Out_writes_bytes_(OutputLength)
+        uint8_t* Output,
+    _In_ uint32_t OutputLength
+    )
+{
+    if (SSL_export_keying_material(
+            TlsContext->Ssl,
+            Output,
+            OutputLength,
+            Label,
+            strlen(Label),
+            Context,
+            ContextLength,
+            Context != NULL ? 1 : 0) != 1) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "SSL_export_keying_material failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _Success_(return==TRUE)

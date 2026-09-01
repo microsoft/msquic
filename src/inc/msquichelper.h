@@ -199,6 +199,10 @@ DumpMsQuicPerfCounters(
     printf("  SEND_STATELESS_RESET:  %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_SEND_STATELESS_RESET]);
     printf("  SEND_STATELESS_RETRY:  %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_SEND_STATELESS_RETRY]);
     printf("  CONN_LOAD_REJECT:      %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_LOAD_REJECT]);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    printf("  ENCRYPT_DURATION_US:   %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US]);
+    printf("  DECRYPT_DURATION_US:   %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_DECRYPT_DURATION_US]);
+#endif
 }
 
 //

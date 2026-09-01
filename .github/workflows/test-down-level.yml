@@ -24,53 +24,45 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          # v2.3
-          { release: "2.3.11",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.3.11",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
-          { release: "2.3.11",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          # v2.4
-          { release: "2.4.10",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.4.10",  os: "ubuntu-24.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.4.10",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
-          { release: "2.4.10",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.4.10",  os: "windows-2025", arch: "x64", tls: "schannel", imgtls: "schannel" },
-          { release: "2.4.10",  os: "windows-2025", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          # v2.5
+          { release: "2.5.9",  os: "ubuntu-24.04", arch: "x64", config: "Release", tls: "quictls" },
+          { release: "2.5.9",  os: "windows-2025", arch: "x64", config: "Release", tls: "schannel" },
+          { release: "2.5.9",  os: "windows-2025", arch: "x64", config: "Release", tls: "quictls"},
+          # v2.6
+          { release: "2.6.0",  os: "ubuntu-24.04", arch: "x64", config: "Debug", tls: "quictls" },
+          { release: "2.6.0",  os: "windows-2025", arch: "x64", config: "Debug", tls: "schannel" },
+          { release: "2.6.0",  os: "windows-2025", arch: "x64", config: "Debug", tls: "quictls" },
         ]
     runs-on: ${{ matrix.vec.os }}
     name: Test
     steps:
     - name: Checkout repository
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-    - name: Install Perl
-      if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@a198315ec4e9244f206879ea7b63078003aec8a6
-      with:
-        perl-version: '5.34'
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Install NASM
       if: runner.os == 'Windows'
-      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1.5.2
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -DisableTest
       shell: pwsh
-    - name: Build Release
+    - name: Build
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf
+      run: scripts/build.ps1 -Config ${{matrix.vec.config}} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} ${{ runner.os != 'Windows' && '-UseSystemOpenSSLCrypto' || '' }} -DisableTest -DisableTools -DisablePerf
     - name: Download Tests
       shell: pwsh
       run: |
         $osName = "${{runner.os}}".ToLower()
-        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.vec.release}}/msquic_${{runner.os}}_${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}_test.zip" -OutFile "artifacts/test.zip"
-        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.vec.release}}/msquic_${{runner.os}}_${{matrix.vec.arch}}_${{matrix.vec.config}}_${{matrix.vec.tls}}_test.zip" -OutFile "artifacts/test.zip"
+        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.vec.arch}}_${{matrix.vec.config}}_${{matrix.vec.tls}}
     - name: Run Tests (Linux)
       if: runner.os == 'Linux'
       shell: pwsh
       run: |
-        chmod +x artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}/msquictest
-        $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}"
-        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
+        chmod +x artifacts/bin/linux/${{matrix.vec.arch}}_${{matrix.vec.config}}_${{matrix.vec.tls}}/msquictest
+        $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.vec.arch}}_${{matrix.vec.config}}_${{matrix.vec.tls}}"
+        scripts/test.ps1 -AZP -Config ${{matrix.vec.config}} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
-      run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
+      run: scripts/test.ps1 -AZP -Config ${{matrix.vec.config}} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner windows-2025 -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
 
   Complete:
     name: Down Level Complete
@@ -80,6 +72,6 @@ jobs:
     permissions: {} # No need for any permissions.
     steps:
     - name: Decide whether the needed jobs succeeded or failed
-      uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+      uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
       with:
         jobs: ${{ toJSON(needs) }}

@@ -174,7 +174,7 @@ typedef struct CXPLAT_TLS_CONFIG {
     uint16_t TPType;
 
     //
-    // Name of the server we are connecting to (client side only).
+    // Name of the server we are connecting to (required on client side).
     //
     const char* ServerName;
 
@@ -487,6 +487,21 @@ CxPlatTlsParamGet(
     _Inout_ uint32_t* BufferLength,
     _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
+    );
+
+//
+// Exports keying material derived from the TLS session.
+// (RFC 5705 / RFC 8446 section 7.5)
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsExportKeyingMaterial(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_z_ const char* Label,
+    _In_reads_bytes_opt_(ContextLength) const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _Out_writes_bytes_(OutputLength) uint8_t* Output,
+    _In_ uint32_t OutputLength
     );
 
 //

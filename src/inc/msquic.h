@@ -654,6 +654,15 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t RttVariance;                   // In microseconds
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    uint32_t ConnectionQueueDelayAvgUs;     // Sliding average connection queue delay in microseconds
+    uint32_t ConnectionQueueDelayMaxUs;     // Maximum connection queue delay in microseconds
+    uint32_t SendQueueDelayAvgUs;           // Sliding average send queue delay in microseconds
+    uint32_t SendQueueDelayMaxUs;           // Maximum send queue delay in microseconds
+    uint32_t ReceiveQueueDelayAvgUs;        // Sliding average receive queue delay in microseconds
+    uint32_t ReceiveQueueDelayMaxUs;        // Maximum receive queue delay in microseconds
+#endif
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -676,6 +685,9 @@ typedef struct QUIC_NETWORK_STATISTICS
 #define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, DestCidUpdateCount)     // MsQuic v2.1 final size
 #define QUIC_STATISTICS_V2_SIZE_3   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendEcnCongestionCount) // MsQuic v2.2 final size
 #define QUIC_STATISTICS_V2_SIZE_4   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, RttVariance)            // MsQuic v2.5 final size
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_STATISTICS_V2_SIZE_5   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, ReceiveQueueDelayMaxUs) // MsQuic v2.6 preview size
+#endif
 
 typedef struct QUIC_LISTENER_STATISTICS {
 
@@ -720,6 +732,10 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_SEND_STATELESS_RETRY, // Total stateless retry packets sent ever.
     QUIC_PERF_COUNTER_CONN_LOAD_REJECT,     // Total connections rejected due to worker load.
     QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH,   // Current listeners queued for processing.
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_PERF_COUNTER_ENCRYPT_DURATION_US,  // Total time spent on encryption in microseconds.
+    QUIC_PERF_COUNTER_DECRYPT_DURATION_US,  // Total time spent on decryption in microseconds.
+#endif
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 
@@ -1578,6 +1594,30 @@ QUIC_STATUS
     _In_ QUIC_TLS_ALERT_CODES TlsAlert
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+typedef struct QUIC_KEYING_MATERIAL_CONFIG {
+    _Field_z_ const char* Label;
+    uint32_t ContextLength;
+    _Field_size_bytes_opt_(ContextLength) const uint8_t* Context;
+    uint32_t OutputLength;
+} QUIC_KEYING_MATERIAL_CONFIG;
+
+//
+// Exports keying material derived from the connection's TLS session.
+// The connection's handshake must be complete and the TLS context still alive.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ _Pre_defensive_ const QUIC_KEYING_MATERIAL_CONFIG* Config,
+    _Out_writes_bytes_(Config->OutputLength)
+        uint8_t* Output
+    );
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 //
 // Streams
 //
@@ -1902,6 +1942,9 @@ typedef struct QUIC_API_TABLE {
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
 #endif // _KERNEL_MODE
     QUIC_REGISTRATION_CLOSE2_FN         RegistrationClose2; // Available from v2.6
+
+    QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN
+                                        ConnectionExportKeyingMaterial; // Available from v2.6
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;

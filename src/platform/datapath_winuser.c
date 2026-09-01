@@ -972,6 +972,40 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathGetLocalAddressForRemote(
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _Out_ QUIC_ADDR* LocalAddress
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    SOCKET Socket = socket(RemoteAddress->si_family, SOCK_DGRAM, IPPROTO_UDP);
+    if (Socket == INVALID_SOCKET) {
+        return HRESULT_FROM_WIN32(WSAGetLastError());
+    }
+
+    const int RemoteAddressLength =
+        RemoteAddress->si_family == AF_INET ?
+            sizeof(RemoteAddress->Ipv4) :
+            sizeof(RemoteAddress->Ipv6);
+    if (connect(Socket, (PSOCKADDR)RemoteAddress, RemoteAddressLength) == SOCKET_ERROR) {
+        Status = HRESULT_FROM_WIN32(WSAGetLastError());
+        goto Error;
+    }
+
+    CxPlatZeroMemory(LocalAddress, sizeof(*LocalAddress));
+    int LocalAddressLength = sizeof(*LocalAddress);
+    if (getsockname(Socket, (PSOCKADDR)LocalAddress, &LocalAddressLength) == SOCKET_ERROR) {
+        Status = HRESULT_FROM_WIN32(WSAGetLastError());
+        goto Error;
+    }
+
+Error:
+    closesocket(Socket);
+    return Status;
+}
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(QUIC_SUCCEEDED(return))
@@ -1227,7 +1261,11 @@ SocketCreateUdp(
     int Result, Option;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
-    CXPLAT_DBG_ASSERT(IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
+    //
+    // In raw-only mode PartitionCount is 0 (no WinSock init), so skip the
+    // partition index bounds check.
+    //
+    CXPLAT_DBG_ASSERT(CxPlatDpRawIsRawDatapathOnly(Datapath->RawDataPath) || IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
     CXPLAT_DBG_ASSERT(Config->CibirIdLength <= sizeof(Config->CibirId));
 
     const uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
@@ -1276,6 +1314,46 @@ SocketCreateUdp(
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH :
             Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+
+    if (CxPlatDpRawIsRawDatapathOnly(Datapath->RawDataPath)) {
+        //
+        // There is no OS native datapath in raw-only mode. The application
+        // must specify the local port. Skip OS socket creation entirely and
+        // defer to the raw (XDP) datapath.
+        //
+        CXPLAT_DBG_ASSERT(Datapath->RawDataPath != NULL);
+        Socket->SkipCreatingOsSockets = TRUE;
+        CxPlatRefInitializeEx(&Socket->RefCount, 1);
+        if (Config->LocalAddress == NULL || Config->LocalAddress->Ipv4.sin_port == 0) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                (uint32_t)QUIC_STATUS_INVALID_PARAMETER,
+                "Raw-only datapath requires an explicit local port");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+        //
+        // Client (connected) sockets are demuxed on local IP + port. In
+        // raw-only mode there is no OS bind to resolve a wildcard local IP
+        // into the concrete bound address, so a wildcard local IP would never
+        // match inbound packets and would silently black-hole all RX. Require
+        // a concrete local IP for connected sockets. Listeners legitimately
+        // stay wildcard and are demuxed on port alone.
+        //
+        if (!IsServerSocket && QuicAddrIsWildCard(Config->LocalAddress)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                (uint32_t)QUIC_STATUS_INVALID_PARAMETER,
+                "Raw-only datapath requires an explicit local IP for connected sockets");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+        goto Skip;
+    }
 
     if (Socket->ReserveAuxTcpSockForQtip && !IsServerSocket) {
         //

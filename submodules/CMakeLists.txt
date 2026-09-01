@@ -320,10 +320,11 @@ else()
         COMMENT "OpenSSL build"
     )
 
-    if (QUIC_USE_SYSTEM_LIBCRYPTO)
+    if (QUIC_USE_SYSTEM_LIBCRYPTO AND QUIC_TLS_LIB STREQUAL "quictls")
         # OpenSSL 3 uses different sources for static and dynamic libraries.
         # That is ok if you use either one consistently but it fails to link when we use dynamic crypto with static ssl.
-        # To fix that we need little hackery - see quictls/ssl/build.info
+        # To fix that we need little hackery - see quictls/ssl/build.info.
+        # This is required for quictls hybrid linking when using system libcrypto.
         add_custom_command(
             OUTPUT ${LIBSSL_PATH}
             OUTPUT ${LIBCRYPTO_PATH}
@@ -354,35 +355,47 @@ else()
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
-    target_link_libraries(
-        OpenSSLQuic
-        INTERFACE
-        ${LIBSSL_PATH}
-    )
-
     if (QUIC_USE_SYSTEM_LIBCRYPTO)
-        include(FindOpenSSL)
-        if (OPENSSL_FOUND)
-            # Get Major.Minor so 3.0 can match 3.0.2.
-            # We cannot use VERSION_GREATER as 3.0 would work for 1.1.1 but they are not compatible.
-            string(FIND ${OPENSSL_VERSION} "." VERSIONLEN REVERSE)
-            string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJORMINOR)
-            string(FIND ${OPENSSL_VERSION} "." VERSIONLEN)
-            string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJOR)
-            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR
-                # 3.1 is compatible with 3.0, 3.2 and beyond maybe as well.
-                (EXPECTED_OPENSSL_VERSION VERSION_EQUAL "3.0" AND OPENSSL_MAJOR EQUAL "3"))
-                target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto)
+        if (QUIC_TLS_LIB STREQUAL "openssl")
+            include(FindOpenSSL)
+            if (OPENSSL_FOUND)
+                if (OPENSSL_VERSION VERSION_GREATER_EQUAL "3.5.0")
+                    # openssl TLS provider links both system libcrypto and libssl dynamically.
+                    target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto OpenSSL::SSL)
+                else()
+                    message(FATAL_ERROR "OpenSSL 3.5.0 or later required for openssl TLS provider, found ${OPENSSL_VERSION}")
+                endif()
             else()
-                message(FATAL_ERROR "OpenSSL ${EXPECTED_OPENSSL_VERSION} not found, found ${OPENSSL_VERSION}")
+                message(FATAL_ERROR "System OpenSSL not found when requested")
             endif()
-        else()
-            message(FATAL_ERROR "System OpenSSL not found when requested")
+        elseif(QUIC_TLS_LIB STREQUAL "quictls")
+            include(FindOpenSSL)
+            if (OPENSSL_FOUND)
+                # Get Major.Minor so 3.0 can match 3.0.2.
+                # We cannot use VERSION_GREATER as 3.0 would work for 1.1.1 but they are not compatible.
+                string(FIND ${OPENSSL_VERSION} "." VERSIONLEN REVERSE)
+                string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN} OPENSSL_MAJORMINOR)
+                string(FIND ${OPENSSL_VERSION} "." VERSIONLEN)
+                string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN} OPENSSL_MAJOR)
+
+                if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR
+                    # 3.1 is compatible with 3.0, 3.2 and beyond maybe as well.
+                    (EXPECTED_OPENSSL_VERSION VERSION_EQUAL "3.0" AND OPENSSL_MAJOR EQUAL "3"))
+                    target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto)
+                    # Preserve existing hybrid behavior for quictls.
+                    target_link_libraries(OpenSSLQuic INTERFACE ${LIBSSL_PATH})
+                else()
+                    message(FATAL_ERROR "OpenSSL ${EXPECTED_OPENSSL_VERSION} not found, found ${OPENSSL_VERSION}")
+                endif()
+            else()
+                message(FATAL_ERROR "System OpenSSL not found when requested")
+            endif()
         endif()
     else()
         target_link_libraries(
             OpenSSLQuic
             INTERFACE
+            ${LIBSSL_PATH}
             ${LIBCRYPTO_PATH}
         )
     endif()

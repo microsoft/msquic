@@ -172,31 +172,6 @@ QuicConnPoolAllocServerNameCopy(
 static
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicConnPoolGetStartingLocalAddress(
-    _In_ QUIC_ADDR* RemoteAddress,
-    _Out_ QUIC_ADDR* LocalAddress,
-    _In_ CXPLAT_SOCKET_FLAGS SocketFlags
-    )
-{
-    CXPLAT_SOCKET* Socket = NULL;
-    CXPLAT_UDP_CONFIG UdpConfig;
-    CxPlatZeroMemory(&UdpConfig, sizeof(UdpConfig));
-    UdpConfig.Flags = SocketFlags;
-    UdpConfig.RemoteAddress = RemoteAddress;
-    QUIC_STATUS Status =
-        CxPlatSocketCreateUdp(MsQuicLib.Datapath, &UdpConfig, &Socket);
-    if (QUIC_SUCCEEDED(Status)) {
-        CXPLAT_DBG_ASSERT(Socket != NULL);
-        CxPlatSocketGetLocalAddress(Socket, LocalAddress);
-        CxPlatSocketDelete(Socket);
-    }
-
-    return Status;
-}
-
-static
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
 QuicConnPoolGetInterfaceIndexForLocalAddress(
     _In_ QUIC_ADDR* LocalAddress,
     _Out_ uint32_t* InterfaceIndex
@@ -267,6 +242,46 @@ QuicConnPoolQueueConnectionClose(
         CxPlatEventWaitForever(CompletionEvent);
         CxPlatEventUninitialize(CompletionEvent);
     }
+}
+
+//
+// Start the connection on its worker thread and wait for completion.
+//
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnPoolStartConnection(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_z_ const char* ServerName,
+    _In_ uint16_t ServerPort
+    )
+{
+    QUIC_STATUS StartStatus = QUIC_STATUS_INTERNAL_ERROR;
+    CXPLAT_EVENT CompletionEvent;
+    QUIC_OPERATION Oper = { 0 };
+    QUIC_API_CONTEXT ApiCtx;
+
+    Oper.Type = QUIC_OPER_TYPE_API_CALL;
+    Oper.FreeAfterProcess = FALSE;          // Stack-allocated; worker must not free it.
+    Oper.API_CALL.Context = &ApiCtx;
+
+    CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
+    ApiCtx.Type = QUIC_API_TYPE_CONN_START;
+    ApiCtx.Status = &StartStatus;
+    ApiCtx.Completed = &CompletionEvent;
+    ApiCtx.CONN_START.Configuration = Configuration;
+    ApiCtx.CONN_START.ServerName = ServerName;  // Ownership passes to QuicConnStart.
+    ApiCtx.CONN_START.ServerPort = ServerPort;
+    ApiCtx.CONN_START.Family = Family;
+    ApiCtx.CONN_START.Flags = QUIC_CONN_START_FLAG_FAIL_SILENTLY;
+
+    QuicConnQueueOper(Connection, &Oper);
+    CxPlatEventWaitForever(CompletionEvent);
+    CxPlatEventUninitialize(CompletionEvent);
+
+    return StartStatus;
 }
 
 
@@ -372,13 +387,12 @@ QuicConnPoolTryCreateConnection(
         }
     }
 
-    Status = QuicConnStart(
+    Status = QuicConnPoolStartConnection(
         *Connection,
         Configuration,
         Family,
         ServerName,
-        ServerPort,
-        QUIC_CONN_START_FLAG_FAIL_SILENTLY);
+        ServerPort);
 
     ServerName = NULL; // The connection now owns the ServerName.
 
@@ -393,12 +407,12 @@ Error:
 
     if (QUIC_FAILED(Status) && *Connection != NULL) {
         //
-        // This connection has never left MsQuic back to the application.
-        // Mark it as internally owned so no notification is sent to the app,
-        // the closing logic will handle the final deref.
+        // This connection was never returned to the application. QuicConnStart
+        // cleared the callback handler and closed it on the worker, so we just
+        // need to release our owner reference to free it.
         //
-        (*Connection)->State.ExternalOwner = FALSE;
         QuicConnPoolQueueConnectionClose(*Connection, FALSE);
+        QuicConnRelease(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
         *Connection = NULL;
     }
 
@@ -508,41 +522,8 @@ MsQuicConnectionPoolCreate(
 
     QuicAddrSetPort(&ResolvedRemoteAddress, Config->ServerPort);
 
-    //
-    // Copying how Connection Settings flow downwards. It will first inherit the global settings,
-    // if a global setting field is not set, but the configuration setting is set, override the global.
-    //
-    QUIC_CONFIGURATION* ConnectionConfig =
-        (QUIC_CONFIGURATION*)Config->Configuration;
-    CXPLAT_SOCKET_FLAGS SocketFlags = CXPLAT_SOCKET_FLAG_NONE;
-
-    if (MsQuicLib.Settings.XdpEnabled) {
-        SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
-    }
-    if (ConnectionConfig->Settings.IsSet.XdpEnabled) {
-        if (ConnectionConfig->Settings.XdpEnabled) {
-            SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
-        } else {
-            SocketFlags &= ~CXPLAT_SOCKET_FLAG_XDP;
-        }
-    }
-
-    if (MsQuicLib.Settings.QTIPEnabled) {
-        SocketFlags |= CXPLAT_SOCKET_FLAG_QTIP;
-    }
-    if (ConnectionConfig->Settings.IsSet.QTIPEnabled) {
-        if (ConnectionConfig->Settings.QTIPEnabled) {
-            SocketFlags |= CXPLAT_SOCKET_FLAG_QTIP;
-        } else {
-            SocketFlags &= ~CXPLAT_SOCKET_FLAG_QTIP;
-        }
-    }
-
-    //
-    // Get the local address and a port to start from.
-    //
     QUIC_ADDR LocalAddress;
-    Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress, SocketFlags);
+    Status = CxPlatDataPathGetLocalAddressForRemote(&ResolvedRemoteAddress, &LocalAddress);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }

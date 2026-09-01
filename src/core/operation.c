@@ -149,6 +149,7 @@ QuicOperationEnqueue(
     )
 {
     BOOLEAN StartProcessing;
+    Oper->QueueTimeUs = CxPlatTimeUs32();
     CxPlatDispatchLockAcquire(&OperQ->Lock);
 #if DEBUG
     CXPLAT_DBG_ASSERT(Oper->Link.Flink == NULL);
@@ -170,6 +171,7 @@ QuicOperationEnqueuePriority(
     )
 {
     BOOLEAN StartProcessing;
+    Oper->QueueTimeUs = CxPlatTimeUs32();
     CxPlatDispatchLockAcquire(&OperQ->Lock);
 #if DEBUG
     CXPLAT_DBG_ASSERT(Oper->Link.Flink == NULL);
@@ -192,6 +194,7 @@ QuicOperationEnqueueFront(
     )
 {
     BOOLEAN StartProcessing;
+    Oper->QueueTimeUs = CxPlatTimeUs32();
     CxPlatDispatchLockAcquire(&OperQ->Lock);
 #if DEBUG
     CXPLAT_DBG_ASSERT(Oper->Link.Flink == NULL);
