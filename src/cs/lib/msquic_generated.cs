@@ -1077,6 +1077,8 @@ namespace Microsoft.Quic
         SEND_STATELESS_RETRY,
         CONN_LOAD_REJECT,
         LISTEN_QUEUE_DEPTH,
+        ENCRYPT_DURATION_US,
+        DECRYPT_DURATION_US,
         MAX,
     }
 
@@ -1103,7 +1105,7 @@ namespace Microsoft.Quic
 
     internal partial struct QUIC_GLOBAL_SETTINGS
     {
-        [NativeTypeName("__AnonymousRecord_msquic_L740_C5")]
+        [NativeTypeName("__AnonymousRecord_msquic_L756_C5")]
         internal _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint16_t")]
@@ -1141,7 +1143,7 @@ namespace Microsoft.Quic
             internal ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L742_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L758_C9")]
             internal _IsSet_e__Struct IsSet;
 
             internal partial struct _IsSet_e__Struct
@@ -1209,7 +1211,7 @@ namespace Microsoft.Quic
 
     internal partial struct QUIC_SETTINGS
     {
-        [NativeTypeName("__AnonymousRecord_msquic_L756_C5")]
+        [NativeTypeName("__AnonymousRecord_msquic_L772_C5")]
         internal _Anonymous1_e__Union Anonymous1;
 
         [NativeTypeName("uint64_t")]
@@ -1393,7 +1395,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateIdleTimeoutMs;
 
-        [NativeTypeName("__AnonymousRecord_msquic_L847_C5")]
+        [NativeTypeName("__AnonymousRecord_msquic_L863_C5")]
         internal _Anonymous2_e__Union Anonymous2;
 
         [NativeTypeName("uint32_t")]
@@ -1570,7 +1572,7 @@ namespace Microsoft.Quic
             internal ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L758_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L774_C9")]
             internal _IsSet_e__Struct IsSet;
 
             internal partial struct _IsSet_e__Struct
@@ -2245,7 +2247,7 @@ namespace Microsoft.Quic
             internal ulong Flags;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L849_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L865_C9")]
             internal _Anonymous_e__Struct Anonymous;
 
             internal partial struct _Anonymous_e__Struct
@@ -2400,7 +2402,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t")]
         internal byte SecretLength;
 
-        [NativeTypeName("__AnonymousRecord_msquic_L880_C5")]
+        [NativeTypeName("__AnonymousRecord_msquic_L896_C5")]
         internal _IsSet_e__Struct IsSet;
 
         [NativeTypeName("uint8_t[32]")]
@@ -2635,7 +2637,7 @@ namespace Microsoft.Quic
     {
         internal QUIC_LISTENER_EVENT_TYPE Type;
 
-        [NativeTypeName("__AnonymousRecord_msquic_L1253_C5")]
+        [NativeTypeName("__AnonymousRecord_msquic_L1269_C5")]
         internal _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2669,15 +2671,15 @@ namespace Microsoft.Quic
         internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1254_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1270_C9")]
             internal _NEW_CONNECTION_e__Struct NEW_CONNECTION;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1258_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1274_C9")]
             internal _STOP_COMPLETE_e__Struct STOP_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1262_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1278_C9")]
             internal _DOS_MODE_CHANGED_e__Struct DOS_MODE_CHANGED;
 
             internal unsafe partial struct _NEW_CONNECTION_e__Struct
@@ -2784,7 +2786,7 @@ namespace Microsoft.Quic
     {
         internal QUIC_CONNECTION_EVENT_TYPE Type;
 
-        [NativeTypeName("__AnonymousRecord_msquic_L1365_C5")]
+        [NativeTypeName("__AnonymousRecord_msquic_L1381_C5")]
         internal _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2962,75 +2964,75 @@ namespace Microsoft.Quic
         internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1366_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1382_C9")]
             internal _CONNECTED_e__Struct CONNECTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1373_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1389_C9")]
             internal _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1377_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1393_C9")]
             internal _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1380_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1396_C9")]
             internal _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1385_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1401_C9")]
             internal _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1388_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1404_C9")]
             internal _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1391_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1407_C9")]
             internal _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1395_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1411_C9")]
             internal _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1399_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1415_C9")]
             internal _PEER_NEEDS_STREAMS_e__Struct PEER_NEEDS_STREAMS;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1402_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1418_C9")]
             internal _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1406_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1422_C9")]
             internal _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1410_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1426_C9")]
             internal _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1414_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1430_C9")]
             internal _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1418_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1434_C9")]
             internal _RESUMED_e__Struct RESUMED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1422_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1438_C9")]
             internal _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1428_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1444_C9")]
             internal _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1435_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1451_C9")]
             internal _RELIABLE_RESET_NEGOTIATED_e__Struct RELIABLE_RESET_NEGOTIATED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1438_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1454_C9")]
             internal _ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED;
 
             [FieldOffset(0)]
@@ -3228,6 +3230,21 @@ namespace Microsoft.Quic
         }
     }
 
+    internal unsafe partial struct QUIC_KEYING_MATERIAL_CONFIG
+    {
+        [NativeTypeName("const char *")]
+        internal sbyte* Label;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ContextLength;
+
+        [NativeTypeName("const uint8_t *")]
+        internal byte* Context;
+
+        [NativeTypeName("uint32_t")]
+        internal uint OutputLength;
+    }
+
     internal enum QUIC_STREAM_EVENT_TYPE
     {
         START_COMPLETE = 0,
@@ -3248,7 +3265,7 @@ namespace Microsoft.Quic
     {
         internal QUIC_STREAM_EVENT_TYPE Type;
 
-        [NativeTypeName("__AnonymousRecord_msquic_L1604_C5")]
+        [NativeTypeName("__AnonymousRecord_msquic_L1644_C5")]
         internal _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3345,43 +3362,43 @@ namespace Microsoft.Quic
         internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1605_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1645_C9")]
             internal _START_COMPLETE_e__Struct START_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1611_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1651_C9")]
             internal _RECEIVE_e__Struct RECEIVE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1620_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1660_C9")]
             internal _SEND_COMPLETE_e__Struct SEND_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1624_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1664_C9")]
             internal _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1627_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1667_C9")]
             internal _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1630_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1670_C9")]
             internal _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1633_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1673_C9")]
             internal _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1642_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1682_C9")]
             internal _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1645_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1685_C9")]
             internal _CANCEL_ON_LOSS_e__Struct CANCEL_ON_LOSS;
 
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_msquic_L1649_C9")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1689_C9")]
             internal _RECEIVE_BUFFER_NEEDED_e__Struct RECEIVE_BUFFER_NEEDED;
 
             internal partial struct _START_COMPLETE_e__Struct
@@ -3715,6 +3732,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_REGISTRATION_CLOSE2_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<void*, void>, void*, void> RegistrationClose2;
+
+        [NativeTypeName("QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_KEYING_MATERIAL_CONFIG*, byte*, int> ConnectionExportKeyingMaterial;
     }
 
     internal static unsafe partial class MsQuic
