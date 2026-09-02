@@ -2601,7 +2601,7 @@ CxPlatSocketContextUninitialize(
         //
         // For TCP sockets, we should shutdown the socket before closing it.
         //
-        SocketProc->Parent->DisconnectIndicated = TRUE;
+        InterlockedExchange(&SocketProc->Parent->DisconnectIndicated, TRUE);
         if (shutdown(SocketProc->Socket, SD_BOTH) == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
             if (WsaError != WSAENOTCONN) {
@@ -3411,8 +3411,8 @@ CxPlatDataPathTcpRecvComplete(
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
         //
-        if (!SocketProc->Parent->DisconnectIndicated) {
-            SocketProc->Parent->DisconnectIndicated = TRUE;
+        if (InterlockedCompareExchange(
+                &SocketProc->Parent->DisconnectIndicated, TRUE, FALSE) == FALSE) {
             SocketProc->Parent->Datapath->TcpHandlers.Connect(
                 SocketProc->Parent,
                 SocketProc->Parent->ClientContext,
@@ -3425,8 +3425,8 @@ CxPlatDataPathTcpRecvComplete(
     } else if (IoResult == QUIC_STATUS_SUCCESS) {
 
         if (NumberOfBytesTransferred == 0) {
-            if (!SocketProc->Parent->DisconnectIndicated) {
-                SocketProc->Parent->DisconnectIndicated = TRUE;
+            if (InterlockedCompareExchange(
+                    &SocketProc->Parent->DisconnectIndicated, TRUE, FALSE) == FALSE) {
                 SocketProc->Parent->Datapath->TcpHandlers.Connect(
                     SocketProc->Parent,
                     SocketProc->Parent->ClientContext,

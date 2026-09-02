@@ -267,8 +267,8 @@ CxPlatSocketHandleError(
             }
         }
     } else {
-        if (!SocketContext->Binding->DisconnectIndicated) {
-            SocketContext->Binding->DisconnectIndicated = TRUE;
+        if (InterlockedCompareExchange(
+                &SocketContext->Binding->DisconnectIndicated, TRUE, FALSE) == FALSE) {
             SocketContext->Binding->Datapath->TcpHandlers.Connect(
                 SocketContext->Binding,
                 SocketContext->Binding->ClientContext,
