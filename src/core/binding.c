@@ -537,39 +537,16 @@ QuicBindingAcceptConnection(
     }
 
     //
-    // Save the negotiated ALPN (starting with the length prefix) to be
-    // used later in building up the TLS response.
+    // Info->ClientAlpnList points into the crypto recv buffer, which can be
+    // freed before ALPN renegotiation, so own a copy here. Check if 
+    // the full list fits and use the preallocated buffer, allocate on the  heap otherwise. 
     //
-    uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
-    uint8_t* NegotiatedAlpn;
-
-    if (NegotiatedAlpnLength <= TLS_SMALL_ALPN_BUFFER_SIZE) {
-        NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
+    
+    uint8_t* ClientAlpnList;
+    if (Info->ClientAlpnListLength < TLS_SMALL_ALPN_BUFFER_SIZE) {
+        ClientAlpnList = Connection->Crypto.TlsState.SmallAlpnBuffer;
     } else {
-        NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
-        if (NegotiatedAlpn == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "NegotiatedAlpn",
-                NegotiatedAlpnLength);
-            QuicConnTransportError(
-                Connection,
-                QUIC_ERROR_INTERNAL_ERROR);
-            goto Error;
-        }
-    }
-    CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
-    Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
-
-    //
-    // Info->ClientAlpnList points into the crypto recv buffer, which can be freed
-    // before ALPN renegotiation. A single ALPN is redundant with the negotiated
-    // ALPN, so store nothing; otherwise take a heap copy.
-    //
-    if (Info->ClientAlpnListLength != (uint16_t)Info->ClientAlpnList[0] + 1) {
-        uint8_t* ClientAlpnList =
-            CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);
+        ClientAlpnList = CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);
         if (ClientAlpnList == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -581,10 +558,11 @@ QuicBindingAcceptConnection(
                 QUIC_ERROR_INTERNAL_ERROR);
             goto Error;
         }
-        CxPlatCopyMemory(ClientAlpnList, Info->ClientAlpnList, Info->ClientAlpnListLength);
-        Connection->Crypto.TlsState.ClientAlpnList = ClientAlpnList;
-        Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
     }
+
+    CxPlatCopyMemory(ClientAlpnList, Info->ClientAlpnList, Info->ClientAlpnListLength);
+    Connection->Crypto.TlsState.ClientAlpnList = ClientAlpnList;
+    Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
 
     //
     // Allow for the listener to decide if it wishes to accept the incoming
