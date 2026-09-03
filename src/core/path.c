@@ -122,9 +122,8 @@ QuicPathUpdateActive(
     //
     // A path needs a usable destination CID before it can become active.
     //
-    uint8_t NextActivePathIndex;
     QUIC_PATH* NextActivePath =
-        QuicConnGetPathByID(Connection, PathSet->PendingActivePathId, &NextActivePathIndex);
+        QuicConnGetPathByID(Connection, PathSet->PendingActivePathId);
     CXPLAT_DBG_ASSERT(NextActivePath != NULL);
     if (!QuicPathUpdateDestCid(Connection, NextActivePath)) {
         QuicTraceLogConnWarning(
@@ -161,7 +160,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicPathRemove(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t PathId
+    _In_ uint32_t PathId
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
