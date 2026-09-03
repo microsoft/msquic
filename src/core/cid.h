@@ -132,7 +132,7 @@ typedef struct QUIC_CID_LIST_ENTRY {
     CXPLAT_LIST_ENTRY Link;
     uint8_t ResetToken[QUIC_STATELESS_RESET_TOKEN_LENGTH];
 #ifdef DEBUG
-    uint16_t AssignedPathId;
+    uint32_t AssignedPathId;
 #endif
     QUIC_CID CID;
 
@@ -142,7 +142,7 @@ typedef struct QUIC_CID_LIST_ENTRY {
 #define QUIC_CID_SET_PATH(Conn, Cid, Path)                                          \
     do {                                                                            \
         CXPLAT_DBG_ASSERT(!(Cid)->CID.Retired);                                      \
-        CXPLAT_DBG_ASSERT((Cid)->AssignedPathId == UINT16_MAX);                      \
+        CXPLAT_DBG_ASSERT((Cid)->AssignedPathId == UINT32_MAX);                      \
         (Cid)->AssignedPathId = (Path)->ID;                                          \
         for (int PathIdx = (Conn)->Paths.Count - 1; PathIdx >= 0; PathIdx--) {       \
             if ((Path)->ID != (Conn)->Paths.Paths[PathIdx].ID) {                     \
@@ -151,10 +151,10 @@ typedef struct QUIC_CID_LIST_ENTRY {
         }                                                                           \
     }                                                                               \
     while (0)
-#define QUIC_CID_CLEAR_PATH(Cid) (Cid)->AssignedPathId = UINT16_MAX
+#define QUIC_CID_CLEAR_PATH(Cid) (Cid)->AssignedPathId = UINT32_MAX
 #define QUIC_CID_VALIDATE_NULL(Conn, Cid)                                        \
     do {                                                                         \
-        CXPLAT_DBG_ASSERT((Cid)->AssignedPathId == UINT16_MAX);                  \
+        CXPLAT_DBG_ASSERT((Cid)->AssignedPathId == UINT32_MAX);                  \
         for (int PathIdx = (Conn)->Paths.Count - 1; PathIdx >= 0; PathIdx--) {   \
             CXPLAT_DBG_ASSERT((Conn)->Paths.Paths[PathIdx].DestCid != (Cid));    \
         }                                                                        \

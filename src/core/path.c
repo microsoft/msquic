@@ -294,7 +294,7 @@ QuicPathUpdateDestCids(
                 Link);
         CXPLAT_DBG_ASSERT(
             !DestCid->CID.Retired ||
-            DestCid->AssignedPathId == UINT16_MAX);
+            DestCid->AssignedPathId == UINT32_MAX);
     }
 #endif
 }
