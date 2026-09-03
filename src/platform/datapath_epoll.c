@@ -461,7 +461,7 @@ CxPlatSocketContextInitialize(
         socket(
             AF_INET6,
             (SocketType == CXPLAT_SOCKET_UDP ? SOCK_DGRAM : SOCK_STREAM) |
-                SOCK_NONBLOCK,
+                SOCK_NONBLOCK | SOCK_CLOEXEC,
             SocketType == CXPLAT_SOCKET_UDP ? IPPROTO_UDP : IPPROTO_TCP);
     if (SocketContext->SocketFd == INVALID_SOCKET) {
         Status = errno;
