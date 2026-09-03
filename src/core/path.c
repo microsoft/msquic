@@ -77,6 +77,14 @@ QuicPathSetActive(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+static
+BOOLEAN
+QuicPathUpdateDestCid(
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ QUIC_PATH* Path
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathUpdateActive(
     _In_ QUIC_CONNECTION* Connection
@@ -88,6 +96,20 @@ QuicPathUpdateActive(
         // The active path hasn't changed, nothing to do.
         //
         return;
+    }
+
+    //
+    // A path needs a usable destination CID before it can become active.
+    //
+    {
+        uint8_t NextActivePathIndex;
+        QUIC_PATH* NextActivePath =
+            QuicConnGetPathByID(Connection, PathSet->NextActivePathId, &NextActivePathIndex);
+        CXPLAT_DBG_ASSERT(NextActivePath != NULL);
+        if (!QuicPathUpdateDestCid(Connection, NextActivePath)) {
+            PathSet->NextActivePathId = QuicPathGetActive(PathSet)->ID;
+            return;
+        }
     }
 
     QuicPathSetActive(Connection, PathSet->NextActivePathId);
@@ -207,10 +229,11 @@ QuicPathRemove(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+static
 BOOLEAN
 QuicPathUpdateDestCid(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
+    _Inout_ QUIC_PATH* Path
     )
 {
     if (Path->DestCid != NULL && !Path->DestCid->CID.Retired) {
@@ -263,7 +286,11 @@ QuicPathUpdateDestCids(
             Connection,
             "Non-active path has no replacement for retired CID.");
         CXPLAT_DBG_ASSERT(i != 0);
-        QuicPathRemove(Connection, i--);
+        QuicPathRemove(Connection, i);
+        //
+        // Reprocess this index because removal shifted the remaining paths down.
+        //
+        --i;
     }
 
 #if DEBUG
