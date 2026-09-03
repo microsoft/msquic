@@ -3362,7 +3362,7 @@ QuicConnQueueRouteCompletion(
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ BOOLEAN Succeeded
     )
 {
@@ -5978,7 +5978,7 @@ QuicConnRecvDatagrams(
             QuicTraceLogConnInfo(
                 PathDiscarded,
                 Connection,
-                "Removing invalid path[%hhu]",
+                "Removing invalid path[%u]",
                 PathSet->Paths[i].ID);
             QuicPathRemove(Connection, (uint8_t)i);
         }
@@ -6163,7 +6163,7 @@ void
 QuicConnProcessRouteCompletion(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ BOOLEAN Succeeded
     )
 {
@@ -6182,7 +6182,7 @@ QuicConnProcessRouteCompletion(
         QuicTraceLogConnInfo(
             FailedRouteResolution,
             Connection,
-            "Route resolution failed on Path[%hhu]. Switching paths...",
+            "Route resolution failed on Path[%u]. Switching paths...",
             PathId);
 
         QuicPathRemove(Connection, PathIndex);
@@ -6371,7 +6371,7 @@ QuicConnProcessPathValidationTimerOperation(
 
         QuicTraceEvent(
             ConnPathValidationTimeout,
-            "[conn][%p] Path[%hhu] validation timed out",
+            "[conn][%p] Path[%u] validation timed out",
             Connection,
             Path->ID);
         QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);

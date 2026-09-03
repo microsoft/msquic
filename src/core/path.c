@@ -18,13 +18,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 static
 void
 QuicPathInitialize(
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ QUIC_CONNECTION* Connection,
     _Out_ QUIC_PATH* Path
     )
 {
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
-    Path->ID = PathId; // TODO - Check for duplicates after wrap around?
+    Path->ID = PathId;
     Path->InUse = TRUE;
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = Connection->Settings.MinimumMtu;
@@ -39,7 +39,7 @@ QuicPathInitialize(
 
     QuicTraceEvent(
         ConnPathInitialized,
-        "[conn][%p] Path[%hhu] Initialized",
+        "[conn][%p] Path[%u] Initialized",
         Connection,
         Path->ID);
 }
@@ -73,7 +73,7 @@ static
 void
 QuicPathSetActive(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t PathId
+    _In_ uint32_t PathId
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -139,7 +139,7 @@ QuicPathRemove(
         Path->ID != PathSet->NextActivePathId);
     QuicTraceEvent(
         ConnPathRemoved,
-        "[conn][%p] Path[%hhu] Removed",
+        "[conn][%p] Path[%u] Removed",
         Connection,
         Path->ID);
 
@@ -176,7 +176,7 @@ QuicPathRemove(
         QuicTraceLogConnInfo(
             PathActiveFallback,
             Connection,
-            "Path[%hhu] removed; falling back to Path[%hhu]",
+            "Path[%u] removed; falling back to Path[%u]",
             Path->ID,
             PathSet->Paths[FallbackIndex].ID);
         QuicPathSetActive(Connection, PathSet->Paths[FallbackIndex].ID);
@@ -260,7 +260,7 @@ QuicPathSetValid(
 
     QuicTraceEvent(
         ConnPathValidated,
-        "[conn][%p] Path[%hhu] Validated (%hhu)",
+        "[conn][%p] Path[%u] Validated (%hhu)",
         Connection,
         Path->ID,
         Reason);
@@ -289,7 +289,7 @@ _Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ID,
+    _In_ uint32_t ID,
     _Out_ uint8_t* Index
     )
 {
@@ -367,6 +367,10 @@ QuicConnGetPathForPacket(
         }
     }
 
+    if (PathSet->NextPathId == UINT32_MAX) {
+        return NULL;
+    }
+
     if (PathSet->Count > 1) {
         //
         // Make room for the new path (at index 1).
@@ -398,7 +402,7 @@ static
 void
 QuicPathSetActive(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t PathId
+    _In_ uint32_t PathId
     )
 {
     BOOLEAN UdpPortChangeOnly = FALSE;
@@ -433,7 +437,7 @@ QuicPathSetActive(
 
     QuicTraceEvent(
         ConnPathActive,
-        "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
+        "[conn][%p] Path[%u] Set active (rebind=%hhu)",
         Connection,
         ActivePath->ID,
         UdpPortChangeOnly);
@@ -495,7 +499,7 @@ QuicPathUpdateQeo(
             QuicTraceLogConnInfo(
                 PathQeoEnabled,
                 Connection,
-                "Path[%hhu] QEO enabled",
+                "Path[%u] QEO enabled",
                 Path->ID);
         }
         CxPlatSecureZeroMemory(Offloads, sizeof(Offloads));
@@ -506,7 +510,7 @@ QuicPathUpdateQeo(
         QuicTraceLogConnInfo(
             PathQeoDisabled,
             Connection,
-            "Path[%hhu] QEO disabled",
+            "Path[%u] QEO disabled",
             Path->ID);
     }
 }

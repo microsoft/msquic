@@ -47,7 +47,7 @@ typedef struct QUIC_PATH {
     //
     // Unique identifier;
     //
-    uint8_t ID;
+    uint32_t ID;
 
     //
     // Indicates the path object is actively in use.
@@ -219,12 +219,12 @@ typedef struct QUIC_PATH_SET {
     //
     // The next identifier to use for a new path.
     //
-    uint8_t NextPathId;
+    uint32_t NextPathId;
 
     //
     // ID of the active path, or the path pending activation.
     //
-    uint8_t NextActivePathId;
+    uint32_t NextActivePathId;
 
 } QUIC_PATH_SET;
 
@@ -337,7 +337,7 @@ _Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ID,
+    _In_ uint32_t ID,
     _Out_ uint8_t* Index
     );
 

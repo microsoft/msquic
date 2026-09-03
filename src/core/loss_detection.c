@@ -646,7 +646,7 @@ QuicLossDetectionOnPacketAcknowledged(
             QuicTraceLogConnInfo(
                 PathMinMtuValidated,
                 Connection,
-                "Path[%hhu] Minimum MTU validated",
+                "Path[%u] Minimum MTU validated",
                 Path->ID);
         }
 

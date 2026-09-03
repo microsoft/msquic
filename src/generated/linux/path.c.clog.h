@@ -31,11 +31,11 @@ extern "C" {
 #endif
 /*----------------------------------------------------------
 // Decoder Ring for PathActiveFallback
-// [conn][%p] Path[%hhu] removed; falling back to Path[%hhu]
+// [conn][%p] Path[%u] removed; falling back to Path[%u]
 // QuicTraceLogConnInfo(
             PathActiveFallback,
             Connection,
-            "Path[%hhu] removed; falling back to Path[%hhu]",
+            "Path[%u] removed; falling back to Path[%u]",
             Path->ID,
             PathSet->Paths[FallbackIndex].ID);
 // arg1 = arg1 = Connection = arg1
@@ -53,11 +53,11 @@ tracepoint(CLOG_PATH_C, PathActiveFallback , arg1, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathQeoEnabled
-// [conn][%p] Path[%hhu] QEO enabled
+// [conn][%p] Path[%u] QEO enabled
 // QuicTraceLogConnInfo(
                 PathQeoEnabled,
                 Connection,
-                "Path[%hhu] QEO enabled",
+                "Path[%u] QEO enabled",
                 Path->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
@@ -73,11 +73,11 @@ tracepoint(CLOG_PATH_C, PathQeoEnabled , arg1, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathQeoDisabled
-// [conn][%p] Path[%hhu] QEO disabled
+// [conn][%p] Path[%u] QEO disabled
 // QuicTraceLogConnInfo(
             PathQeoDisabled,
             Connection,
-            "Path[%hhu] QEO disabled",
+            "Path[%u] QEO disabled",
             Path->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
@@ -111,10 +111,10 @@ tracepoint(CLOG_PATH_C, IndicatePeerAddrChanged , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnPathInitialized
-// [conn][%p] Path[%hhu] Initialized
+// [conn][%p] Path[%u] Initialized
 // QuicTraceEvent(
         ConnPathInitialized,
-        "[conn][%p] Path[%hhu] Initialized",
+        "[conn][%p] Path[%u] Initialized",
         Connection,
         Path->ID);
 // arg2 = arg2 = Connection = arg2
@@ -155,10 +155,10 @@ tracepoint(CLOG_PATH_C, ConnRemoteAddrAdded , arg2, arg3_len, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnPathRemoved
-// [conn][%p] Path[%hhu] Removed
+// [conn][%p] Path[%u] Removed
 // QuicTraceEvent(
         ConnPathRemoved,
-        "[conn][%p] Path[%hhu] Removed",
+        "[conn][%p] Path[%u] Removed",
         Connection,
         Path->ID);
 // arg2 = arg2 = Connection = arg2
@@ -175,10 +175,10 @@ tracepoint(CLOG_PATH_C, ConnPathRemoved , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnPathValidated
-// [conn][%p] Path[%hhu] Validated (%hhu)
+// [conn][%p] Path[%u] Validated (%hhu)
 // QuicTraceEvent(
         ConnPathValidated,
-        "[conn][%p] Path[%hhu] Validated (%hhu)",
+        "[conn][%p] Path[%u] Validated (%hhu)",
         Connection,
         Path->ID,
         Reason);
@@ -197,10 +197,10 @@ tracepoint(CLOG_PATH_C, ConnPathValidated , arg2, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnPathActive
-// [conn][%p] Path[%hhu] Set active (rebind=%hhu)
+// [conn][%p] Path[%u] Set active (rebind=%hhu)
 // QuicTraceEvent(
         ConnPathActive,
-        "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
+        "[conn][%p] Path[%u] Set active (rebind=%hhu)",
         Connection,
         ActivePath->ID,
         UdpPortChangeOnly);
