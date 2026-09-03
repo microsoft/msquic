@@ -94,7 +94,7 @@ public:
         return false;
     }
     template<typename T>
-    bool TryGetRandom(T UpperBound, T* Val, uint16_t ThreadId = 0) {
+    bool TryGetRandomBounded(T UpperBound, T* Val, uint16_t ThreadId = 0) {
         if (ThreadId == NumSpinThread) {
             // utility area access from Connection/Stream callbacks
             mux.lock();
@@ -112,7 +112,7 @@ public:
         return true;
     }
     template<typename T>
-    bool TryGetRandomFull(T* Val, uint16_t ThreadId = 0) {
+    bool TryGetRandom(T* Val, uint16_t ThreadId = 0) {
         if (ThreadId == NumSpinThread) {
             mux.lock();
         }
@@ -145,13 +145,13 @@ T GetRandom(T UpperBound, uint16_t ThreadID = UINT16_MAX) {
     uint64_t out = 0;
 
     if ((uint64_t)UpperBound <= 0xff) {
-        (void)FuzzData->TryGetRandom((uint8_t)UpperBound, (uint8_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandomBounded((uint8_t)UpperBound, (uint8_t*)&out, ThreadID);
     } else if ((uint64_t)UpperBound <= 0xffff) {
-        (void)FuzzData->TryGetRandom((uint16_t)UpperBound, (uint16_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandomBounded((uint16_t)UpperBound, (uint16_t*)&out, ThreadID);
     } else if ((uint64_t)UpperBound <= 0xffffffff) {
-        (void)FuzzData->TryGetRandom((uint32_t)UpperBound, (uint32_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandomBounded((uint32_t)UpperBound, (uint32_t*)&out, ThreadID);
     } else {
-        (void)FuzzData->TryGetRandom((uint64_t)UpperBound, &out, ThreadID);
+        (void)FuzzData->TryGetRandomBounded((uint64_t)UpperBound, &out, ThreadID);
     }
     return (T)out;
 }
@@ -162,7 +162,7 @@ T GetRandom(uint16_t ThreadID = UINT16_MAX) {
     // bound can never produce) is reachable.
     if (FuzzData && ThreadID != UINT16_MAX) {
         T val = 0;
-        (void)FuzzData->TryGetRandomFull<T>(&val, ThreadID);
+        (void)FuzzData->TryGetRandom<T>(&val, ThreadID);
         return val;
     }
     uint64_t acc = 0;
