@@ -5889,21 +5889,6 @@ QuicConnRecvDatagrams(
     }
 
     //
-    // If the peer has migrated to a new path, provide a destination CID to the new path if needed.
-    // If none is available, reject the migration.
-    //
-    QUIC_PATH* ActivePath = QuicPathGetActive(PathSet);
-    if (PathSet->NextActivePathId != ActivePath->ID) {
-        uint8_t NextActivePathIndex;
-        QUIC_PATH* NextActivePath =
-            QuicConnGetPathByID(Connection, PathSet->NextActivePathId, &NextActivePathIndex);
-        CXPLAT_DBG_ASSERT(NextActivePath != NULL);
-        if (!QuicPathUpdateDestCid(Connection, NextActivePath)) {
-            PathSet->NextActivePathId = ActivePath->ID;
-        }
-    }
-
-    //
     // The active path might have changed, update it.
     // This invalidates pointers to paths.
     //
