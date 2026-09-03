@@ -1107,11 +1107,13 @@ QuicConnRetireCurrentDestCid(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicConnOnRetirePriorToUpdated(
     _In_ QUIC_CONNECTION* Connection
     )
 {
+    BOOLEAN RetiredUsedCid = FALSE;
+
     for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
             Entry != &Connection->DestCids;
             Entry = Entry->Flink) {
@@ -1125,8 +1127,11 @@ QuicConnOnRetirePriorToUpdated(
             continue;
         }
 
+        RetiredUsedCid |= DestCid->CID.UsedLocally;
         QuicConnRetireCid(Connection, DestCid);
     }
+
+    return RetiredUsedCid;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -4986,9 +4991,10 @@ QuicConnRecvFrames(
                 break; // Ignore frame if we are closed.
             }
 
+            BOOLEAN RetiredUsedCid = FALSE;
             if (Connection->RetirePriorTo < Frame.RetirePriorTo) {
                 Connection->RetirePriorTo = Frame.RetirePriorTo;
-                QuicConnOnRetirePriorToUpdated(Connection);
+                RetiredUsedCid = QuicConnOnRetirePriorToUpdated(Connection);
             }
 
             if (QuicConnGetDestCidFromSeq(Connection, Frame.Sequence, FALSE) == NULL) {
@@ -5003,7 +5009,11 @@ QuicConnRecvFrames(
                         "Allocation of '%s' failed. (%llu bytes)",
                         "new DestCid",
                         sizeof(QUIC_CID_LIST_ENTRY) + Frame.Length);
-                    QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, NULL);
+                    if (RetiredUsedCid) {
+                        QuicConnSilentlyAbort(Connection);
+                    } else {
+                        QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, NULL);
+                    }
                     return FALSE;
                 }
 
@@ -5032,7 +5042,11 @@ QuicConnRecvFrames(
                         "[conn][%p] ERROR, %s.",
                         Connection,
                         "Peer exceeded CID limit");
-                    QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    if (RetiredUsedCid) {
+                        QuicConnSilentlyAbort(Connection);
+                    } else {
+                        QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    }
                     return FALSE;
                 }
             }
@@ -5884,9 +5898,7 @@ QuicConnRecvDatagrams(
         QUIC_PATH* NextActivePath =
             QuicConnGetPathByID(Connection, PathSet->NextActivePathId, &NextActivePathIndex);
         CXPLAT_DBG_ASSERT(NextActivePath != NULL);
-        if (NextActivePath->DestCid == NULL &&
-            !QuicPathUpdateDestCid(Connection, NextActivePath))
-        {
+        if (!QuicPathUpdateDestCid(Connection, NextActivePath)) {
             PathSet->NextActivePathId = ActivePath->ID;
         }
     }
