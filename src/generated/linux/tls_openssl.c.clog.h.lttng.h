@@ -150,7 +150,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
