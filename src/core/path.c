@@ -33,6 +33,12 @@ QuicPathInitialize(
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
 
+    //
+    // Defense in depth: initialize Challenge with random data so a zero-valued
+    // PATH_RESPONSE can never match an uninitialized challenge.
+    //
+    CxPlatRandom(sizeof(Path->Challenge), Path->Challenge);
+
     if (Connection->Settings.QTIPEnabled) {
         CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
     }
