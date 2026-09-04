@@ -601,11 +601,16 @@ QuicLossDetectionOnPacketAcknowledged(
                 QuicConnGetDestCidFromSeq(
                     Connection,
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
-                    TRUE);
-            if (DestCid != NULL) {
+                    FALSE);
+            //
+            // The CID matching this sequence number is not retired:
+            // this can happen if the `QUIC_FRAME_RETIRE_CONNECTION_ID` frame was retransmitted,
+            // the peer ACKed both packets, and provided a new CID reusing the sequence id in
+            // between the ACKs (which is a protocol violation).
+            //
+            if (DestCid != NULL && DestCid->CID.Retired) {
 #pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
-                CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
-                CXPLAT_DBG_ASSERT(Path == NULL || Path->DestCid != DestCid);
+                CxPlatListEntryRemove(&DestCid->Link);
                 QuicCidValidateUnused(&Connection->Paths, DestCid);
                 CXPLAT_DBG_ASSERT(Connection->RetiredDestCidCount > 0);
                 Connection->RetiredDestCidCount--;
@@ -812,8 +817,11 @@ QuicLossDetectionRetransmitFrames(
                     Connection,
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
                     FALSE);
-            if (DestCid != NULL) {
-                CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
+            //
+            // Do not assume the CID with matching sequence id is retired:
+            // the peer may have provided another CID with the same sequence id after the first one got deleted.
+            //
+            if (DestCid != NULL && DestCid->CID.Retired) {
                 QuicCidValidateUnused(&Connection->Paths, DestCid);
                 DestCid->CID.NeedsToSend = TRUE;
                 NewDataQueued |=
