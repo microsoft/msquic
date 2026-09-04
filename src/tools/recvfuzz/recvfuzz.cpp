@@ -125,6 +125,7 @@ struct PacketParams {
     uint8_t SourceCid[20];
     QUIC_FRAME_TYPE FrameTypes[2];
     uint64_t LargestAcknowledge; // For ACK Frame
+    uint32_t CryptoOffset; // Bytes of the TLS output buffer already framed
 };
 
 class FuzzingData {
@@ -792,6 +793,18 @@ void WriteStreamFrame(
     *Offset += ActualDataLength;
 }
 
+bool FrameSetHasCrypto(
+    _In_ PacketParams* PacketParams
+    )
+{
+    for (int i = 0; i < PacketParams->NumFrames; i++) {
+        if (PacketParams->FrameTypes[i] == QUIC_FRAME_CRYPTO) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void WriteCryptoFrame(
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
@@ -813,23 +826,43 @@ void WriteCryptoFrame(
         }
     }
 
+    //
+    // The TLS output buffer can be larger than a single datagram (an ML-KEM
+    // key share pushes the ClientHello/ServerHello past the UDP payload
+    // limit), so a single CxPlatTlsProcessData pass may need to be carried by
+    // several CRYPTO frames across several datagrams. Emit only the slice that
+    // fits in the room left in this packet, starting at the running crypto
+    // offset, and advance that offset. This mirrors QuicCryptoWriteOneFrame in
+    // the core datapath. BuildAndSend*HeaderPackets keeps allocating datagrams
+    // until the whole buffer has been framed.
+    //
+    uint32_t TotalLength = ClientContext->State.BufferLength;
+    if (PacketParams->CryptoOffset >= TotalLength) {
+        return;
+    }
+
+    uint16_t HeaderLength =
+        sizeof(uint8_t) + QuicVarIntSize(PacketParams->CryptoOffset);
+    if (BufferLength < *Offset + HeaderLength + 4) {
+        // Not enough room for a CRYPTO frame header plus a byte of payload.
+        return;
+    }
+
+    uint16_t Room = BufferLength - *Offset - HeaderLength;
+    Room -= QuicVarIntSize(Room); // Room for the length field itself.
+
+    uint32_t Remaining = TotalLength - PacketParams->CryptoOffset;
+    uint16_t FrameLength = (uint16_t)CXPLAT_MIN(Room, Remaining);
+
     QUIC_CRYPTO_EX Frame = {
-        0, ClientContext->State.BufferLength, ClientContext->State.Buffer
+        PacketParams->CryptoOffset,
+        FrameLength,
+        ClientContext->State.Buffer + PacketParams->CryptoOffset
     };
 
-    //
-    // TODO: The code in the recvfuzzer assumes that all data produced in
-    // a single pass through CxPlatTlsProcessData will fit in a udp datagram
-    // which is not the case with openssl when ML-KEM keyshares are offered.
-    // We should update this code to allow for the splitting of CRYPTO frames
-    // in the same way the core datapath does.  Until then, we disable ML-KEM
-    // for the fuzzer only (see corresponding TODO in tls_openssl.c
-    //
-    QuicCryptoFrameEncode(
-        &Frame,
-        Offset,
-        BufferLength,
-        Buffer);
+    if (QuicCryptoFrameEncode(&Frame, Offset, BufferLength, Buffer)) {
+        PacketParams->CryptoOffset += FrameLength;
+    }
 }
 
 void WriteFrames(
@@ -1057,6 +1090,16 @@ void BuildAndSendLongHeaderPackets(
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
     CXPLAT_FRE_ASSERT(SendData != nullptr);
 
+    //
+    // Each call frames the current TLS output buffer from the start: within a
+    // TLS encryption level the CRYPTO stream begins at offset 0, and a fresh
+    // buffer (e.g. the client's handshake-level Finished after the Initial
+    // ClientHello) is a new stream. The offset then accumulates across the
+    // datagrams allocated below so a buffer larger than one datagram is
+    // carried by several CRYPTO frames.
+    //
+    PacketParams->CryptoOffset = 0;
+
     uint8_t numPacketsSent = 0;
     while (!CxPlatSendDataIsFull(SendData) && numPacketsSent <= PacketParams->NumPackets) {
 
@@ -1116,6 +1159,17 @@ void BuildAndSendLongHeaderPackets(
         numPacketsSent++;
 
         if (!FuzzPacket) {
+            //
+            // The non-fuzz path sends exactly the frames it was asked to,
+            // except that a CRYPTO frame whose payload did not fit in one
+            // datagram (an ML-KEM ClientHello) must be continued across
+            // further datagrams until the whole TLS buffer has been framed.
+            //
+            if (FrameSetHasCrypto(PacketParams) &&
+                ClientContext != nullptr &&
+                PacketParams->CryptoOffset < ClientContext->State.BufferLength) {
+                continue;
+            }
             break;
         }
     }
