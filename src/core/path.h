@@ -202,11 +202,42 @@ CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_PATH) < 256,
     "Ensure path struct stays small since we prealloc them");
 
+typedef struct QUIC_PATH_SET {
+    //
+    // Per-path state. The first entry is the active path; the remaining
+    // entries are other tracked paths.
+    //
+    _Field_size_(Count)
+    QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
+
+    //
+    // Number of paths currently tracked.
+    //
+    _Field_range_(0, QUIC_MAX_PATH_COUNT)
+    uint8_t Count;
+
+    //
+    // The next identifier to use for a new path.
+    //
+    uint8_t NextPathId;
+
+} QUIC_PATH_SET;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPathInitialize(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
+QuicPathSetInitialize(
+    _Out_ QUIC_PATH_SET* PathSet,
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Provide the active path.
+// There is always an active path on a connection.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_PATH*
+QuicPathGetActive(
+    _In_ const QUIC_PATH_SET* PathSet
     );
 
 //

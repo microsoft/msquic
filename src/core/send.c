@@ -614,8 +614,9 @@ QuicSendWriteFrames(
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_RESPONSE) {
 
         uint8_t i;
-        for (i = 0; i < Connection->PathsCount; ++i) {
-            QUIC_PATH* TempPath = &Connection->Paths[i];
+        QUIC_PATH_SET* PathSet = &Connection->Paths;
+        for (i = 0; i < PathSet->Count; ++i) {
+            QUIC_PATH* TempPath = &PathSet->Paths[i];
             if (!TempPath->SendResponse) {
                 continue;
             }
@@ -644,7 +645,7 @@ QuicSendWriteFrames(
             }
         }
 
-        if (i == Connection->PathsCount) {
+        if (i == PathSet->Count) {
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_RESPONSE;
         }
 
@@ -1120,11 +1121,12 @@ QuicSendPathChallenges(
 
     CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
 
-    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+    QUIC_PATH_SET* PathSet = &Connection->Paths;
+    for (uint8_t i = 0; i < PathSet->Count; ++i) {
 
-        QUIC_PATH* Path = &Connection->Paths[i];
-        if (!Connection->Paths[i].SendChallenge ||
-            Connection->Paths[i].Allowance < QUIC_MIN_SEND_ALLOWANCE) {
+        QUIC_PATH* Path = &PathSet->Paths[i];
+        if (!Path->SendChallenge ||
+            Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
             continue;
         }
 
@@ -1214,7 +1216,7 @@ QuicSendFlush(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
@@ -1291,7 +1293,7 @@ QuicSendFlush(
             uint64_t ThreePtosInUs =
                 QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
-                    &Connection->Paths[0],
+                    QuicPathGetActive(&Connection->Paths),
                     QUIC_CLOSE_PTO_COUNT);
             Builder.Path->EcnTestingEndingTime = TimeNow + ThreePtosInUs;
         }

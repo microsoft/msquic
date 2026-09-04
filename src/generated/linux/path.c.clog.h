@@ -33,10 +33,10 @@ extern "C" {
             Connection,
             "Path[%hhu] removed; falling back to Path[%hhu]",
             Path->ID,
-            Connection->Paths[FallbackIndex].ID);
+            PathSet->Paths[FallbackIndex].ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
-// arg4 = arg4 = Connection->Paths[FallbackIndex].ID = arg4
+// arg4 = arg4 = PathSet->Paths[FallbackIndex].ID = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_PathActiveFallback
 #define _clog_5_ARGS_TRACE_PathActiveFallback(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
@@ -156,10 +156,10 @@ tracepoint(CLOG_PATH_C, ConnPathValidated , arg2, arg3, arg4);\
         ConnPathActive,
         "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
         Connection,
-        Connection->Paths[0].ID,
+        ActivePath->ID,
         UdpPortChangeOnly);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
+// arg3 = arg3 = ActivePath->ID = arg3
 // arg4 = arg4 = UdpPortChangeOnly = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ConnPathActive

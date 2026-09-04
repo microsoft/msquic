@@ -143,9 +143,9 @@ typedef struct QUIC_CID_LIST_ENTRY {
     do {                                                                        \
         CXPLAT_DBG_ASSERT(!Cid->CID.Retired);                                   \
         CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL); Cid->AssignedPath = Path; \
-        for (int PathIdx = Conn->PathsCount - 1; PathIdx > 0; PathIdx--) {      \
-            if (Path != &Conn->Paths[PathIdx])                                  \
-                CXPLAT_DBG_ASSERT(Conn->Paths[PathIdx].DestCid != Cid);         \
+        for (int PathIdx = Conn->Paths.Count - 1; PathIdx > 0; PathIdx--) {     \
+            if (Path != &Conn->Paths.Paths[PathIdx])                            \
+                CXPLAT_DBG_ASSERT(Conn->Paths.Paths[PathIdx].DestCid != Cid);   \
             }                                                                   \
         }                                                                       \
     while (0)
@@ -153,8 +153,8 @@ typedef struct QUIC_CID_LIST_ENTRY {
 #define QUIC_CID_VALIDATE_NULL(Conn, Cid)                                       \
     do {                                                                        \
         CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL);                           \
-        for (int PathIdx = Conn->PathsCount - 1; PathIdx > 0; PathIdx--) {      \
-            CXPLAT_DBG_ASSERT(Conn->Paths[PathIdx].DestCid != Cid);             \
+        for (int PathIdx = Conn->Paths.Count - 1; PathIdx > 0; PathIdx--) {     \
+            CXPLAT_DBG_ASSERT(Conn->Paths.Paths[PathIdx].DestCid != Cid);       \
         }                                                                       \
     } while (0)
 #else
