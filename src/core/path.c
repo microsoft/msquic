@@ -82,7 +82,29 @@ BOOLEAN
 QuicPathUpdateDestCid(
     _In_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_PATH* Path
-    );
+    )
+{
+    if (Path->DestCid != NULL && !Path->DestCid->CID.Retired) {
+        return TRUE;
+    }
+
+    if (Path->DestCid != NULL) {
+        QUIC_CID_CLEAR_PATH(Path->DestCid);
+        Path->DestCid = NULL;
+    }
+
+    QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
+    if (NewDestCid == NULL) {
+        return FALSE;
+    }
+
+    Path->DestCid = NewDestCid;
+    QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
+    Path->DestCid->CID.UsedLocally = TRUE;
+    Path->InitiatedCidUpdate = TRUE;
+    QuicPathValidate(Path);
+    return TRUE;
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -101,15 +123,13 @@ QuicPathUpdateActive(
     //
     // A path needs a usable destination CID before it can become active.
     //
-    {
-        uint8_t NextActivePathIndex;
-        QUIC_PATH* NextActivePath =
-            QuicConnGetPathByID(Connection, PathSet->NextActivePathId, &NextActivePathIndex);
-        CXPLAT_DBG_ASSERT(NextActivePath != NULL);
-        if (!QuicPathUpdateDestCid(Connection, NextActivePath)) {
-            PathSet->NextActivePathId = QuicPathGetActive(PathSet)->ID;
-            return;
-        }
+    uint8_t NextActivePathIndex;
+    QUIC_PATH* NextActivePath =
+        QuicConnGetPathByID(Connection, PathSet->NextActivePathId, &NextActivePathIndex);
+    CXPLAT_DBG_ASSERT(NextActivePath != NULL);
+    if (!QuicPathUpdateDestCid(Connection, NextActivePath)) {
+        PathSet->NextActivePathId = QuicPathGetActive(PathSet)->ID;
+        return;
     }
 
     QuicPathSetActive(Connection, PathSet->NextActivePathId);
@@ -225,36 +245,6 @@ QuicPathRemove(
     PathSet->Count--;
     // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: new index is valid.
     PathSet->Paths[PathSet->Count].InUse = FALSE;
-    return TRUE;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-static
-BOOLEAN
-QuicPathUpdateDestCid(
-    _In_ QUIC_CONNECTION* Connection,
-    _Inout_ QUIC_PATH* Path
-    )
-{
-    if (Path->DestCid != NULL && !Path->DestCid->CID.Retired) {
-        return TRUE;
-    }
-
-    if (Path->DestCid != NULL) {
-        QUIC_CID_CLEAR_PATH(Path->DestCid);
-        Path->DestCid = NULL;
-    }
-
-    QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
-    if (NewDestCid == NULL) {
-        return FALSE;
-    }
-
-    Path->DestCid = NewDestCid;
-    QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
-    Path->DestCid->CID.UsedLocally = TRUE;
-    Path->InitiatedCidUpdate = TRUE;
-    QuicPathValidate(Path);
     return TRUE;
 }
 
