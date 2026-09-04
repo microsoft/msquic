@@ -968,6 +968,10 @@ if(QUIC_CODE_CHECK)
     endif()
 endif()
 
+if("${CX_PLATFORM}" STREQUAL "windows")
+    find_package(XdpSdk REQUIRED MODULE)
+endif()
+
 add_subdirectory(src/inc)
 add_subdirectory(src/generated)
 

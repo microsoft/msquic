@@ -42,7 +42,7 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1.5.2
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -DisableTest
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForBuild -DisableTest
       shell: pwsh
     - name: Build
       shell: pwsh
