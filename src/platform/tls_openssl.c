@@ -747,6 +747,15 @@ static int QuicTlsGotTp(SSL *S, const unsigned char *Params,
 
     UNREFERENCED_PARAMETER(Arg);
 
+    if (ParamsLen == 0 || Params == NULL) {
+        return 0;
+    }
+
+    if (AData->PeerTp != NULL) {
+        return AData->PeerTpLen == ParamsLen &&
+            memcmp(AData->PeerTp, Params, ParamsLen) == 0;
+    }
+
     AData->PeerTp = CXPLAT_ALLOC_NONPAGED(ParamsLen,
                                            QUIC_POOL_TLS_TRANSPARAMS);
     if (AData->PeerTp == NULL) {
@@ -3306,6 +3315,20 @@ more_handshake:
                         OpenSslNoMatchingAlpn,
                         TlsContext->Connection,
                         "Failed to find a matching ALPN");
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    goto Exit;
+                }
+
+                //
+                // By this point, OpenSSL should have called QuicTlsGotTp, which stores
+                // a non-NULL PeerTp and sets PeerTPReceived. Fail the handshake if the
+                // required transport parameters were not processed.
+                //
+                if (!TlsContext->PeerTPReceived) {
+                    QuicTraceLogConnError(
+                        OpenSslMissingTransportParameters,
+                        TlsContext->Connection,
+                        "No transport parameters received");
                     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                     goto Exit;
                 }
