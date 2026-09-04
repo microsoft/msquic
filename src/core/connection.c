@@ -1076,6 +1076,10 @@ QuicConnRetireCurrentDestCid(
     _In_ QUIC_PATH* Path
     )
 {
+    if (Path->DestCid == NULL) {
+        return TRUE;
+    }
+
     if (Path->DestCid->CID.Length == 0) {
         QuicTraceLogConnVerbose(
             ZeroLengthCidRetire,
