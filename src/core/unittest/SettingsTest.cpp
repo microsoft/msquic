@@ -322,6 +322,21 @@ TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
     ASSERT_EQ(Destination.StreamRecvWindowUnidiDefault, Source.StreamRecvWindowUnidiDefault);
 }
 
+TEST(SettingsTest, StreamRecvBufferDefaultRejectsInvalidSizesWithoutChanges)
+{
+    QUIC_SETTINGS_INTERNAL Source;
+    QUIC_SETTINGS_INTERNAL Destination;
+    CxPlatZeroMemory(&Source, sizeof(Source));
+    CxPlatZeroMemory(&Destination, sizeof(Destination));
+    QuicSettingsSetDefault(&Destination);
+
+    Source.IsSet.StreamRecvBufferDefault = 1;
+    Source.StreamRecvBufferDefault = QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE + 1;
+
+    ASSERT_FALSE(QuicSettingApply(&Destination, TRUE, TRUE, &Source));
+    ASSERT_EQ(Destination.StreamRecvBufferDefault, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE);
+}
+
 // TEST(SettingsTest, TestAllVersionSettingsFieldsGet)
 // {
 //     QUIC_VERSION_SETTINGS Settings;
