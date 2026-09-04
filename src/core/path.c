@@ -88,14 +88,14 @@ QuicPathUpdateDestCid(
         return TRUE;
     }
 
-    if (Path->DestCid != NULL) {
-        QUIC_CID_CLEAR_PATH(Path->DestCid);
-        Path->DestCid = NULL;
-    }
-
     QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
     if (NewDestCid == NULL) {
         return FALSE;
+    }
+
+    if (Path->DestCid != NULL) {
+        QUIC_CID_CLEAR_PATH(Path->DestCid);
+        Path->DestCid = NULL;
     }
 
     Path->DestCid = NewDestCid;
@@ -537,8 +537,8 @@ QuicPathSetActive(
         QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
     }
     Connection->Paths.NextActivePathId = ActivePath->ID;
-    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
-    CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
+    CXPLAT_DBG_ASSERT(ActivePath->DestCid != NULL);
+    CXPLAT_DBG_ASSERT(!ActivePath->DestCid->CID.Retired);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
