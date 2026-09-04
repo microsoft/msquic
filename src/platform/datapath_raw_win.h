@@ -19,6 +19,6 @@ typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
     CXPLAT_LIST_ENTRY WorkerLink;
     MIB_IPNET_ROW2 IpnetRow;
     void* Context;
-    uint8_t PathId;
+    uint32_t PathId;
     CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback;
 } CXPLAT_ROUTE_RESOLUTION_OPERATION;

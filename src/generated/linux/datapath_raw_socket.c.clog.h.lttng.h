@@ -26,11 +26,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathTcpAuxBinding,
 
 /*----------------------------------------------------------
 // Decoder Ring for RouteResolutionEnd
-// [conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx
+// [conn][%p] Route resolution completed on Path[%u] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx
 // QuicTraceLogConnInfo(
         RouteResolutionEnd,
         Connection,
-        "Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+        "Route resolution completed on Path[%u] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
         PathId,
         Route->NextHopLinkLayerAddress[0],
         Route->NextHopLinkLayerAddress[1],
@@ -50,7 +50,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathTcpAuxBinding,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionEnd,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3,
+        unsigned int, arg3,
         unsigned char, arg4,
         unsigned char, arg5,
         unsigned char, arg6,
@@ -59,7 +59,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionEnd,
         unsigned char, arg9), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
         ctf_integer(unsigned char, arg6, arg6)

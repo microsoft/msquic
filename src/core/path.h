@@ -47,7 +47,7 @@ typedef struct QUIC_PATH {
     //
     // Unique identifier;
     //
-    uint8_t ID;
+    uint32_t ID;
 
     //
     // Indicates the path object is actively in use.
@@ -219,7 +219,12 @@ typedef struct QUIC_PATH_SET {
     //
     // The next identifier to use for a new path.
     //
-    uint8_t NextPathId;
+    uint32_t NextPathId;
+
+    //
+    // ID of the active path, or the path pending activation.
+    //
+    uint32_t NextActivePathId;
 
 } QUIC_PATH_SET;
 
@@ -238,6 +243,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_PATH*
 QuicPathGetActive(
     _In_ const QUIC_PATH_SET* PathSet
+    );
+
+//
+// Update the active path to PathSet->NextActivePathId
+// Invalidates pointers to paths.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateActive(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -317,19 +332,12 @@ QuicPathSetValid(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicPathSetActive(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 _Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ID,
+    _In_ uint32_t ID,
     _Out_ uint8_t* Index
     );
 

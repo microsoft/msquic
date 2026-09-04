@@ -149,7 +149,7 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     uint64_t TotalBytesSent;
     uint64_t SentTime; // In microseconds
     uint16_t PacketLength;
-    uint8_t PathId;
+    uint32_t PathId;
 
     LAST_ACKED_PACKET_INFO LastAckedPacketInfo;
 

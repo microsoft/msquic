@@ -740,11 +740,11 @@ tracepoint(CLOG_CONNECTION_C, FirstCidUsage , arg1, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathDiscarded
-// [conn][%p] Removing invalid path[%hhu]
+// [conn][%p] Removing invalid path[%u]
 // QuicTraceLogConnInfo(
                 PathDiscarded,
                 Connection,
-                "Removing invalid path[%hhu]",
+                "Removing invalid path[%u]",
                 PathSet->Paths[i].ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = PathSet->Paths[i].ID = arg3
@@ -778,11 +778,11 @@ tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for FailedRouteResolution
-// [conn][%p] Route resolution failed on Path[%hhu]. Switching paths...
+// [conn][%p] Route resolution failed on Path[%u]. Switching paths...
 // QuicTraceLogConnInfo(
             FailedRouteResolution,
             Connection,
-            "Route resolution failed on Path[%hhu]. Switching paths...",
+            "Route resolution failed on Path[%u]. Switching paths...",
             PathId);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = PathId = arg3
@@ -1400,24 +1400,6 @@ tracepoint(CLOG_CONNECTION_C, PeerStreamFCBlocked , arg1, arg3, arg4);\
 #ifndef _clog_4_ARGS_TRACE_IndicatePeerNeedStreamsV2
 #define _clog_4_ARGS_TRACE_IndicatePeerNeedStreamsV2(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2 , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for IndicatePeerAddrChanged
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED
-// QuicTraceLogConnVerbose(
-            IndicatePeerAddrChanged,
-            Connection,
-            "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_IndicatePeerAddrChanged
-#define _clog_3_ARGS_TRACE_IndicatePeerAddrChanged(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, IndicatePeerAddrChanged , arg1);\
 
 #endif
 
@@ -2215,10 +2197,10 @@ tracepoint(CLOG_CONNECTION_C, ConnRecvUdpDatagrams , arg2, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnPathValidationTimeout
-// [conn][%p] Path[%hhu] validation timed out
+// [conn][%p] Path[%u] validation timed out
 // QuicTraceEvent(
             ConnPathValidationTimeout,
-            "[conn][%p] Path[%hhu] validation timed out",
+            "[conn][%p] Path[%u] validation timed out",
             Connection,
             Path->ID);
 // arg2 = arg2 = Connection = arg2

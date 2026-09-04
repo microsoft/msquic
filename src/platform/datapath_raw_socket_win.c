@@ -58,7 +58,7 @@ QUIC_STATUS
 RawResolveRoute(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
@@ -166,7 +166,7 @@ RawResolveRoute(
     QuicTraceLogConnInfo(
         RouteResolutionStart,
         Context,
-        "Starting to look up neighbor on Path[%hhu] with status %u",
+        "Starting to look up neighbor on Path[%u] with status %u",
         PathId,
         Status);
     //

@@ -3,11 +3,11 @@
 
 /*----------------------------------------------------------
 // Decoder Ring for RouteResolutionStart
-// [conn][%p] Starting to look up neighbor on Path[%hhu] with status %u
+// [conn][%p] Starting to look up neighbor on Path[%u] with status %u
 // QuicTraceLogConnInfo(
         RouteResolutionStart,
         Context,
-        "Starting to look up neighbor on Path[%hhu] with status %u",
+        "Starting to look up neighbor on Path[%u] with status %u",
         PathId,
         Status);
 // arg1 = arg1 = Context = arg1
@@ -17,11 +17,11 @@
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, RouteResolutionStart,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3,
+        unsigned int, arg3,
         unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
 )

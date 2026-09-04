@@ -27,11 +27,11 @@ extern "C" {
 #endif
 /*----------------------------------------------------------
 // Decoder Ring for RouteResolutionStart
-// [conn][%p] Starting to look up neighbor on Path[%hhu] with status %u
+// [conn][%p] Starting to look up neighbor on Path[%u] with status %u
 // QuicTraceLogConnInfo(
         RouteResolutionStart,
         Context,
-        "Starting to look up neighbor on Path[%hhu] with status %u",
+        "Starting to look up neighbor on Path[%u] with status %u",
         PathId,
         Status);
 // arg1 = arg1 = Context = arg1
