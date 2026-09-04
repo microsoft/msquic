@@ -859,6 +859,10 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
 
         auto Frame = (TcpFrame*)BufferedData;
         auto FrameLength = (uint32_t)sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
+        if (FrameLength > sizeof(BufferedData)) {
+            WriteOutput("Invalid frame length\n");
+            return false;
+        }
         auto BytesNeeded = FrameLength - BufferedDataLength;
         if (BufferLength < BytesNeeded) {
             goto BufferData;
@@ -895,6 +899,10 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
 
 BufferData:
 
+    if (BufferedDataLength + BufferLength > sizeof(BufferedData)) {
+        WriteOutput("Invalid frame length\n");
+        return false;
+    }
     CxPlatCopyMemory(BufferedData+BufferedDataLength, Buffer, BufferLength);
     BufferedDataLength += BufferLength;
 
