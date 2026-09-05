@@ -1047,6 +1047,10 @@ QuicConnRetireCid(
     _In_ QUIC_CID_LIST_ENTRY* DestCid
     )
 {
+    if (DestCid->CID.Retired) {
+        return;
+    }
+
     QuicTraceEvent(
         ConnDestCidRemoved,
         "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
@@ -1100,9 +1104,7 @@ QuicConnRetireCurrentDestCid(
     CXPLAT_DBG_ASSERT(Path->DestCid != NewDestCid);
     QUIC_CID_LIST_ENTRY* OldDestCid = Path->DestCid;
     QUIC_CID_CLEAR_PATH(Path->DestCid);
-    if (!OldDestCid->CID.Retired) {
-        QuicConnRetireCid(Connection, OldDestCid);
-    }
+    QuicConnRetireCid(Connection, OldDestCid);
     Path->DestCid = NewDestCid;
     QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
     QUIC_CID_VALIDATE_NULL(Connection, OldDestCid);
