@@ -132,34 +132,36 @@ typedef struct QUIC_CID_LIST_ENTRY {
     CXPLAT_LIST_ENTRY Link;
     uint8_t ResetToken[QUIC_STATELESS_RESET_TOKEN_LENGTH];
 #ifdef DEBUG
-    QUIC_PATH* AssignedPath;
+    //
+    // ID of the path this CID was first assigned to, or UINT32_MAX if unused.
+    //
+    uint32_t AssignedPathId;
 #endif
     QUIC_CID CID;
 
 } QUIC_CID_LIST_ENTRY;
 
 #if DEBUG
-#define QUIC_CID_SET_PATH(Conn, Cid, Path)                                      \
-    do {                                                                        \
-        CXPLAT_DBG_ASSERT(!Cid->CID.Retired);                                   \
-        CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL); Cid->AssignedPath = Path; \
-        for (int PathIdx = Conn->Paths.Count - 1; PathIdx > 0; PathIdx--) {     \
-            if (Path != &Conn->Paths.Paths[PathIdx])                            \
-                CXPLAT_DBG_ASSERT(Conn->Paths.Paths[PathIdx].DestCid != Cid);   \
-            }                                                                   \
-        }                                                                       \
+#define QUIC_CID_SET_PATH(Conn, Cid, Path)                                          \
+    do {                                                                            \
+        CXPLAT_DBG_ASSERT(!(Cid)->CID.Retired);                                      \
+        CXPLAT_DBG_ASSERT((Cid)->AssignedPathId == UINT32_MAX);                      \
+        (Cid)->AssignedPathId = (Path)->ID;                                          \
+        for (int PathIdx = (Conn)->Paths.Count - 1; PathIdx >= 0; PathIdx--) {       \
+            if ((Path)->ID != (Conn)->Paths.Paths[PathIdx].ID) {                     \
+                CXPLAT_DBG_ASSERT((Conn)->Paths.Paths[PathIdx].DestCid != (Cid));    \
+            }                                                                       \
+        }                                                                           \
+    }                                                                               \
     while (0)
-#define QUIC_CID_CLEAR_PATH(Cid) Cid->AssignedPath = NULL
-#define QUIC_CID_VALIDATE_NULL(Conn, Cid)                                       \
-    do {                                                                        \
-        CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL);                           \
-        for (int PathIdx = Conn->Paths.Count - 1; PathIdx > 0; PathIdx--) {     \
-            CXPLAT_DBG_ASSERT(Conn->Paths.Paths[PathIdx].DestCid != Cid);       \
-        }                                                                       \
+#define QUIC_CID_VALIDATE_NULL(Conn, Cid)                                        \
+    do {                                                                         \
+        for (int PathIdx = (Conn)->Paths.Count - 1; PathIdx >= 0; PathIdx--) {   \
+            CXPLAT_DBG_ASSERT((Conn)->Paths.Paths[PathIdx].DestCid != (Cid));    \
+        }                                                                        \
     } while (0)
 #else
 #define QUIC_CID_SET_PATH(Conn, Cid, Path) UNREFERENCED_PARAMETER(Cid)
-#define QUIC_CID_CLEAR_PATH(Cid) UNREFERENCED_PARAMETER(Cid)
 #define QUIC_CID_VALIDATE_NULL(Conn, Cid) UNREFERENCED_PARAMETER(Cid)
 #endif
 
@@ -246,7 +248,9 @@ QuicCidNewRandomDestination(
             QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
-        QUIC_CID_CLEAR_PATH(Entry);
+#ifdef DEBUG
+        Entry->AssignedPathId = UINT32_MAX;
+#endif
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH;
         CxPlatRandom(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, Entry->CID.Data);
@@ -275,7 +279,9 @@ QuicCidNewDestination(
             QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
-        QUIC_CID_CLEAR_PATH(Entry);
+#ifdef DEBUG
+        Entry->AssignedPathId = UINT32_MAX;
+#endif
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = Length;
         if (Length != 0) {
