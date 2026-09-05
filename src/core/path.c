@@ -94,7 +94,6 @@ QuicPathUpdateDestCid(
     }
 
     if (Path->DestCid != NULL) {
-        QUIC_CID_CLEAR_PATH(Path->DestCid);
         Path->DestCid = NULL;
     }
 
@@ -229,12 +228,6 @@ QuicPathRemove(
         Index = FallbackIndex;
     }
 
-#if DEBUG
-    if (PathSet->Paths[Index].DestCid) {
-        QUIC_CID_CLEAR_PATH(PathSet->Paths[Index].DestCid);
-    }
-#endif
-
     if (Index + 1 < PathSet->Count) {
         CxPlatMoveMemory(
             PathSet->Paths + Index,
@@ -292,9 +285,9 @@ QuicPathUpdateDestCids(
                 Entry,
                 QUIC_CID_LIST_ENTRY,
                 Link);
-        CXPLAT_DBG_ASSERT(
-            !DestCid->CID.Retired ||
-            DestCid->AssignedPathId == UINT32_MAX);
+        if (DestCid->CID.Retired) {
+            QUIC_CID_VALIDATE_NULL(Connection, DestCid);
+        }
     }
 #endif
 }
