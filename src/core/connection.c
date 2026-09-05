@@ -1100,7 +1100,9 @@ QuicConnRetireCurrentDestCid(
     CXPLAT_DBG_ASSERT(Path->DestCid != NewDestCid);
     QUIC_CID_LIST_ENTRY* OldDestCid = Path->DestCid;
     QUIC_CID_CLEAR_PATH(Path->DestCid);
-    QuicConnRetireCid(Connection, Path->DestCid);
+    if (!OldDestCid->CID.Retired) {
+        QuicConnRetireCid(Connection, OldDestCid);
+    }
     Path->DestCid = NewDestCid;
     QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
     QUIC_CID_VALIDATE_NULL(Connection, OldDestCid);
