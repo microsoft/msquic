@@ -2881,7 +2881,7 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
     const uint8_t *idx;
     uint8_t message_type;
     size_t total_message_size = 0;
-    uint32_t message_size;
+    uint32_t message_size = 0;
     struct AUX_DATA *AData;
     uint8_t Incomplete = 0;
     uint8_t force_split = 0;
