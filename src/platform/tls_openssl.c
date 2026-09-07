@@ -2877,14 +2877,14 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 //
 static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 {
-    RECORD_ENTRY *leftover;
+    RECORD_ENTRY *leftover = NULL;
     const uint8_t *idx;
     uint8_t message_type;
-    size_t total_message_size;
+    size_t total_message_size = 0;
     uint32_t message_size;
     struct AUX_DATA *AData;
-    uint8_t Incomplete;
-    uint8_t force_split;
+    uint8_t Incomplete = 0;
+    uint8_t force_split = 0;
 
     AData = GetSslAuxData(Entry->Ssl);
     CXPLAT_DBG_ASSERT(AData != NULL);
