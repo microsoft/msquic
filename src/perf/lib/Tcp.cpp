@@ -847,6 +847,9 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
 {
     if (BufferedDataLength) {
         if (BufferedDataLength < sizeof(TcpFrame)) {
+            //
+            // A partial header was buffered, keep buffering until we have a full header.
+            //
             if (BufferedDataLength + BufferLength < sizeof(TcpFrame)) {
                 goto BufferData;
             }
@@ -857,10 +860,13 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
             BufferLength -= ExtraLength;
         }
 
+        //
+        // A partial frame is buffered, keep buffering until we have a full frame.
+        //
         auto Frame = (TcpFrame*)BufferedData;
-        auto FrameLength = (uint32_t)sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
+        auto FrameLength = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
         if (FrameLength > sizeof(BufferedData)) {
-            WriteOutput("Invalid frame length\n");
+            WriteOutput("ProcessReceiveData FAILED invalid frame length\n");
             return false;
         }
         auto BytesNeeded = FrameLength - BufferedDataLength;
@@ -874,12 +880,18 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
         Buffer += BytesNeeded;
         BufferLength -= BytesNeeded;
 
+        //
+        // Process the buffered frame now that it is complete.
+        //
         if (!ProcessReceiveFrame(Frame)) {
             return false;
         }
         BufferedDataLength = 0;
     }
 
+    //
+    // Process as many full frames as possible.
+    //
     while (BufferLength) {
         auto Frame = (TcpFrame*)Buffer;
         if (BufferLength < sizeof(TcpFrame) ||
@@ -899,8 +911,11 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
 
 BufferData:
 
+    //
+    // Buffer any remaining bytes.
+    //
     if (BufferedDataLength + BufferLength > sizeof(BufferedData)) {
-        WriteOutput("Invalid frame length\n");
+        WriteOutput("ProcessReceiveData FAILED invalid frame length\n");
         return false;
     }
     CxPlatCopyMemory(BufferedData+BufferedDataLength, Buffer, BufferLength);
