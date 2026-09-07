@@ -4086,10 +4086,18 @@ QuicConnRecvHeader(
     // don't actually know the length of the packet number so we assume maximum
     // (per spec) and start sampling 4 bytes after the start of the packet number.
     //
-    CxPlatCopyMemory(
-        Cipher,
-        Packet->AvailBuffer + Packet->HeaderLength + 4,
-        CXPLAT_HP_SAMPLE_LENGTH);
+    if (Packet->Encrypted && Connection->State.HeaderProtectionEnabled) {
+        CxPlatCopyMemory(
+            Cipher,
+            Packet->AvailBuffer + Packet->HeaderLength + 4,
+            CXPLAT_HP_SAMPLE_LENGTH);
+    } else {
+        //
+        // For unencrypted short header packets, no header protection mask will be computed,
+        // so avoid reading an HP sample that may extend beyond the packet.
+        //
+        CxPlatZeroMemory(Cipher, CXPLAT_HP_SAMPLE_LENGTH);
+    }
 
     return TRUE;
 }
