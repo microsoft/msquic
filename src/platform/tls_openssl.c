@@ -2877,101 +2877,111 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 //
 static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 {
-    RECORD_ENTRY *leftover = NULL;
+    RECORD_ENTRY *leftover;
     const uint8_t *idx;
     uint8_t message_type;
-    size_t total_message_size = 0;
+    size_t total_message_size;
     uint32_t message_size;
     struct AUX_DATA *AData;
-    uint8_t Incomplete = 0;
-    uint8_t force_split = 0;
+    uint8_t Incomplete;
+    uint8_t force_split;
 
     AData = GetSslAuxData(Entry->Ssl);
     CXPLAT_DBG_ASSERT(AData != NULL);
-    //
-    // set our cursor to the start of the message
-    //
-    idx = Entry->Record;
 
-    while (total_message_size < Entry->RecLen) {
-        message_type = *idx;
-        memcpy(&message_size, idx, sizeof(message_size));
+    do {
+        leftover = NULL;
+        total_message_size = 0;
+        Incomplete = 0;
+        force_split = 0;
 
         //
-        //message size is just the lower 3 bytes of the TLS record
+        // set our cursor to the start of the message
         //
-        message_size = htonl(message_size) & 0x00ffffff;
+        idx = Entry->Record;
 
-        //
-        // If this message extends past the end of the record, its remainder
-        // is in a later datagram, so it is incomplete.
-        //
-        if (total_message_size + message_size + 4 > Entry->RecLen) {
-            Incomplete = 1;
-        }
-
-        //
-        // A complete handshake FINISHED ends the flight, so trim the record
-        // to its end and ignore any padding that follows. An incomplete one
-        // is handled like any other incomplete message below.
-        //
-        if (message_type == SSL3_MT_FINISHED && Incomplete == 0) {
-            Entry->RecLen = total_message_size + message_size + 4;
-            goto insert_now;
-        }
-
-        //
-        // An epoch key change message (8 is EncryptedExtensions) must be
-        // split as rcv_rec expects it isolated, but only if it isn't the
-        // first message in this record.
-        //
-        if ((message_type == 8) && (total_message_size != 0)) {
-            force_split = 1;
-        }
-
-        if (Incomplete == 1 || force_split == 1) {
-            if (total_message_size == 0) {
+        while (total_message_size < Entry->RecLen) {
+            if (Entry->RecLen - total_message_size < sizeof(message_size)) {
                 //
-                // If this is the first record, just mark this one
-                // as being incomplete
+                // The TLS handshake header is split across datagrams.
+                // Wait for the remaining header bytes before reading it.
                 //
-                Entry->Incomplete = 1;
+                Incomplete = 1;
             } else {
-                //
-                //create the incomplete trailing record
-                //
-                 leftover = MakeNewRecord(idx, Entry->RecLen - total_message_size,
-                                                                        Entry->Ssl);
-                 //
-                 //reduce the size of this Entry to drop whats contained
-                 //in the leftover
-                 //
-                 if (leftover != NULL) {
-                     Entry->RecLen -= leftover->RecLen;
-                     leftover->Incomplete = Incomplete;
-                 }
-            }
-            break;
-        }
-        total_message_size += message_size + 4;
-        idx += message_size + 4;
-    }
+                message_type = *idx;
+                memcpy(&message_size, idx, sizeof(message_size));
 
-    //
-    //Add the Entry, and potentially the leftover record
-    //
+                //
+                //message size is just the lower 3 bytes of the TLS record
+                //
+                message_size = htonl(message_size) & 0x00ffffff;
+
+                //
+                // If this message extends past the end of the record, its remainder
+                // is in a later datagram, so it is incomplete.
+                //
+                if (total_message_size + message_size + 4 > Entry->RecLen) {
+                    Incomplete = 1;
+                }
+
+                //
+                // A complete handshake FINISHED ends the flight, so trim the record
+                // to its end and ignore any padding that follows. An incomplete one
+                // is handled like any other incomplete message below.
+                //
+                if (message_type == SSL3_MT_FINISHED && Incomplete == 0) {
+                    Entry->RecLen = total_message_size + message_size + 4;
+                    goto insert_now;
+                }
+
+                //
+                // An epoch key change message (8 is EncryptedExtensions) must be
+                // split as rcv_rec expects it isolated, but only if it isn't the
+                // first message in this record.
+                //
+                if ((message_type == 8) && (total_message_size != 0)) {
+                    force_split = 1;
+                }
+            }
+
+            if (Incomplete == 1 || force_split == 1) {
+                if (total_message_size == 0) {
+                    //
+                    // If this is the first record, just mark this one
+                    // as being incomplete
+                    //
+                    Entry->Incomplete = 1;
+                } else {
+                    //
+                    //create the incomplete trailing record
+                    //
+                     leftover = MakeNewRecord(idx, Entry->RecLen - total_message_size,
+                                                                            Entry->Ssl);
+                     //
+                     //reduce the size of this Entry to drop whats contained
+                     //in the leftover
+                     //
+                     if (leftover != NULL) {
+                         Entry->RecLen -= leftover->RecLen;
+                         leftover->Incomplete = Incomplete;
+                     }
+                }
+                break;
+            }
+            total_message_size += message_size + 4;
+            idx += message_size + 4;
+        }
+
+        //
+        // Add the Entry, and potentially process the leftover record.
+        //
 
 insert_now:
-    *Consumed -= Entry->RecLen;
-    CxPlatListInsertTail(&AData->RecordList, &Entry->Link);
-    if (leftover != NULL) {
-        //
-        // Make sure the leftover record doesn't need to be split
-        // Do so by recursively calling this function.  This will
-        // Also add the leftover record to the list
-        //
-        return SplitAddRecord(leftover, Consumed);
-    }
+        *Consumed -= Entry->RecLen;
+        CxPlatListInsertTail(&AData->RecordList, &Entry->Link);
+        Entry = leftover;
+    } while (leftover != NULL);
+
     return Incomplete;
 }
 
