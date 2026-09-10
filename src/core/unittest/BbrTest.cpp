@@ -17,6 +17,10 @@ Abstract:
 extern "C" {
 void BbrCongestionControlInitialize(QUIC_CONGESTION_CONTROL* Cc, const QUIC_SETTINGS_INTERNAL* Settings);
 uint64_t BbrCongestionControlGetBandwidth(const QUIC_CONGESTION_CONTROL* Cc);
+uint64_t BbrCongestionControlGetPacingSendAllowance(
+    uint64_t BandwidthEst,
+    uint32_t PacingGain,
+    uint64_t TimeSinceLastSend);
 uint32_t BbrCongestionControlGetTargetCwnd(QUIC_CONGESTION_CONTROL* Cc, uint32_t Gain);
 }
 
@@ -1346,27 +1350,24 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_MinRttBelowPacingInterval)
 }
 
 //
-// Test: GetSendAllowance - STARTUP Pacing Formula
+// Test: GetSendAllowance - STARTUP High-Gain Target
 // Scenario: Initializes with PacingEnabled=TRUE. Establishes MinRtt=5000us (above
-// QUIC_SEND_PACING_INTERVAL) and some bandwidth via ACK. In STARTUP state with pacing,
-// the allowance uses kHighGain (739/256) as PacingGain. Calls GetSendAllowance with
-// TimeSinceLastSend=10000.
+// QUIC_SEND_PACING_INTERVAL). In STARTUP, BBR keeps enough allowance to fill the
+// high-gain target inflight, subject to the local send allowance cap.
 //
-TEST_F(BbrTest_DeepTest, GetSendAllowance_StartupPacing)
+TEST_F(BbrTest_DeepTest, GetSendAllowance_StartupHighGainTarget)
 {
     InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
 
-    // Establish a MinRtt >= QUIC_SEND_PACING_INTERVAL and some bandwidth
+    // Establish a MinRtt >= QUIC_SEND_PACING_INTERVAL.
     CC->QuicCongestionControlOnDataSent(CC, 5000);
     QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1050000, 1, 2, 1200, 50000, 5000, TRUE);
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
     ASSERT_EQ(Bbr->MinRtt, 5000u);
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_STARTUP);
 
-    // Now get send allowance with pacing
+    // Now get send allowance with the STARTUP high-gain target.
     uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 10000, TRUE);
-    // CW grows by 1200 after ack (13520), BIF=5000-1200+0=3800, BW=0.
-    // Pacing: CW*739/256-BIF >> CW-BIF, capped to CW>>2
     uint32_t CW = Bbr->CongestionWindow;
     uint32_t Expected = CW >> 2;
     ASSERT_EQ(Allowance, Expected);
@@ -1374,20 +1375,20 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_StartupPacing)
 
 //
 // Test: GetSendAllowance - Capped by CW >> 2
-// Scenario: Initializes with PacingEnabled=TRUE. Establishes MinRtt and bandwidth via
-// ACK, then calls GetSendAllowance with a very large TimeSinceLastSend=10000000 to
-// produce a pacing allowance exceeding CW >> 2. The allowance is capped at CW >> 2.
+// Scenario: Initializes with PacingEnabled=TRUE. Establishes MinRtt while in STARTUP,
+// then calls GetSendAllowance. The high-gain target allowance exceeds CW >> 2, so the
+// local send allowance cap is applied.
 //
 TEST_F(BbrTest_DeepTest, GetSendAllowance_CappedByQuarter)
 {
     InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
 
-    // Establish MinRtt and bandwidth
+    // Establish MinRtt.
     CC->QuicCongestionControlOnDataSent(CC, 5000);
     QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1050000, 1, 2, 5000, 50000, 5000, TRUE);
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
 
-    // Send with a very large TimeSinceLastSend to trigger the CW>>2 cap
+    // Send with a large TimeSinceLastSend. STARTUP's high-gain target triggers the cap.
     uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 10000000, TRUE);
     uint32_t CW = Bbr->CongestionWindow;
     uint32_t Expected = CW >> 2;
@@ -1395,10 +1396,98 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_CappedByQuarter)
 }
 
 //
+// Test: GetSendAllowance - STARTUP High-Gain Target Uses Wide Math
+// Scenario: Uses a large congestion window while still in STARTUP. The pacing
+// allowance is zero, so the STARTUP high-gain target term must drive the result.
+// This pins the wide multiply in CW * pacing_gain before the local CW>>2 cap.
+//
+TEST_F(BbrTest_DeepTest, GetSendAllowance_StartupHighGainTargetUsesWideMath)
+{
+    InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
+
+    const uint32_t HighGain = 739; // kHighGain, mirrored from bbr.c.
+    const uint32_t LargeCwnd = 0x80000000U;
+
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_STARTUP);
+    ASSERT_EQ(Bbr->PacingGain, HighGain);
+    ASSERT_EQ(BbrCongestionControlGetBandwidth(CC), 0u);
+
+    Bbr->CongestionWindow = LargeCwnd;
+    Bbr->BytesInFlight = 0;
+    Bbr->MinRtt = 5000;
+    Bbr->MinRttTimestamp = 1000000;
+    Bbr->MinRttTimestampValid = TRUE;
+
+    uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 1, TRUE);
+    ASSERT_EQ(Allowance, LargeCwnd >> 2);
+}
+
+//
+// Test: GetPacingSendAllowance - Converts BBR Bandwidth Units to Bytes
+// Scenario: BandwidthEst is stored as bytes_per_second * BW_UNIT. For a 1 MB/s
+// bandwidth estimate with pacing_gain=1.0 and elapsed=10ms, the send allowance
+// should be 10,000 bytes.
+//
+TEST_F(BbrTest_DeepTest, GetPacingSendAllowance_ConvertsScaledBandwidthToBytes)
+{
+    const uint64_t BwUnit = 8;
+    const uint64_t GainUnit = 256;
+    const uint64_t BandwidthEst = 1000000 * BwUnit;
+    const uint64_t TimeSinceLastSend = 10000;
+
+    ASSERT_EQ(
+        BbrCongestionControlGetPacingSendAllowance(
+            BandwidthEst,
+            GainUnit,
+            TimeSinceLastSend),
+        10000ULL);
+}
+
+//
+// Test: GetPacingSendAllowance - Applies Pacing Gain
+// Scenario: With a 1 MB/s bandwidth estimate, a 5/4 pacing gain, and elapsed=10ms,
+// the send allowance should be 12,500 bytes.
+//
+TEST_F(BbrTest_DeepTest, GetPacingSendAllowance_AppliesPacingGain)
+{
+    const uint64_t BwUnit = 8;
+    const uint32_t ProbeBwHighGain = 320; // 5/4 * GAIN_UNIT.
+    const uint64_t BandwidthEst = 1000000 * BwUnit;
+    const uint64_t TimeSinceLastSend = 10000;
+
+    ASSERT_EQ(
+        BbrCongestionControlGetPacingSendAllowance(
+            BandwidthEst,
+            ProbeBwHighGain,
+            TimeSinceLastSend),
+        12500ULL);
+}
+
+//
+// Test: GetPacingSendAllowance - High Pacing Rate
+// Scenario: With a 10 GB/s bandwidth estimate, the STARTUP pacing gain, and
+// elapsed=100ms, the send allowance should remain an exact byte count.
+//
+TEST_F(BbrTest_DeepTest, GetPacingSendAllowance_HighPacingRate)
+{
+    const uint64_t BwUnit = 8;
+    const uint32_t HighGain = 739; // kHighGain, mirrored from bbr.c.
+    const uint64_t BandwidthEst = 10000000000ULL * BwUnit;
+    const uint64_t TimeSinceLastSend = 100000;
+
+    ASSERT_EQ(
+        BbrCongestionControlGetPacingSendAllowance(
+            BandwidthEst,
+            HighGain,
+            TimeSinceLastSend),
+        2886718750ULL);
+}
+
+//
 // Test: GetSendAllowance - Non-STARTUP Pacing Formula in PROBE_BW
 // Scenario: Drives BBR to PROBE_BW state via DriveToBtlbwFound() with PacingEnabled=TRUE.
-// In PROBE_BW, the pacing gain cycle values are used. With BytesInFlight=0 and
-// TimeSinceLastSend=10000, the result is capped to CW >> 2.
+// In PROBE_BW, the send allowance is pacing_rate * elapsed_time, where
+// pacing_rate = bandwidth * pacing_gain.
 //
 TEST_F(BbrTest_DeepTest, GetSendAllowance_NonStartupPacing)
 {
@@ -1417,9 +1506,103 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_NonStartupPacing)
 
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
 
-    uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 10000, TRUE);
+    const uint64_t TimeSinceLastSend = 10000;
+    uint32_t Allowance =
+        CC->QuicCongestionControlGetSendAllowance(CC, TimeSinceLastSend, TRUE);
+
+    const uint64_t BwUnit = 8;
+    const uint64_t GainUnit = 256;
+    const uint64_t MicroSecsInSec = 1000000;
+    uint64_t Expected =
+        BbrCongestionControlGetBandwidth(CC) * Bbr->PacingGain / GainUnit;
+    Expected = Expected * TimeSinceLastSend / MicroSecsInSec / BwUnit;
+
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
-    ASSERT_EQ(Allowance, CW >> 2);
+    if (Expected > CW - Bbr->BytesInFlight) {
+        Expected = CW - Bbr->BytesInFlight;
+    }
+    if (Expected > (CW >> 2)) {
+        Expected = CW >> 2;
+    }
+
+    ASSERT_LT(Expected, (uint64_t)(CW >> 2));
+    ASSERT_EQ(Allowance, (uint32_t)Expected);
+}
+
+//
+// Test: GetSendAllowance - Non-STARTUP Pacing Scales With Elapsed Time
+// Scenario: Drives BBR to PROBE_BW state and queries send allowance for 5ms and
+// 10ms without hitting the local CW>>2 cap. The 10ms allowance should be twice
+// the 5ms allowance.
+//
+TEST_F(BbrTest_DeepTest, GetSendAllowance_NonStartupPacingScalesWithElapsedTime)
+{
+    InitializeWithDefaults(10, 1280, true);
+
+    uint64_t TimeNow = DriveToBtlbwFound();
+
+    for (int i = 0; i < 20; i++) {
+        TimeNow += 50000;
+        CC->QuicCongestionControlOnDataSent(CC, 1200);
+        QUIC_ACK_EVENT Ack = MakeBbrAckEvent(TimeNow, 200 + i, 210 + i, 1200);
+        CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+        if (Bbr->BbrState == (uint32_t)BBR_STATE_PROBE_BW) break;
+    }
+
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
+
+    uint32_t ShortAllowance =
+        CC->QuicCongestionControlGetSendAllowance(CC, 5000, TRUE);
+    uint32_t LongAllowance =
+        CC->QuicCongestionControlGetSendAllowance(CC, 10000, TRUE);
+    uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
+
+    ASSERT_LT(LongAllowance, CW >> 2);
+    ASSERT_EQ(LongAllowance, ShortAllowance * 2);
+}
+
+//
+// Test: GetSendAllowance - Pacing Capped by Available Congestion Window
+// Scenario: Drives BBR to PROBE_BW state, then fills the congestion window until
+// only 1000 bytes remain. When pacing would allow more than those 1000 bytes,
+// GetSendAllowance should return the available congestion window.
+//
+TEST_F(BbrTest_DeepTest, GetSendAllowance_PacingCappedByAvailableWindow)
+{
+    InitializeWithDefaults(10, 1280, true);
+
+    uint64_t TimeNow = DriveToBtlbwFound();
+
+    for (int i = 0; i < 20; i++) {
+        TimeNow += 50000;
+        CC->QuicCongestionControlOnDataSent(CC, 1200);
+        QUIC_ACK_EVENT Ack = MakeBbrAckEvent(TimeNow, 200 + i, 210 + i, 1200);
+        CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+        if (Bbr->BbrState == (uint32_t)BBR_STATE_PROBE_BW) break;
+    }
+
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
+
+    uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
+    const uint32_t AvailableWindow = 1000;
+    ASSERT_LT(AvailableWindow, CW >> 2);
+    ASSERT_LT(Bbr->BytesInFlight, CW - AvailableWindow);
+
+    CC->QuicCongestionControlOnDataSent(
+        CC,
+        CW - AvailableWindow - Bbr->BytesInFlight);
+
+    ASSERT_EQ(CW - Bbr->BytesInFlight, AvailableWindow);
+
+    uint64_t PacingAllowance =
+        BbrCongestionControlGetPacingSendAllowance(
+            BbrCongestionControlGetBandwidth(CC),
+            Bbr->PacingGain,
+            100000);
+    ASSERT_GT(PacingAllowance, AvailableWindow);
+
+    uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 100000, TRUE);
+    ASSERT_EQ(Allowance, AvailableWindow);
 }
 
 TEST_F(BbrTest_DeepTest, Initialize_DefaultState)
