@@ -151,46 +151,6 @@ typedef struct CXPLAT_TLS {
 
 } CXPLAT_TLS;
 
-//
-// @struct RECORD_ENTRY
-// @brief Represents a buffered SSL record in a linked list.
-//
-// This structure is used to store an SSL record along with its
-// metAData and linkage in a list. It supports tracking incomplete
-// records and whether the memory should be freed.
-//
-typedef struct RECORD_ENTRY {
-    //
-    // Linked list node for linking Entries in a list.
-    //
-    CXPLAT_LIST_ENTRY Link;
-
-    //
-    // Length of the SSL record.
-    //
-    size_t RecLen;
-
-    //
-    // Pointer to the associated SSL connection.
-    //
-    SSL *Ssl;
-
-    //
-    // Non-zero if the record is incomplete.
-    //
-    unsigned char Incomplete;
-
-    //
-    // Non-zero if the record memory should be freed.
-    //
-    unsigned char FreeMe;
-
-    //
-    // The raw SSL record data.
-    //
-    uint8_t Record[0];
-} RECORD_ENTRY;
-
 typedef struct SECRET_SET {
     uint8_t *Secret;
     size_t SecretLen;
@@ -222,10 +182,10 @@ typedef struct AUX_DATA {
     //
     uint32_t Level;
 
-    //
-    // @brief this SSL's receive record list
-    //
-    CXPLAT_LIST_ENTRY RecordList;
+    const uint8_t* InputBuffer;
+    size_t InputLength;
+    size_t InputOffset;
+    size_t OutstandingLength;
 
     //
     // @brief state tracking for 1_rtt secrets
@@ -413,13 +373,10 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
 }
 
 //
-// @brief Callback to provide a previously buffered TLS record to OpenSSL.
+// @brief Callback to lend the next complete TLS message to OpenSSL.
 //
-// This function is called by OpenSSL to retrieve a TLS record for further
-// processing. It searches the buffered records for one matching the given
-// SSL connection. If a complete record is found, it is returned via @p buf
-// and @p bytes_read. If the record is incomplete, it signals OpenSSL to
-// wait for more data.
+// The returned pointer aliases MsQuic's receive buffer and remains valid until
+// OpenSSL calls QuicTlsRlsRec. Only one message may be outstanding at a time.
 //
 // @param[in]  s            Pointer to the SSL connection object.
 // @param[out] buf          Pointer to the buffer containing the record data.
@@ -433,76 +390,63 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
 static int QuicTlsRcvRec(SSL *s, const unsigned char **Buf, size_t *BytesRead,
                             void *Arg)
 {
-    RECORD_ENTRY *entry;
     struct AUX_DATA *AData = GetSslAuxData(s);
-    CXPLAT_LIST_ENTRY* lentry;
 
     UNREFERENCED_PARAMETER(Arg);
 
     CXPLAT_DBG_ASSERT(AData != NULL);
+    CXPLAT_DBG_ASSERT(AData->OutstandingLength == 0);
 
-    //
-    // Iterate over our received record list looking
-    // for a complete entry to submit to the TLS
-    // stack
-    //
-    lentry = AData->RecordList.Flink;
-    while (lentry != &AData->RecordList) {
-        entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
-        lentry = lentry->Flink;
-        if (entry->Incomplete) {
-            return 1;
-        }
-        if (entry->FreeMe == 1) {
-            continue;
-        }
-        *Buf = entry->Record;
-        *BytesRead = entry->RecLen;
-        entry->FreeMe = 1;
-        break;
-  }
-  return 1;
+    *Buf = NULL;
+    *BytesRead = 0;
+
+    size_t Remaining = AData->InputLength - AData->InputOffset;
+    if (Remaining < 4) {
+        return 1;
+    }
+
+    const uint8_t* Message = AData->InputBuffer + AData->InputOffset;
+    size_t MessageLength =
+        4 + ((size_t)Message[1] << 16) +
+            ((size_t)Message[2] << 8) +
+            Message[3];
+    if (MessageLength > Remaining) {
+        return 1;
+    }
+
+    AData->OutstandingLength = MessageLength;
+    *Buf = Message;
+    *BytesRead = MessageLength;
+    return 1;
 
 }
 
 //
-// @brief Callback to release a previously buffered TLS record.
+// @brief Callback to release a TLS message borrowed from MsQuic.
 //
-// This function is called by OpenSSL after a TLS record has been fully
-// processed and can be safely released. It verifies the number of bytes
-// read matches the expected record length, frees the associated memory,
-// and resets the pointer.
+// This function advances the released prefix of the current input window.
+// The receive buffer itself remains owned by MsQuic and is drained after
+// CxPlatTlsProcessData returns.
 //
 // @param[in] bytes_read  The number of bytes processed in the TLS record.
 // @param[in] arg         Unused argument (typically NULL).
 //
-// @return Always returns 1.
+// @return 1 if the complete outstanding message was released; otherwise 0.
 //
 static int QuicTlsRlsRec(SSL *S, size_t BytesRead,
                             void *Arg)
 {
     struct AUX_DATA *AData = GetSslAuxData(S);
-    RECORD_ENTRY *entry;
-    CXPLAT_LIST_ENTRY* lentry;
 
     UNREFERENCED_PARAMETER(Arg);
 
-    //
-    // Look for Entries that are marked for freeing
-    // if the record length matches, we can free it
-    //
-    lentry = AData->RecordList.Flink;
-    while (lentry != &AData->RecordList) {
-      entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
-      lentry = lentry->Flink;
-      if ((entry->FreeMe == 1) && (entry->RecLen == BytesRead)) {
-        CxPlatListEntryRemove(&entry->Link);
-        CXPLAT_FREE(entry, QUIC_POOL_TLS_RECORD_ENTRY);
-        return 1;
-      }
+    if (BytesRead != AData->OutstandingLength) {
+        return 0;
     }
-    return 1;
 
+    AData->InputOffset += BytesRead;
+    AData->OutstandingLength = 0;
+    return 1;
 }
 
 //
@@ -2398,8 +2342,6 @@ static long FreeBioAuxData(BIO *B, int Oper,
 {
     struct AUX_DATA *AData;
     int i;
-    RECORD_ENTRY *entry;
-    CXPLAT_LIST_ENTRY* lentry;
 
     UNREFERENCED_PARAMETER(ArgP);
     UNREFERENCED_PARAMETER(Len);
@@ -2414,16 +2356,6 @@ static long FreeBioAuxData(BIO *B, int Oper,
         for (i = 0; i < 4; i++) {
             CXPLAT_FREE(AData->SecretSet[i][DIR_READ].Secret, QUIC_POOL_TLS_AUX_DATA);
             CXPLAT_FREE(AData->SecretSet[i][DIR_WRITE].Secret, QUIC_POOL_TLS_AUX_DATA);
-        }
-        lentry = AData->RecordList.Flink;
-        //
-        // Free any leftover records
-        //
-        while (lentry != &AData->RecordList) {
-            entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
-            lentry = lentry->Flink;
-            CxPlatListEntryRemove(&entry->Link);
-            CXPLAT_FREE(entry, QUIC_POOL_TLS_RECORD_ENTRY);
         }
 
         CXPLAT_FREE(AData, QUIC_POOL_TLS_AUX_DATA);
@@ -2600,7 +2532,6 @@ CxPlatTlsInitialize(
         goto Exit;
     }
     memset(AData, 0, sizeof(struct AUX_DATA));
-    CxPlatListInitializeHead(&AData->RecordList);
     ossl_bio = BIO_new(BIO_s_null());
     if (ossl_bio == NULL) {
         QuicTraceEvent(
@@ -2801,320 +2732,6 @@ CxPlatTlsUpdateHkdfLabels(
     TlsContext->HkdfLabels = Labels;
 }
 
-//
-// @brief Allocates and initializes a new TLS record entry.
-//
-// This function creates a new `record_entry` structure, allocates memory
-// for a private copy of the given TLS record, and stores its length and
-// associated SSL context. The returned structure is used to buffer TLS
-// records for later transmission or processing in QUIC.
-//
-// @param[in] record
-//     Pointer to the TLS record data to copy.
-//
-// @param[in] RecLen
-//     Length of the TLS record in bytes.
-//
-// @param[in] ssl
-//     Pointer to the associated OpenSSL `SSL` context.
-//
-// @return
-//     A pointer to the newly allocated `record_entry` on success, or NULL
-//     if memory allocation fails.
-//
-// @note The caller is responsible for freeing the returned structure and
-//       its `record` buffer when no longer needed.
-//
-static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ssl)
-{
-    RECORD_ENTRY *new;
-
-    //
-    // Allocate a new structure, make sure its zeroed out
-    //
-    new = CXPLAT_ALLOC_NONPAGED(sizeof(RECORD_ENTRY) + RecLen, QUIC_POOL_TLS_RECORD_ENTRY);
-    if (new == NULL) {
-        return NULL;
-    }
-    //
-    // Copy the Record to its private buffer
-    // save the length and Ssl pointer for use in QuicTlsSend
-    //
-    memcpy(new->Record, Record, RecLen);
-    new->RecLen = RecLen;
-    new->Ssl = Ssl;
-    new->FreeMe = 0;
-    new->Incomplete = 0;
-    return new;
-}
-
-//
-// @brief Splits and queues a TLS record for processing by QUIC.
-//
-// This function examines a `record_entry` that may contain one or more
-// TLS handshake messages and determines if it must be split due to:
-// - The message being incomplete (spans multiple records).
-// - A message requiring isolation (e.g., EncryptedExtensions, type 8).
-//
-// If a split is necessary, the function adjusts the original record and
-// creates a trailing "leftover" record for the remainder. Both records are
-// appended to the connection’s TLS processing queue.
-//
-// @param[in,out] entry
-//     Pointer to the TLS record entry to inspect and split if needed.
-//
-// @returns 1 if an incomplete record was left on the list, -1 if an error
-// occured, or 0 if a complete record was made.
-//
-// @note Message lengths are read from the first 3 bytes of a 4-byte field
-//       (TLS handshake header). The total length includes a 1-byte type and
-//       a 3-byte length field.
-//
-// @note Records containing EncryptedExtensions (type 8) must be isolated
-//       unless they appear first in the datagram.
-//
-// @warning Assumes the record buffer contains valid TLS handshake formatting.
-//
-static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
-{
-    RECORD_ENTRY *leftover = NULL;
-    const uint8_t *idx;
-    uint8_t message_type;
-    size_t total_message_size = 0;
-    uint32_t message_size = 0;
-    struct AUX_DATA *AData;
-    uint8_t Incomplete = 0;
-    uint8_t force_split = 0;
-
-    AData = GetSslAuxData(Entry->Ssl);
-    CXPLAT_DBG_ASSERT(AData != NULL);
-
-    do {
-        leftover = NULL;
-        total_message_size = 0;
-        Incomplete = 0;
-        force_split = 0;
-
-        //
-        // set our cursor to the start of the message
-        //
-        idx = Entry->Record;
-
-        while (total_message_size < Entry->RecLen) {
-            if (Entry->RecLen - total_message_size < sizeof(message_size)) {
-                //
-                // The TLS handshake header is split across datagrams.
-                // Wait for the remaining header bytes before reading it.
-                //
-                Incomplete = 1;
-            } else {
-                message_type = *idx;
-                memcpy(&message_size, idx, sizeof(message_size));
-
-                //
-                //message size is just the lower 3 bytes of the TLS record
-                //
-                message_size = htonl(message_size) & 0x00ffffff;
-
-                //
-                // If this message extends past the end of the record, its remainder
-                // is in a later datagram, so it is incomplete.
-                //
-                if (total_message_size + message_size + 4 > Entry->RecLen) {
-                    Incomplete = 1;
-                }
-
-                //
-                // A complete handshake FINISHED ends the flight, so trim the record
-                // to its end and ignore any padding that follows. An incomplete one
-                // is handled like any other incomplete message below.
-                //
-                if (message_type == SSL3_MT_FINISHED && Incomplete == 0) {
-                    Entry->RecLen = total_message_size + message_size + 4;
-                    goto insert_now;
-                }
-
-                //
-                // An epoch key change message (8 is EncryptedExtensions) must be
-                // split as rcv_rec expects it isolated, but only if it isn't the
-                // first message in this record.
-                //
-                if ((message_type == 8) && (total_message_size != 0)) {
-                    force_split = 1;
-                }
-            }
-
-            if (Incomplete == 1 || force_split == 1) {
-                if (total_message_size == 0) {
-                    //
-                    // If this is the first record, just mark this one
-                    // as being incomplete
-                    //
-                    Entry->Incomplete = 1;
-                } else {
-                    //
-                    //create the incomplete trailing record
-                    //
-                     leftover = MakeNewRecord(idx, Entry->RecLen - total_message_size,
-                                                                            Entry->Ssl);
-                     //
-                     //reduce the size of this Entry to drop whats contained
-                     //in the leftover
-                     //
-                     if (leftover != NULL) {
-                         Entry->RecLen -= leftover->RecLen;
-                         leftover->Incomplete = Incomplete;
-                     }
-                }
-                break;
-            }
-            total_message_size += message_size + 4;
-            idx += message_size + 4;
-        }
-
-        //
-        // Add the Entry, and potentially process the leftover record.
-        //
-
-insert_now:
-        *Consumed -= Entry->RecLen;
-        CxPlatListInsertTail(&AData->RecordList, &Entry->Link);
-        Entry = leftover;
-    } while (leftover != NULL);
-
-    return Incomplete;
-}
-
-//
-// @brief Merges a new TLS record fragment into a previously incomplete record.
-//
-// This function searches the current TLS record list for the given SSL
-// connection to find an incomplete record. If one is found, it appends
-// the new record data to it, marks the record as complete, and returns
-// the updated entry.
-//
-// If no incomplete record exists, or if the most recent entry is complete,
-// the function returns NULL, and the new record should be treated as a
-// standalone message.
-//
-// @param[in] new_record
-//     Pointer to the new TLS record fragment to merge.
-//
-// @param[in] new_RecLen
-//     Length of the new record fragment in bytes.
-//
-// @param[in] new_ssl
-//     Pointer to the OpenSSL SSL object associated with the record stream.
-//
-// @return
-//     Pointer to the updated `record_entry` if merged, or NULL if no
-//     incomplete record was found or merged.
-//
-// @note This function assumes the input fragment follows a previously
-//       detected split TLS message (e.g., split across multiple QUIC packets).
-//
-// @warning The function asserts that the record memory allocation succeeds.
-//
-static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
-                                         size_t NewRecLen,
-                                         SSL *NewSsl, size_t *Consumed)
-{
-    RECORD_ENTRY *entry;
-    struct AUX_DATA *AData;
-    RECORD_ENTRY *MergedEntry;
-    CXPLAT_LIST_ENTRY* lentry;
-
-    AData = GetSslAuxData(NewSsl);
-
-    lentry = AData->RecordList.Flink;
-    if (lentry != &AData->RecordList) {
-        entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
-        if (entry->Incomplete) {
-            //
-            // We have an incomplete record for this SSL
-            // merge them
-            //
-            CxPlatListEntryRemove(&entry->Link);
-            MergedEntry = CXPLAT_ALLOC_NONPAGED(sizeof(RECORD_ENTRY) + entry->RecLen + NewRecLen, QUIC_POOL_TLS_RECORD_ENTRY);
-            //TmpRec = realloc(entry->Record, entry->RecLen + NewRecLen);
-            if (MergedEntry == NULL) {
-                return NULL;
-            }
-            memcpy(MergedEntry->Record, entry->Record, entry->RecLen);
-            memcpy(&MergedEntry->Record[entry->RecLen], NewRecord, NewRecLen);
-            MergedEntry->RecLen = entry->RecLen + NewRecLen;
-            *Consumed += entry->RecLen;
-            MergedEntry->Incomplete = 0;
-            MergedEntry->FreeMe = 0;
-            MergedEntry->Ssl = entry->Ssl;
-            CXPLAT_FREE(entry, QUIC_POOL_TLS_RECORD_ENTRY);
-            return MergedEntry;
-        }
-        //
-        //current record is complete, nothing to coalesce
-        //
-        return NULL;
-    }
-  return NULL;
-}
-
-//
-// @brief Processes a newly received TLS record for a QUIC connection.
-//
-// This function handles a new TLS record by either merging it with a
-// previously incomplete record (if one exists), or by creating a new
-// `record_entry`. The resulting complete or partial record(s) are
-// passed to `SplitAddRecord` for potential splitting and queuing.
-//
-// This is part of the QUIC TLS record processing pipeline and ensures
-// correct reconstruction of fragmented handshake messages.
-//
-// @param[in] ssl
-//     Pointer to the OpenSSL SSL object associated with the connection.
-//
-// @param[in] record
-//     Pointer to the newly received TLS record buffer.
-//
-// @param[in] RecLen
-//     Length of the TLS record buffer in bytes.
-//
-// @return
-//     Returns 1 if processing succeeded, 0 if allocation or merge failed
-//     or 2 if processing succeded but an incomplete record is at the end of
-//     the chain
-//
-// @note If a matching incomplete record exists, this function merges the
-//       data before proceeding.
-//
-// @warning Assumes valid TLS handshake record formatting.
-//
-static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen, size_t *Consumed)
-{
-    RECORD_ENTRY *this_rec;
-    int SplitRet;
-    int Ret = 1;
-
-    this_rec = GetIncompleteRecord(Record, RecLen, Ssl, Consumed);
-    if (this_rec == NULL) {
-        //
-        //No imcomplete Records, just create a new one
-        //
-        this_rec = MakeNewRecord(Record, RecLen, Ssl);
-        if (this_rec == NULL) {
-            return 0;
-        }
-    }
-
-    SplitRet = SplitAddRecord(this_rec, Consumed);
-
-    if (SplitRet == 1) {
-        Ret = 2;
-    } else if (SplitRet == -1) {
-        Ret = 0;
-    }
-    return Ret;
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessData(
@@ -3127,11 +2744,7 @@ CxPlatTlsProcessData(
     )
 {
     int Ret;
-    int MRet;
     struct AUX_DATA *AData = GetSslAuxData(TlsContext->Ssl);
-    RECORD_ENTRY *entry;
-    CXPLAT_LIST_ENTRY* lentry;
-    size_t Consumed = 0;
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     TlsContext->State = State;
@@ -3190,27 +2803,11 @@ CxPlatTlsProcessData(
         goto Exit;
     }
 
-    if (Buffer != NULL) {
-        Consumed = *BufferLength;
-        MRet = ProcessNewMessage(TlsContext->Ssl, Buffer,
-                                 *BufferLength, &Consumed);
-        if (MRet == 0) {
-            //
-            // There was a record processing failure.
-            // Indicate we consumed nothing and stop the handshake path.
-            //
-            QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "ProcessNewMessage failed");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
-            Consumed = 0;
-            goto Exit;
-        }
-        *BufferLength = *BufferLength - (uint32_t)Consumed;
-    }
+    CXPLAT_DBG_ASSERT(AData->InputBuffer == NULL);
+    CXPLAT_DBG_ASSERT(AData->OutstandingLength == 0);
+    AData->InputBuffer = Buffer;
+    AData->InputLength = *BufferLength;
+    AData->InputOffset = 0;
 
     if (!State->HandshakeComplete) {
 more_handshake:
@@ -3246,19 +2843,8 @@ more_handshake:
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
-        } else {
-            lentry = AData->RecordList.Flink;
-            if (lentry != &AData->RecordList) {
-                entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
-                //
-                // If the first entry on the list is
-                // not incomplete, try to move the handshake
-                // forward, otherwise we're done here
-                //
-                if (entry->Incomplete != 1) {
-                    goto more_handshake;
-                }
-            }
+        } else if (AData->InputOffset < AData->InputLength) {
+            goto more_handshake;
         }
 
         if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT
@@ -3373,6 +2959,19 @@ more_handshake:
     }
 
 Exit:
+
+    if (DataType == CXPLAT_TLS_CRYPTO_DATA) {
+        if (AData->OutstandingLength != 0) {
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+            *BufferLength = 0;
+        } else {
+            *BufferLength = (uint32_t)AData->InputOffset;
+        }
+        AData->InputBuffer = NULL;
+        AData->InputLength = 0;
+        AData->InputOffset = 0;
+    }
 
     //
     // Always set buffer offsets if keys have been installed to preserve code invariants.
