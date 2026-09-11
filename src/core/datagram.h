@@ -33,17 +33,32 @@ typedef struct QUIC_DATAGRAM {
     uint16_t MaxSendLength;
 
     //
+    // The send state last indicated to the application, which is not always the
+    // live state above. The two differ while a change made with no external
+    // owner to indicate it to remains unreported, which is the normal case for a
+    // server: the peer's transport parameters are processed before the listener
+    // hands the connection to the application.
+    //
+    uint16_t IndicatedMaxSendLength;
+
+    //
     // Indicates that datagrams are allowed by the peer and can be queued up to
     // send.
     //
     BOOLEAN SendEnabled : 1;
+
+    //
+    // The `SendEnabled` last indicated to the application.
+    //
+    BOOLEAN IndicatedSendEnabled : 1;
 
 } QUIC_DATAGRAM;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicDatagramInitialize(
-    _In_ QUIC_DATAGRAM* Datagram
+    _In_ QUIC_DATAGRAM* Datagram,
+    _In_ BOOLEAN IsServer
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
