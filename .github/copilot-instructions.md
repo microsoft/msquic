@@ -22,7 +22,7 @@ MsQuic is Microsoft's cross-platform C implementation of the IETF QUIC protocol.
 | `src/manifest/` | Windows ETW manifest and CLOG config (`clog.sidecar`, `msquic.clog_config`) |
 | `scripts/` | PowerShell build/test/CI scripts (cross-platform via pwsh) |
 | `docs/` | Documentation: `BUILD.md`, `TEST.md`, `API.md`, `Architecture.md`, etc. |
-| `submodules/` | Git submodules: `googletest`, `quictls`, `openssl`, `clog`, `xdp-for-windows` |
+| `submodules/` | Git submodules: `googletest`, `quictls`, `openssl`, `clog` |
 | `cmake/` | CMake helper modules and toolchain files |
 | `.github/workflows/` | CI workflows: `build.yml`, `test.yml`, `cargo.yml`, `check-clog.yml`, `check-dotnet.yml` |
 
