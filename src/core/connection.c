@@ -5862,8 +5862,8 @@ QuicConnRecvDatagrams(
                     Cipher,
                     &RecvState);
                 CxPlatMoveMemory(
-                    Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH,
                     Cipher,
+                    Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH,
                     CXPLAT_HP_SAMPLE_LENGTH);
                 BatchCount = 0;
             }
