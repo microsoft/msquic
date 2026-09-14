@@ -2864,7 +2864,7 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 //     Pointer to the TLS record entry to inspect and split if needed.
 //
 // @returns 1 if an incomplete record was left on the list, -1 if an error
-// occured, or 0 if a complete record was made.
+// occurred, or 0 if a complete record was made.
 //
 // @note Message lengths are read from the first 3 bytes of a 4-byte field
 //       (TLS handshake header). The total length includes a 1-byte type and
