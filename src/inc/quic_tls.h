@@ -212,7 +212,7 @@ typedef enum CXPLAT_TLS_RESULT_FLAGS {
     CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0010, // The server accepted the early (0-RTT) data.
     CXPLAT_TLS_RESULT_EARLY_DATA_REJECT   = 0x0020, // The server rejected the early (0-RTT) data.
     CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE  = 0x0040, // Handshake complete.
-    CXPLAT_TLS_RESULT_ERROR               = 0x8000  // An error occured.
+    CXPLAT_TLS_RESULT_ERROR               = 0x8000  // An error occurred.
 
 } CXPLAT_TLS_RESULT_FLAGS;
 
