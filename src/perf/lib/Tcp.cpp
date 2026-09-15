@@ -864,7 +864,8 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
         // A partial frame is buffered, keep buffering until we have a full frame.
         //
         auto Frame = (TcpFrame*)BufferedData;
-        auto FrameLength = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
+        const uint32_t FrameLength =
+            (uint32_t)sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
         if (FrameLength > sizeof(BufferedData)) {
             WriteOutput("ProcessReceiveData FAILED invalid frame length\n");
             return false;
