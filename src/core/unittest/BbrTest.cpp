@@ -16,8 +16,11 @@ Abstract:
 
 extern "C" {
 void BbrCongestionControlInitialize(QUIC_CONGESTION_CONTROL* Cc, const QUIC_SETTINGS_INTERNAL* Settings);
+void BbrCongestionControlInitializeV3(QUIC_CONGESTION_CONTROL* Cc, const QUIC_SETTINGS_INTERNAL* Settings);
 uint64_t BbrCongestionControlGetBandwidth(const QUIC_CONGESTION_CONTROL* Cc);
 uint32_t BbrCongestionControlGetTargetCwnd(QUIC_CONGESTION_CONTROL* Cc, uint32_t Gain);
+void BbrCongestionControlUpdateCongestionWindow(QUIC_CONGESTION_CONTROL* Cc, uint64_t TotalBytesAcked, uint64_t AckedBytes);
+void BbrCongestionControlSetSendQuantum(QUIC_CONGESTION_CONTROL* Cc);
 }
 
 //
@@ -1397,8 +1400,7 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_CappedByQuarter)
 //
 // Test: GetSendAllowance - Non-STARTUP Pacing Formula in PROBE_BW
 // Scenario: Drives BBR to PROBE_BW state via DriveToBtlbwFound() with PacingEnabled=TRUE.
-// In PROBE_BW, the pacing gain cycle values are used. With BytesInFlight=0 and
-// TimeSinceLastSend=10000, the result is capped to CW >> 2.
+// At unit gain, 120 KB/s allows 1200 bytes in 10 ms, below CW >> 2.
 //
 TEST_F(BbrTest_DeepTest, GetSendAllowance_NonStartupPacing)
 {
@@ -1417,9 +1419,11 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_NonStartupPacing)
 
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
 
+    Bbr->PacingGain = 256;
     uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 10000, TRUE);
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
-    ASSERT_EQ(Allowance, CW >> 2);
+    ASSERT_EQ(Allowance, 1200u);
+    ASSERT_LT(Allowance, CW >> 2);
 }
 
 TEST_F(BbrTest_DeepTest, Initialize_DefaultState)
@@ -1781,11 +1785,11 @@ TEST_F(BbrTest_DeepTest, SetSendQuantum_MediumPacingRate)
 }
 
 //
-// Test: SetSendQuantum - High Pacing Rate Sets 64KB Cap
+// Test: SetSendQuantum - High Pacing Rate Uses a Millisecond Budget
 // Scenario: Establishes very high bandwidth ~100,000,000 in the filter via a crafted
 // packet with tight timing (800us intervals). In STARTUP with PacingGain=739,
 // PacingRate=288,671,875. This exceeds kHigh*8=192,000,000, so SendQuantum is set to
-// min(PacingRate*1000/8, 65536) = 65536.
+// min(PacingRate/1000/8, 65536) = 36083.
 //
 TEST_F(BbrTest_DeepTest, SetSendQuantum_HighPacingRate)
 {
@@ -1816,9 +1820,9 @@ TEST_F(BbrTest_DeepTest, SetSendQuantum_HighPacingRate)
     // BW=100,000,000. In STARTUP, PacingGain=kHighGain=739.
     // PacingRate = 100000000*739/256 = 288,671,875.
     // 288,671,875 >= kHigh*8=192,000,000
-    // → high pacing rate path → SendQuantum = min(288671875*1000/8, 65536) = 65536
+    // → high pacing rate path → SendQuantum = min(288671875/1000/8, 65536) = 36083
     //
-    ASSERT_EQ(Bbr->SendQuantum, (uint64_t)65536);
+    ASSERT_EQ(Bbr->SendQuantum, (uint64_t)36083);
 }
 
 //
@@ -2219,4 +2223,363 @@ TEST_F(BbrTest_DeepTest, SetExemption_Zero)
 
     CC->QuicCongestionControlSetExemption(CC, 0);
     ASSERT_EQ(CC->QuicCongestionControlGetExemptions(CC), 0u);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3InitializationSelectsV3Policy)
+{
+    Settings.InitialWindowPackets = 10;
+    Settings.CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3;
+    InitBbrMockConnection(Connection, 1280);
+    CC = &Connection.CongestionControl;
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr = &CC->Bbr;
+
+    ASSERT_STREQ(CC->Name, "BBRv3");
+    ASSERT_TRUE(Bbr->BbrVersion3);
+    ASSERT_EQ(Bbr->V3.InflightHigh, UINT32_MAX);
+    ASSERT_EQ(Bbr->V3.InflightLow, UINT32_MAX);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3PacingUsesBytesPerMicrosecond)
+{
+    InitializeWithDefaults(100, 1280, true);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->PacingGain = 256;
+    Bbr->MinRtt = 50000;
+    Bbr->MinRttTimestampValid = TRUE;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+
+    // 1 MB/s permits 1 KB in one millisecond, independent of the much larger cwnd.
+    ASSERT_EQ(CC->QuicCongestionControlGetSendAllowance(CC, 1000, TRUE), 1000u);
+    ASSERT_EQ(CC->QuicCongestionControlGetSendAllowance(CC, 0, TRUE), 0u);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3SendQuantumIsOneMillisecond)
+{
+    InitializeWithDefaults();
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->PacingGain = 256;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 240000000, 0);
+    BbrCongestionControlSetSendQuantum(CC);
+    ASSERT_EQ(Bbr->SendQuantum, 30000u);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3AckAggregationCannotBypassInflightBound)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BtlbwFound = TRUE;
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->PacingGain = 256;
+    Bbr->MinRtt = 50000;
+    Bbr->MinRttTimestampValid = TRUE;
+    Bbr->V3.InflightLow = 20000;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->MaxAckHeightFilter, 40000, 0);
+    BbrCongestionControlUpdateCongestionWindow(CC, 200000, 10000);
+    ASSERT_LE(CC->QuicCongestionControlGetCongestionWindow(CC), 20000u);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3CruiseDoesNotAdvanceOnEveryAck)
+{
+    InitializeWithDefaults();
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BtlbwFound = TRUE;
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->V3.Phase = BBR_V3_PHASE_CRUISE;
+    Bbr->PacingGain = 256;
+    Bbr->CycleStart = 1000000;
+    Bbr->MinRtt = 50000;
+    Bbr->MinRttTimestamp = 1000000;
+    Bbr->MinRttTimestampValid = TRUE;
+    CC->QuicCongestionControlOnDataSent(CC, 1200);
+    auto Ack = MakeBbrAckEvent(1000001, 1, 2, 1200);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->V3.Phase, BBR_V3_PHASE_CRUISE);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3RefillClearsShortTermBoundsAndWaitsForPacketRound)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BtlbwFound = TRUE;
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->V3.Phase = BBR_V3_PHASE_CRUISE;
+    Bbr->CycleStart = 1000000;
+    Bbr->V3.ProbeWait = 2000000;
+    Bbr->V3.InflightLow = 20000;
+    Bbr->V3.BandwidthLow = 4000000;
+    Bbr->V3.InflightHigh = 40000;
+
+    auto Ack = MakeBbrAckEvent(3000000, 10, 100, 0);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->V3.Phase, BBR_V3_PHASE_REFILL);
+    ASSERT_EQ(Bbr->V3.InflightLow, UINT32_MAX);
+    ASSERT_EQ(Bbr->V3.BandwidthLow, UINT64_MAX);
+    ASSERT_EQ(Bbr->V3.InflightHigh, 40000u);
+    Ack.LargestAck = 99;
+    Ack.TimeNow += 50000;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->V3.Phase, BBR_V3_PHASE_REFILL);
+    Ack.LargestAck = 101;
+    Ack.LargestSentPacketNumber = 110;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->V3.Phase, BBR_V3_PHASE_UP);
+    ASSERT_EQ(Bbr->PacingGain, 320u);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3ProbeLossThresholdUsesSentFlight)
+{
+    for (uint16_t LostBytes : {uint16_t(1000), uint16_t(1001)}) {
+        InitializeWithDefaults(100);
+        BbrCongestionControlInitializeV3(CC, &Settings);
+        Bbr->BtlbwFound = TRUE;
+        Bbr->BbrState = BBR_STATE_PROBE_BW;
+        Bbr->V3.Phase = BBR_V3_PHASE_UP;
+        Bbr->V3.ProbeSamples = TRUE;
+        Bbr->PacingGain = 320;
+        Bbr->CycleStart = 1000000;
+        // By detection time the rest of the 50 KB flight has already drained.
+        CC->QuicCongestionControlOnDataSent(CC, LostBytes);
+        QUIC_MAX_SENT_PACKET_METADATA Packet{};
+        Packet.Metadata.Flags.IsAckEliciting = TRUE;
+        Packet.Metadata.Flags.IsBbrProbe = TRUE;
+        Packet.Metadata.InflightAtSend = 50000;
+        Packet.Metadata.PacketLength = LostBytes;
+        Packet.Metadata.PacketNumber = 1;
+        auto Loss = MakeBbrLossEvent(LostBytes, 1, 10);
+        Loss.TimeNow = 1100000;
+        Loss.LostPackets = &Packet.Metadata;
+        CC->QuicCongestionControlOnDataLost(CC, &Loss);
+        if (LostBytes == 1000) {
+            ASSERT_EQ(Bbr->V3.InflightHigh, UINT32_MAX);
+            ASSERT_EQ(Bbr->V3.Phase, BBR_V3_PHASE_UP);
+        } else {
+            ASSERT_GT(Bbr->V3.InflightHigh, 40000u);
+            ASSERT_EQ(Bbr->V3.Phase, BBR_V3_PHASE_DOWN);
+            ASSERT_EQ(Bbr->CycleStart, Loss.TimeNow);
+        }
+    }
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3ShortTermBandwidthAdaptsOncePerLossRound)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BtlbwFound = TRUE;
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->V3.Phase = BBR_V3_PHASE_CRUISE;
+    Bbr->CycleStart = 1000000;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+    CC->QuicCongestionControlOnDataSent(CC, 10000);
+    auto Loss = MakeBbrLossEvent(1200, 1, 10);
+    CC->QuicCongestionControlOnDataLost(CC, &Loss);
+    auto Ack = MakeBbrAckEvent(1100000, 11, 20, 1200);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->V3.BandwidthLow, 5600000u);
+    ASSERT_EQ(BbrCongestionControlGetBandwidth(CC), 5600000u);
+    uint32_t InflightLow = Bbr->V3.InflightLow;
+    Ack.LargestAck = 12;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->V3.BandwidthLow, 5600000u);
+    ASSERT_EQ(Bbr->V3.InflightLow, InflightLow);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3StartupUsesTheBandwidthPacer)
+{
+    InitializeWithDefaults(100, 1280, true);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->MinRtt = 50000;
+    Bbr->MinRttTimestampValid = TRUE;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+    ASSERT_EQ(CC->QuicCongestionControlGetSendAllowance(CC, 1000, TRUE), 2769u);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3ProbeRttUsesHalfBdpAndACompleteRound)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BtlbwFound = TRUE;
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->V3.Phase = BBR_V3_PHASE_CRUISE;
+    Bbr->CycleStart = 5900000;
+    Bbr->MinRtt = 50000;
+    Bbr->MinRttTimestampValid = TRUE;
+    Bbr->MinRttTimestamp = 1000000;
+    Bbr->V3.ProbeRttMin = 50000;
+    Bbr->V3.ProbeRttMinTimestamp = 1000000;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+    auto Ack = MakeBbrAckEvent(6000001, 1, 100, 0, 60000, 60000);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_RTT);
+    ASSERT_EQ(CC->QuicCongestionControlGetCongestionWindow(CC), 25000u);
+    Ack.TimeNow += 200001;
+    Ack.LargestAck = 99;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_RTT);
+    Ack.LargestAck = 101;
+    Ack.LargestSentPacketNumber = 110;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3ProbeRttRespectsModelAndRecoveryBounds)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BbrState = BBR_STATE_PROBE_RTT;
+    Bbr->MinRtt = 100000;
+    Bbr->MinRttTimestampValid = TRUE;
+    Bbr->V3.InflightHigh = 10000;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+    ASSERT_EQ(CC->QuicCongestionControlGetCongestionWindow(CC), 8500u);
+    CC->QuicCongestionControlOnDataSent(CC, 1200);
+    auto Loss = MakeBbrLossEvent(1200, 1, 2, TRUE);
+    CC->QuicCongestionControlOnDataLost(CC, &Loss);
+    ASSERT_EQ(CC->QuicCongestionControlGetCongestionWindow(CC),
+        4u * QuicPathGetDatagramPayloadSize(&Connection.Paths[0]));
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3ProbeLossCannotRaiseBoundFromStaleBandwidth)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->V3.Phase = BBR_V3_PHASE_UP;
+    Bbr->V3.ProbeSamples = TRUE;
+    Bbr->V3.InflightHigh = 10000;
+    Bbr->MinRtt = 100000;
+    Bbr->MinRttTimestampValid = TRUE;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+    QUIC_MAX_SENT_PACKET_METADATA Packet{};
+    Packet.Metadata.Flags.IsAckEliciting = TRUE;
+    Packet.Metadata.Flags.IsBbrProbe = TRUE;
+    Packet.Metadata.PacketNumber = 1;
+    Packet.Metadata.PacketLength = 1200;
+    Packet.Metadata.InflightAtSend = 10000;
+    CC->QuicCongestionControlOnDataSent(CC, 1200);
+    auto Loss = MakeBbrLossEvent(1200, 1, 10);
+    Loss.LostPackets = &Packet.Metadata;
+    CC->QuicCongestionControlOnDataLost(CC, &Loss);
+    ASSERT_LE(Bbr->V3.InflightHigh, 10000u);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3RecoveryRestoresWindowBeforeModelCaps)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BtlbwFound = TRUE;
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->V3.Phase = BBR_V3_PHASE_CRUISE;
+    Bbr->CycleStart = 1000000;
+    Bbr->MinRtt = 100000;
+    Bbr->MinRttTimestampValid = TRUE;
+    Bbr->MinRttTimestamp = 1000000;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+    CC->QuicCongestionControlOnDataSent(CC, 2400);
+    auto Loss = MakeBbrLossEvent(1200, 1, 10);
+    CC->QuicCongestionControlOnDataLost(CC, &Loss);
+    auto Ack = MakeBbrAckEvent(1100000, 2, 10, 1200);
+    Ack.HasLoss = TRUE;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_LE(Bbr->CongestionWindow, 4u * QuicPathGetDatagramPayloadSize(&Connection.Paths[0]));
+    // A clean round permits normal recovery exit; the current model still bounds it.
+    Bbr->V3.LossInRound = FALSE;
+    Bbr->V3.InflightLow = 40000;
+    Ack.LargestAck = 11;
+    Ack.LargestSentPacketNumber = 12;
+    Ack.NumRetransmittableBytes = 0;
+    Ack.HasLoss = FALSE;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(CC->QuicCongestionControlGetCongestionWindow(CC), 40000u);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3LargeBdpSaturatesWithoutWrapping)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->MinRtt = UINT64_MAX / 2;
+    Bbr->MinRttTimestampValid = TRUE;
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->BandwidthFilter.WindowedMaxFilter, 8000000, 0);
+    ASSERT_EQ(BbrCongestionControlGetTargetCwnd(CC, 512), UINT32_MAX);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3WindowLimitedProbeGrowsInsteadOfDeclaringPlateau)
+{
+    InitializeWithDefaults(100);
+    BbrCongestionControlInitializeV3(CC, &Settings);
+    Bbr->BtlbwFound = TRUE;
+    Bbr->BbrState = BBR_STATE_PROBE_BW;
+    Bbr->V3.Phase = BBR_V3_PHASE_UP;
+    Bbr->V3.ProbeSamples = TRUE;
+    Bbr->V3.ProbeStartPacketNumber = 101;
+    Bbr->V3.InflightHigh = 10000;
+    Bbr->V3.ProbeUpCount = 10000;
+    Bbr->CongestionWindow = 10000;
+    Bbr->EndOfRoundTripValid = TRUE;
+    Bbr->EndOfRoundTrip = 100;
+    Bbr->SlowStartupRoundCounter = 2;
+    Bbr->LastEstimatedStartupBandwidth = 8000000;
+    Bbr->PacingGain = 320;
+    Bbr->CwndGain = 512;
+    auto Packet = MakeBbrPacket(5000, TRUE, FALSE,
+        6000, 1000000, 1000, 995000, 0, 1045000, 1045000);
+    Packet.Metadata.PacketNumber = 101;
+    Packet.Metadata.InflightAtSend = 10000;
+    Packet.Metadata.Flags.IsBbrProbe = TRUE;
+    CC->QuicCongestionControlOnDataSent(CC, 10000);
+    auto Ack = MakeBbrAckEvent(1050000, 101, 200, 5000);
+    Ack.AckedPackets = &Packet.Metadata;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+    ASSERT_EQ(Bbr->V3.Phase, BBR_V3_PHASE_UP);
+    ASSERT_EQ(Bbr->SlowStartupRoundCounter, 0u);
+    ASSERT_EQ(Bbr->V3.InflightHigh, 10000u + QuicPathGetDatagramPayloadSize(&Connection.Paths[0]));
+    ASSERT_EQ(CC->QuicCongestionControlGetCongestionWindow(CC), Bbr->V3.InflightHigh);
+}
+
+TEST_F(BbrTest_DeepTest, BbrV3AggregateLossUsesPacketConservationWithoutInventingProbeBound)
+{
+    const auto RunSingleLoss =
+        [](
+            QUIC_CONGESTION_CONTROL_ALGORITHM Algorithm,
+            uint32_t* InflightHigh
+            )
+        {
+            QUIC_CONNECTION Connection{};
+            QUIC_SETTINGS_INTERNAL Settings{};
+            Settings.InitialWindowPackets = 10;
+            Settings.CongestionControlAlgorithm = (uint16_t)Algorithm;
+            InitBbrMockConnection(Connection, 1280);
+
+            QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
+            if (Algorithm == QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3) {
+                BbrCongestionControlInitializeV3(Cc, &Settings);
+            } else {
+                BbrCongestionControlInitialize(Cc, &Settings);
+            }
+
+            const uint32_t InitialWindow = Cc->Bbr.CongestionWindow;
+            const uint32_t LostBytes = 2 * QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+
+            Cc->QuicCongestionControlOnDataSent(Cc, InitialWindow);
+
+            QUIC_LOSS_EVENT Loss = MakeBbrLossEvent(LostBytes, 5, 10);
+            Cc->QuicCongestionControlOnDataLost(Cc, &Loss);
+
+            *InflightHigh = Cc->Bbr.V3.InflightHigh;
+            return Cc->Bbr.RecoveryWindow;
+        };
+
+    uint32_t BbrInflightHigh = 0;
+    uint32_t BbrRecoveryWindow =
+        RunSingleLoss(QUIC_CONGESTION_CONTROL_ALGORITHM_BBR, &BbrInflightHigh);
+
+    uint32_t BbrV3InflightHigh = 0;
+    uint32_t BbrV3RecoveryWindow =
+        RunSingleLoss(QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3, &BbrV3InflightHigh);
+
+    ASSERT_EQ(BbrInflightHigh, UINT32_MAX);
+    ASSERT_EQ(BbrV3InflightHigh, UINT32_MAX);
+    ASSERT_GT(BbrV3RecoveryWindow, BbrRecoveryWindow);
 }

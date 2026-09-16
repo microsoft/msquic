@@ -7780,10 +7780,10 @@ QuicConnApplyNewSettings(
             QuicConnIndicateEvent(Connection, &Event);
         }
 
-        if (Connection->Settings.EcnEnabled) {
-            QUIC_PATH* Path = &Connection->Paths[0];
-            Path->EcnValidationState = ECN_VALIDATION_TESTING;
-        }
+        Connection->Paths[0].EcnValidationState =
+            Connection->Settings.EcnEnabled &&
+            Connection->CongestionControl.QuicCongestionControlOnEcn != NULL ?
+                ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
     }
 
     if (Connection->State.Started &&

@@ -57,6 +57,10 @@ typedef struct QUIC_ACK_EVENT {
 
 typedef struct QUIC_LOSS_EVENT {
 
+    uint64_t TimeNow;
+
+    QUIC_SENT_PACKET_METADATA* LostPackets;
+
     uint64_t LargestPacketNumberLost;
 
     uint64_t LargestSentPacketNumber;

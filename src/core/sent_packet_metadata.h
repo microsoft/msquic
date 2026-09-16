@@ -94,6 +94,7 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
     BOOLEAN IsAppLimited            : 1;
     BOOLEAN HasLastAckedPacketInfo  : 1;
     BOOLEAN EcnEctSet               : 1;
+    BOOLEAN IsBbrProbe              : 1;
 #if DEBUG
     BOOLEAN Freed                   : 1;
 #endif
@@ -148,6 +149,9 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     //
     uint64_t TotalBytesSent;
     uint64_t SentTime; // In microseconds
+    // BBRv3 loss samples describe the flight when this packet was transmitted.
+    uint64_t TotalBytesLost;
+    uint32_t InflightAtSend;
     uint16_t PacketLength;
     uint8_t PathId;
 
