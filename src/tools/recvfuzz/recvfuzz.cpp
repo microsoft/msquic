@@ -832,6 +832,189 @@ void WriteCryptoFrame(
         Buffer);
 }
 
+// Additional frame writers that exercise the receive-path decoders.
+
+void WriteNewTokenFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint8_t Token[64];
+    QUIC_NEW_TOKEN_EX Frame;
+    Frame.TokenLength = (uint8_t)(1 + GetRandom<uint8_t>(63));
+    GetRandomBytes((size_t)Frame.TokenLength, Token);
+    Frame.Token = Token;
+    QuicNewTokenFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteMaxStreamsFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer,
+    _In_ BOOLEAN Bidirectional
+    )
+{
+    QUIC_MAX_STREAMS_EX Frame;
+    Frame.BidirectionalStreams = Bidirectional;
+    Frame.MaximumStreams = GetRandom<uint32_t>();
+    QuicMaxStreamsFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteDataBlockedFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    QUIC_DATA_BLOCKED_EX Frame;
+    Frame.DataLimit = GetRandom<uint32_t>();
+    QuicDataBlockedFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteStreamDataBlockedFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    QUIC_STREAM_DATA_BLOCKED_EX Frame;
+    Frame.StreamID = GetRandom<uint8_t>(4) * 4;
+    Frame.StreamDataLimit = GetRandom<uint32_t>();
+    QuicStreamDataBlockedFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteStreamsBlockedFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer,
+    _In_ BOOLEAN Bidirectional
+    )
+{
+    QUIC_STREAMS_BLOCKED_EX Frame;
+    Frame.BidirectionalStreams = Bidirectional;
+    Frame.StreamLimit = GetRandom<uint16_t>();
+    QuicStreamsBlockedFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteNewConnectionIdFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    QUIC_NEW_CONNECTION_ID_EX Frame;
+    Frame.Sequence = GetRandom<uint16_t>();
+    Frame.RetirePriorTo = GetRandom<uint32_t>((uint32_t)Frame.Sequence + 1);
+    Frame.Length = (uint8_t)(1 + GetRandom<uint8_t>((uint8_t)QUIC_MAX_CONNECTION_ID_LENGTH_V1));
+    GetRandomBytes((size_t)Frame.Length + QUIC_STATELESS_RESET_TOKEN_LENGTH, Frame.Buffer);
+    QuicNewConnectionIDFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteRetireConnectionIdFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    QUIC_RETIRE_CONNECTION_ID_EX Frame;
+    Frame.Sequence = GetRandom<uint16_t>();
+    QuicRetireConnectionIDFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WritePathChallengeFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer,
+    _In_ QUIC_FRAME_TYPE FrameType
+    )
+{
+    QUIC_PATH_CHALLENGE_EX Frame;
+    GetRandomBytes(sizeof(Frame.Data), Frame.Data);
+    QuicPathChallengeFrameEncode(FrameType, &Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteReliableResetFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    QUIC_RELIABLE_RESET_STREAM_EX Frame;
+    Frame.StreamID = GetRandom<uint8_t>(4) * 4;
+    Frame.ErrorCode = GetRandom<uint16_t>();
+    Frame.FinalSize = GetRandom<uint16_t>(1000);
+    Frame.ReliableSize = GetRandom<uint16_t>((uint16_t)(Frame.FinalSize + 1));
+    QuicReliableResetFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteAckFrequencyFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    QUIC_ACK_FREQUENCY_EX Frame;
+    Frame.SequenceNumber = GetRandom<uint16_t>();
+    Frame.AckElicitingThreshold = GetRandom<uint16_t>();
+    Frame.RequestedMaxAckDelay = (uint64_t)GetRandom<uint16_t>() + 1;
+    Frame.ReorderingThreshold = GetRandom<uint16_t>();
+    QuicAckFrequencyFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteImmediateAckFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
+    Buffer[(*Offset)++] = QUIC_FRAME_IMMEDIATE_ACK;
+}
+
+void WriteTimestampFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    QUIC_TIMESTAMP_EX Frame;
+    Frame.Timestamp = GetRandom<uint32_t>();
+    QuicTimestampFrameEncode(&Frame, Offset, BufferLength, Buffer);
+}
+
+void WriteDatagramFrame(
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer,
+    _In_ QUIC_FRAME_TYPE FrameType
+    )
+{
+    if (*Offset + 1 > BufferLength) {
+        return;
+    }
+    Buffer[(*Offset)++] = (uint8_t)FrameType;
+    if (FrameType == QUIC_FRAME_DATAGRAM_1) {
+        uint64_t DataLength = GetRandom<uint8_t>(200);
+        if (*Offset + QuicVarIntSize(DataLength) > BufferLength) {
+            return;
+        }
+        QuicVarIntEncode(DataLength, Buffer + *Offset);
+        *Offset += QuicVarIntSize(DataLength);
+        if (*Offset + DataLength <= BufferLength) {
+            GetRandomBytes((size_t)DataLength, Buffer + *Offset);
+            *Offset += (uint16_t)DataLength;
+        }
+    } else {
+        uint16_t Remaining = BufferLength > *Offset ? (uint16_t)(BufferLength - *Offset) : 0;
+        uint16_t DataLength = Remaining == 0 ? 0 : GetRandom<uint16_t>(Remaining);
+        GetRandomBytes((size_t)DataLength, Buffer + *Offset);
+        *Offset += DataLength;
+    }
+}
+
 void WriteFrames(
     _Inout_ uint16_t* PayloadLength,
     _In_ uint16_t BufferSize,
@@ -898,6 +1081,38 @@ void WriteFrames(
                 BufferSize,
                 Buffer,
                 (uint8_t)PacketParams->FrameTypes[i]);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_NEW_TOKEN) {
+            WriteNewTokenFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_MAX_STREAMS ||
+                   PacketParams->FrameTypes[i] == QUIC_FRAME_MAX_STREAMS_1) {
+            WriteMaxStreamsFrame(PayloadLength, BufferSize, Buffer,
+                (BOOLEAN)(PacketParams->FrameTypes[i] == QUIC_FRAME_MAX_STREAMS));
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_DATA_BLOCKED) {
+            WriteDataBlockedFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_STREAM_DATA_BLOCKED) {
+            WriteStreamDataBlockedFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_STREAMS_BLOCKED ||
+                   PacketParams->FrameTypes[i] == QUIC_FRAME_STREAMS_BLOCKED_1) {
+            WriteStreamsBlockedFrame(PayloadLength, BufferSize, Buffer,
+                (BOOLEAN)(PacketParams->FrameTypes[i] == QUIC_FRAME_STREAMS_BLOCKED));
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_NEW_CONNECTION_ID) {
+            WriteNewConnectionIdFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_RETIRE_CONNECTION_ID) {
+            WriteRetireConnectionIdFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_PATH_CHALLENGE ||
+                   PacketParams->FrameTypes[i] == QUIC_FRAME_PATH_RESPONSE) {
+            WritePathChallengeFrame(PayloadLength, BufferSize, Buffer, PacketParams->FrameTypes[i]);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_RELIABLE_RESET_STREAM) {
+            WriteReliableResetFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_ACK_FREQUENCY) {
+            WriteAckFrequencyFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_IMMEDIATE_ACK) {
+            WriteImmediateAckFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_TIMESTAMP) {
+            WriteTimestampFrame(PayloadLength, BufferSize, Buffer);
+        } else if (PacketParams->FrameTypes[i] == QUIC_FRAME_DATAGRAM ||
+                   PacketParams->FrameTypes[i] == QUIC_FRAME_DATAGRAM_1) {
+            WriteDatagramFrame(PayloadLength, BufferSize, Buffer, PacketParams->FrameTypes[i]);
         } else {
             // Unknown/invalid frame type - write as-is for fuzzing
             WriteUnknownFrame(
@@ -1583,26 +1798,39 @@ void Fuzz1Rtt(
     // Send fuzzed 1-RTT packets with randomized frame types
     //
     PacketParams.NumFrames = 1;
-    // Randomly select frame type for fuzzing
-    uint8_t FrameChoice = GetRandom<uint8_t>(50);
-    if (FrameChoice == 0) {
-        // 2%: Unknown/invalid frame
+    // 1-RTT frames the receive path decodes; stream/unknown stay weighted.
+    static const QUIC_FRAME_TYPE ShortHeaderFuzzFrames[] = {
+        QUIC_FRAME_PING,
+        QUIC_FRAME_RESET_STREAM,
+        QUIC_FRAME_STOP_SENDING,
+        QUIC_FRAME_MAX_DATA,
+        QUIC_FRAME_MAX_STREAM_DATA,
+        QUIC_FRAME_MAX_STREAMS,
+        QUIC_FRAME_MAX_STREAMS_1,
+        QUIC_FRAME_DATA_BLOCKED,
+        QUIC_FRAME_STREAM_DATA_BLOCKED,
+        QUIC_FRAME_STREAMS_BLOCKED,
+        QUIC_FRAME_STREAMS_BLOCKED_1,
+        QUIC_FRAME_NEW_CONNECTION_ID,
+        QUIC_FRAME_RETIRE_CONNECTION_ID,
+        QUIC_FRAME_PATH_CHALLENGE,
+        QUIC_FRAME_PATH_RESPONSE,
+        QUIC_FRAME_NEW_TOKEN,
+        QUIC_FRAME_DATAGRAM,
+        QUIC_FRAME_DATAGRAM_1,
+        QUIC_FRAME_ACK_FREQUENCY,
+        QUIC_FRAME_IMMEDIATE_ACK,
+        QUIC_FRAME_TIMESTAMP,
+        QUIC_FRAME_RELIABLE_RESET_STREAM,
+    };
+    uint8_t FrameChoice = GetRandom<uint8_t>(100);
+    if (FrameChoice < 2) {
         PacketParams.FrameTypes[0] = (QUIC_FRAME_TYPE)(0x20 + GetRandom<uint8_t>(20));
-    } else if (FrameChoice < 31) {
-        // 60%: Randomize stream frame type (0x08-0x0f) to vary FIN, LEN, and OFF bits
+    } else if (FrameChoice < 40) {
         PacketParams.FrameTypes[0] = (QUIC_FRAME_TYPE)(QUIC_FRAME_STREAM + GetRandom<uint8_t>(8));
-    } else if (FrameChoice < 36) {
-        // 10%: PING
-        PacketParams.FrameTypes[0] = QUIC_FRAME_PING;
-    } else if (FrameChoice < 41) {
-        // 10%: RESET_STREAM
-        PacketParams.FrameTypes[0] = QUIC_FRAME_RESET_STREAM;
-    } else if (FrameChoice < 46) {
-        // 10%: MAX_DATA
-        PacketParams.FrameTypes[0] = QUIC_FRAME_MAX_DATA;
     } else {
-        // 8%: MAX_STREAM_DATA
-        PacketParams.FrameTypes[0] = QUIC_FRAME_MAX_STREAM_DATA;
+        PacketParams.FrameTypes[0] =
+            ShortHeaderFuzzFrames[GetRandom<uint8_t>((uint8_t)ARRAYSIZE(ShortHeaderFuzzFrames))];
     }
     PacketParams.NumPackets = GetRandom<uint8_t>(10) + 5;
     BuildAndSendShortHeaderPackets(Binding, Route, &PacketParams, &ClientContext, true);
