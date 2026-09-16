@@ -115,28 +115,6 @@ Download: 2996595053 bytes @ 4793496 kbps (5001.101 ms).
 App Main returning status 0
 ```
 
-## BBRv3 Emulated WAN Comparison
-
-The BBRv3 comparison matrix is wrapped by `scripts/bbrv3-emulated-benchmark.ps1`.
-It runs `cubic`, `bbr`, and `bbrv3` through the existing DuoNic emulated
-performance harness across regular mid-latency throughput, fixed-seed random
-throughput, moderate packet-loss, random-loss sweep, shallow-buffer, shallow
-buffer plus loss, and high-BDP random-loss scenarios.
-The comparison supports QUIC only; TCP uses the operating system's congestion
-controller, so MsQuic's `-cc` selection does not apply to TCP workloads.
-
-The added BBR-focused cases map to the path types called out by BBR's design:
-random loss, shallow buffers, and higher-BDP paths where loss-based controllers
-can under-fill the path after loss. Use `-PrintConnectionStats` to store
-per-iteration RTT/loss/congestion counters in the JSON output, or `-LogProfile`
-to collect the existing MsQuic ETW traces for deeper controller-state analysis.
-
-Example:
-
-```
-> scripts\bbrv3-emulated-benchmark.ps1 -Config Release -Arch x64 -Tls schannel
-```
-
 Upload for 1 MB on 10 different streams, printing throughput information
 ```
 > secnetperf -target:localhost -exec:maxtput -up:10mb -streams:10 -ptput:1
@@ -189,4 +167,13 @@ Started!
 
 Result: 30555 RPS, Latency,us 0th: 24, 50th: 32, 90th: 34, 99th: 81, 99.9th: 131, 99.99th: 192, 99.999th: 456, 99.9999th: 1766, Max: 1766
 App Main returning status 0
+```
+
+## Emulated Network Comparisons
+
+With DuoNic installed, use the existing performance script to compare QUIC
+congestion controllers under configurable RTT, bandwidth, queue, and loss conditions:
+
+```powershell
+scripts\emulated-performance.ps1 -Protocol QUIC -CongestionControl cubic,bbr,bbrv3
 ```

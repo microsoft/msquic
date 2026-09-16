@@ -42,7 +42,6 @@ thresholds, bandwidth limits, and RTT probing. `BbrV3Test.cpp` exercises the
 transport metadata and recovery boundaries. `EcnTest.cpp` covers ECN eligibility
 for CUBIC, BBR, and BBRv3.
 
-`scripts/test-emulated-performance.ps1` checks benchmark argument forwarding,
-controller/scenario result matching, and compatibility with older result files.
-Use `scripts/bbrv3-emulated-benchmark.ps1` on a machine with DuoNic configured
-for controlled WAN measurements; see the [performance guide](../src/perf/readme.md).
+Use the existing `scripts/emulated-performance.ps1` with
+`-CongestionControl cubic,bbr,bbrv3` on a machine with DuoNic configured for
+controlled WAN measurements; see the [performance guide](../src/perf/readme.md).
