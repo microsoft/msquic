@@ -12,6 +12,15 @@ set(SOURCES
     TlsTest.cpp
 )
 
+if("${CX_PLATFORM}" STREQUAL "windows" AND
+   NOT QUIC_UWP_BUILD AND
+   NOT QUIC_GAMECORE_BUILD AND
+   NOT ${SYSTEM_PROCESSOR} STREQUAL "arm" AND
+   NOT ${SYSTEM_PROCESSOR} STREQUAL "arm64" AND
+   NOT ${SYSTEM_PROCESSOR} STREQUAL "arm64ec")
+    list(APPEND SOURCES RawDataPathTest.cpp)
+endif()
+
 add_executable(msquicplatformtest ${SOURCES})
 
 target_include_directories(msquicplatformtest PRIVATE ${PROJECT_SOURCE_DIR}/src/core)

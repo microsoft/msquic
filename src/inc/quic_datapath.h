@@ -999,6 +999,23 @@ CxPlatDataPathRssConfigFree(
     _In_ CXPLAT_RSS_CONFIG* RssConfig
     );
 
+#ifdef QUIC_TEST_APIS
+
+//
+// Test interface for raw datapath packet parsing.
+//
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDataPathTestParseEthernet(
+    _Inout_ CXPLAT_RECV_DATA* Packet,
+    _In_reads_bytes_(Length)
+        const uint8_t* Payload,
+    _In_ uint16_t Length
+    );
+
+#endif // QUIC_TEST_APIS
+
 #if defined(__cplusplus)
 }
 #endif
