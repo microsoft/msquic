@@ -100,6 +100,7 @@ namespace Microsoft.Quic
         INPROC_PEER_CERTIFICATE = 0x00080000,
         SET_CA_CERTIFICATE_FILE = 0x00100000,
         DISABLE_AIA = 0x00200000,
+        SET_CA_CERTIFICATE_BLOB = 0x00400000,
     }
 
     [System.Flags]
@@ -327,6 +328,12 @@ namespace Microsoft.Quic
 
         [NativeTypeName("const char *")]
         internal sbyte* CaCertificateFile;
+
+        [NativeTypeName("const uint8_t *")]
+        internal byte* CaCertificateBlob;
+
+        [NativeTypeName("uint32_t")]
+        internal uint CaCertificateBlobLength;
 
         internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {

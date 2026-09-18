@@ -76,6 +76,7 @@ pub struct CredentialConfig {
     principal: Option<CString>, // TODO: support async handler.
     allowed_cipher_suites: AllowedCipherSuiteFlags,
     ca_certificate_file: Option<CString>,
+    ca_certificate_blob: Option<CString>,
 }
 
 impl CredentialConfig {
@@ -108,6 +109,12 @@ impl CredentialConfig {
     pub fn set_ca_certificate_file(mut self, value: String) -> Self {
         self.credential_flags |= CredentialFlags::SET_CA_CERTIFICATE_FILE;
         self.ca_certificate_file = Some(CString::new(value).unwrap());
+        self
+    }
+
+    pub fn set_ca_certificate_blob(mut self, value: String) -> Self {
+        self.credential_flags |= CredentialFlags::SET_CA_CERTIFICATE_BLOB;
+        self.ca_certificate_blob = Some(CString::new(value).unwrap());
         self
     }
 
@@ -160,6 +167,13 @@ impl CredentialConfig {
             .as_ref()
             .map(|s| s.as_ptr())
             .unwrap_or(std::ptr::null());
+        let blob = self
+            .ca_certificate_blob
+            .as_ref()
+            .map(|s| s.as_bytes_with_nul())
+            .unwrap_or([]);
+        ffi_cfg.CaCertificateBlob = blob.as_ptr();
+        ffi_cfg.CaCertificateBlobLength = blob.len() as u32;
         ffi_cfg
     }
 
@@ -381,6 +395,7 @@ pub struct CredentialFlags: crate::ffi::QUIC_CREDENTIAL_FLAGS {
   const INPROC_PEER_CERTIFICATE = crate::ffi::QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE;
   const SET_CA_CERTIFICATE_FILE = crate::ffi::QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE;
   const DISABLE_AIA = crate::ffi::QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_DISABLE_AIA;
+  const SET_CA_CERTIFICATE_BLOB = crate::ffi::QUIC_CREDENTIAL_FLAGS_QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_BLOB;
   // reject undefined flags.
   const _ = !0;
   }
