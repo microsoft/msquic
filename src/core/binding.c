@@ -1630,8 +1630,14 @@ QuicBindingReceive(
     )
 {
     UNREFERENCED_PARAMETER(Socket);
-    CXPLAT_DBG_ASSERT(RecvCallbackContext != NULL);
     CXPLAT_DBG_ASSERT(DatagramChain != NULL);
+
+    if (RecvCallbackContext == NULL) {
+        // No owning binding (e.g. the connection pool's address-probe
+        // socket has no callback context); drop the received data.
+        CxPlatRecvDataReturn(DatagramChain);
+        return;
+    }
 
     QUIC_BINDING* Binding = (QUIC_BINDING*)RecvCallbackContext;
     CXPLAT_RECV_DATA* ReleaseChain = NULL;
@@ -1803,8 +1809,13 @@ QuicBindingUnreachable(
     )
 {
     UNREFERENCED_PARAMETER(Socket);
-    CXPLAT_DBG_ASSERT(Context != NULL);
     CXPLAT_DBG_ASSERT(RemoteAddress != NULL);
+
+    if (Context == NULL) {
+        // No owning binding (e.g. the connection pool's address-probe
+        // socket has no callback context); nothing to notify.
+        return;
+    }
 
     QUIC_BINDING* Binding = (QUIC_BINDING*)Context;
 
