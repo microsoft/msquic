@@ -758,6 +758,12 @@ QuicPacketBuilderFinalize(
                 CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
                 Builder->Datagram = NULL;
             }
+        } else {
+            //
+            // No live datagram backs these frames, so they can never be sent.
+            // Drop them to keep the NULL Datagram => zero FrameCount invariant.
+            //
+            Builder->Metadata->FrameCount = 0;
         }
         if (Builder->Path->Allowance != UINT32_MAX) {
             QuicConnAddOutFlowBlockedReason(
