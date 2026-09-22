@@ -1575,11 +1575,11 @@ MsQuicStreamProvideReceiveBuffers(
     BOOLEAN IsAlreadyInline = Connection->State.InlineApiExecution;
 
     if (!Stream->Flags.UseAppOwnedRecvBuffers) {
-        if (Stream->Flags.PeerStreamStartEventActive) {
-            CXPLAT_DBG_ASSERT(IsWorkerThread);
+        if (Stream->Flags.PeerStreamStartEventActive && IsWorkerThread) {
             //
-            // We are inline from the callback indicating a peer opened a stream.
-            // No data was received yet so we can setup app-owned buffers.
+            // Inline from the peer-stream-started callback on the worker thread;
+            // no data received yet, so we can set up app-owned buffers. The flag
+            // is unsynchronized, so a racy off-worker call falls through below.
             //
             Connection->State.InlineApiExecution = TRUE;
             QuicStreamSwitchToAppOwnedBuffers(Stream);
