@@ -560,7 +560,13 @@ QuicCryptoDiscardKeys(
             Crypto->TlsState.BufferOffsetHandshake :
             Crypto->TlsState.BufferOffset1Rtt;
     CXPLAT_DBG_ASSERT(BufferOffset != 0);
-    CXPLAT_DBG_ASSERT(Crypto->MaxSentLength >= BufferOffset);
+    //
+    // Discarding keys abandons any unsent crypto at this level; advance MaxSentLength
+    // to keep the invariants below consistent (a no-op unless the handshake is aborting).
+    //
+    if (Crypto->MaxSentLength < BufferOffset) {
+        Crypto->MaxSentLength = BufferOffset;
+    }
     if (Crypto->NextSendOffset < BufferOffset) {
         Crypto->NextSendOffset = BufferOffset;
     }
