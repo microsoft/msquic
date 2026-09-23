@@ -6,6 +6,7 @@
 --*/
 
 #include "bbr.h"
+#include "bbr_v3.h"
 #include "cubic.h"
 
 typedef struct QUIC_ACK_EVENT {
@@ -171,6 +172,7 @@ typedef struct QUIC_CONGESTION_CONTROL {
     union {
         QUIC_CONGESTION_CONTROL_CUBIC Cubic;
         QUIC_CONGESTION_CONTROL_BBR Bbr;
+        QUIC_CONGESTION_CONTROL_BBR_V3 BbrV3;
     };
 
 } QUIC_CONGESTION_CONTROL;

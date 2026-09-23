@@ -2109,29 +2109,25 @@ struct WithHandshakeLossPatternsArgs :
     }
 };
 
-const char*
-GetCcAlgoName(
-    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
-    )
-{
+std::ostream& operator << (std::ostream& o, const QUIC_CONGESTION_CONTROL_ALGORITHM& CcAlgo) {
     switch (CcAlgo) {
     case QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC:
-        return "cubic";
+        return o << "cubic";
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case QUIC_CONGESTION_CONTROL_ALGORITHM_BBR:
-        return "bbr";
+        return o << "bbr";
     case QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3:
-        return "bbrv3";
+        return o << "bbrv3";
 #endif
     default:
-        return "unknown";
+        return o << "unknown";
     }
 }
 
 std::ostream& operator << (std::ostream& o, const HandshakeLossPatternsArgs& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
-        GetCcAlgoName(args.CcAlgo);
+        args.CcAlgo;
 }
 
 TEST_P(WithHandshakeLossPatternsArgs, HandshakeSpecificLossPatterns) {

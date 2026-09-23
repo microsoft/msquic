@@ -470,7 +470,7 @@ QuicLossDetectionOnPacketSent(
 
     SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
 
-    BbrCongestionControlOnPacketSent(&Connection->CongestionControl, SentPacket);
+    BbrV3CongestionControlOnPacketSent(&Connection->CongestionControl, SentPacket);
 
     LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
 

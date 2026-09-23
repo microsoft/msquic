@@ -1,9 +1,10 @@
 # BBRv3 preview
 
 Select `QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3` in the preview API. The
-controller shares BBR's delivery-rate sampler, transport accounting, and
-recovery callbacks, with its probing and congestion model kept in
-`BBR_V3_MODEL`. CUBIC remains the default.
+controller has its own state and callbacks in `bbr_v3.c` and `bbr_v3.h`.
+`bbr_common.c` and `bbr_common.h` share the delivery-rate sampler, transport
+accounting, pacing calculations, and tracing with BBR. Each controller owns
+its probing, congestion-window, and recovery decisions. CUBIC remains the default.
 
 The algorithm reference is the experimental
 [IETF BBR draft](https://www.ietf.org/archive/id/draft-ietf-ccwg-bbr-06.html).
@@ -37,10 +38,9 @@ fairness or throughput on real networks.
 
 ## Validation
 
-`BbrTest.cpp` covers the shared BBR behavior and BBRv3 pacing, phases, loss
-thresholds, bandwidth limits, and RTT probing. `BbrV3Test.cpp` exercises the
-transport metadata and recovery boundaries. `EcnTest.cpp` covers ECN eligibility
-for CUBIC, BBR, and BBRv3.
+`BbrTest.cpp` covers BBR. `BbrV3Test.cpp` covers BBRv3 pacing, phases, loss
+thresholds, bandwidth limits, RTT probing, transport metadata, and recovery
+boundaries. `EcnTest.cpp` covers ECN eligibility for CUBIC, BBR, and BBRv3.
 
 Use the existing `scripts/emulated-performance.ps1` with
 `-CongestionControl cubic,bbr,bbrv3` on a machine with DuoNic configured for
