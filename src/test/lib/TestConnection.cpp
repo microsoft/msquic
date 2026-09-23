@@ -948,7 +948,9 @@ TestConnection::HandleConnectionEvent(
         break;
 
     case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED:
-        // Use This
+        DatagramStateChangedCount++;
+        IndicatedDatagramSendEnabled = Event->DATAGRAM_STATE_CHANGED.SendEnabled != FALSE;
+        IndicatedDatagramMaxSendLength = Event->DATAGRAM_STATE_CHANGED.MaxSendLength;
         break;
 
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
