@@ -55,6 +55,9 @@ struct RecvBuffer {
                 PreallocChunk = (QUIC_RECV_CHUNK*)CXPLAT_ALLOC_NONPAGED(
                     sizeof(QUIC_RECV_CHUNK) + AllocBufferLength,
                     QUIC_POOL_RECVBUF); // Use the recv buffer pool tag as this memory is moved to the recv buffer.
+                if (PreallocChunk == nullptr) {
+                    return QUIC_STATUS_OUT_OF_MEMORY;
+                }
             QuicRecvChunkInitialize(PreallocChunk, AllocBufferLength, (uint8_t*)(PreallocChunk + 1), FALSE);
         }
         printf("Initializing: [mode=%u,vlen=%u,alen=%u]\n", RecvMode, VirtualBufferLength, AllocBufferLength);
@@ -75,11 +78,25 @@ struct RecvBuffer {
             CXPLAT_LIST_ENTRY ChunkList;
             CxPlatListInitializeHead(&ChunkList);
             AppOwnedBuffer = (uint8_t *)CXPLAT_ALLOC_NONPAGED(VirtualBufferLength, QUIC_POOL_TEST);
+            if (AppOwnedBuffer == nullptr) {
+                return QUIC_STATUS_OUT_OF_MEMORY;
+            }
             auto* Chunk = (QUIC_RECV_CHUNK *)CxPlatPoolAlloc(&AppBufferChunkPool);
+            if (Chunk == nullptr) {
+                CXPLAT_FREE(AppOwnedBuffer, QUIC_POOL_TEST);
+                AppOwnedBuffer = nullptr;
+                return QUIC_STATUS_OUT_OF_MEMORY;
+            }
             QuicRecvChunkInitialize(Chunk, AllocBufferLength, AppOwnedBuffer, TRUE);
             CxPlatListInsertHead(&ChunkList, &Chunk->Link);
             if (VirtualBufferLength > AllocBufferLength) {
                 auto* Chunk2 = (QUIC_RECV_CHUNK *)CxPlatPoolAlloc(&AppBufferChunkPool);
+                if (Chunk2 == nullptr) {
+                    CxPlatPoolFree(Chunk);
+                    CXPLAT_FREE(AppOwnedBuffer, QUIC_POOL_TEST);
+                    AppOwnedBuffer = nullptr;
+                    return QUIC_STATUS_OUT_OF_MEMORY;
+                }
                 QuicRecvChunkInitialize(Chunk2, VirtualBufferLength - AllocBufferLength, AppOwnedBuffer + AllocBufferLength, TRUE);
                 CxPlatListInsertTail(&ChunkList, &Chunk2->Link);
             }
