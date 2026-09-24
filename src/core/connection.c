@@ -5157,9 +5157,22 @@ QuicConnRecvFrames(
                 QuicConnGetSourceCidFromSeq(
                     Connection,
                     Frame.Sequence,
-                    TRUE,
+                    FALSE,
                     &IsLastCid);
             if (SourceCid != NULL) {
+                if (Packet->DestCidLen == SourceCid->CID.Length &&
+                    memcmp(Packet->DestCid, SourceCid->CID.Data, Packet->DestCidLen) == 0) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        "Retire CID matches packet destination CID");
+                    QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    return FALSE;
+                }
+
+                SourceCid = QuicConnGetSourceCidFromSeq(
+                    Connection, Frame.Sequence, TRUE, &IsLastCid);
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
                 if (CidAlreadyRetired) {
                     CXPLAT_DBG_ASSERT(Connection->RetiredSourceCidCount > 0);
