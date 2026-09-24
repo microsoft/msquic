@@ -2068,7 +2068,7 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuEcnChanges = t
     {
         struct TestSpec Spec[] = {
             {0, QUIC_STATUS_INVALID_PARAMETER},
-            {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE + 1, QUIC_STATUS_INVALID_PARAMETER},
+            {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE + 1, QUIC_STATUS_SUCCESS},
             {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_STATUS_SUCCESS},
             {2 * QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_STATUS_SUCCESS}
         };

@@ -426,13 +426,6 @@ QuicSettingApply(
         const QUIC_SETTINGS_INTERNAL* Source
     )
 {
-    if (Source->IsSet.StreamRecvBufferDefault &&
-        (!Destination->IsSet.StreamRecvBufferDefault || OverWrite) &&
-        (!IS_POWER_OF_TWO(Source->StreamRecvBufferDefault) ||
-         Source->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE)) {
-        return FALSE;
-    }
-
     if (Source->IsSet.SendBufferingEnabled && (!Destination->IsSet.SendBufferingEnabled || OverWrite)) {
         Destination->SendBufferingEnabled = Source->SendBufferingEnabled;
         Destination->IsSet.SendBufferingEnabled = TRUE;
@@ -584,6 +577,9 @@ QuicSettingApply(
         Destination->IsSet.StreamRecvWindowUnidiDefault = TRUE;
     }
     if (Source->IsSet.StreamRecvBufferDefault && (!Destination->IsSet.StreamRecvBufferDefault || OverWrite)) {
+        if (Source->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
+            return FALSE;
+        }
         Destination->StreamRecvBufferDefault = Source->StreamRecvBufferDefault;
         Destination->IsSet.StreamRecvBufferDefault = TRUE;
     }
@@ -1060,8 +1056,7 @@ QuicSettingsLoad(
             QUIC_SETTING_STREAM_RECV_BUFFER_SIZE,
             (uint8_t*)&Settings->StreamRecvBufferDefault,
             &ValueLen);
-        if (!IS_POWER_OF_TWO(Settings->StreamRecvBufferDefault) ||
-            Settings->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
+        if (Settings->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
             Settings->StreamRecvBufferDefault = QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE;
         }
     }
