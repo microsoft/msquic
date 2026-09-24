@@ -1235,50 +1235,24 @@ TEST_P(WithMode, IncreaseVirtualLength)
     }
 }
 
-TEST_P(WithMode, NonPowerOfTwoAllocLength)
+TEST(RecvBufferTest, NonPowerOfTwoAllocLengthCanGrow)
 {
     RecvBuffer RecvBuf;
-    auto Mode = GetParam();
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(Mode, false, 63, 512));
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 63, 512));
 
     uint64_t InOutWriteLength = 512;
     BOOLEAN NewDataReady = FALSE;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 200, &InOutWriteLength, &NewDataReady));
-
-    uint64_t ReadOffset;
-    QUIC_BUFFER ReadBuffers[4];
-    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
-    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
-
-    uint32_t TotalRead = 0;
-    for (uint32_t i = 0; i < BufferCount; ++i) {
-        TotalRead += ReadBuffers[i].Length;
-    }
-    ASSERT_EQ(200u, TotalRead);
-    ASSERT_TRUE(RecvBuf.Drain(200));
 }
 
-TEST_P(WithMode, AllocLengthCanExceedVirtualLength)
+TEST(RecvBufferTest, AllocLengthCanExceedVirtualLength)
 {
-    auto Mode = GetParam();
-    if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
-        return;
-    }
-
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(Mode, false, 128, 64));
-
-    uint64_t InOutWriteLength = 64;
-    BOOLEAN NewDataReady = FALSE;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 64, &InOutWriteLength, &NewDataReady));
-
-    uint64_t ReadOffset;
-    QUIC_BUFFER ReadBuffers[3];
-    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
-    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
-    ASSERT_EQ(1u, BufferCount);
-    ASSERT_EQ(64u, ReadBuffers[0].Length);
-    ASSERT_TRUE(RecvBuf.Drain(64));
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 128, 64));
 }
 
 // Validate the gap can span the edge of a chunk

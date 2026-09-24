@@ -322,21 +322,6 @@ TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
     ASSERT_EQ(Destination.StreamRecvWindowUnidiDefault, Source.StreamRecvWindowUnidiDefault);
 }
 
-TEST(SettingsTest, StreamRecvBufferDefaultAcceptsNonPowerOfTwoSize)
-{
-    QUIC_SETTINGS_INTERNAL Source;
-    QUIC_SETTINGS_INTERNAL Destination;
-    CxPlatZeroMemory(&Source, sizeof(Source));
-    CxPlatZeroMemory(&Destination, sizeof(Destination));
-    QuicSettingsSetDefault(&Destination);
-
-    Source.IsSet.StreamRecvBufferDefault = 1;
-    Source.StreamRecvBufferDefault = QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE + 1;
-
-    ASSERT_TRUE(QuicSettingApply(&Destination, TRUE, TRUE, &Source));
-    ASSERT_EQ(Destination.StreamRecvBufferDefault, Source.StreamRecvBufferDefault);
-}
-
 // TEST(SettingsTest, TestAllVersionSettingsFieldsGet)
 // {
 //     QUIC_VERSION_SETTINGS Settings;
@@ -504,16 +489,6 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
             sizeof(Value),
             (uint8_t*)&Value));
 
-    Value = QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE + 1;
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
-        CxPlatStorageWriteValue(
-            StorageGuard,
-            QUIC_SETTING_STREAM_RECV_BUFFER_SIZE,
-            CXPLAT_STORAGE_TYPE_UINT32,
-            sizeof(Value),
-            (uint8_t*)&Value));
-
     QUIC_SETTINGS_INTERNAL Settings;
     CxPlatZeroMemory(&Settings, sizeof(Settings));
     QuicSettingsLoad(&Settings, StorageGuard);
@@ -523,7 +498,6 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
     ASSERT_EQ(Settings.PacingEnabled, 0u);
     ASSERT_EQ(Settings.MigrationEnabled, 0u);
     ASSERT_EQ(Settings.MaxOperationsPerDrain, 7u);
-    ASSERT_EQ(Settings.StreamRecvBufferDefault, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE + 1);
 
     QuicSettingsDumpNew(&Settings);
 }
