@@ -1577,9 +1577,8 @@ MsQuicStreamProvideReceiveBuffers(
     if (!Stream->Flags.UseAppOwnedRecvBuffers) {
         if (Stream->Flags.PeerStreamStartEventActive && IsWorkerThread) {
             //
-            // Inline from the peer-stream-started callback on the worker thread;
-            // no data received yet, so we can set up app-owned buffers. The flag
-            // is unsynchronized, so a racy off-worker call falls through below.
+            // Inline on the worker thread from the peer-stream-started callback,
+            // before any data arrives; off-worker callers racing it fall through.
             //
             Connection->State.InlineApiExecution = TRUE;
             QuicStreamSwitchToAppOwnedBuffers(Stream);
