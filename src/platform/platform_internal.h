@@ -573,20 +573,9 @@ typedef struct CXPLAT_SOCKET {
     uint8_t HasFixedRemoteAddress : 1;
 
     //
-    // Flag indicates the socket indicated a disconnect event.
-    //
-    uint8_t DisconnectIndicated : 1;
-
-    //
     // Flag indicates the binding is being used for PCP.
     //
     uint8_t PcpBinding : 1;
-
-    //
-    // Debug flags.
-    //
-    uint8_t Uninitialized : 1;
-    uint8_t Freed : 1;
 
     //
     // This flag determines whether or not we instantiate an auxiliary TCP
@@ -599,6 +588,17 @@ typedef struct CXPLAT_SOCKET {
     uint8_t RawSocketAvailable : 1;
 
     uint8_t SkipCreatingOsSockets : 1;
+
+    //
+    // Flag indicates the socket indicated a disconnect event.
+    //
+    LONG DisconnectIndicated;
+
+    //
+    // Debug flags.
+    //
+    uint8_t Uninitialized;
+    uint8_t Freed;
 
     //
     // Per-processor socket contexts.
@@ -887,25 +887,25 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN HasFixedRemoteAddress : 1;
 
     //
-    // Flag indicates the socket indicated a disconnect event.
-    //
-    uint8_t DisconnectIndicated : 1;
-
-    //
     // Flag indicates the binding is being used for PCP.
     //
     BOOLEAN PcpBinding : 1;
-
-#if DEBUG
-    uint8_t Uninitialized : 1;
-    uint8_t Freed : 1;
-#endif
 
     uint8_t ReserveAuxTcpSockForQtip : 1;                  // Quic over TCP
 
     uint8_t RawSocketAvailable : 1;
 
     uint8_t SkipCreatingOsSockets : 1;
+
+    //
+    // Flag indicates the socket indicated a disconnect event.
+    //
+    long DisconnectIndicated;
+
+#if DEBUG
+    uint8_t Uninitialized;
+    uint8_t Freed;
+#endif
 
     //
     // Set of socket contexts one per proc.
