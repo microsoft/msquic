@@ -93,6 +93,12 @@ This script provides helpers for building msquic.
 .PARAMETER UseSystemOpenSSLCrypto
     Use system provided OpenSSL crypto libraries. On Linux OpenSSL builds, both libssl and libcrypto are dynamically linked.
 
+.PARAMETER UseExternalOpenSSL
+    Link against an external/system OpenSSL (3.5.0+) instead of building OpenSSL from the submodules. Only valid with '-Tls openssl'. Both libssl and libcrypto are dynamically linked from the system.
+
+.PARAMETER OpenSSLRootDir
+    Path to the root directory of an external OpenSSL installation to use (implies -UseExternalOpenSSL). Passed to CMake as QUIC_OPENSSL_ROOT_DIR. Only needed when OpenSSL is not in a default system location. Only valid with '-Tls openssl'.
+
 .PARAMETER EnableHighResolutionTimers
     Configures the system to use high resolution timers.
 
@@ -217,6 +223,12 @@ param (
     [switch]$UseSystemOpenSSLCrypto = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseExternalOpenSSL = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$OpenSSLRootDir = "",
+
+    [Parameter(Mandatory = $false)]
     [switch]$EnableHighResolutionTimers = $false,
 
     [Parameter(Mandatory = $false)]
@@ -285,6 +297,17 @@ if ($Arch -eq "arm64ec") {
     }
     if ($Tls -eq "quictls" -Or $Tls -eq "openssl") {
         Write-Error "Arm64EC does not support quictls/openssl"
+    }
+}
+
+# External OpenSSL selection is only supported by the 'openssl' TLS provider.
+$UseExternalOpenSSLRequested = $UseExternalOpenSSL -Or ($OpenSSLRootDir -ne "")
+if ($UseExternalOpenSSLRequested) {
+    if ($Tls -ne "openssl") {
+        Write-Error "External OpenSSL selection (-UseExternalOpenSSL/-OpenSSLRootDir) requires '-Tls openssl'. The 'quictls' provider must be built from submodules."
+    }
+    if ($UseSystemOpenSSLCrypto) {
+        Write-Error "-UseSystemOpenSSLCrypto is incompatible with external OpenSSL selection. External OpenSSL already dynamically links both libssl and libcrypto from the system; -UseSystemOpenSSLCrypto only applies to the bundled submodule build."
     }
 }
 
@@ -439,6 +462,13 @@ function CMake-Generate {
     }
     $Arguments += " -DQUIC_TLS_LIB=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
+
+    if ($UseExternalOpenSSLRequested) {
+        $Arguments += " -DQUIC_USE_EXTERNAL_OPENSSL=on"
+        if ($OpenSSLRootDir -ne "") {
+            $Arguments += " -DQUIC_OPENSSL_ROOT_DIR=""$OpenSSLRootDir"""
+        }
+    }
 
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
