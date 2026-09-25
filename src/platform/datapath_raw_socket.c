@@ -150,7 +150,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatDpRawParseUdp(
-    _In_ const CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const UDP_HEADER* Udp,
@@ -202,7 +202,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatDpRawParseTcp(
-    _In_ const CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const TCP_HEADER* Tcp,
@@ -272,7 +272,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatDpRawParseIPv4(
-    _In_ const CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const IPV4_HEADER* IP,
@@ -337,7 +337,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatDpRawParseIPv6(
-    _In_ const CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const IPV6_HEADER* IP,
@@ -417,7 +417,7 @@ BOOLEAN IsEthernetMulticast(_In_reads_(6) const uint8_t Address[6])
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawParseEthernet(
-    _In_ const CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const uint8_t* Payload,
@@ -464,6 +464,18 @@ CxPlatDpRawParseEthernet(
             EthernetType,
             "unacceptable ethernet type");
     }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDataPathTestParseEthernet(
+    _Inout_ CXPLAT_RECV_DATA* Packet,
+    _In_reads_bytes_(Length)
+        const uint8_t* Payload,
+    _In_ uint16_t Length
+    )
+{
+    CxPlatDpRawParseEthernet(NULL, Packet, Payload, Length);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

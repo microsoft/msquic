@@ -216,7 +216,7 @@ CxPlatDpRawCalculateHeaderBackFill(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawParseEthernet(
-    _In_ const CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const uint8_t* Payload,
