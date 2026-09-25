@@ -971,7 +971,7 @@ void WriteImmediateAckFrame(
     if (*Offset + 1 > BufferLength) {
         return;
     }
-    Buffer[(*Offset)++] = QUIC_FRAME_IMMEDIATE_ACK;
+    Buffer[(*Offset)++] = (uint8_t)QUIC_FRAME_IMMEDIATE_ACK;
 }
 
 void WriteTimestampFrame(
@@ -1373,8 +1373,7 @@ void WriteShortHeaderPacket(
     uint16_t BufferSize = BufferLength - *HeaderLength;
     uint16_t PayloadLength = 0;
     
-    // Build frames (1-RTT packets typically contain STREAM frames, PING, etc.
-    // For fuzzing purposes, we'll use STREAM frames, ACK frames and padding)
+    // Build the requested frames.
     WriteFrames(&PayloadLength, BufferSize, Buffer + *HeaderLength, PacketParams);
     PayloadLength += GetRandom<uint8_t>(64); // More random padding
 
