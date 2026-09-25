@@ -5157,14 +5157,43 @@ QuicConnRecvFrames(
                 break; // Ignore frame if we are closed.
             }
 
+            //
+            // RFC 9000 Section 19.16: Receipt of a RETIRE_CONNECTION_ID frame
+            // containing a sequence number greater than any sequence number
+            // previously sent to the peer MUST be treated as a connection error
+            // of type PROTOCOL_VIOLATION.
+            //
+            if (Frame.Sequence >= Connection->NextSourceCidSequenceNumber) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Retire CID sequence number exceeds highest issued sequence");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+
             BOOLEAN IsLastCid;
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QuicConnGetSourceCidFromSeq(
                     Connection,
                     Frame.Sequence,
-                    TRUE,
+                    FALSE,
                     &IsLastCid);
             if (SourceCid != NULL) {
+                if (Packet->DestCidLen == SourceCid->CID.Length &&
+                    memcmp(Packet->DestCid, SourceCid->CID.Data, Packet->DestCidLen) == 0) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        "Retire CID matches packet destination CID");
+                    QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    return FALSE;
+                }
+
+                SourceCid = QuicConnGetSourceCidFromSeq(
+                    Connection, Frame.Sequence, TRUE, &IsLastCid);
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
                 CXPLAT_FREE(SourceCid, QUIC_POOL_CIDHASH);
                 if (IsLastCid) {
