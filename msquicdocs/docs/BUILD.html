@@ -193,6 +193,10 @@ sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 <p><code>-Static</code> Compiles msquic as a monolithic statically linkable library.
 Supported only by Windows currently.</p>
 <p><code>-Tls &lt;schannel/openssl&gt;</code> Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).</p>
+<p><code>-UseExternalOpenSSL</code> Links against an external/system OpenSSL (<strong>3.5.0 or newer</strong>) instead of building OpenSSL from the submodules. Only valid together with <code>-Tls openssl</code>. By default both <code>libssl</code> and <code>libcrypto</code> are dynamically linked from the system, so neither the <code>openssl</code> nor <code>quictls</code> submodule is required. If <code>-Static</code> is also specified, the external OpenSSL is linked statically instead (when the corresponding static libraries are available). If the system OpenSSL is older than 3.5.0 the build fails during CMake configuration with an &quot;unsuitable version&quot; error. When OpenSSL is installed outside the default system locations, add <code>-OpenSSLRootDir &lt;path&gt;</code> to point at it. For example, on a distro that ships OpenSSL 3.5+ (e.g. Ubuntu 26.04):</p>
+<pre><code class="lang-PowerShell">./scripts/build.ps1 -Tls openssl -UseExternalOpenSSL
+</code></pre>
+<p>For finer-grained control (for example when the OpenSSL headers and libraries live in separate directories), invoke CMake directly with <code>-DQUIC_USE_EXTERNAL_OPENSSL=on</code> plus <code>-DQUIC_OPENSSL_INCLUDE_DIR=&lt;path&gt;</code> and <code>-DQUIC_OPENSSL_LIB_DIR=&lt;path&gt;</code>. The <code>build.ps1</code> helper intentionally exposes only the common <code>-OpenSSLRootDir</code> case.</p>
 <p><code>-Clean</code> Forces a clean build of everything.</p>
 <p>For more info, take a look at the <a href="../scripts/build.ps1">build.ps1</a> script.</p>
 <h2 id="build-output">Build Output</h2>
