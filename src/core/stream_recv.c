@@ -206,9 +206,9 @@ QuicStreamProcessReliableResetFrame(
         return;
     }
 
-    if (Stream->RecvMaxLength == 0 || ReliableOffset < Stream->RecvMaxLength) {
+    if (!Stream->Flags.RemoteCloseResetReliable || ReliableOffset < Stream->RecvMaxLength) {
         //
-        // As outlined in the spec, if we receive multiple CLOSE_STREAM frames, we only accept strictly
+        // If multiple RELIABLE_RESET frames are received, only accept strictly
         // decreasing offsets.
         //
         Stream->RecvMaxLength = ReliableOffset;
