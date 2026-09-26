@@ -27,11 +27,11 @@ extern "C" {
 #endif
 /*----------------------------------------------------------
 // Decoder Ring for MtuSearchComplete
-// [conn][%p] Path[%hhu] Mtu Discovery Entering Search Complete at MTU %hu
+// [conn][%p] Path[%u] Mtu Discovery Entering Search Complete at MTU %hu
 // QuicTraceLogConnInfo(
         MtuSearchComplete,
         Connection,
-        "Path[%hhu] Mtu Discovery Entering Search Complete at MTU %hu",
+        "Path[%u] Mtu Discovery Entering Search Complete at MTU %hu",
         Path->ID,
         Path->Mtu);
 // arg1 = arg1 = Connection = arg1
@@ -49,11 +49,11 @@ tracepoint(CLOG_MTU_DISCOVERY_C, MtuSearchComplete , arg1, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for MtuSearching
-// [conn][%p] Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu
+// [conn][%p] Path[%u] Mtu Discovery Search Packet Sending with MTU %hu
 // QuicTraceLogConnInfo(
         MtuSearching,
         Connection,
-        "Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu",
+        "Path[%u] Mtu Discovery Search Packet Sending with MTU %hu",
         Path->ID,
         MtuDiscovery->ProbeSize);
 // arg1 = arg1 = Connection = arg1
@@ -71,11 +71,11 @@ tracepoint(CLOG_MTU_DISCOVERY_C, MtuSearching , arg1, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for MtuPathInitialized
-// [conn][%p] Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, cur/min_mtu=%u
+// [conn][%p] Path[%u] Mtu Discovery Initialized: max_mtu=%u, cur/min_mtu=%u
 // QuicTraceLogConnInfo(
         MtuPathInitialized,
         Connection,
-        "Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, cur/min_mtu=%u",
+        "Path[%u] Mtu Discovery Initialized: max_mtu=%u, cur/min_mtu=%u",
         Path->ID,
         MtuDiscovery->MaxMtu,
         Path->Mtu);
@@ -95,11 +95,11 @@ tracepoint(CLOG_MTU_DISCOVERY_C, MtuPathInitialized , arg1, arg3, arg4, arg5);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathMtuUpdated
-// [conn][%p] Path[%hhu] MTU updated to %hu bytes
+// [conn][%p] Path[%u] MTU updated to %hu bytes
 // QuicTraceLogConnInfo(
         PathMtuUpdated,
         Connection,
-        "Path[%hhu] MTU updated to %hu bytes",
+        "Path[%u] MTU updated to %hu bytes",
         Path->ID,
         Path->Mtu);
 // arg1 = arg1 = Connection = arg1
@@ -117,11 +117,11 @@ tracepoint(CLOG_MTU_DISCOVERY_C, PathMtuUpdated , arg1, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for MtuDiscarded
-// [conn][%p] Path[%hhu] Mtu Discovery Packet Discarded: size=%u, probe_count=%u
+// [conn][%p] Path[%u] Mtu Discovery Packet Discarded: size=%u, probe_count=%u
 // QuicTraceLogConnInfo(
         MtuDiscarded,
         Connection,
-        "Path[%hhu] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
+        "Path[%u] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
         Path->ID,
         MtuDiscovery->ProbeSize,
         MtuDiscovery->ProbeCount);
@@ -141,11 +141,11 @@ tracepoint(CLOG_MTU_DISCOVERY_C, MtuDiscarded , arg1, arg3, arg4, arg5);\
 
 /*----------------------------------------------------------
 // Decoder Ring for MtuIncorrectSize
-// [conn][%p] Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u
+// [conn][%p] Path[%u] Mtu Discovery Received Out of Order: expected=%u received=%u
 // QuicTraceLogConnVerbose(
             MtuIncorrectSize,
             Connection,
-            "Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u",
+            "Path[%u] Mtu Discovery Received Out of Order: expected=%u received=%u",
             Path->ID,
             MtuDiscovery->ProbeSize,
             PacketMtu);

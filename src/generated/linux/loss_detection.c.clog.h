@@ -289,11 +289,11 @@ tracepoint(CLOG_LOSS_DETECTION_C, HandshakeConfirmedAck , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathMinMtuValidated
-// [conn][%p] Path[%hhu] Minimum MTU validated
+// [conn][%p] Path[%u] Minimum MTU validated
 // QuicTraceLogConnInfo(
                 PathMinMtuValidated,
                 Connection,
-                "Path[%hhu] Minimum MTU validated",
+                "Path[%u] Minimum MTU validated",
                 Path->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
