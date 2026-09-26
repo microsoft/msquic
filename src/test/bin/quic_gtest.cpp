@@ -2100,7 +2100,7 @@ struct WithHandshakeLossPatternsArgs :
         ::std::vector<HandshakeLossPatternsArgs> list;
         for (int Family : { 4, 6 })
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR })
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3 })
 #else
         for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC })
 #endif
@@ -2109,10 +2109,25 @@ struct WithHandshakeLossPatternsArgs :
     }
 };
 
+std::ostream& operator << (std::ostream& o, const QUIC_CONGESTION_CONTROL_ALGORITHM& CcAlgo) {
+    switch (CcAlgo) {
+    case QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC:
+        return o << "cubic";
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case QUIC_CONGESTION_CONTROL_ALGORITHM_BBR:
+        return o << "bbr";
+    case QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3:
+        return o << "bbrv3";
+#endif
+    default:
+        return o << "unknown";
+    }
+}
+
 std::ostream& operator << (std::ostream& o, const HandshakeLossPatternsArgs& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
-        (args.CcAlgo == QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ? "cubic" : "bbr");
+        args.CcAlgo;
 }
 
 TEST_P(WithHandshakeLossPatternsArgs, HandshakeSpecificLossPatterns) {

@@ -2,16 +2,16 @@
 #include <clog.h>
 #endif
 #undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER CLOG_BBR_C
+#define TRACEPOINT_PROVIDER CLOG_BBR_COMMON_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #define  TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "bbr.c.clog.h.lttng.h"
-#if !defined(DEF_CLOG_BBR_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define DEF_CLOG_BBR_C
+#define TRACEPOINT_INCLUDE "bbr_common.c.clog.h.lttng.h"
+#if !defined(DEF_CLOG_BBR_COMMON_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
+#define DEF_CLOG_BBR_COMMON_C
 #include <lttng/tracepoint.h>
 #define __int64 __int64_t
-#include "bbr.c.clog.h.lttng.h"
+#include "bbr_common.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
 #ifndef _clog_MACRO_QuicTraceLogConnVerbose
@@ -48,7 +48,7 @@ extern "C" {
 ----------------------------------------------------------*/
 #ifndef _clog_9_ARGS_TRACE_IndicateDataAcked
 #define _clog_9_ARGS_TRACE_IndicateDataAcked(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8)\
-tracepoint(CLOG_BBR_C, IndicateDataAcked , arg1, arg3, arg4, arg5, arg6, arg7, arg8);\
+tracepoint(CLOG_BBR_COMMON_C, IndicateDataAcked , arg1, arg3, arg4, arg5, arg6, arg7, arg8);\
 
 #endif
 
@@ -64,25 +64,25 @@ tracepoint(CLOG_BBR_C, IndicateDataAcked , arg1, arg3, arg4, arg5, arg6, arg7, a
         Connection,
         Bbr->BbrState,
         Bbr->RecoveryState,
-        BbrCongestionControlGetCongestionWindow(Cc),
+        QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl),
         Bbr->BytesInFlight,
         Bbr->BytesInFlightMax,
         Bbr->MinRtt,
-        BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
-        BbrCongestionControlIsAppLimited(Cc));
+        Bandwidth / BW_UNIT,
+        Bbr->BandwidthFilter.AppLimited);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Bbr->BbrState = arg3
 // arg4 = arg4 = Bbr->RecoveryState = arg4
-// arg5 = arg5 = BbrCongestionControlGetCongestionWindow(Cc) = arg5
+// arg5 = arg5 = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl) = arg5
 // arg6 = arg6 = Bbr->BytesInFlight = arg6
 // arg7 = arg7 = Bbr->BytesInFlightMax = arg7
 // arg8 = arg8 = Bbr->MinRtt = arg8
-// arg9 = arg9 = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT = arg9
-// arg10 = arg10 = BbrCongestionControlIsAppLimited(Cc) = arg10
+// arg9 = arg9 = Bandwidth / BW_UNIT = arg9
+// arg10 = arg10 = Bbr->BandwidthFilter.AppLimited = arg10
 ----------------------------------------------------------*/
 #ifndef _clog_11_ARGS_TRACE_ConnBbr
 #define _clog_11_ARGS_TRACE_ConnBbr(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
-tracepoint(CLOG_BBR_C, ConnBbr , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
+tracepoint(CLOG_BBR_COMMON_C, ConnBbr , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
 
 #endif
 
@@ -116,7 +116,7 @@ tracepoint(CLOG_BBR_C, ConnBbr , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9,
 ----------------------------------------------------------*/
 #ifndef _clog_11_ARGS_TRACE_ConnOutFlowStatsV2
 #define _clog_11_ARGS_TRACE_ConnOutFlowStatsV2(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
-tracepoint(CLOG_BBR_C, ConnOutFlowStatsV2 , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
+tracepoint(CLOG_BBR_COMMON_C, ConnOutFlowStatsV2 , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
 
 #endif
 
@@ -127,14 +127,14 @@ tracepoint(CLOG_BBR_C, ConnOutFlowStatsV2 , arg2, arg3, arg4, arg5, arg6, arg7, 
 // Decoder Ring for ConnRecoveryExit
 // [conn][%p] Recovery complete
 // QuicTraceEvent(
-                ConnRecoveryExit,
-                "[conn][%p] Recovery complete",
-                Connection);
+        ConnRecoveryExit,
+        "[conn][%p] Recovery complete",
+        Connection);
 // arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ConnRecoveryExit
 #define _clog_3_ARGS_TRACE_ConnRecoveryExit(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_BBR_C, ConnRecoveryExit , arg2);\
+tracepoint(CLOG_BBR_COMMON_C, ConnRecoveryExit , arg2);\
 
 #endif
 
@@ -154,7 +154,7 @@ tracepoint(CLOG_BBR_C, ConnRecoveryExit , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ConnCongestionV2
 #define _clog_4_ARGS_TRACE_ConnCongestionV2(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_BBR_C, ConnCongestionV2 , arg2, arg3);\
+tracepoint(CLOG_BBR_COMMON_C, ConnCongestionV2 , arg2, arg3);\
 
 #endif
 
@@ -165,14 +165,14 @@ tracepoint(CLOG_BBR_C, ConnCongestionV2 , arg2, arg3);\
 // Decoder Ring for ConnPersistentCongestion
 // [conn][%p] Persistent congestion event
 // QuicTraceEvent(
-            ConnPersistentCongestion,
-            "[conn][%p] Persistent congestion event",
-            Connection);
+        ConnPersistentCongestion,
+        "[conn][%p] Persistent congestion event",
+        Connection);
 // arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ConnPersistentCongestion
 #define _clog_3_ARGS_TRACE_ConnPersistentCongestion(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_BBR_C, ConnPersistentCongestion , arg2);\
+tracepoint(CLOG_BBR_COMMON_C, ConnPersistentCongestion , arg2);\
 
 #endif
 
@@ -183,5 +183,5 @@ tracepoint(CLOG_BBR_C, ConnPersistentCongestion , arg2);\
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_bbr.c.clog.h.c"
+#include "quic.clog_bbr_common.c.clog.h.c"
 #endif
