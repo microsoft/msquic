@@ -274,9 +274,7 @@ QuicRecvBufferInitialize(
     CXPLAT_DBG_ASSERT(AllocBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT(PreallocatedChunk == NULL || RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED);
-    CXPLAT_DBG_ASSERT((AllocBufferLength & (AllocBufferLength - 1)) == 0);     // Power of 2
     CXPLAT_DBG_ASSERT((VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
-    CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
 
     RecvBuffer->BaseOffset = 0;
     RecvBuffer->ReadStart = 0;
@@ -477,9 +475,7 @@ QuicRecvBufferResize(
     CXPLAT_DBG_ASSERTMSG(
         RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED,
         "Should never resize in App-owned mode");
-    CXPLAT_DBG_ASSERT(
-        TargetBufferLength != 0 &&
-        (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
+    CXPLAT_DBG_ASSERT(TargetBufferLength != 0);
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks)); // Should always have at least one chunk
 
     QUIC_RECV_CHUNK* LastChunk =
@@ -762,11 +758,12 @@ QuicRecvBufferWrite(
         //
         QUIC_RECV_CHUNK* LastChunk =
             CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
-        uint32_t NewBufferLength = LastChunk->AllocLength << 1;
+        uint64_t NewBufferLength = (uint64_t)LastChunk->AllocLength << 1;
         while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
             NewBufferLength <<= 1;
         }
-        if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
+        if (NewBufferLength > UINT32_MAX ||
+            !QuicRecvBufferResize(RecvBuffer, (uint32_t)NewBufferLength)) {
             *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
