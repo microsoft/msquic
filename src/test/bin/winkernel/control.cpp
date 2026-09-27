@@ -612,6 +612,7 @@ ExecuteTestRequest(
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
     RegisterTestFunction(QuicTestCidUpdate);
     RegisterTestFunction(QuicTestAckSendDelay);
+    RegisterTestFunction(QuicTestAckFrequencyMaxAckDelay);
     RegisterTestFunction(QuicTestReceiveResume);
     RegisterTestFunction(QuicTestReceiveResumeNoData);
     RegisterTestFunction(QuicTestAbortReceive_Paused);

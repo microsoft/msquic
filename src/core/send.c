@@ -921,7 +921,18 @@ QuicSendWriteFrames(
             QUIC_ACK_FREQUENCY_EX Frame;
             Frame.SequenceNumber = Connection->SendAckFreqSeqNum;
             Frame.AckElicitingThreshold = Connection->PeerPacketTolerance;
-            Frame.RequestedMaxAckDelay = MS_TO_US(QuicConnGetAckDelay(Connection));
+            //
+            // Request the configured max ACK delay. QuicConnGetAckDelay adds this
+            // endpoint's timer resolution, and the peer adopts the requested value as
+            // its own MaxAckDelayMs, so requesting that would grow the value by one
+            // timer tick each time the endpoints exchange ACK_FREQUENCY frames. The
+            // requested value must not be less than the peer's min_ack_delay.
+            //
+            uint64_t RequestedMaxAckDelay = MS_TO_US((uint64_t)Connection->Settings.MaxAckDelayMs);
+            if (RequestedMaxAckDelay < Connection->PeerTransportParams.MinAckDelay) {
+                RequestedMaxAckDelay = Connection->PeerTransportParams.MinAckDelay;
+            }
+            Frame.RequestedMaxAckDelay = RequestedMaxAckDelay;
             Frame.ReorderingThreshold = Connection->PeerReorderingThreshold;
 
             if (QuicAckFrequencyFrameEncode(
