@@ -754,9 +754,9 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
-// This behavior is specific to the Linux epoll datapath.
-#if defined(CX_PLATFORM_LINUX) && !defined(__FreeBSD__) && !defined(CXPLAT_USE_IO_URING)
-TEST_P(DataPathTest, UdpDynamicPortNoReuse)
+// This behavior is specific to the Linux datapaths.
+#if defined(CX_PLATFORM_LINUX) && !defined(__FreeBSD__)
+TEST_P(DataPathTest, UdpExclusivePort)
 {
     // The default datapath creates one partition per processor.
     if (CxPlatProcCount() < 2) {
@@ -766,48 +766,65 @@ TEST_P(DataPathTest, UdpDynamicPortNoReuse)
     CxPlatDataPath Datapath(&EmptyUdpCallbacks);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
 
-    QuicAddr LocalAddress = GetNewLocalAddr(false);
-    // A non-partitioned multi-context bind still requires SO_REUSEPORT.
-    CxPlatSocket NonPartitionedSocket(Datapath, &LocalAddress.SockAddr);
-    VERIFY_QUIC_SUCCESS(NonPartitionedSocket.GetInitStatus());
+    auto ProbeReusePortBind = [this](const QUIC_ADDR& Address) {
+        int ProbeSocket =
+            socket(
+                GetParam() == 4 ? AF_INET : AF_INET6,
+                SOCK_DGRAM,
+                IPPROTO_UDP);
+        if (ProbeSocket == INVALID_SOCKET) {
+            return errno;
+        }
+        int ReusePort = TRUE;
+        if (setsockopt(
+                ProbeSocket,
+                SOL_SOCKET,
+                SO_REUSEPORT,
+                &ReusePort,
+                sizeof(ReusePort)) != 0) {
+            int Error = errno;
+            close(ProbeSocket);
+            return Error;
+        }
+        int BindResult =
+            bind(
+                ProbeSocket,
+                &Address.Ip,
+                GetParam() == 4 ? sizeof(Address.Ipv4) : sizeof(Address.Ipv6));
+        int Error = BindResult == 0 ? 0 : errno;
+        close(ProbeSocket);
+        return Error;
+    };
 
-    CxPlatSocket Socket(
+    QuicAddr DynamicAddress = GetNewUnspecAddr(false);
+    CxPlatSocket DynamicExclusiveSocket(
         Datapath,
-        &LocalAddress.SockAddr,
+        &DynamicAddress.SockAddr,
+        nullptr,
+        nullptr,
+        (CXPLAT_SOCKET_FLAGS)(
+            CXPLAT_SOCKET_FLAG_PARTITIONED |
+            CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT));
+    VERIFY_QUIC_SUCCESS(DynamicExclusiveSocket.GetInitStatus());
+    QUIC_ADDR AssignedExclusiveAddress = DynamicExclusiveSocket.GetLocalAddress();
+    ASSERT_NE(QuicAddrGetPort(&AssignedExclusiveAddress), (uint16_t)0);
+    EXPECT_EQ(EADDRINUSE, ProbeReusePortBind(AssignedExclusiveAddress));
+
+    QuicAddr ExplicitAddress = GetNewUnspecAddr();
+    CxPlatSocket ExplicitPartitionedSocket(
+        Datapath,
+        &ExplicitAddress.SockAddr,
         nullptr,
         nullptr,
         CXPLAT_SOCKET_FLAG_PARTITIONED);
-    VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
-    QUIC_ADDR AssignedAddress = Socket.GetLocalAddress();
-    ASSERT_NE(QuicAddrGetPort(&AssignedAddress), (uint16_t)0);
+    VERIFY_QUIC_SUCCESS(ExplicitPartitionedSocket.GetInitStatus());
+    EXPECT_EQ(0, ProbeReusePortBind(ExplicitPartitionedSocket.GetLocalAddress()));
 
-    int ProbeSocket =
-        socket(
-            GetParam() == 4 ? AF_INET : AF_INET6,
-            SOCK_DGRAM,
-            IPPROTO_UDP);
-    ASSERT_NE(INVALID_SOCKET, ProbeSocket);
-    int ReusePort = TRUE;
-    int SetOptionResult =
-        setsockopt(
-            ProbeSocket,
-            SOL_SOCKET,
-            SO_REUSEPORT,
-            &ReusePort,
-            sizeof(ReusePort));
-    if (SetOptionResult != 0) {
-        close(ProbeSocket);
-        FAIL() << "setsockopt(SO_REUSEPORT) failed";
-    }
-    int BindResult =
-        bind(
-            ProbeSocket,
-            &AssignedAddress.Ip,
-            GetParam() == 4 ? sizeof(AssignedAddress.Ipv4) : sizeof(AssignedAddress.Ipv6));
-    int BindError = errno;
-    close(ProbeSocket);
-    ASSERT_EQ(SOCKET_ERROR, BindResult);
-    ASSERT_EQ(EADDRINUSE, BindError);
+    CxPlatSocket NonPartitionedSocket(Datapath, &DynamicAddress.SockAddr);
+    VERIFY_QUIC_SUCCESS(NonPartitionedSocket.GetInitStatus());
+    QUIC_ADDR AssignedSharedAddress = NonPartitionedSocket.GetLocalAddress();
+    ASSERT_NE(QuicAddrGetPort(&AssignedSharedAddress), (uint16_t)0);
+    EXPECT_EQ(0, ProbeReusePortBind(AssignedSharedAddress));
 }
 #endif
 
