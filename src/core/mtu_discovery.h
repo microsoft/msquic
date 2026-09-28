@@ -23,7 +23,7 @@ typedef struct QUIC_MTU_DISCOVERY {
     uint16_t ProbeSize;
 
     //
-    // The amount of probes that have occured at the current size.
+    // The amount of probes that have occurred at the current size.
     //
     uint8_t ProbeCount;
 

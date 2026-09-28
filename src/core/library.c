@@ -1637,7 +1637,7 @@ QuicLibraryGetGlobalParam(
             *BufferLength = QUIC_PERF_COUNTER_MAX * sizeof(int64_t);
         }
 
-        QuicLibrarySumPerfCounters(Buffer, *BufferLength);
+        QuicLibrarySumPerfCountersExternal(Buffer, *BufferLength);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

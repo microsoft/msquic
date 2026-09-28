@@ -3579,9 +3579,10 @@ CxPlatDataPathSocketProcessReceive(
     if (!CxPlatRundownAcquire(&SocketProc->RundownRef)) {
         //
         // Even though we can't process the completion (because the socket is
-        // cleaning up) we still need to release the reference it has on the
-        // context.
+        // cleaning up) we still need to free the receive block and release the
+        // reference it has on the context.
         //
+        CxPlatSocketFreeRxIoBlock(IoBlock);
         CxPlatSocketContextRelease(SocketProc);
         return;
     }
