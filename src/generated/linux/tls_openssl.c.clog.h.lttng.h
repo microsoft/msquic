@@ -32,12 +32,12 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
 // Decoder Ring for OpenSslHandshakeErrorStr
 // [conn][%p] TLS handshake error: %s, file:%s:%d
 // QuicTraceLogConnError(
-                    OpenSslHandshakeErrorStr,
-                    TlsContext->Connection,
-                    "TLS handshake error: %s, file:%s:%d",
-                    buf,
-                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
-                    line);
+                        OpenSslHandshakeErrorStr,
+                        TlsContext->Connection,
+                        "TLS handshake error: %s, file:%s:%d",
+                        buf,
+                        (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                        line);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = buf = arg3
 // arg4 = arg4 = (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file) = arg4
@@ -63,10 +63,10 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr,
 // Decoder Ring for OpenSslHandshakeError
 // [conn][%p] TLS handshake error: %d
 // QuicTraceLogConnError(
-                    OpenSslHandshakeError,
-                    TlsContext->Connection,
-                    "TLS handshake error: %d",
-                    Err);
+                        OpenSslHandshakeError,
+                        TlsContext->Connection,
+                        "TLS handshake error: %d",
+                        Err);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
