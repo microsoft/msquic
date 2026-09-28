@@ -2810,42 +2810,41 @@ CxPlatTlsProcessData(
     AData->InputOffset = 0;
 
     if (!State->HandshakeComplete) {
-more_handshake:
-        Ret = SSL_do_handshake(TlsContext->Ssl);
-        if (Ret <= 0) {
-            int Err = SSL_get_error(TlsContext->Ssl, Ret);
-            switch (Err) {
-            case SSL_ERROR_WANT_READ:
-            case SSL_ERROR_WANT_WRITE:
-                goto Exit;
-            case SSL_ERROR_SSL: {
-                char buf[256];
-                const char* file;
-                int line;
-                ERR_error_string_n(ERR_get_error_all(&file, &line, NULL, NULL, NULL), buf, sizeof(buf));
-                QuicTraceLogConnError(
-                    OpenSslHandshakeErrorStr,
-                    TlsContext->Connection,
-                    "TLS handshake error: %s, file:%s:%d",
-                    buf,
-                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
-                    line);
-                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-                goto Exit;
-            }
+        do {
+            Ret = SSL_do_handshake(TlsContext->Ssl);
+            if (Ret <= 0) {
+                int Err = SSL_get_error(TlsContext->Ssl, Ret);
+                switch (Err) {
+                case SSL_ERROR_WANT_READ:
+                case SSL_ERROR_WANT_WRITE:
+                    goto Exit;
+                case SSL_ERROR_SSL: {
+                    char buf[256];
+                    const char* file;
+                    int line;
+                    ERR_error_string_n(ERR_get_error_all(&file, &line, NULL, NULL, NULL), buf, sizeof(buf));
+                    QuicTraceLogConnError(
+                        OpenSslHandshakeErrorStr,
+                        TlsContext->Connection,
+                        "TLS handshake error: %s, file:%s:%d",
+                        buf,
+                        (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                        line);
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    goto Exit;
+                }
 
-            default:
-                QuicTraceLogConnError(
-                    OpenSslHandshakeError,
-                    TlsContext->Connection,
-                    "TLS handshake error: %d",
-                    Err);
-                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-                goto Exit;
+                default:
+                    QuicTraceLogConnError(
+                        OpenSslHandshakeError,
+                        TlsContext->Connection,
+                        "TLS handshake error: %d",
+                        Err);
+                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    goto Exit;
+                }
             }
-        } else if (AData->InputOffset < AData->InputLength) {
-            goto more_handshake;
-        }
+        } while (AData->InputOffset < AData->InputLength);
 
         if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT
             && AData->SecretSet[QUIC_PACKET_KEY_1_RTT][DIR_READ].Secret != NULL) {
