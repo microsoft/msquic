@@ -295,14 +295,16 @@ QuicTestProbeReusePort(
             SO_REUSEPORT,
             &ReusePort,
             sizeof(ReusePort));
-    TEST_EQUAL(0, Result);
-    if (Result == 0) {
-        Result =
-            bind(
-                ProbeSocket,
-                &Address->Ip,
-                AddressFamily == AF_INET ? sizeof(Address->Ipv4) : sizeof(Address->Ipv6));
+    if (Result != 0) {
+        close(ProbeSocket);
+        TEST_EQUAL(0, Result);
+        return;
     }
+    Result =
+        bind(
+            ProbeSocket,
+            &Address->Ip,
+            AddressFamily == AF_INET ? sizeof(Address->Ipv4) : sizeof(Address->Ipv6));
     *Error = Result == 0 ? 0 : errno;
     close(ProbeSocket);
 }
