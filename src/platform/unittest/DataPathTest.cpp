@@ -538,7 +538,8 @@ struct CxPlatSocket {
         _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_opt_ const QUIC_ADDR* RemoteAddress = nullptr,
         _In_opt_ void* CallbackContext = nullptr,
-        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE
+        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE,
+        _In_ uint16_t PartitionIndex = 0
         ) noexcept // UDP
     {
         CreateUdp(
@@ -546,7 +547,8 @@ struct CxPlatSocket {
             LocalAddress,
             RemoteAddress,
             CallbackContext,
-            InternalFlags);
+            InternalFlags,
+            PartitionIndex);
     }
     ~CxPlatSocket() noexcept {
         if (Socket) {
@@ -563,7 +565,8 @@ struct CxPlatSocket {
         _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_opt_ const QUIC_ADDR* RemoteAddress = nullptr,
         _In_opt_ void* CallbackContext = nullptr,
-        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE
+        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE,
+        _In_ uint16_t PartitionIndex = 0
         ) noexcept
     {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
@@ -573,6 +576,7 @@ struct CxPlatSocket {
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = CallbackContext;
         UdpConfig.CibirIdLength = CibirIdLength;
+        UdpConfig.PartitionIndex = PartitionIndex;
         InitStatus =
             CxPlatSocketCreateUdp(
                 Datapath,
@@ -773,7 +777,8 @@ TEST_P(DataPathTest, UdpExclusivePort)
                 SOCK_DGRAM,
                 IPPROTO_UDP);
         if (ProbeSocket == INVALID_SOCKET) {
-            return errno;
+            ADD_FAILURE() << "socket failed: " << errno;
+            return -1;
         }
         int ReusePort = TRUE;
         if (setsockopt(
@@ -784,7 +789,8 @@ TEST_P(DataPathTest, UdpExclusivePort)
                 sizeof(ReusePort)) != 0) {
             int Error = errno;
             close(ProbeSocket);
-            return Error;
+            ADD_FAILURE() << "setsockopt(SO_REUSEPORT) failed: " << Error;
+            return -1;
         }
         int BindResult =
             bind(
@@ -797,6 +803,7 @@ TEST_P(DataPathTest, UdpExclusivePort)
     };
 
     QuicAddr DynamicAddress = GetNewUnspecAddr(false);
+    const uint16_t PartitionIndex = 1;
     CxPlatSocket DynamicExclusiveSocket(
         Datapath,
         &DynamicAddress.SockAddr,
@@ -804,19 +811,21 @@ TEST_P(DataPathTest, UdpExclusivePort)
         nullptr,
         (CXPLAT_SOCKET_FLAGS)(
             CXPLAT_SOCKET_FLAG_PARTITIONED |
-            CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT));
+            CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT),
+        PartitionIndex);
     VERIFY_QUIC_SUCCESS(DynamicExclusiveSocket.GetInitStatus());
     QUIC_ADDR AssignedExclusiveAddress = DynamicExclusiveSocket.GetLocalAddress();
     ASSERT_NE(QuicAddrGetPort(&AssignedExclusiveAddress), (uint16_t)0);
     EXPECT_EQ(EADDRINUSE, ProbeReusePortBind(AssignedExclusiveAddress));
 
-    QuicAddr ExplicitAddress = GetNewUnspecAddr();
+    QuicAddr ExplicitPortAddress = GetNewUnspecAddr();
     CxPlatSocket ExplicitPartitionedSocket(
         Datapath,
-        &ExplicitAddress.SockAddr,
+        &ExplicitPortAddress.SockAddr,
         nullptr,
         nullptr,
-        CXPLAT_SOCKET_FLAG_PARTITIONED);
+        CXPLAT_SOCKET_FLAG_PARTITIONED,
+        PartitionIndex);
     VERIFY_QUIC_SUCCESS(ExplicitPartitionedSocket.GetInitStatus());
     EXPECT_EQ(0, ProbeReusePortBind(ExplicitPartitionedSocket.GetLocalAddress()));
 
