@@ -821,6 +821,13 @@ TEST_P(WithFamilyArgs, StartListenerExplicit) {
     }
 }
 
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
+TEST_P(WithFamilyArgs, PartitionedListenerPort) {
+    TestLoggerT<ParamType> Logger("QuicTestPartitionedListenerPort", GetParam());
+    QuicTestPartitionedListenerPort(GetParam());
+}
+#endif
+
 TEST(Basic, CreateConnection) {
     TestLogger Logger("QuicTestCreateConnection");
     if (TestingKernelMode) {
