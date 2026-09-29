@@ -900,7 +900,10 @@ CxPlatSocketContextInitialize(
         // Only set SO_REUSEPORT on a server socket, otherwise the client could be
         // assigned a server port (unless it's forcing sharing).
         //
-        if ((Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
+        // Keep ports explicitly marked exclusive out of a reuseport group.
+        //
+        if (!(Config->Flags & CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT) &&
+            (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
             SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
             // The port is shared across processors.
@@ -1258,8 +1261,9 @@ SocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
+    const BOOLEAN IsPartitioned =
+        Config->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED || Config->RemoteAddress != NULL;
+    const BOOLEAN NumPerProcessorSockets = !IsPartitioned && Datapath->PartitionCount > 1;
     const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
@@ -1315,14 +1319,14 @@ SocketCreateUdp(
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
                 Config,
-                Config->RemoteAddress ? Config->PartitionIndex : (i % Datapath->PartitionCount),
+                IsPartitioned ? Config->PartitionIndex : (i % Datapath->PartitionCount),
                 Binding->Type);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
     }
 
-    if (IsServerSocket) {
+    if (!IsPartitioned) {
         //
         // The return value is being ignored here, as if a system does not support
         // bpf we still want the server to work. If this happens, the sockets will

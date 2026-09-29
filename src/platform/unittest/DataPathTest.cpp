@@ -90,6 +90,7 @@ struct UdpRecvContext {
     CXPLAT_EVENT ClientCompletion;
     CXPLAT_ECN_TYPE EcnType {CXPLAT_ECN_NON_ECT};
     CXPLAT_DSCP_TYPE Dscp {CXPLAT_DSCP_CS0};
+    uint16_t PartitionIndex {UINT16_MAX};
     bool TtlSupported;
     bool DscpSupported;
     UdpRecvContext() {
@@ -313,6 +314,7 @@ protected:
             if (RecvData->Route->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 
                 ASSERT_EQ(CXPLAT_ECN_FROM_TOS(RecvData->TypeOfService), RecvContext->EcnType);
+                RecvContext->PartitionIndex = RecvData->PartitionIndex;
 
                 CXPLAT_SEND_CONFIG SendConfig = { RecvData->Route, 0, (uint8_t)RecvContext->EcnType, 0, (uint8_t)RecvContext->Dscp };
                 auto ServerSendData = CxPlatSendDataAlloc(Socket, &SendConfig);
@@ -538,7 +540,8 @@ struct CxPlatSocket {
         _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_opt_ const QUIC_ADDR* RemoteAddress = nullptr,
         _In_opt_ void* CallbackContext = nullptr,
-        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE
+        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE,
+        _In_ uint16_t PartitionIndex = 0
         ) noexcept // UDP
     {
         CreateUdp(
@@ -546,7 +549,8 @@ struct CxPlatSocket {
             LocalAddress,
             RemoteAddress,
             CallbackContext,
-            InternalFlags);
+            InternalFlags,
+            PartitionIndex);
     }
     ~CxPlatSocket() noexcept {
         if (Socket) {
@@ -563,7 +567,8 @@ struct CxPlatSocket {
         _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_opt_ const QUIC_ADDR* RemoteAddress = nullptr,
         _In_opt_ void* CallbackContext = nullptr,
-        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE
+        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE,
+        _In_ uint16_t PartitionIndex = 0
         ) noexcept
     {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
@@ -573,6 +578,7 @@ struct CxPlatSocket {
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = CallbackContext;
         UdpConfig.CibirIdLength = CibirIdLength;
+        UdpConfig.PartitionIndex = PartitionIndex;
         InitStatus =
             CxPlatSocketCreateUdp(
                 Datapath,
@@ -754,60 +760,110 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
-// This behavior is specific to the Linux epoll datapath.
-#if defined(CX_PLATFORM_LINUX) && !defined(__FreeBSD__) && !defined(CXPLAT_USE_IO_URING)
-TEST_P(DataPathTest, UdpDynamicPortNoReuse)
+// This behavior is specific to the Linux datapaths.
+#if defined(CX_PLATFORM_LINUX) && !defined(__FreeBSD__)
+TEST_P(DataPathTest, UdpExclusivePort)
 {
     // The default datapath creates one partition per processor.
     if (CxPlatProcCount() < 2) {
         GTEST_SKIP() << "SO_REUSEPORT requires multiple datapath partitions";
     }
 
-    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    UdpRecvContext RecvContext;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
+    RecvContext.DscpSupported = Datapath.IsDscpSupported();
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
 
-    QuicAddr LocalAddress = GetNewLocalAddr(false);
-    // A non-partitioned multi-context bind still requires SO_REUSEPORT.
-    CxPlatSocket NonPartitionedSocket(Datapath, &LocalAddress.SockAddr);
-    VERIFY_QUIC_SUCCESS(NonPartitionedSocket.GetInitStatus());
-
-    CxPlatSocket Socket(
-        Datapath,
-        &LocalAddress.SockAddr,
-        nullptr,
-        nullptr,
-        CXPLAT_SOCKET_FLAG_PARTITIONED);
-    VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
-    QUIC_ADDR AssignedAddress = Socket.GetLocalAddress();
-    ASSERT_NE(QuicAddrGetPort(&AssignedAddress), (uint16_t)0);
-
-    int ProbeSocket =
-        socket(
-            GetParam() == 4 ? AF_INET : AF_INET6,
-            SOCK_DGRAM,
-            IPPROTO_UDP);
-    ASSERT_NE(INVALID_SOCKET, ProbeSocket);
-    int ReusePort = TRUE;
-    int SetOptionResult =
-        setsockopt(
-            ProbeSocket,
-            SOL_SOCKET,
-            SO_REUSEPORT,
-            &ReusePort,
-            sizeof(ReusePort));
-    if (SetOptionResult != 0) {
+    auto ProbeReusePortBind = [this](const QUIC_ADDR& Address) {
+        int ProbeSocket =
+            socket(
+                GetParam() == 4 ? AF_INET : AF_INET6,
+                SOCK_DGRAM,
+                IPPROTO_UDP);
+        if (ProbeSocket == INVALID_SOCKET) {
+            ADD_FAILURE() << "socket failed: " << errno;
+            return -1;
+        }
+        int ReusePort = TRUE;
+        if (setsockopt(
+                ProbeSocket,
+                SOL_SOCKET,
+                SO_REUSEPORT,
+                &ReusePort,
+                sizeof(ReusePort)) != 0) {
+            int Error = errno;
+            close(ProbeSocket);
+            ADD_FAILURE() << "setsockopt(SO_REUSEPORT) failed: " << Error;
+            return -1;
+        }
+        int BindResult =
+            bind(
+                ProbeSocket,
+                &Address.Ip,
+                GetParam() == 4 ? sizeof(Address.Ipv4) : sizeof(Address.Ipv6));
+        int Error = BindResult == 0 ? 0 : errno;
         close(ProbeSocket);
-        FAIL() << "setsockopt(SO_REUSEPORT) failed";
-    }
-    int BindResult =
-        bind(
-            ProbeSocket,
-            &AssignedAddress.Ip,
-            GetParam() == 4 ? sizeof(AssignedAddress.Ipv4) : sizeof(AssignedAddress.Ipv6));
-    int BindError = errno;
-    close(ProbeSocket);
-    ASSERT_EQ(SOCKET_ERROR, BindResult);
-    ASSERT_EQ(EADDRINUSE, BindError);
+        return Error;
+    };
+
+    QuicAddr DynamicAddress = GetNewUnspecAddr(false);
+    const uint16_t PartitionIndex = 1;
+    CxPlatSocket DynamicExclusiveSocket(
+        Datapath,
+        &DynamicAddress.SockAddr,
+        nullptr,
+        &RecvContext,
+        (CXPLAT_SOCKET_FLAGS)(
+            CXPLAT_SOCKET_FLAG_PARTITIONED |
+            CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT),
+        PartitionIndex);
+    VERIFY_QUIC_SUCCESS(DynamicExclusiveSocket.GetInitStatus());
+    QUIC_ADDR AssignedExclusiveAddress = DynamicExclusiveSocket.GetLocalAddress();
+    ASSERT_NE(QuicAddrGetPort(&AssignedExclusiveAddress), (uint16_t)0);
+    EXPECT_EQ(EADDRINUSE, ProbeReusePortBind(AssignedExclusiveAddress));
+
+    RecvContext.DestinationAddress = GetNewLocalAddr(false).SockAddr;
+    QuicAddrSetPort(
+        &RecvContext.DestinationAddress,
+        QuicAddrGetPort(&AssignedExclusiveAddress));
+    CxPlatSocket Client(
+        Datapath,
+        nullptr,
+        &RecvContext.DestinationAddress,
+        &RecvContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Client.Route,
+        0,
+        CXPLAT_ECN_NON_ECT,
+        0,
+        (uint8_t)RecvContext.Dscp };
+    auto ClientSendData = CxPlatSendDataAlloc(Client, &SendConfig);
+    ASSERT_NE(nullptr, ClientSendData);
+    auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+    ASSERT_NE(nullptr, ClientBuffer);
+    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
+    Client.Send(ClientSendData);
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    EXPECT_EQ(PartitionIndex, RecvContext.PartitionIndex);
+
+    QuicAddr ExplicitPortAddress = GetNewUnspecAddr();
+    CxPlatSocket ExplicitPartitionedSocket(
+        Datapath,
+        &ExplicitPortAddress.SockAddr,
+        nullptr,
+        nullptr,
+        CXPLAT_SOCKET_FLAG_PARTITIONED,
+        PartitionIndex);
+    VERIFY_QUIC_SUCCESS(ExplicitPartitionedSocket.GetInitStatus());
+    EXPECT_EQ(0, ProbeReusePortBind(ExplicitPartitionedSocket.GetLocalAddress()));
+
+    CxPlatSocket NonPartitionedSocket(Datapath, &DynamicAddress.SockAddr);
+    VERIFY_QUIC_SUCCESS(NonPartitionedSocket.GetInitStatus());
+    QUIC_ADDR AssignedSharedAddress = NonPartitionedSocket.GetLocalAddress();
+    ASSERT_NE(QuicAddrGetPort(&AssignedSharedAddress), (uint16_t)0);
+    EXPECT_EQ(0, ProbeReusePortBind(AssignedSharedAddress));
 }
 #endif
 

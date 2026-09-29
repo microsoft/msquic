@@ -336,6 +336,13 @@ MsQuicListenerStart(
     if (Listener->Partitioned) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_PARTITIONED;
         UdpConfig.PartitionIndex = Listener->PartitionIndex;
+        if (PortUnspecified) {
+            //
+            // Nobody can have arranged to share a port the stack has not assigned
+            // yet, so any reuseport grouping here would be accidental.
+            //
+            UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT;
+        }
     }
 
     // for RAW datapath
@@ -916,7 +923,7 @@ QuicListenerParamSet(
             !Listener->Stopped) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
+#if defined(__linux__)
         Listener->PartitionIndex = PartitionIndex;
         Listener->Partitioned = TRUE;
         QuicWorkerAssignListener(

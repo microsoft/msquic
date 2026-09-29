@@ -273,6 +273,127 @@ void QuicTestStartListenerExplicit(const FamilyArgs& Params)
     }
 }
 
+#if defined(__linux__)
+static
+void
+QuicTestProbeReusePort(
+    _In_ const QUIC_ADDR* Address,
+    _Out_ int* Error
+    )
+{
+    *Error = -1;
+    const int AddressFamily =
+        QuicAddrGetFamily(Address) == QUIC_ADDRESS_FAMILY_INET ? AF_INET : AF_INET6;
+    int ProbeSocket = socket(AddressFamily, SOCK_DGRAM, IPPROTO_UDP);
+    TEST_NOT_EQUAL(INVALID_SOCKET, ProbeSocket);
+
+    int ReusePort = TRUE;
+    int Result =
+        setsockopt(
+            ProbeSocket,
+            SOL_SOCKET,
+            SO_REUSEPORT,
+            &ReusePort,
+            sizeof(ReusePort));
+    if (Result != 0) {
+        close(ProbeSocket);
+        TEST_EQUAL(0, Result);
+        return;
+    }
+    Result =
+        bind(
+            ProbeSocket,
+            &Address->Ip,
+            AddressFamily == AF_INET ? sizeof(Address->Ipv4) : sizeof(Address->Ipv6));
+    *Error = Result == 0 ? 0 : errno;
+    close(ProbeSocket);
+}
+
+static
+QUIC_STATUS
+QUIC_API
+QuicTestPartitionedListenerCallback(
+    _In_ MsQuicListener*,
+    _In_opt_ void*,
+    _Inout_ QUIC_LISTENER_EVENT*
+    )
+{
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+QuicTestPartitionedListenerPort(const FamilyArgs& Params)
+{
+    if (CxPlatProcCount() < 2) {
+        return;
+    }
+
+    const QUIC_ADDRESS_FAMILY Family =
+        Params.Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    const uint16_t PartitionIndex = 1;
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    {
+        MsQuicListener Listener(
+            Registration,
+            CleanUpManual,
+            QuicTestPartitionedListenerCallback);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+            Listener.SetParam(
+                QUIC_PARAM_LISTENER_PARTITION_INDEX,
+                sizeof(PartitionIndex),
+                &PartitionIndex));
+        QuicAddr DynamicAddress(Family);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &DynamicAddress.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(DynamicAddress));
+        int ProbeError;
+        QuicTestProbeReusePort(&DynamicAddress.SockAddr, &ProbeError);
+        TEST_EQUAL(EADDRINUSE, ProbeError);
+    }
+
+    {
+        MsQuicListener Listener(
+            Registration,
+            CleanUpManual,
+            QuicTestPartitionedListenerCallback);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+            Listener.SetParam(
+                QUIC_PARAM_LISTENER_PARTITION_INDEX,
+                sizeof(PartitionIndex),
+                &PartitionIndex));
+        QuicAddr ExplicitPortAddress(QuicAddr(Family), TestUdpPortBase);
+        QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
+        while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+            ExplicitPortAddress.IncrementPort();
+            Status = Listener.Start(Alpn, &ExplicitPortAddress.SockAddr);
+        }
+        TEST_QUIC_SUCCEEDED(Status);
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ExplicitPortAddress));
+        int ProbeError;
+        QuicTestProbeReusePort(&ExplicitPortAddress.SockAddr, &ProbeError);
+        TEST_EQUAL(0, ProbeError);
+    }
+
+    {
+        MsQuicListener Listener(
+            Registration,
+            CleanUpManual,
+            QuicTestPartitionedListenerCallback);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        QuicAddr DynamicAddress(Family);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &DynamicAddress.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(DynamicAddress));
+        int ProbeError;
+        QuicTestProbeReusePort(&DynamicAddress.SockAddr, &ProbeError);
+        TEST_EQUAL(0, ProbeError);
+    }
+}
+#endif
+
 void QuicTestCreateConnection()
 {
     MsQuicRegistration Registration;
