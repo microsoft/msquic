@@ -145,7 +145,7 @@ void QuicTestStartListenerImplicit(const FamilyArgs& Params);
 void QuicTestStartTwoListeners();
 void QuicTestStartTwoListenersSameALPN();
 void QuicTestStartListenerExplicit(const FamilyArgs& Params);
-#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
+#if defined(__linux__)
 void QuicTestPartitionedListenerPort(const FamilyArgs& Params);
 #endif
 void QuicTestCreateConnection();

@@ -821,7 +821,7 @@ TEST_P(WithFamilyArgs, StartListenerExplicit) {
     }
 }
 
-#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
+#if defined(__linux__)
 TEST_P(WithFamilyArgs, PartitionedListenerPort) {
     TestLoggerT<ParamType> Logger("QuicTestPartitionedListenerPort", GetParam());
     QuicTestPartitionedListenerPort(GetParam());
