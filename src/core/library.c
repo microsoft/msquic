@@ -751,6 +751,7 @@ MsQuicLibraryUninitialize(
     CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
     MsQuicLib.RegistrationCloseCleanupWorker = 0;
 
+    CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
     CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
     CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
 
