@@ -261,7 +261,7 @@ CxPlatTlsNegotiatedCiphers(
 // @param[out] consumed    Number of bytes successfully consumed from @p buf.
 // @param[in]  arg         Unused argument (typically NULL).
 //
-// @return 1 on success, -1 on failure.
+// @return 1 on success, 0 on failure.
 //
 static int QuicTlsSend(SSL *s, const unsigned char *Buf,
                          size_t BufLen, size_t *Consumed,
@@ -279,7 +279,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)AData->Level;
 
     if (TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
-        return -1;
+        return 0;
     }
 
     QuicTraceLogConnVerbose(
@@ -301,7 +301,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
             TlsContext->Connection,
             "Too much handshake data");
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-        return -1;
+        return 0;
     }
 
     if (RequiredBufferLength > (size_t)TlsState->BufferAllocLength) {
@@ -322,7 +322,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
                 "New crypto Buffer",
                 NewBufferAllocLength);
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            return -1;
+            return 0;
         }
 
         CxPlatCopyMemory(
@@ -376,7 +376,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
 // @brief Callback to lend the next complete TLS message to OpenSSL.
 //
 // The returned pointer aliases MsQuic's receive buffer and remains valid until
-// OpenSSL calls QuicTlsRlsRec. Only one message may be outstanding at a time.
+// OpenSSL calls QuicTlsReleaseRecord. Only one message may be outstanding at a time.
 //
 // @param[in]  s            Pointer to the SSL connection object.
 // @param[out] buf          Pointer to the buffer containing the record data.
@@ -387,8 +387,14 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
 //
 // @return Always returns 1.
 //
-static int QuicTlsRcvRec(SSL *s, const unsigned char **Buf, size_t *BytesRead,
-                            void *Arg)
+static int
+QuicTlsReceiveRecord(
+    _In_ SSL* s,
+    _Outptr_result_buffer_maybenull_(*BytesRead)
+        const unsigned char** Buf,
+    _Out_ size_t* BytesRead,
+    _In_opt_ void* Arg
+    )
 {
     struct AUX_DATA *AData = GetSslAuxData(s);
 
@@ -422,30 +428,32 @@ static int QuicTlsRcvRec(SSL *s, const unsigned char **Buf, size_t *BytesRead,
 }
 
 //
-// @brief Callback to release a TLS message borrowed from MsQuic.
+// @brief Callback to release TLS data borrowed from MsQuic.
 //
-// This function advances the released prefix of the current input window.
+// This function advances the released prefix of the current input window
+// and tracks any portion that remains outstanding.
 // The receive buffer itself remains owned by MsQuic and is drained after
 // CxPlatTlsProcessData returns.
 //
-// @param[in] bytes_read  The number of bytes processed in the TLS record.
+// @param[in] bytes_read  The number of bytes OpenSSL no longer needs.
 // @param[in] arg         Unused argument (typically NULL).
 //
-// @return 1 if the complete outstanding message was released; otherwise 0.
+// @return 1 if the bytes were released; 0 if the length exceeds the
+//         outstanding data.
 //
-static int QuicTlsRlsRec(SSL *S, size_t BytesRead,
+static int QuicTlsReleaseRecord(SSL *S, size_t BytesRead,
                             void *Arg)
 {
     struct AUX_DATA *AData = GetSslAuxData(S);
 
     UNREFERENCED_PARAMETER(Arg);
 
-    if (BytesRead != AData->OutstandingLength) {
+    if (BytesRead > AData->OutstandingLength) {
         return 0;
     }
 
     AData->InputOffset += BytesRead;
-    AData->OutstandingLength = 0;
+    AData->OutstandingLength -= BytesRead;
     return 1;
 }
 
@@ -493,9 +501,9 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         return 1;
     }
     
-    AData->SecretSet[ProtLevel][Dir].Secret = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_TLS_AUX_DATA);
+    AData->SecretSet[ProtLevel][Dir].Secret = CXPLAT_ALLOC_NONPAGED(SecretLen, QUIC_POOL_TLS_AUX_DATA);
     if (AData->SecretSet[ProtLevel][Dir].Secret == NULL) {
-        return -1;
+        return 0;
     }
     memcpy(AData->SecretSet[ProtLevel][Dir].Secret, NewSecret, SecretLen);
     AData->SecretSet[ProtLevel][Dir].SecretLen = SecretLen;
@@ -531,7 +539,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
                 &TlsState->WriteKeys[KeyType]);
         if (QUIC_FAILED(Status)) {
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            return -1;
+            return 0;
         }
 
         if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_0_RTT) {
@@ -556,7 +564,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
                 &TlsState->ReadKeys[KeyType]);
         if (QUIC_FAILED(Status)) {
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            return -1;
+            return 0;
         }
 
         if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
@@ -683,7 +691,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
 //
 // @return 1 on success, -1 on failure.
 //
-static int QuicTlsGotTp(SSL *S, const unsigned char *Params,
+static int QuicTlsReceiveTransportParameters(SSL *S, const unsigned char *Params,
                            size_t ParamsLen, void *Arg)
 {
     CXPLAT_TLS* TlsContext = SSL_get_app_data(S);
@@ -769,20 +777,21 @@ static int QuicTlsAlert(SSL *S,
 //
 // The dispatch table includes:
 // - @ref QuicTlsSend: Sends handshake data to the QUIC stack.
-// - @ref QuicTlsRcvRec: Provides received handshake data to OpenSSL.
-// - @ref QuicTlsRlsRec: Releases processed handshake records.
+// - @ref QuicTlsReceiveRecord: Provides received handshake data to OpenSSL.
+// - @ref QuicTlsReleaseRecord: Releases processed handshake records.
 // - @ref QuicTlsYieldSecret: Supplies derived secrets to the QUIC stack.
-// - @ref QuicTlsGotTp: Handles received transport parameters.
+// - @ref QuicTlsReceiveTransportParameters: Handles received transport parameters.
 // - @ref QuicTlsAlert: Processes TLS alerts.
 //
 // This table is registered with OpenSSL using SSL_set_quic_tls_cbs().
 //
 static OSSL_DISPATCH OpenSslQuicDispatch[] = {
     {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_SEND, (void (*)(void))QuicTlsSend},
-    {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_RECV_RCD, (void (*)(void))QuicTlsRcvRec},
-    {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_RELEASE_RCD, (void (*)(void))QuicTlsRlsRec},
+    {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_RECV_RCD, (void (*)(void))QuicTlsReceiveRecord},
+    {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_RELEASE_RCD, (void (*)(void))QuicTlsReleaseRecord},
     {OSSL_FUNC_SSL_QUIC_TLS_YIELD_SECRET, (void (*)(void))QuicTlsYieldSecret},
-    {OSSL_FUNC_SSL_QUIC_TLS_GOT_TRANSPORT_PARAMS, (void (*)(void))QuicTlsGotTp},
+    {OSSL_FUNC_SSL_QUIC_TLS_GOT_TRANSPORT_PARAMS,
+        (void (*)(void))QuicTlsReceiveTransportParameters},
     {OSSL_FUNC_SSL_QUIC_TLS_ALERT, (void (*)(void))QuicTlsAlert},
     OSSL_DISPATCH_END
 };
@@ -2811,6 +2820,8 @@ CxPlatTlsProcessData(
 
     if (!State->HandshakeComplete) {
         do {
+            size_t PreviousInputOffset = AData->InputOffset;
+
             Ret = SSL_do_handshake(TlsContext->Ssl);
             if (Ret <= 0) {
                 int Err = SSL_get_error(TlsContext->Ssl, Ret);
@@ -2843,6 +2854,12 @@ CxPlatTlsProcessData(
                     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                     goto Exit;
                 }
+            }
+
+            CXPLAT_DBG_ASSERT(AData->InputOffset >= PreviousInputOffset);
+
+            if (AData->InputOffset == PreviousInputOffset) {
+                break;
             }
         } while (AData->InputOffset < AData->InputLength);
 
@@ -2915,7 +2932,8 @@ CxPlatTlsProcessData(
                 }
 
                 //
-                // By this point, OpenSSL should have called QuicTlsGotTp, which stores
+                // By this point, OpenSSL should have called
+                // QuicTlsReceiveTransportParameters, which stores
                 // a non-NULL PeerTp and sets PeerTPReceived. Fail the handshake if the
                 // required transport parameters were not processed.
                 //
@@ -2962,7 +2980,9 @@ Exit:
     if (DataType == CXPLAT_TLS_CRYPTO_DATA) {
         if (AData->OutstandingLength != 0) {
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+            if (State->AlertCode == 0) {
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+            }
             *BufferLength = 0;
         } else {
             *BufferLength = (uint32_t)AData->InputOffset;
