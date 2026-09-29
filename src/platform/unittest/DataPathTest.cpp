@@ -90,6 +90,7 @@ struct UdpRecvContext {
     CXPLAT_EVENT ClientCompletion;
     CXPLAT_ECN_TYPE EcnType {CXPLAT_ECN_NON_ECT};
     CXPLAT_DSCP_TYPE Dscp {CXPLAT_DSCP_CS0};
+    uint16_t PartitionIndex {UINT16_MAX};
     bool TtlSupported;
     bool DscpSupported;
     UdpRecvContext() {
@@ -313,6 +314,7 @@ protected:
             if (RecvData->Route->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 
                 ASSERT_EQ(CXPLAT_ECN_FROM_TOS(RecvData->TypeOfService), RecvContext->EcnType);
+                RecvContext->PartitionIndex = RecvData->PartitionIndex;
 
                 CXPLAT_SEND_CONFIG SendConfig = { RecvData->Route, 0, (uint8_t)RecvContext->EcnType, 0, (uint8_t)RecvContext->Dscp };
                 auto ServerSendData = CxPlatSendDataAlloc(Socket, &SendConfig);
@@ -767,7 +769,10 @@ TEST_P(DataPathTest, UdpExclusivePort)
         GTEST_SKIP() << "SO_REUSEPORT requires multiple datapath partitions";
     }
 
-    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    UdpRecvContext RecvContext;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
+    RecvContext.DscpSupported = Datapath.IsDscpSupported();
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
 
     auto ProbeReusePortBind = [this](const QUIC_ADDR& Address) {
@@ -808,7 +813,7 @@ TEST_P(DataPathTest, UdpExclusivePort)
         Datapath,
         &DynamicAddress.SockAddr,
         nullptr,
-        nullptr,
+        &RecvContext,
         (CXPLAT_SOCKET_FLAGS)(
             CXPLAT_SOCKET_FLAG_PARTITIONED |
             CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT),
@@ -817,6 +822,31 @@ TEST_P(DataPathTest, UdpExclusivePort)
     QUIC_ADDR AssignedExclusiveAddress = DynamicExclusiveSocket.GetLocalAddress();
     ASSERT_NE(QuicAddrGetPort(&AssignedExclusiveAddress), (uint16_t)0);
     EXPECT_EQ(EADDRINUSE, ProbeReusePortBind(AssignedExclusiveAddress));
+
+    RecvContext.DestinationAddress = GetNewLocalAddr(false).SockAddr;
+    QuicAddrSetPort(
+        &RecvContext.DestinationAddress,
+        QuicAddrGetPort(&AssignedExclusiveAddress));
+    CxPlatSocket Client(
+        Datapath,
+        nullptr,
+        &RecvContext.DestinationAddress,
+        &RecvContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Client.Route,
+        0,
+        CXPLAT_ECN_NON_ECT,
+        0,
+        (uint8_t)RecvContext.Dscp };
+    auto ClientSendData = CxPlatSendDataAlloc(Client, &SendConfig);
+    ASSERT_NE(nullptr, ClientSendData);
+    auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+    ASSERT_NE(nullptr, ClientBuffer);
+    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
+    Client.Send(ClientSendData);
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    EXPECT_EQ(PartitionIndex, RecvContext.PartitionIndex);
 
     QuicAddr ExplicitPortAddress = GetNewUnspecAddr();
     CxPlatSocket ExplicitPartitionedSocket(
