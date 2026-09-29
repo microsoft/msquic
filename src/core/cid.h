@@ -141,30 +141,6 @@ typedef struct QUIC_CID_LIST_ENTRY {
 
 } QUIC_CID_LIST_ENTRY;
 
-#if DEBUG
-#define QUIC_CID_SET_PATH(Conn, Cid, Path)                                          \
-    do {                                                                            \
-        CXPLAT_DBG_ASSERT(!(Cid)->CID.Retired);                                      \
-        CXPLAT_DBG_ASSERT((Cid)->AssignedPathId == UINT32_MAX);                      \
-        (Cid)->AssignedPathId = (Path)->ID;                                          \
-        for (int PathIdx = (Conn)->Paths.Count - 1; PathIdx >= 0; PathIdx--) {       \
-            if ((Path)->ID != (Conn)->Paths.Paths[PathIdx].ID) {                     \
-                CXPLAT_DBG_ASSERT((Conn)->Paths.Paths[PathIdx].DestCid != (Cid));    \
-            }                                                                       \
-        }                                                                           \
-    }                                                                               \
-    while (0)
-#define QUIC_CID_VALIDATE_NULL(Conn, Cid)                                        \
-    do {                                                                         \
-        for (int PathIdx = (Conn)->Paths.Count - 1; PathIdx >= 0; PathIdx--) {   \
-            CXPLAT_DBG_ASSERT((Conn)->Paths.Paths[PathIdx].DestCid != (Cid));    \
-        }                                                                        \
-    } while (0)
-#else
-#define QUIC_CID_SET_PATH(Conn, Cid, Path) UNREFERENCED_PARAMETER(Cid)
-#define QUIC_CID_VALIDATE_NULL(Conn, Cid) UNREFERENCED_PARAMETER(Cid)
-#endif
-
 typedef struct QUIC_CID_HASH_ENTRY {
 
     CXPLAT_HASHTABLE_ENTRY Entry;
