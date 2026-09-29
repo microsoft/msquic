@@ -12,6 +12,17 @@ Abstract:
 #include "main.h"
 #include "quic_datapath.h"
 
+extern "C"
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawParseEthernet(
+    _In_ const CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_RECV_DATA* Packet,
+    _In_reads_bytes_(Length)
+        const uint8_t* Payload,
+    _In_ uint16_t Length
+    );
+
 namespace {
 
 constexpr uint16_t EthernetHeaderLength = 14;
@@ -85,29 +96,21 @@ InitializeIpv4UdpFrame(_Out_writes_bytes_(FrameLength) uint8_t* Frame)
     CxPlatCopyMemory(Frame + PayloadOffset, Payload, sizeof(Payload));
 }
 
-//
-// A successful parse of the IPv4/UDP frame updates Buffer and BufferLength.
-//
-void
-ExpectParseRejected(
-    _In_reads_bytes_(Length)
-        const uint8_t* Frame,
-    _In_ uint16_t Length
+CXPLAT_RECV_DATA
+MakeDummyPacket(
+    CXPLAT_ROUTE* Route
     )
 {
-    uint8_t Sentinel = 0xA5;
-
-    CXPLAT_ROUTE Route = {};
     CXPLAT_RECV_DATA Packet = {};
+    Packet.Route = Route;
+    return Packet;
+}
 
-    Packet.Route = &Route;
-    Packet.Buffer = &Sentinel;
-    Packet.BufferLength = 1;
-
-    CxPlatDataPathTestParseEthernet(&Packet, Frame, Length);
-
-    EXPECT_EQ(&Sentinel, Packet.Buffer);
-    EXPECT_EQ(1, Packet.BufferLength);
+const CXPLAT_DATAPATH*
+GetDummyDatapath()
+{
+    return reinterpret_cast<const CXPLAT_DATAPATH*>(
+        static_cast<uintptr_t>(0xDEADBEEF));
 }
 
 TEST(RawDataPathTest, ParseIpv4Udp)
@@ -116,10 +119,9 @@ TEST(RawDataPathTest, ParseIpv4Udp)
     InitializeIpv4UdpFrame(Frame);
 
     CXPLAT_ROUTE Route = {};
-    CXPLAT_RECV_DATA Packet = {};
-    Packet.Route = &Route;
+    CXPLAT_RECV_DATA Packet = MakeDummyPacket(&Route);
 
-    CxPlatDataPathTestParseEthernet(&Packet, Frame, FrameLength);
+    CxPlatDpRawParseEthernet(GetDummyDatapath(), &Packet, Frame, FrameLength);
 
     EXPECT_EQ(AF_INET, Route.RemoteAddress.Ipv4.sin_family);
     EXPECT_EQ(AF_INET, Route.LocalAddress.Ipv4.sin_family);
@@ -152,7 +154,13 @@ TEST(RawDataPathTest, RejectTruncatedEthernet)
     uint8_t Frame[FrameLength];
     InitializeIpv4UdpFrame(Frame);
 
-    ExpectParseRejected(Frame, EthernetHeaderLength - 1);
+    CXPLAT_ROUTE Route = {};
+    CXPLAT_RECV_DATA Packet = MakeDummyPacket(&Route);
+
+    CxPlatDpRawParseEthernet(GetDummyDatapath(), &Packet, Frame, EthernetHeaderLength - 1);
+
+    EXPECT_EQ(nullptr, Packet.Buffer);
+    EXPECT_EQ(0, Packet.BufferLength);
 }
 
 TEST(RawDataPathTest, RejectTruncatedIpv4)
@@ -160,7 +168,17 @@ TEST(RawDataPathTest, RejectTruncatedIpv4)
     uint8_t Frame[FrameLength];
     InitializeIpv4UdpFrame(Frame);
 
-    ExpectParseRejected(Frame, EthernetHeaderLength + Ipv4HeaderLength - 1);
+    CXPLAT_ROUTE Route = {};
+    CXPLAT_RECV_DATA Packet = MakeDummyPacket(&Route);
+
+    CxPlatDpRawParseEthernet(
+        GetDummyDatapath(),
+        &Packet,
+        Frame,
+        EthernetHeaderLength + Ipv4HeaderLength - 1);
+
+    EXPECT_EQ(nullptr, Packet.Buffer);
+    EXPECT_EQ(0, Packet.BufferLength);
 }
 
 TEST(RawDataPathTest, RejectIpv4LengthExceedsFrame)
@@ -172,7 +190,13 @@ TEST(RawDataPathTest, RejectIpv4LengthExceedsFrame)
     Frame[IpOffset + 2] = (uint8_t)(InvalidIpLength >> 8);
     Frame[IpOffset + 3] = (uint8_t)(InvalidIpLength & 0xFF);
 
-    ExpectParseRejected(Frame, FrameLength);
+    CXPLAT_ROUTE Route = {};
+    CXPLAT_RECV_DATA Packet = MakeDummyPacket(&Route);
+
+    CxPlatDpRawParseEthernet(GetDummyDatapath(), &Packet, Frame, FrameLength);
+
+    EXPECT_EQ(nullptr, Packet.Buffer);
+    EXPECT_EQ(0, Packet.BufferLength);
 }
 
 TEST(RawDataPathTest, RejectUdpLengthBelowHeader)
@@ -184,7 +208,13 @@ TEST(RawDataPathTest, RejectUdpLengthBelowHeader)
     Frame[UdpOffset + 4] = (uint8_t)(InvalidUdpLength >> 8);
     Frame[UdpOffset + 5] = (uint8_t)(InvalidUdpLength & 0xFF);
 
-    ExpectParseRejected(Frame, FrameLength);
+    CXPLAT_ROUTE Route = {};
+    CXPLAT_RECV_DATA Packet = MakeDummyPacket(&Route);
+
+    CxPlatDpRawParseEthernet(GetDummyDatapath(), &Packet, Frame, FrameLength);
+
+    EXPECT_EQ(nullptr, Packet.Buffer);
+    EXPECT_EQ(0, Packet.BufferLength);
 }
 
 TEST(RawDataPathTest, RejectUdpLengthExceedsIpPayload)
@@ -196,7 +226,13 @@ TEST(RawDataPathTest, RejectUdpLengthExceedsIpPayload)
     Frame[UdpOffset + 4] = (uint8_t)(InvalidUdpLength >> 8);
     Frame[UdpOffset + 5] = (uint8_t)(InvalidUdpLength & 0xFF);
 
-    ExpectParseRejected(Frame, FrameLength);
+    CXPLAT_ROUTE Route = {};
+    CXPLAT_RECV_DATA Packet = MakeDummyPacket(&Route);
+
+    CxPlatDpRawParseEthernet(GetDummyDatapath(), &Packet, Frame, FrameLength);
+
+    EXPECT_EQ(nullptr, Packet.Buffer);
+    EXPECT_EQ(0, Packet.BufferLength);
 }
 
 } // namespace
