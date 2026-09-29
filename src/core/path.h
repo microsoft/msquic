@@ -228,6 +228,41 @@ typedef struct QUIC_PATH_SET {
 
 } QUIC_PATH_SET;
 
+#if DEBUG
+QUIC_INLINE
+void
+QuicCidSetPath(
+    _In_ const QUIC_PATH_SET* PathSet,
+    _Inout_ QUIC_CID_LIST_ENTRY* Cid,
+    _In_ const QUIC_PATH* Path
+    )
+{
+    CXPLAT_DBG_ASSERT(!Cid->CID.Retired);
+    CXPLAT_DBG_ASSERT(Cid->AssignedPathId == UINT32_MAX);
+    Cid->AssignedPathId = Path->ID;
+    for (int PathIdx = PathSet->Count - 1; PathIdx >= 0; PathIdx--) {
+        if (Path->ID != PathSet->Paths[PathIdx].ID) {
+            CXPLAT_DBG_ASSERT(PathSet->Paths[PathIdx].DestCid != Cid);
+        }
+    }
+}
+
+QUIC_INLINE
+void
+QuicCidValidateNull(
+    _In_ const QUIC_PATH_SET* PathSet,
+    _In_ const QUIC_CID_LIST_ENTRY* Cid
+    )
+{
+    for (int PathIdx = PathSet->Count - 1; PathIdx >= 0; PathIdx--) {
+        CXPLAT_DBG_ASSERT(PathSet->Paths[PathIdx].DestCid != Cid);
+    }
+}
+#else
+#define QuicCidSetPath(PathSet, Cid, Path)
+#define QuicCidValidateNull(PathSet, Cid)
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathSetInitialize(

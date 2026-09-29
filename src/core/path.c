@@ -98,7 +98,7 @@ QuicPathUpdateDestCid(
     }
 
     Path->DestCid = NewDestCid;
-    QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
+    QuicCidSetPath(&Connection->Paths, NewDestCid, Path);
     Path->DestCid->CID.UsedLocally = TRUE;
     Path->InitiatedCidUpdate = TRUE;
     QuicPathValidate(Path);
@@ -286,7 +286,7 @@ QuicPathUpdateDestCids(
                 QUIC_CID_LIST_ENTRY,
                 Link);
         if (DestCid->CID.Retired) {
-            QUIC_CID_VALIDATE_NULL(Connection, DestCid);
+            QuicCidValidateNull(&Connection->Paths, DestCid);
         }
     }
 #endif

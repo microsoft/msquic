@@ -200,7 +200,7 @@ QuicConnAlloc(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
-        QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
+        QuicCidSetPath(&Connection->Paths, Path->DestCid, Path);
         Path->DestCid->CID.UsedLocally = TRUE;
         CxPlatListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
         QuicTraceEvent(
@@ -241,7 +241,7 @@ QuicConnAlloc(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
-        QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
+        QuicCidSetPath(&Connection->Paths, Path->DestCid, Path);
         Path->DestCid->CID.UsedLocally = TRUE;
         Connection->DestCidCount++;
         CxPlatListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
@@ -1105,8 +1105,8 @@ QuicConnRetireCurrentDestCid(
     QUIC_CID_LIST_ENTRY* OldDestCid = Path->DestCid;
     QuicConnRetireCid(Connection, OldDestCid);
     Path->DestCid = NewDestCid;
-    QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
-    QUIC_CID_VALIDATE_NULL(Connection, OldDestCid);
+    QuicCidSetPath(&Connection->Paths, Path->DestCid, Path);
+    QuicCidValidateNull(&Connection->Paths, OldDestCid);
     Path->DestCid->CID.UsedLocally = TRUE;
     Connection->Stats.Misc.DestCidUpdateCount++;
 
@@ -3404,8 +3404,8 @@ QuicConnUpdateDestCid(
             }
 
             QuicPathGetActive(&Connection->Paths)->DestCid = DestCid;
-            QUIC_CID_SET_PATH(
-                Connection,
+            QuicCidSetPath(
+                &Connection->Paths,
                 DestCid,
                 QuicPathGetActive(&Connection->Paths));
             DestCid->CID.UsedLocally = TRUE;
