@@ -259,9 +259,6 @@ QuicCidValidateNull(
         CXPLAT_DBG_ASSERT(PathSet->Paths[PathIdx].DestCid != Cid);
     }
 }
-#else
-#define QuicCidSetPath(PathSet, Cid, Path)
-#define QuicCidValidateNull(PathSet, Cid)
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
