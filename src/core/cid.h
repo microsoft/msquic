@@ -141,6 +141,26 @@ typedef struct QUIC_CID_LIST_ENTRY {
 
 } QUIC_CID_LIST_ENTRY;
 
+#if DEBUG
+QUIC_INLINE
+void
+QuicCidSetPath(
+    _In_ const QUIC_PATH_SET* PathSet,
+    _Inout_ QUIC_CID_LIST_ENTRY* Cid,
+    _In_ const QUIC_PATH* Path
+    );
+
+QUIC_INLINE
+void
+QuicCidValidateNull(
+    _In_ const QUIC_PATH_SET* PathSet,
+    _In_ const QUIC_CID_LIST_ENTRY* Cid
+    );
+#else
+#define QuicCidSetPath(PathSet, Cid, Path)
+#define QuicCidValidateNull(PathSet, Cid)
+#endif
+
 typedef struct QUIC_CID_HASH_ENTRY {
 
     CXPLAT_HASHTABLE_ENTRY Entry;
