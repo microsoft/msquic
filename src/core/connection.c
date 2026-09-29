@@ -1761,16 +1761,6 @@ QuicConnOnQuicVersionSet(
         "[conn][%p] QUIC Version: 0x%x",
         Connection,
         Connection->Stats.QuicVersion);
-
-    switch (Connection->Stats.QuicVersion) {
-    case QUIC_VERSION_1:
-    case QUIC_VERSION_DRAFT_29:
-    case QUIC_VERSION_MS_1:
-    case QUIC_VERSION_2:
-    default:
-        Connection->State.HeaderProtectionEnabled = TRUE;
-        break;
-    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -4063,10 +4053,12 @@ QuicConnRecvHeader(
             !Connection->Paths[0].EncryptionOffloading;
     }
 
-    if (Packet->Encrypted &&
-        Connection->State.HeaderProtectionEnabled &&
-        Packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
-        QuicPacketLogDrop(Connection, Packet, "Too short for HP");
+    const uint8_t MinimumPayloadLength =
+        Packet->Encrypted ?
+            4 + CXPLAT_HP_SAMPLE_LENGTH :
+            (Packet->IsShortHeader ? Packet->SH->PnLength : Packet->LH->PnLength) + 1;
+    if (Packet->PayloadLength < MinimumPayloadLength) {
+        QuicPacketLogDrop(Connection, Packet, "Too short for packet header");
         return FALSE;
     }
 
@@ -4086,7 +4078,7 @@ QuicConnRecvHeader(
     // don't actually know the length of the packet number so we assume maximum
     // (per spec) and start sampling 4 bytes after the start of the packet number.
     //
-    if (Packet->Encrypted && Connection->State.HeaderProtectionEnabled) {
+    if (Packet->Encrypted) {
         CxPlatCopyMemory(
             Cipher,
             Packet->AvailBuffer + Packet->HeaderLength + 4,
@@ -4140,7 +4132,7 @@ QuicConnRecvPrepareDecrypt(
     }
 
     CXPLAT_DBG_ASSERT(CompressedPacketNumberLength >= 1 && CompressedPacketNumberLength <= 4);
-    CXPLAT_DBG_ASSERT(Packet->HeaderLength + CompressedPacketNumberLength <= Packet->AvailBufferLength);
+    CXPLAT_DBG_ASSERT(Packet->PayloadLength >= CompressedPacketNumberLength);
 
     //
     // Decrypt the packet number now that we have the length.
@@ -5666,8 +5658,7 @@ QuicConnRecvDatagramBatch(
         return;
     }
 
-    if (Packet->Encrypted &&
-        Connection->State.HeaderProtectionEnabled) {
+    if (Packet->Encrypted) {
         if (QUIC_FAILED(
             CxPlatHpComputeMask(
                 Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->HeaderKey,

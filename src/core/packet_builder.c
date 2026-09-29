@@ -897,51 +897,48 @@ QuicPacketBuilderFinalize(
             "[pack][%llu] Finalizing",
             Builder->Metadata->PacketId);
 
-        if (Connection->State.HeaderProtectionEnabled) {
+        uint8_t* PnStart = Payload - Builder->PacketNumberLength;
 
-            uint8_t* PnStart = Payload - Builder->PacketNumberLength;
+        if (Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
+            CXPLAT_DBG_ASSERT(Builder->BatchCount < QUIC_MAX_CRYPTO_BATCH_COUNT);
 
-            if (Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
-                CXPLAT_DBG_ASSERT(Builder->BatchCount < QUIC_MAX_CRYPTO_BATCH_COUNT);
+            //
+            // Batch the header protection for short header packets.
+            //
 
-                //
-                // Batch the header protection for short header packets.
-                //
+            CxPlatCopyMemory(
+                Builder->CipherBatch + Builder->BatchCount * CXPLAT_HP_SAMPLE_LENGTH,
+                PnStart + 4,
+                CXPLAT_HP_SAMPLE_LENGTH);
+            Builder->HeaderBatch[Builder->BatchCount] = Header;
 
-                CxPlatCopyMemory(
-                    Builder->CipherBatch + Builder->BatchCount * CXPLAT_HP_SAMPLE_LENGTH,
+            if (++Builder->BatchCount == QUIC_MAX_CRYPTO_BATCH_COUNT) {
+                QuicPacketBuilderFinalizeHeaderProtection(Builder);
+            }
+
+        } else {
+            CXPLAT_DBG_ASSERT(Builder->BatchCount == 0);
+
+            //
+            // Individually do header protection for long header packets as
+            // they generally use different keys.
+            //
+
+            if (QUIC_FAILED(
+                Status =
+                CxPlatHpComputeMask(
+                    Builder->Key->HeaderKey,
+                    1,
                     PnStart + 4,
-                    CXPLAT_HP_SAMPLE_LENGTH);
-                Builder->HeaderBatch[Builder->BatchCount] = Header;
+                    Builder->HpMask))) {
+                CXPLAT_TEL_ASSERT(FALSE);
+                QuicConnFatalError(Connection, Status, "HP failure");
+                goto Exit;
+            }
 
-                if (++Builder->BatchCount == QUIC_MAX_CRYPTO_BATCH_COUNT) {
-                    QuicPacketBuilderFinalizeHeaderProtection(Builder);
-                }
-
-            } else {
-                CXPLAT_DBG_ASSERT(Builder->BatchCount == 0);
-
-                //
-                // Individually do header protection for long header packets as
-                // they generally use different keys.
-                //
-
-                if (QUIC_FAILED(
-                    Status =
-                    CxPlatHpComputeMask(
-                        Builder->Key->HeaderKey,
-                        1,
-                        PnStart + 4,
-                        Builder->HpMask))) {
-                    CXPLAT_TEL_ASSERT(FALSE);
-                    QuicConnFatalError(Connection, Status, "HP failure");
-                    goto Exit;
-                }
-
-                Header[0] ^= (Builder->HpMask[0] & 0x0f); // Bottom 4 bits for LH
-                for (uint8_t i = 0; i < Builder->PacketNumberLength; ++i) {
-                    PnStart[i] ^= Builder->HpMask[1 + i];
-                }
+            Header[0] ^= (Builder->HpMask[0] & 0x0f); // Bottom 4 bits for LH
+            for (uint8_t i = 0; i < Builder->PacketNumberLength; ++i) {
+                PnStart[i] ^= Builder->HpMask[1 + i];
             }
         }
 
