@@ -148,17 +148,46 @@ QuicCidSetPath(
     _In_ const QUIC_PATH_SET* PathSet,
     _Inout_ QUIC_CID_LIST_ENTRY* Cid,
     _In_ const QUIC_PATH* Path
-    );
+    )
+{
+    CXPLAT_DBG_ASSERT(!Cid->CID.Retired);
+    CXPLAT_DBG_ASSERT(Cid->AssignedPathId == UINT32_MAX);
+    Cid->AssignedPathId = Path->ID;
+    for (int PathIdx = PathSet->Count - 1; PathIdx >= 0; PathIdx--) {
+        if (Path->ID != PathSet->Paths[PathIdx].ID) {
+            CXPLAT_DBG_ASSERT(PathSet->Paths[PathIdx].DestCid != Cid);
+        }
+    }
+}
 
 QUIC_INLINE
 void
 QuicCidValidateNull(
     _In_ const QUIC_PATH_SET* PathSet,
     _In_ const QUIC_CID_LIST_ENTRY* Cid
-    );
+    )
+{
+    for (int PathIdx = PathSet->Count - 1; PathIdx >= 0; PathIdx--) {
+        CXPLAT_DBG_ASSERT(PathSet->Paths[PathIdx].DestCid != Cid);
+    }
+}
+
+QUIC_INLINE
+void
+QuicPathValidate(
+    _In_ const QUIC_PATH* Path
+    )
+{
+    CXPLAT_DBG_ASSERT(
+        Path->DestCid == NULL ||
+        Path->DestCid->CID.Length == 0 ||
+        (Path->DestCid->AssignedPathId == Path->ID &&
+         Path->DestCid->CID.UsedLocally));
+}
 #else
 #define QuicCidSetPath(PathSet, Cid, Path)
 #define QuicCidValidateNull(PathSet, Cid)
+#define QuicPathValidate(Path) UNREFERENCED_PARAMETER(Path)
 #endif
 
 typedef struct QUIC_CID_HASH_ENTRY {
