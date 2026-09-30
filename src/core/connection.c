@@ -4519,37 +4519,6 @@ QuicConnRecvDecryptAndAuthenticate(
 }
 
 //
-// Checks a RETIRE_CONNECTION_ID frame without removing its source CID. The
-// caller removes it only after both protocol checks have passed.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_RETIRE_CID_VALIDATION_RESULT
-QuicConnValidateRetireCid(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_RX_PACKET* Packet,
-    _In_ QUIC_VAR_INT SequenceNumber,
-    _Outptr_result_maybenull_ QUIC_CID_HASH_ENTRY** SourceCid
-    )
-{
-    *SourceCid = NULL;
-    if (SequenceNumber >= Connection->NextSourceCidSequenceNumber) {
-        return QUIC_RETIRE_CID_UNISSUED;
-    }
-
-    BOOLEAN IsLastCid;
-    *SourceCid = QuicConnGetSourceCidFromSeq(
-        Connection, SequenceNumber, FALSE, &IsLastCid);
-    if (*SourceCid != NULL &&
-        Packet->DestCidLen == (*SourceCid)->CID.Length &&
-        (Packet->DestCidLen == 0 ||
-            memcmp(Packet->DestCid, (*SourceCid)->CID.Data, Packet->DestCidLen) == 0)) {
-        return QUIC_RETIRE_CID_CURRENT_PACKET;
-    }
-
-    return QUIC_RETIRE_CID_VALID;
-}
-
-//
 // Reads the frames in a packet, and if everything is successful marks the
 // packet for acknowledgement and returns TRUE.
 //
@@ -5194,11 +5163,7 @@ QuicConnRecvFrames(
             // previously sent to the peer MUST be treated as a connection error
             // of type PROTOCOL_VIOLATION.
             //
-            QUIC_CID_HASH_ENTRY* SourceCid;
-            QUIC_RETIRE_CID_VALIDATION_RESULT ValidationResult =
-                QuicConnValidateRetireCid(
-                    Connection, Packet, Frame.Sequence, &SourceCid);
-            if (ValidationResult == QUIC_RETIRE_CID_UNISSUED) {
+            if (Frame.Sequence >= Connection->NextSourceCidSequenceNumber) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -5208,7 +5173,14 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            if (ValidationResult == QUIC_RETIRE_CID_CURRENT_PACKET) {
+            BOOLEAN IsLastCid;
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                QuicConnGetSourceCidFromSeq(
+                    Connection, Frame.Sequence, FALSE, &IsLastCid);
+            if (SourceCid != NULL &&
+                Packet->DestCidLen == SourceCid->CID.Length &&
+                (Packet->DestCidLen == 0 ||
+                    memcmp(Packet->DestCid, SourceCid->CID.Data, Packet->DestCidLen) == 0)) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -5219,7 +5191,6 @@ QuicConnRecvFrames(
             }
 
             if (SourceCid != NULL) {
-                BOOLEAN IsLastCid;
                 SourceCid = QuicConnGetSourceCidFromSeq(
                     Connection, Frame.Sequence, TRUE, &IsLastCid);
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;

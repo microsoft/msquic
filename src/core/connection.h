@@ -1325,27 +1325,6 @@ QuicConnGetSourceCidFromSeq(
     return NULL;
 }
 
-typedef enum QUIC_RETIRE_CID_VALIDATION_RESULT {
-    QUIC_RETIRE_CID_VALID,
-    QUIC_RETIRE_CID_UNISSUED,
-    QUIC_RETIRE_CID_CURRENT_PACKET
-} QUIC_RETIRE_CID_VALIDATION_RESULT;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_RETIRE_CID_VALIDATION_RESULT
-QuicConnValidateRetireCid(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_RX_PACKET* Packet,
-    _In_ QUIC_VAR_INT SequenceNumber,
-    _Outptr_result_maybenull_ QUIC_CID_HASH_ENTRY** SourceCid
-    );
-#ifdef __cplusplus
-}
-#endif
-
 //
 // Look up a source CID by data buffer.
 //
