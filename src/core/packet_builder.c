@@ -1041,6 +1041,11 @@ Exit:
             ++Builder->TotalCountDatagrams;
             Builder->TotalDatagramsLength += Builder->DatagramLength;
             Builder->DatagramLength = 0;
+            //
+            // Releasing the datagram finalizes the packet; clear its frames so an
+            // error path that skipped the send-time reset can't leave them stale.
+            //
+            Builder->Metadata->FrameCount = 0;
         }
 
         if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendData)) {
@@ -1071,6 +1076,7 @@ Exit:
             CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
             Builder->Datagram = NULL;
             Builder->DatagramLength = 0;
+            Builder->Metadata->FrameCount = 0;
         }
         if (Builder->SendData != NULL) {
             CxPlatSendDataFree(Builder->SendData);
