@@ -239,9 +239,14 @@ QuicPathUpdateDestCids(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    for (int i = 0; i < PathSet->Count; ++i) {
+    //
+    // Iterate forward so paths at the front get destination CIDs first.
+    //
+    uint8_t i = 0;
+    while (i < PathSet->Count) {
         QUIC_PATH* Path = &PathSet->Paths[i];
         if (QuicPathUpdateDestCid(Connection, Path)) {
+            ++i;
             continue;
         }
 
@@ -260,12 +265,8 @@ QuicPathUpdateDestCids(
             Connection,
             "Non-active path has no replacement for retired CID.");
         CXPLAT_DBG_ASSERT(i != 0);
-        if (QuicPathRemove(Connection, Path)) {
-            //
-            // Reprocess this index because removal shifted the remaining paths down.
-            // N.B. Don't iterate backward here, paths at the front should get CIDs first.
-            //
-            --i;
+        if (!QuicPathRemove(Connection, Path)) {
+            ++i;
         }
     }
 
