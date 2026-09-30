@@ -182,10 +182,15 @@ typedef struct AUX_DATA {
     //
     uint32_t Level;
 
-    const uint8_t* InputBuffer;
-    size_t InputLength;
-    size_t InputOffset;
-    size_t OutstandingLength;
+    //
+    // The fields below hold temporary state for the current CRYPTO_DATA call.
+    // The buffer remains owned by the caller. OutstandingLength may remain
+    // nonzero only when OpenSSL retains a borrowed record during error cleanup.
+    //
+    const uint8_t* InputBuffer; // Current caller-owned input buffer.
+    size_t InputLength;         // Total input length.
+    size_t InputOffset;         // Bytes fully released by OpenSSL.
+    size_t OutstandingLength;   // Bytes still borrowed by OpenSSL.
 
     //
     // @brief state tracking for 1_rtt secrets
@@ -2741,11 +2746,68 @@ CxPlatTlsUpdateHkdfLabels(
     TlsContext->HkdfLabels = Labels;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsProcessData(
+static void
+CxPlatTlsProcessTicketData(
     _In_ CXPLAT_TLS* TlsContext,
-    _In_ CXPLAT_TLS_DATA_TYPE DataType,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t* Buffer,
+    _In_ uint32_t BufferLength
+    )
+{
+    QuicTraceLogConnVerbose(
+        OpenSslSendTicketData,
+        TlsContext->Connection,
+        "Sending ticket data, %u bytes",
+        BufferLength);
+
+    SSL_SESSION* Session = SSL_get_session(TlsContext->Ssl);
+    if (Session == NULL) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "SSL_get_session failed");
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        return;
+    }
+
+    if (!SSL_SESSION_set1_ticket_appdata(Session, Buffer, BufferLength)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            ERR_get_error(),
+            "SSL_SESSION_set1_ticket_appdata failed");
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        return;
+    }
+
+    if (!SSL_new_session_ticket(TlsContext->Ssl)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            ERR_get_error(),
+            "SSL_new_session_ticket failed");
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        return;
+    }
+
+    int Ret = SSL_do_handshake(TlsContext->Ssl);
+    if (Ret != 1) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SSL_get_error(TlsContext->Ssl, Ret),
+            "SSL_do_handshake failed");
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+    }
+}
+
+static void
+CxPlatTlsProcessCryptoData(
+    _In_ CXPLAT_TLS* TlsContext,
     _In_reads_bytes_(*BufferLength)
         const uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength,
@@ -2754,65 +2816,16 @@ CxPlatTlsProcessData(
 {
     int Ret;
     struct AUX_DATA *AData = GetSslAuxData(TlsContext->Ssl);
-    CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
-    TlsContext->State = State;
-    TlsContext->ResultFlags = 0;
-
-    if (DataType == CXPLAT_TLS_TICKET_DATA) {
-        QuicTraceLogConnVerbose(
-            OpenSslSendTicketData,
-            TlsContext->Connection,
-            "Sending ticket data, %u bytes",
-            *BufferLength);
-
-        SSL_SESSION* Session = SSL_get_session(TlsContext->Ssl);
-        if (Session == NULL) {
-            QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "SSL_get_session failed");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-        if (!SSL_SESSION_set1_ticket_appdata(Session, Buffer, *BufferLength)) {
-            QuicTraceEvent(
-                TlsErrorStatus,
-                "[ tls][%p] ERROR, %u, %s.",
-                TlsContext->Connection,
-                ERR_get_error(),
-                "SSL_SESSION_set1_ticket_appdata failed");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        if (!SSL_new_session_ticket(TlsContext->Ssl)) {
-            QuicTraceEvent(
-                TlsErrorStatus,
-                "[ tls][%p] ERROR, %u, %s.",
-                TlsContext->Connection,
-                ERR_get_error(),
-                "SSL_new_session_ticket failed");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-        Ret = SSL_do_handshake(TlsContext->Ssl);
-        if (Ret != 1) {
-            QuicTraceEvent(
-                TlsErrorStatus,
-                "[ tls][%p] ERROR, %u, %s.",
-                TlsContext->Connection,
-                SSL_get_error(TlsContext->Ssl, Ret),
-                "SSL_do_handshake failed");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        goto Exit;
-    }
-
+    //
+    // Buffer and any record pointers derived from it reference caller-owned
+    // memory for this processing call. InputBuffer, InputLength, and
+    // InputOffset are temporary state stored in AUX_DATA for OpenSSL's inline
+    // callbacks and are reset before returning.
+    //
     CXPLAT_DBG_ASSERT(AData->InputBuffer == NULL);
+    CXPLAT_DBG_ASSERT(AData->InputLength == 0);
+    CXPLAT_DBG_ASSERT(AData->InputOffset == 0);
     CXPLAT_DBG_ASSERT(AData->OutstandingLength == 0);
     AData->InputBuffer = Buffer;
     AData->InputLength = *BufferLength;
@@ -2977,24 +2990,61 @@ CxPlatTlsProcessData(
 
 Exit:
 
-    if (DataType == CXPLAT_TLS_CRYPTO_DATA) {
-        if (AData->OutstandingLength != 0) {
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            if (State->AlertCode == 0) {
-                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
-            }
-            *BufferLength = 0;
-        } else {
-            *BufferLength = (uint32_t)AData->InputOffset;
+    if (AData->OutstandingLength != 0) {
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        if (State->AlertCode == 0) {
+            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
         }
-        AData->InputBuffer = NULL;
-        AData->InputLength = 0;
-        AData->InputOffset = 0;
+        *BufferLength = 0;
+    } else {
+        *BufferLength = (uint32_t)AData->InputOffset;
+    }
+    AData->InputBuffer = NULL;
+    AData->InputLength = 0;
+    AData->InputOffset = 0;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsProcessData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
+    _In_reads_bytes_(*BufferLength)
+        const uint8_t* Buffer,
+    _Inout_ uint32_t* BufferLength,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
+    )
+{
+    CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
+
+    TlsContext->State = State;
+    TlsContext->ResultFlags = 0;
+
+    switch (DataType) {
+    case CXPLAT_TLS_CRYPTO_DATA:
+        CxPlatTlsProcessCryptoData(
+            TlsContext,
+            Buffer,
+            BufferLength,
+            State);
+        break;
+
+    case CXPLAT_TLS_TICKET_DATA:
+        CxPlatTlsProcessTicketData(
+            TlsContext,
+            Buffer,
+            *BufferLength);
+        break;
+
+    default:
+        CXPLAT_DBG_ASSERT(FALSE);
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+        break;
     }
 
     //
-    // Always set buffer offsets if keys have been installed to preserve code invariants.
-    // On error, the connection will be torn down anyway.
+    // Always set buffer offsets if keys have been installed to preserve code
+    // invariants. On error, the connection will be torn down anyway.
     //
     if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
         State->BufferOffsetHandshake == 0) {
