@@ -892,7 +892,7 @@ CxPlatGetPortableCertificateFromSerialized(
 
 Exit:
     if (LeafCertContext != NULL) {
-        CertFreeCertificateContext(CurrentCertContext);
+        CertFreeCertificateContext(LeafCertContext);
     }
 
     if (CurrentCertContext != NULL) {
