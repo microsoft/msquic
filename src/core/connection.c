@@ -5908,8 +5908,8 @@ QuicConnRecvDatagrams(
     //
     // Any new paths created here were created before packet validation. Now
     // remove any non-active paths that didn't get any valid packets.
-    // NB: Traversing the array backwards is simpler and more efficient here due
-    // to the array shifting that happens in QuicPathRemove.
+    //
+    // Iterate backward when removing path to not invalidate the array.
     //
     QUIC_PATH_SET* PathSet = &Connection->Paths;
     for (int i = PathSet->Count - 1; i > 0; --i) {
@@ -5919,11 +5919,10 @@ QuicConnRecvDatagrams(
                 Connection,
                 "Removing invalid path[%u]",
                 PathSet->Paths[i].ID);
-            QuicPathRemove(Connection, (uint8_t)i);
+            QuicPathRemove(Connection, &PathSet->Paths[i]);
         }
     }
 
-    //
     // The active path might have changed, update it.
     // This invalidates pointers to paths.
     //
@@ -6108,8 +6107,7 @@ QuicConnProcessRouteCompletion(
     _In_ BOOLEAN Succeeded
     )
 {
-    uint8_t PathIndex;
-    QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId);
     if (Path == NULL) {
         return;
     }
@@ -6126,7 +6124,7 @@ QuicConnProcessRouteCompletion(
             "Route resolution failed on Path[%u]. Switching paths...",
             PathId);
 
-        QuicPathRemove(Connection, PathIndex);
+        QuicPathRemove(Connection, Path);
     }
 
     if (!QuicSendFlush(&Connection->Send)) {
@@ -6297,16 +6295,16 @@ QuicConnProcessPathValidationTimerOperation(
     //
     const uint64_t TimeNow = CxPlatTimeUs64();
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    uint8_t i = 0;
-    while (i < PathSet->Count) {
+    //
+    // Iterate backward when removing path to not invalidate the array.
+    //
+    for (int i = PathSet->Count - 1; i >= 0; --i) {
         QUIC_PATH* Path = &PathSet->Paths[i];
         if (Path->IsPeerValidated || Path->PathValidationStartTime == 0) {
-            ++i;
             continue;
         }
         const uint64_t Timeout = QuicConnPathValidationTimeoutUs(Connection, Path);
         if (CxPlatTimeDiff64(Path->PathValidationStartTime, TimeNow) <= Timeout) {
-            ++i;
             continue;
         }
 
@@ -6316,20 +6314,14 @@ QuicConnProcessPathValidationTimerOperation(
             Connection,
             Path->ID);
         QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
-        if (QuicPathRemove(Connection, i)) {
+        if (!QuicPathRemove(Connection, Path)) {
             //
-            // Do not increase i: paths have been shifted with the removal.
+            // QuicPathRemove returned FALSE: this was the last path and the
+            // connection is closing. Clear the validation start time so
+            // QuicConnPathValidationTimerUpdate won't re-arm the timer.
             //
-            continue;
+            PathSet->Paths[i].PathValidationStartTime = 0;
         }
-
-        //
-        // QuicPathRemove returned FALSE: this was the last path and the
-        // connection is closing. Clear the validation start time so
-        // QuicConnPathValidationTimerUpdate won't re-arm the timer.
-        //
-        PathSet->Paths[i].PathValidationStartTime = 0;
-        ++i;
     }
 
     //
