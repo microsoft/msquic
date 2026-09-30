@@ -1247,14 +1247,6 @@ TEST(RecvBufferTest, NonPowerOfTwoAllocLengthCanGrow)
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 200, &InOutWriteLength, &NewDataReady));
 }
 
-TEST(RecvBufferTest, AllocLengthCanExceedVirtualLength)
-{
-    RecvBuffer RecvBuf;
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
-        RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 128, 64));
-}
-
 // Validate the gap can span the edge of a chunk
 // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
 // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1

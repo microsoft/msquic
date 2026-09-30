@@ -120,14 +120,23 @@ QuicStreamInitialize(
         }
     }
 
-    const uint32_t InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
-
     QUIC_RECV_BUF_MODE RecvBufferMode = QUIC_RECV_BUF_MODE_CIRCULAR;
     if (Stream->Flags.UseAppOwnedRecvBuffers) {
         RecvBufferMode = QUIC_RECV_BUF_MODE_APP_OWNED;
     } else if (Stream->Flags.ReceiveMultiple) {
         RecvBufferMode = QUIC_RECV_BUF_MODE_MULTIPLE;
     }
+
+    const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
+        ? Connection->Settings.StreamRecvWindowUnidiDefault
+        : OpenedRemotely
+            ? Connection->Settings.StreamRecvWindowBidiRemoteDefault
+            : Connection->Settings.StreamRecvWindowBidiLocalDefault;
+
+    const uint32_t InitialRecvBufferLength =
+        RecvBufferMode == QUIC_RECV_BUF_MODE_APP_OWNED
+            ? 0
+            : CXPLAT_MIN(Connection->Settings.StreamRecvBufferDefault, FlowControlWindowSize);
 
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
         RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
@@ -143,12 +152,6 @@ QuicStreamInitialize(
             (uint8_t *)(PreallocatedRecvChunk + 1),
             TRUE);
     }
-
-    const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
-        ? Connection->Settings.StreamRecvWindowUnidiDefault
-        : OpenedRemotely
-            ? Connection->Settings.StreamRecvWindowBidiRemoteDefault
-            : Connection->Settings.StreamRecvWindowBidiLocalDefault;
 
     Status =
         QuicRecvBufferInitialize(
