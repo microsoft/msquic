@@ -44,12 +44,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
 
         //
-        // Indicates whether packet number encryption is enabled or not for the
-        // connection.
-        //
-        BOOLEAN HeaderProtectionEnabled : 1; // TODO - Remove since it's not used
-
-        //
         // Indicates that 1-RTT encryption has been configured/negotiated to be
         // disabled.
         //
