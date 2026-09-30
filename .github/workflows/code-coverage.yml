@@ -73,6 +73,11 @@ jobs:
         $ManifestPath = ".\src\manifest\MsQuicEtw.man"
         wevtutil.exe um $ManifestPath
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
+    - name: RETIRE_CONNECTION_ID coverage
+      if: ${{ !matrix.vec.xdp }}
+      shell: pwsh
+      timeout-minutes: 5
+      run: scripts/run-gtest.ps1 -Path "$PWD/artifacts/bin/windows/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/msquiccoretest.exe" -Filter "*RetireCidTest*" -IsolationMode Batch -CodeCoverage -NoProgress
     - name: Test
       shell: pwsh
       timeout-minutes: 120
