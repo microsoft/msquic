@@ -71,6 +71,65 @@ TEST_P(AckFrameTest, AckFrameEncodeDecode)
     QuicRangeUninitialize(&DecodedAckRange);
 }
 
+//
+// An ACK frame whose header fits but whose additional blocks do not must be
+// refused whole. Encoding used to write the header and then fail on the block,
+// which trips the assert in the block loop -- CXPLAT_TEL_ASSERT survives in
+// release builds -- and leaves a partial frame in the datagram with the offset
+// already moved past it.
+//
+TEST(AckFrameTest, EncodeAckFrameNoRoomForBlock)
+{
+    QUIC_RANGE AckRange;
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
+
+    BOOLEAN Unused;
+    ASSERT_TRUE(QuicRangeAddRange(&AckRange, 181, 2, &Unused) != nullptr);
+    ASSERT_TRUE(QuicRangeAddValue(&AckRange, 184));
+    ASSERT_EQ(2u, QuicRangeSize(&AckRange));
+
+    uint8_t Buffer[64];
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
+
+    //
+    // Five bytes of packet header are already written and twelve are usable.
+    // The frame header needs six and the one additional block needs two, so it
+    // is a byte short: refused, with nothing written.
+    //
+    uint16_t Offset = 5;
+    ASSERT_FALSE(QuicAckFrameEncode(&AckRange, 3, nullptr, &Offset, 12, Buffer));
+    ASSERT_EQ(5, Offset);
+    for (uint16_t i = 0; i < sizeof(Buffer); ++i) {
+        ASSERT_EQ(0, Buffer[i]) << "byte " << i << " was written";
+    }
+
+    //
+    // One byte more: the whole frame goes in, and it decodes back.
+    //
+    Offset = 5;
+    ASSERT_TRUE(QuicAckFrameEncode(&AckRange, 3, nullptr, &Offset, 13, Buffer));
+    ASSERT_EQ(13, Offset);
+
+    QUIC_RANGE Decoded;
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &Decoded);
+    QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
+    uint64_t DecodedAckDelay = 0;
+    BOOLEAN InvalidFrame = FALSE;
+    uint16_t DecodeOffset = 6; // past the packet header and the frame type
+    ASSERT_TRUE(
+        QuicAckFrameDecode(
+            QUIC_FRAME_ACK, 13, Buffer, &DecodeOffset, &InvalidFrame,
+            &Decoded, &DecodedEcn, &DecodedAckDelay));
+    ASSERT_FALSE(InvalidFrame);
+    ASSERT_EQ(3u, DecodedAckDelay);
+    ASSERT_EQ(2u, QuicRangeSize(&Decoded));
+    ASSERT_EQ(181u, QuicRangeGetMin(&Decoded));
+    ASSERT_EQ(184u, QuicRangeGetMax(&Decoded));
+
+    QuicRangeUninitialize(&Decoded);
+    QuicRangeUninitialize(&AckRange);
+}
+
 TEST_P(AckFrameTest, DecodeAckFrameFail) {
     QUIC_ACK_ECN_EX DecodedEcn;
     uint8_t Buffer[18];
