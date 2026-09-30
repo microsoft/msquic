@@ -409,12 +409,12 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp , arg1);\
 // Decoder Ring for OpenSslSendTicketData
 // [conn][%p] Sending ticket data, %u bytes
 // QuicTraceLogConnVerbose(
-            OpenSslSendTicketData,
-            TlsContext->Connection,
-            "Sending ticket data, %u bytes",
-            *BufferLength);
+        OpenSslSendTicketData,
+        TlsContext->Connection,
+        "Sending ticket data, %u bytes",
+        BufferLength);
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = *BufferLength = arg3
+// arg3 = arg3 = BufferLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslSendTicketData
 #define _clog_4_ARGS_TRACE_OpenSslSendTicketData(uniqueId, arg1, encoded_arg_string, arg3)\

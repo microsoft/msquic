@@ -426,12 +426,12 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp,
 // Decoder Ring for OpenSslSendTicketData
 // [conn][%p] Sending ticket data, %u bytes
 // QuicTraceLogConnVerbose(
-            OpenSslSendTicketData,
-            TlsContext->Connection,
-            "Sending ticket data, %u bytes",
-            *BufferLength);
+        OpenSslSendTicketData,
+        TlsContext->Connection,
+        "Sending ticket data, %u bytes",
+        BufferLength);
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = *BufferLength = arg3
+// arg3 = arg3 = BufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
     TP_ARGS(
