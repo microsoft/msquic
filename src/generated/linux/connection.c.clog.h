@@ -376,24 +376,6 @@ tracepoint(CLOG_CONNECTION_C, NoReplacementCidForRetire , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for NonActivePathCidRetired
-// [conn][%p] Non-active path has no replacement for retired CID.
-// QuicTraceLogConnWarning(
-                NonActivePathCidRetired,
-                Connection,
-                "Non-active path has no replacement for retired CID.");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_NonActivePathCidRetired
-#define _clog_3_ARGS_TRACE_NonActivePathCidRetired(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, NonActivePathCidRetired , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for IgnoreUnreachable
 // [conn][%p] Ignoring received unreachable event (inline)
 // QuicTraceLogConnWarning(
