@@ -9,10 +9,10 @@
             Connection,
             "Path[%hhu] removed; falling back to Path[%hhu]",
             Path->ID,
-            Connection->Paths[FallbackIndex].ID);
+            PathSet->Paths[FallbackIndex].ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
-// arg4 = arg4 = Connection->Paths[FallbackIndex].ID = arg4
+// arg4 = arg4 = PathSet->Paths[FallbackIndex].ID = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PATH_C, PathActiveFallback,
     TP_ARGS(
@@ -154,10 +154,10 @@ TRACEPOINT_EVENT(CLOG_PATH_C, ConnPathValidated,
         ConnPathActive,
         "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
         Connection,
-        Connection->Paths[0].ID,
+        ActivePath->ID,
         UdpPortChangeOnly);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
+// arg3 = arg3 = ActivePath->ID = arg3
 // arg4 = arg4 = UdpPortChangeOnly = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PATH_C, ConnPathActive,
