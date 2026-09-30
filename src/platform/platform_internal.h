@@ -1340,7 +1340,7 @@ RawResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
+    _In_ uint32_t PathId
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1348,7 +1348,7 @@ QUIC_STATUS
 RawResolveRoute(
     _In_ CXPLAT_SOCKET_RAW* Sock,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
