@@ -258,6 +258,22 @@ QuicConnGetPathByID(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicPathMatchPacket(
+    _In_ const QUIC_PATH* Path,
+    _In_ const QUIC_RX_PACKET* Packet
+    )
+{
+    return
+        QuicAddrCompare(
+            &Packet->Route->LocalAddress,
+            &Path->Route.LocalAddress) &&
+        QuicAddrCompare(
+            &Packet->Route->RemoteAddress,
+            &Path->Route.RemoteAddress);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathForPacket(
@@ -267,12 +283,7 @@ QuicConnGetPathForPacket(
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
     for (uint8_t i = 0; i < PathSet->Count; ++i) {
-        if (!QuicAddrCompare(
-                &Packet->Route->LocalAddress,
-                &PathSet->Paths[i].Route.LocalAddress) ||
-            !QuicAddrCompare(
-                &Packet->Route->RemoteAddress,
-                &PathSet->Paths[i].Route.RemoteAddress)) {
+        if (!QuicPathMatchPacket(&PathSet->Paths[i], Packet)) {
             if (!Connection->State.HandshakeConfirmed) {
                 //
                 // Ignore packets on any other paths until connected/confirmed.
