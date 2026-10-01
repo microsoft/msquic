@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 //
-// Upcall from raw datapath to indicate a received chain of packets.
+// Parses an Ethernet frame received by the raw datapath.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
