@@ -75,7 +75,9 @@ QuicRecvBufferGetChunkIterator(
         Iterator.StartOffset =
             (RecvBuffer->ReadStart + Offset) % Iterator.NextChunk->AllocLength;
         Iterator.EndOffset =
-            (RecvBuffer->ReadStart + RecvBuffer->Capacity - 1) % Iterator.NextChunk->AllocLength;
+            (uint32_t)(((uint64_t)RecvBuffer->ReadStart +
+                RecvBuffer->Capacity - 1) %
+                Iterator.NextChunk->AllocLength);
         return Iterator;
     }
 
@@ -759,12 +761,14 @@ QuicRecvBufferWrite(
         //
         QUIC_RECV_CHUNK* LastChunk =
             CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
+        const uint64_t RequiredBufferLength = AbsoluteLength - RecvBuffer->BaseOffset;
         uint64_t NewBufferLength = (uint64_t)LastChunk->AllocLength << 1;
-        while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
+        while (RequiredBufferLength > NewBufferLength) {
             NewBufferLength <<= 1;
         }
-        if (NewBufferLength > UINT32_MAX ||
-            !QuicRecvBufferResize(RecvBuffer, (uint32_t)NewBufferLength)) {
+        NewBufferLength =
+            CXPLAT_MIN(NewBufferLength, (uint64_t)RecvBuffer->VirtualBufferLength);
+        if (!QuicRecvBufferResize(RecvBuffer, (uint32_t)NewBufferLength)) {
             *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }

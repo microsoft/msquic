@@ -547,28 +547,19 @@ TEST_P(WithMode, WriteTooMuch2)
     ASSERT_FALSE(RecvBuf.HasUnreadData());
 }
 
-TEST(RecvBufferGrowthTest, WriteGrowthOverflow)
+TEST(RecvBufferGrowthTest, WriteGrowthCappedAtVirtualLength)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE));
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 63, 64));
 
-    RecvBuf.IncreaseVirtualBufferLength(UINT32_MAX);
-
-    uint8_t WriteBuffer = 0;
-    uint64_t QuotaConsumed = 0;
-    uint64_t BufferSizeNeeded = 0;
+    uint64_t InOutWriteLength = 64;
     BOOLEAN NewDataReady = FALSE;
     ASSERT_EQ(
-        QUIC_STATUS_OUT_OF_MEMORY,
-        QuicRecvBufferWrite(
-            &RecvBuf.RecvBuf,
-            0x80000000U,
-            sizeof(WriteBuffer),
-            &WriteBuffer,
-            UINT32_MAX,
-            &QuotaConsumed,
-            &NewDataReady,
-            &BufferSizeNeeded));
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(0, 64, &InOutWriteLength, &NewDataReady));
+    ASSERT_EQ(64u, RecvBuf.RecvBuf.Capacity);
 }
 
 TEST_P(WithMode, WriteWhilePendingRead)
