@@ -761,9 +761,8 @@ QuicRecvBufferWrite(
         //
         QUIC_RECV_CHUNK* LastChunk =
             CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
-        const uint64_t RequiredBufferLength = AbsoluteLength - RecvBuffer->BaseOffset;
         uint64_t NewBufferLength = (uint64_t)LastChunk->AllocLength << 1;
-        while (RequiredBufferLength > NewBufferLength) {
+        while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
             NewBufferLength <<= 1;
         }
         NewBufferLength =
