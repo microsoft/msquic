@@ -652,12 +652,21 @@ QuicStreamSendFlush(
                 0);
         }
 
-        QuicSendSetStreamSendFlag(
-            &Stream->Connection->Send,
-            Stream,
-            QUIC_STREAM_SEND_FLAG_DATA,
-            !!(SendRequest->Flags & QUIC_SEND_FLAG_DELAY_SEND));
+        // A send request with no data and no FIN has nothing to write. Setting
+        // the DATA flag here would leave it set with nothing to clear it, since
+        // the flag is only cleared when stream frames are actually written. That
+        // blocks the flush for every subsequent send on this stream. The FIN case
+        // is handled above by QuicStreamSendShutdown, which sets
+        // QUIC_STREAM_SEND_FLAG_FIN directly.
+        
 
+        if (SendRequest->TotalLength != 0) {
+            QuicSendSetStreamSendFlag(
+                &Stream->Connection->Send,
+                Stream,
+                QUIC_STREAM_SEND_FLAG_DATA,
+                !!(SendRequest->Flags & QUIC_SEND_FLAG_DELAY_SEND));
+        }
         if (Stream->Connection->Settings.SendBufferingEnabled) {
             QuicSendBufferFill(Stream->Connection);
         }
@@ -1212,7 +1221,18 @@ QuicStreamSendWrite(
         } else {
             RanOutOfRoom = TRUE;
         }
+    } else if ((Stream->SendFlags & QUIC_STREAM_SEND_FLAG_DATA) &&
+               !QuicStreamHasPendingStreamData(Stream)) {
+        //
+        // The DATA flag is set but there is nothing queued to write. Clear it
+        // here so a stale flag doesn't suppress QuicSendQueueFlushForStream for
+        // subsequent sends. QuicStreamHasPendingStreamData compares send
+        // offsets only, so this does not fire when data is pending but blocked
+        // by flow control or by the peer not yet allowing the stream.
+        //
+        Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_DATA;
     }
+    
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_DATA_BLOCKED) {
 
