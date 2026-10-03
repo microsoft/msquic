@@ -1,0 +1,89 @@
+name: Source Archive
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/source-archive.yml'
+      - '.gitmodules'
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    name: Package source with submodules
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.sha }}
+          submodules: recursive
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Create source archive
+        id: archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
+            version="${{ github.event.release.tag_name }}"
+          else
+            version="${GITHUB_SHA::12}"
+          fi
+
+          archive="msquic-${version}-source-with-submodules.tar.gz"
+          root="msquic-${version}"
+
+          # Record the exact submodule commits in the archive as an additional
+          # aid for consumers that want to verify or recreate the source tree.
+          git submodule status --recursive > SOURCE-SUBMODULES.txt
+
+          # A fresh checkout contains only repository files plus initialized
+          # submodules. Exclude Git's administrative metadata while preserving
+          # files such as .gitignore and .gitattributes.
+          tar \
+            --exclude='.git' \
+            --exclude='*/.git' \
+            --exclude="${archive}" \
+            --transform="s,^\.,${root}," \
+            -czf "${archive}" \
+            .
+
+          echo "archive=${archive}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload source archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-with-submodules
+          path: ${{ steps.archive.outputs.archive }}
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Attach source archive to release
+    if: github.event_name == 'release'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download source archive artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: source-with-submodules
+
+      - name: Upload source archive to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          archive="msquic-${TAG_NAME}-source-with-submodules.tar.gz"
+          gh release upload "${TAG_NAME}" "${archive}" --clobber
