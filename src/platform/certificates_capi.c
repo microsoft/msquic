@@ -258,7 +258,7 @@ CxPlatCertExtractPrivateKey(
 
     if (QUIC_FAILED(
         Status =
-            CxPlatCertCreate(CredConfig, &Cert))) {
+            CxPlatCertCreate(CredConfig, 1, &Cert))) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
