@@ -1190,27 +1190,31 @@ QuicStreamSendWrite(
     if (HasStreamDataFrames(Stream->SendFlags) &&
         QuicStreamSendCanWriteDataFrames(Stream)) {
 
-        uint16_t StreamFrameLength = AvailableBufferLength - Builder->DatagramLength;
-        QuicStreamWriteStreamFrames(
-            Stream,
-            IsInitial,
-            Builder->Metadata,
-            &StreamFrameLength,
-            Builder->Datagram->Buffer + Builder->DatagramLength);
-
-        if (StreamFrameLength > 0) {
-            CXPLAT_DBG_ASSERT(StreamFrameLength <= AvailableBufferLength - Builder->DatagramLength);
-            Builder->DatagramLength += StreamFrameLength;
-
-            if (!QuicStreamHasPendingStreamData(Stream)) {
-                Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_DATA;
-            }
-
-            if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
-                return TRUE;
-            }
-        } else {
+        if (AvailableBufferLength <= Builder->DatagramLength) {
             RanOutOfRoom = TRUE;
+        } else {
+            uint16_t StreamFrameLength = AvailableBufferLength - Builder->DatagramLength;
+            QuicStreamWriteStreamFrames(
+                Stream,
+                IsInitial,
+                Builder->Metadata,
+                &StreamFrameLength,
+                Builder->Datagram->Buffer + Builder->DatagramLength);
+
+            if (StreamFrameLength > 0) {
+                CXPLAT_DBG_ASSERT(StreamFrameLength <= AvailableBufferLength - Builder->DatagramLength);
+                Builder->DatagramLength += StreamFrameLength;
+
+                if (!QuicStreamHasPendingStreamData(Stream)) {
+                    Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_DATA;
+                }
+
+                if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
         }
     }
 
