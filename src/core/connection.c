@@ -5600,14 +5600,14 @@ QuicConnRecvPostProcessing(
 
     if (Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
-        CurrentPath->ID != Connection->Paths.NextActivePathId &&
+        CurrentPath->ID != Connection->Paths.PendingActivePathId &&
         CurrentPath->InUse) {
         //
         // Non-probing frames on a new path indicate the peer migrated to a new address.
         // Mark this path for activation (activating it invalidates pointers to path, so this
         // is deferred after the receive loop).
         //
-        Connection->Paths.NextActivePathId = CurrentPath->ID;
+        Connection->Paths.PendingActivePathId = CurrentPath->ID;
     }
 }
 
@@ -5678,7 +5678,7 @@ QuicConnRecvDatagramBatch(
 
             if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
                 !Path->Binding->Partitioned && !Connection->State.Partitioned &&
-                Path->ID == Connection->Paths.NextActivePathId &&
+                Path->ID == Connection->Paths.PendingActivePathId &&
                 !Path->PartitionUpdated && Packet->CompletelyValid &&
                 (Packets[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Packets[i]->PartitionIndex % MsQuicLib.PartitionCount;

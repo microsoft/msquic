@@ -83,14 +83,14 @@ QuicPathUpdateActive(
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    if (PathSet->NextActivePathId == QuicPathGetActive(PathSet)->ID) {
+    if (PathSet->PendingActivePathId == QuicPathGetActive(PathSet)->ID) {
         //
         // The active path hasn't changed, nothing to do.
         //
         return;
     }
 
-    QuicPathSetActive(Connection, PathSet->NextActivePathId);
+    QuicPathSetActive(Connection, PathSet->PendingActivePathId);
 
     QUIC_PATH* ActivePath = QuicPathGetActive(PathSet);
     QuicTraceEvent(
@@ -135,8 +135,8 @@ QuicPathRemove(
     const QUIC_PATH* Path = &PathSet->Paths[Index];
     CXPLAT_DBG_ASSERT(Path->InUse);
     CXPLAT_DBG_ASSERT(
-        PathSet->NextActivePathId == QuicPathGetActive(PathSet)->ID ||
-        Path->ID != PathSet->NextActivePathId);
+        PathSet->PendingActivePathId == QuicPathGetActive(PathSet)->ID ||
+        Path->ID != PathSet->PendingActivePathId);
     QuicTraceEvent(
         ConnPathRemoved,
         "[conn][%p] Path[%u] Removed",
@@ -350,7 +350,7 @@ QuicConnGetPathForPacket(
         //
         for (int i = PathSet->Count - 1; i > 0; i--) {
             if (!PathSet->Paths[i].IsActive
-                && PathSet->Paths[i].ID != PathSet->NextActivePathId
+                && PathSet->Paths[i].ID != PathSet->PendingActivePathId
                 && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&PathSet->Paths[i].Route.RemoteAddress)
                 && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &PathSet->Paths[i].Route.RemoteAddress)
                 && QuicAddrCompare(&Packet->Route->LocalAddress, &PathSet->Paths[i].Route.LocalAddress)) {
@@ -445,7 +445,7 @@ QuicPathSetActive(
     if (!UdpPortChangeOnly) {
         QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
     }
-    Connection->Paths.NextActivePathId = ActivePath->ID;
+    Connection->Paths.PendingActivePathId = ActivePath->ID;
     CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
     CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
 }

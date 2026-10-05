@@ -222,9 +222,10 @@ typedef struct QUIC_PATH_SET {
     uint32_t NextPathId;
 
     //
-    // ID of the active path, or the path pending activation.
+    // ID of the path that will become active after the reception of the
+    // current batch of datagrams is complete.
     //
-    uint32_t NextActivePathId;
+    uint32_t PendingActivePathId;
 
 } QUIC_PATH_SET;
 
@@ -246,7 +247,7 @@ QuicPathGetActive(
     );
 
 //
-// Update the active path to PathSet->NextActivePathId
+// Update the active path to PathSet->PendingActivePathId
 // Invalidates pointers to paths.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
