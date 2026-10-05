@@ -861,6 +861,11 @@ QuicConnLogOutFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
+#if defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_STDOUT)
+    // avoid scanning all live streams for statistics when event tracing is disabled.
+    return;
+#endif
+
     if (!QuicTraceEventEnabled(ConnOutFlowStats)) {
         return;
     }
