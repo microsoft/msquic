@@ -324,10 +324,6 @@ QuicTestPartitionedListenerCallback(
 void
 QuicTestPartitionedListenerPort(const FamilyArgs& Params)
 {
-    if (CxPlatProcCount() < 2) {
-        return;
-    }
-
     const QUIC_ADDRESS_FAMILY Family =
         Params.Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     const uint16_t PartitionIndex = 1;
@@ -341,11 +337,11 @@ QuicTestPartitionedListenerPort(const FamilyArgs& Params)
             CleanUpManual,
             QuicTestPartitionedListenerCallback);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(
-            Listener.SetParam(
-                QUIC_PARAM_LISTENER_PARTITION_INDEX,
-                sizeof(PartitionIndex),
-                &PartitionIndex));
+        QUIC_STATUS SetStatus = Listener.SetPartitionId(PartitionIndex);
+        if (SetStatus == QUIC_STATUS_INVALID_PARAMETER) {
+            return;
+        }
+        TEST_QUIC_SUCCEEDED(SetStatus);
         QuicAddr DynamicAddress(Family);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &DynamicAddress.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(DynamicAddress));
@@ -360,11 +356,7 @@ QuicTestPartitionedListenerPort(const FamilyArgs& Params)
             CleanUpManual,
             QuicTestPartitionedListenerCallback);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(
-            Listener.SetParam(
-                QUIC_PARAM_LISTENER_PARTITION_INDEX,
-                sizeof(PartitionIndex),
-                &PartitionIndex));
+        TEST_QUIC_SUCCEEDED(Listener.SetPartitionId(PartitionIndex));
         QuicAddr ExplicitPortAddress(QuicAddr(Family), TestUdpPortBase);
         QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
         while (Status == QUIC_STATUS_ADDRESS_IN_USE) {

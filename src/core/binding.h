@@ -197,6 +197,11 @@ typedef struct QUIC_BINDING {
     BOOLEAN Exclusive : 1;
 
     //
+    // Indicates whether the OS port must remain outside a reuseport group.
+    //
+    BOOLEAN ExclusivePort : 1;
+
+    //
     // Indicates whether the binding is owned by the server side (i.e. listener
     // and server connections) or by the client side. Different receive side
     // logic is used for each, so the binding cannot be shared between clients

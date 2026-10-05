@@ -11,6 +11,8 @@ Abstract:
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
+#include <atomic>
+
 #include "main.h"
 #include "quic_datapath.h"
 
@@ -90,7 +92,7 @@ struct UdpRecvContext {
     CXPLAT_EVENT ClientCompletion;
     CXPLAT_ECN_TYPE EcnType {CXPLAT_ECN_NON_ECT};
     CXPLAT_DSCP_TYPE Dscp {CXPLAT_DSCP_CS0};
-    uint16_t PartitionIndex {UINT16_MAX};
+    std::atomic<uint16_t> PartitionIndex {UINT16_MAX};
     bool TtlSupported;
     bool DscpSupported;
     UdpRecvContext() {
@@ -314,7 +316,7 @@ protected:
             if (RecvData->Route->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 
                 ASSERT_EQ(CXPLAT_ECN_FROM_TOS(RecvData->TypeOfService), RecvContext->EcnType);
-                RecvContext->PartitionIndex = RecvData->PartitionIndex;
+                RecvContext->PartitionIndex.store(RecvData->PartitionIndex);
 
                 CXPLAT_SEND_CONFIG SendConfig = { RecvData->Route, 0, (uint8_t)RecvContext->EcnType, 0, (uint8_t)RecvContext->Dscp };
                 auto ServerSendData = CxPlatSendDataAlloc(Socket, &SendConfig);
@@ -846,7 +848,34 @@ TEST_P(DataPathTest, UdpExclusivePort)
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
     Client.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-    EXPECT_EQ(PartitionIndex, RecvContext.PartitionIndex);
+    EXPECT_EQ(PartitionIndex, RecvContext.PartitionIndex.load());
+
+    QuicAddr RewrittenAddress = GetNewUnspecAddr();
+    const CXPLAT_SOCKET_FLAGS ExclusiveFlags =
+        (CXPLAT_SOCKET_FLAGS)(
+            CXPLAT_SOCKET_FLAG_PARTITIONED |
+            CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT);
+    CxPlatSocket RewrittenExclusiveSocket(
+        Datapath,
+        &RewrittenAddress.SockAddr,
+        nullptr,
+        &RecvContext,
+        ExclusiveFlags,
+        PartitionIndex);
+    while (RewrittenExclusiveSocket.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        RewrittenAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        RewrittenExclusiveSocket.CreateUdp(
+            Datapath,
+            &RewrittenAddress.SockAddr,
+            nullptr,
+            &RecvContext,
+            ExclusiveFlags,
+            PartitionIndex);
+    }
+    VERIFY_QUIC_SUCCESS(RewrittenExclusiveSocket.GetInitStatus());
+    EXPECT_EQ(
+        EADDRINUSE,
+        ProbeReusePortBind(RewrittenExclusiveSocket.GetLocalAddress()));
 
     QuicAddr ExplicitPortAddress = GetNewUnspecAddr();
     CxPlatSocket ExplicitPartitionedSocket(
@@ -856,6 +885,16 @@ TEST_P(DataPathTest, UdpExclusivePort)
         nullptr,
         CXPLAT_SOCKET_FLAG_PARTITIONED,
         PartitionIndex);
+    while (ExplicitPartitionedSocket.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        ExplicitPortAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        ExplicitPartitionedSocket.CreateUdp(
+            Datapath,
+            &ExplicitPortAddress.SockAddr,
+            nullptr,
+            nullptr,
+            CXPLAT_SOCKET_FLAG_PARTITIONED,
+            PartitionIndex);
+    }
     VERIFY_QUIC_SUCCESS(ExplicitPartitionedSocket.GetInitStatus());
     EXPECT_EQ(0, ProbeReusePortBind(ExplicitPartitionedSocket.GetLocalAddress()));
 
