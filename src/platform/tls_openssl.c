@@ -462,6 +462,105 @@ static int QuicTlsReleaseRecord(SSL *S, size_t BytesRead,
     return 1;
 }
 
+#ifdef QUIC_TEST_OPENSSL_CALLBACKS
+
+static SSL*
+QuicTlsCreateCallbackTestSsl(
+    _Inout_ struct AUX_DATA* AData,
+    _Out_ SSL_CTX** SslContext
+    )
+{
+    *SslContext = SSL_CTX_new(TLS_method());
+    if (*SslContext == NULL) {
+        return NULL;
+    }
+
+    SSL* Ssl = SSL_new(*SslContext);
+    if (Ssl == NULL) {
+        SSL_CTX_free(*SslContext);
+        *SslContext = NULL;
+        return NULL;
+    }
+
+    BIO* Bio = BIO_new(BIO_s_null());
+    if (Bio == NULL) {
+        SSL_free(Ssl);
+        SSL_CTX_free(*SslContext);
+        *SslContext = NULL;
+        return NULL;
+    }
+
+    BIO_set_app_data(Bio, AData);
+    SSL_set0_rbio(Ssl, Bio);
+    return Ssl;
+}
+
+static void
+QuicTlsCopyCallbackTestState(
+    _Out_ CXPLAT_TLS_OPENSSL_CALLBACK_STATE* Destination,
+    _In_ const struct AUX_DATA* Source
+    )
+{
+    Destination->InputBuffer = Source->InputBuffer;
+    Destination->InputLength = Source->InputLength;
+    Destination->InputOffset = Source->InputOffset;
+    Destination->OutstandingLength = Source->OutstandingLength;
+}
+
+int
+CxPlatTlsTestReceiveRecord(
+    _Inout_ CXPLAT_TLS_OPENSSL_CALLBACK_STATE* State,
+    _Outptr_result_buffer_maybenull_(*BytesRead)
+        const unsigned char** Buffer,
+    _Out_ size_t* BytesRead
+    )
+{
+    struct AUX_DATA AData = {0};
+    AData.InputBuffer = State->InputBuffer;
+    AData.InputLength = State->InputLength;
+    AData.InputOffset = State->InputOffset;
+    AData.OutstandingLength = State->OutstandingLength;
+
+    SSL_CTX* SslContext;
+    SSL* Ssl = QuicTlsCreateCallbackTestSsl(&AData, &SslContext);
+    if (Ssl == NULL) {
+        return 0;
+    }
+
+    int Result = QuicTlsReceiveRecord(Ssl, Buffer, BytesRead, NULL);
+    QuicTlsCopyCallbackTestState(State, &AData);
+    SSL_free(Ssl);
+    SSL_CTX_free(SslContext);
+    return Result;
+}
+
+int
+CxPlatTlsTestReleaseRecord(
+    _Inout_ CXPLAT_TLS_OPENSSL_CALLBACK_STATE* State,
+    _In_ size_t BytesRead
+    )
+{
+    struct AUX_DATA AData = {0};
+    AData.InputBuffer = State->InputBuffer;
+    AData.InputLength = State->InputLength;
+    AData.InputOffset = State->InputOffset;
+    AData.OutstandingLength = State->OutstandingLength;
+
+    SSL_CTX* SslContext;
+    SSL* Ssl = QuicTlsCreateCallbackTestSsl(&AData, &SslContext);
+    if (Ssl == NULL) {
+        return 0;
+    }
+
+    int Result = QuicTlsReleaseRecord(Ssl, BytesRead, NULL);
+    QuicTlsCopyCallbackTestState(State, &AData);
+    SSL_free(Ssl);
+    SSL_CTX_free(SslContext);
+    return Result;
+}
+
+#endif
+
 //
 // @brief Callback to yield TLS secrets to the QUIC stack.
 //

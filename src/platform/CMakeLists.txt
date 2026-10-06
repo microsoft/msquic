@@ -69,6 +69,10 @@ add_library(msquic_platform STATIC ${SOURCES})
 add_library(msquic::platform ALIAS msquic_platform)
 set_target_properties(msquic_platform PROPERTIES EXPORT_NAME platform)
 
+if(QUIC_BUILD_TEST AND QUIC_TLS_LIB STREQUAL "openssl")
+    target_compile_definitions(msquic_platform PRIVATE QUIC_TEST_OPENSSL_CALLBACKS=1)
+endif()
+
 if("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(
         msquic_platform
