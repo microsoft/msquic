@@ -2971,6 +2971,9 @@ CxPlatTlsProcessCryptoData(
             CXPLAT_DBG_ASSERT(AData->InputOffset >= PreviousInputOffset);
 
             if (AData->InputOffset == PreviousInputOffset) {
+                //
+                // OpenSSL couldn't consume any more byte, stop for now
+                //
                 break;
             }
         } while (AData->InputOffset < AData->InputLength);
