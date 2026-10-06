@@ -69,6 +69,22 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "ActivePathCidAssignmentFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Failed to assign a destination CID to Path[%u], it will not become active",
+      "UniqueId": "ActivePathCidAssignmentFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnWarning"
+    },
     "ActivePathCidUpdateFailed": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%u] can't become active without a usable destination CID",
@@ -13409,6 +13425,11 @@
         "UniquenessHash": "1f842f1b-027f-b5ec-e0ac-fc9491aeb629",
         "TraceID": "AckRangeMsg",
         "EncodingString": "[strm][%p] Received ack for %d bytes, offset=%llu, FF=0x%hx"
+      },
+      {
+        "UniquenessHash": "072e80ee-71ea-3429-e5ab-ea92765cb0be",
+        "TraceID": "ActivePathCidAssignmentFailed",
+        "EncodingString": "[conn][%p] Failed to assign a destination CID to Path[%u], it will not become active"
       },
       {
         "UniquenessHash": "a9b6e596-f304-04f6-c292-78ad660c5e29",

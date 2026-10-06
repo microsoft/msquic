@@ -34,39 +34,19 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for NoReplacementCidForPath
-// [conn][%p] Path[%u] has no replacement destination CID
+// Decoder Ring for ActivePathCidAssignmentFailed
+// [conn][%p] Failed to assign a destination CID to Path[%u], it will not become active
 // QuicTraceLogConnWarning(
-            NoReplacementCidForPath,
+            ActivePathCidAssignmentFailed,
             Connection,
-            "Path[%u] has no replacement destination CID",
-            Path->ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->ID = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_NoReplacementCidForPath
-#define _clog_4_ARGS_TRACE_NoReplacementCidForPath(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_PATH_C, NoReplacementCidForPath , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ActivePathCidUpdateFailed
-// [conn][%p] Path[%u] can't become active without a usable destination CID
-// QuicTraceLogConnWarning(
-            ActivePathCidUpdateFailed,
-            Connection,
-            "Path[%u] can't become active without a usable destination CID",
+            "Failed to assign a destination CID to Path[%u], it will not become active",
             NextActivePath->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = NextActivePath->ID = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ActivePathCidUpdateFailed
-#define _clog_4_ARGS_TRACE_ActivePathCidUpdateFailed(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_PATH_C, ActivePathCidUpdateFailed , arg1, arg3);\
+#ifndef _clog_4_ARGS_TRACE_ActivePathCidAssignmentFailed
+#define _clog_4_ARGS_TRACE_ActivePathCidAssignmentFailed(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_PATH_C, ActivePathCidAssignmentFailed , arg1, arg3);\
 
 #endif
 

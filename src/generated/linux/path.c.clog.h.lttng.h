@@ -2,40 +2,17 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for NoReplacementCidForPath
-// [conn][%p] Path[%u] has no replacement destination CID
+// Decoder Ring for ActivePathCidAssignmentFailed
+// [conn][%p] Failed to assign a destination CID to Path[%u], it will not become active
 // QuicTraceLogConnWarning(
-            NoReplacementCidForPath,
+            ActivePathCidAssignmentFailed,
             Connection,
-            "Path[%u] has no replacement destination CID",
-            Path->ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->ID = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PATH_C, NoReplacementCidForPath,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-        ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ActivePathCidUpdateFailed
-// [conn][%p] Path[%u] can't become active without a usable destination CID
-// QuicTraceLogConnWarning(
-            ActivePathCidUpdateFailed,
-            Connection,
-            "Path[%u] can't become active without a usable destination CID",
+            "Failed to assign a destination CID to Path[%u], it will not become active",
             NextActivePath->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = NextActivePath->ID = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PATH_C, ActivePathCidUpdateFailed,
+TRACEPOINT_EVENT(CLOG_PATH_C, ActivePathCidAssignmentFailed,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
