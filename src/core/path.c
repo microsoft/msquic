@@ -90,6 +90,11 @@ QuicPathUpdateDestCid(
 
     QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
     if (NewDestCid == NULL) {
+        QuicTraceLogConnWarning(
+            NoReplacementCidForPath,
+            Connection,
+            "Path[%u] has no replacement destination CID",
+            Path->ID);
         return FALSE;
     }
 
@@ -128,6 +133,11 @@ QuicPathUpdateActive(
         QuicConnGetPathByID(Connection, PathSet->PendingActivePathId, &NextActivePathIndex);
     CXPLAT_DBG_ASSERT(NextActivePath != NULL);
     if (!QuicPathUpdateDestCid(Connection, NextActivePath)) {
+        QuicTraceLogConnWarning(
+            ActivePathCidUpdateFailed,
+            Connection,
+            "Path[%u] can't become active without a usable destination CID",
+            NextActivePath->ID);
         PathSet->PendingActivePathId = QuicPathGetActive(PathSet)->ID;
         return;
     }

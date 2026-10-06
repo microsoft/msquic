@@ -69,6 +69,22 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "ActivePathCidUpdateFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%u] can't become active without a usable destination CID",
+      "UniqueId": "ActivePathCidUpdateFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnWarning"
+    },
     "AddCryptoFrame": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Sending %hu crypto bytes, offset=%u",
@@ -7524,6 +7540,22 @@
       ],
       "macroName": "QuicTraceLogConnWarning"
     },
+    "NoReplacementCidForPath": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%u] has no replacement destination CID",
+      "UniqueId": "NoReplacementCidForPath",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnWarning"
+    },
     "NoReplacementCidForRetire": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Can't retire current CID because we don't have a replacement",
@@ -13379,6 +13411,11 @@
         "EncodingString": "[strm][%p] Received ack for %d bytes, offset=%llu, FF=0x%hx"
       },
       {
+        "UniquenessHash": "a9b6e596-f304-04f6-c292-78ad660c5e29",
+        "TraceID": "ActivePathCidUpdateFailed",
+        "EncodingString": "[conn][%p] Path[%u] can't become active without a usable destination CID"
+      },
+      {
         "UniquenessHash": "cef32e9a-1355-7a31-bd2d-a458b02e214d",
         "TraceID": "AddCryptoFrame",
         "EncodingString": "[conn][%p] Sending %hu crypto bytes, offset=%u"
@@ -15542,6 +15579,11 @@
         "UniquenessHash": "20b67d09-e893-9f23-3603-0b3993d48031",
         "TraceID": "NonActivePathCidRetired",
         "EncodingString": "[conn][%p] Non-active path has no replacement for retired CID."
+      },
+      {
+        "UniquenessHash": "6870c513-b77e-07aa-8bc6-bd24185a3a11",
+        "TraceID": "NoReplacementCidForPath",
+        "EncodingString": "[conn][%p] Path[%u] has no replacement destination CID"
       },
       {
         "UniquenessHash": "9cc051a4-7fe8-2888-20cf-c5ada9208533",
