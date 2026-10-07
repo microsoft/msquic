@@ -9,34 +9,15 @@ Abstract:
 
 --*/
 
-#include "main.h"
+#include "BbrTestHelpers.h"
 #ifdef QUIC_CLOG
 #include "BbrTest.cpp.clog.h"
 #endif
 
 extern "C" {
-void BbrCongestionControlInitialize(QUIC_CONGESTION_CONTROL* Cc, const QUIC_SETTINGS_INTERNAL* Settings);
 uint64_t BbrCongestionControlGetBandwidth(const QUIC_CONGESTION_CONTROL* Cc);
 uint32_t BbrCongestionControlGetTargetCwnd(QUIC_CONGESTION_CONTROL* Cc, uint32_t Gain);
 }
-
-//
-// State definitions mirrored from bbr.c for readable assertions.
-//
-enum BBR_STATE {
-    BBR_STATE_STARTUP   = 0,
-    BBR_STATE_DRAIN     = 1,
-    BBR_STATE_PROBE_BW  = 2,
-    BBR_STATE_PROBE_RTT = 3
-};
-
-enum RECOVERY_STATE {
-    RECOVERY_STATE_NOT_RECOVERY = 0,
-    RECOVERY_STATE_CONSERVATIVE = 1,
-    RECOVERY_STATE_GROWTH       = 2
-};
-
-
 
 //
 // Reuse helpers matching CubicTest.cpp conventions.
@@ -64,70 +45,6 @@ static void InitBbrMockConnection(
     Connection.LossDetection.LargestSentPacketNumber = 0;
 }
 
-static QUIC_ACK_EVENT MakeBbrAckEvent(
-    uint64_t TimeNow,
-    uint64_t LargestAck,
-    uint64_t LargestSentPacketNumber,
-    uint32_t BytesAcked,
-    uint64_t SmoothedRtt = 50000,
-    uint64_t MinRtt = 45000,
-    BOOLEAN MinRttValid = TRUE)
-{
-    QUIC_ACK_EVENT Ack{};
-    Ack.TimeNow = TimeNow;
-    Ack.LargestAck = LargestAck;
-    Ack.LargestSentPacketNumber = LargestSentPacketNumber;
-    Ack.NumRetransmittableBytes = BytesAcked;
-    Ack.NumTotalAckedRetransmittableBytes = BytesAcked;
-    Ack.SmoothedRtt = SmoothedRtt;
-    Ack.MinRtt = MinRtt;
-    Ack.MinRttValid = MinRttValid;
-    Ack.AdjustedAckTime = TimeNow;
-    return Ack;
-}
-
-static QUIC_LOSS_EVENT MakeBbrLossEvent(
-    uint32_t LostBytes,
-    uint64_t LargestPacketNumberLost,
-    uint64_t LargestSentPacketNumber,
-    BOOLEAN PersistentCongestion = FALSE)
-{
-    QUIC_LOSS_EVENT Loss{};
-    Loss.NumRetransmittableBytes = LostBytes;
-    Loss.LargestPacketNumberLost = LargestPacketNumberLost;
-    Loss.LargestSentPacketNumber = LargestSentPacketNumber;
-    Loss.PersistentCongestion = PersistentCongestion;
-    return Loss;
-}
-
-static QUIC_MAX_SENT_PACKET_METADATA MakeBbrPacket(
-    uint16_t PacketLength,
-    BOOLEAN HasLastAckedPacketInfo,
-    BOOLEAN IsAppLimited,
-    uint64_t TotalBytesSent,
-    uint64_t SentTime,
-    uint64_t LastTotalBytesSent = 0,
-    uint64_t LastSentTime = 0,
-    uint64_t LastTotalBytesAcked = 0,
-    uint64_t LastAdjustedAckTime = 0,
-    uint64_t LastAckTime = 0)
-{
-    QUIC_MAX_SENT_PACKET_METADATA PacketBuf{};
-    auto& Pkt = PacketBuf.Metadata;
-    Pkt.PacketLength = PacketLength;
-    Pkt.Flags.HasLastAckedPacketInfo = HasLastAckedPacketInfo;
-    Pkt.Flags.IsAppLimited = IsAppLimited;
-    Pkt.TotalBytesSent = TotalBytesSent;
-    Pkt.SentTime = SentTime;
-    Pkt.LastAckedPacketInfo.TotalBytesSent = LastTotalBytesSent;
-    Pkt.LastAckedPacketInfo.SentTime = LastSentTime;
-    Pkt.LastAckedPacketInfo.TotalBytesAcked = LastTotalBytesAcked;
-    Pkt.LastAckedPacketInfo.AdjustedAckTime = LastAdjustedAckTime;
-    Pkt.LastAckedPacketInfo.AckTime = LastAckTime;
-    Pkt.Next = NULL;
-    return PacketBuf;
-}
-
 //
 // GoogleTest fixture for BBR congestion control tests.
 //
@@ -138,7 +55,7 @@ protected:
 
     QUIC_CONNECTION Connection{};
     QUIC_SETTINGS_INTERNAL Settings{};
-    QUIC_CONGESTION_CONTROL_BBR* Bbr;
+    BBR_COMMON* Bbr;
     QUIC_CONGESTION_CONTROL* CC;
 
     static
@@ -181,7 +98,7 @@ protected:
         }
         CC = &Connection.CongestionControl;
         BbrCongestionControlInitialize(CC, &Settings);
-        Bbr = &CC->Bbr;
+        Bbr = &CC->Bbr.Common;
     }
 
     //
@@ -1397,8 +1314,7 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_CappedByQuarter)
 //
 // Test: GetSendAllowance - Non-STARTUP Pacing Formula in PROBE_BW
 // Scenario: Drives BBR to PROBE_BW state via DriveToBtlbwFound() with PacingEnabled=TRUE.
-// In PROBE_BW, the pacing gain cycle values are used. With BytesInFlight=0 and
-// TimeSinceLastSend=10000, the result is capped to CW >> 2.
+// At unit gain, 120 KB/s allows 1200 bytes in 10 ms, below CW >> 2.
 //
 TEST_F(BbrTest_DeepTest, GetSendAllowance_NonStartupPacing)
 {
@@ -1417,9 +1333,11 @@ TEST_F(BbrTest_DeepTest, GetSendAllowance_NonStartupPacing)
 
     ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_PROBE_BW);
 
+    Bbr->PacingGain = 256;
     uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 10000, TRUE);
     uint32_t CW = CC->QuicCongestionControlGetCongestionWindow(CC);
-    ASSERT_EQ(Allowance, CW >> 2);
+    ASSERT_EQ(Allowance, 1200u);
+    ASSERT_LT(Allowance, CW >> 2);
 }
 
 TEST_F(BbrTest_DeepTest, Initialize_DefaultState)
@@ -1441,7 +1359,7 @@ TEST_F(BbrTest_DeepTest, Initialize_DefaultState)
     EXPECT_FALSE(Bbr->EndOfRecoveryValid);
     EXPECT_FALSE(Bbr->EndOfRoundTripValid);
     EXPECT_FALSE(Bbr->AckAggregationStartTimeValid);
-    EXPECT_FALSE(Bbr->ProbeRttRoundValid);
+    EXPECT_FALSE(CC->Bbr.ProbeRttRoundValid);
     EXPECT_FALSE(Bbr->ProbeRttEndTimeValid);
     EXPECT_TRUE(Bbr->RttSampleExpired);
     EXPECT_FALSE(Bbr->MinRttTimestampValid);
@@ -1781,11 +1699,11 @@ TEST_F(BbrTest_DeepTest, SetSendQuantum_MediumPacingRate)
 }
 
 //
-// Test: SetSendQuantum - High Pacing Rate Sets 64KB Cap
+// Test: SetSendQuantum - High Pacing Rate Uses a Millisecond Budget
 // Scenario: Establishes very high bandwidth ~100,000,000 in the filter via a crafted
 // packet with tight timing (800us intervals). In STARTUP with PacingGain=739,
 // PacingRate=288,671,875. This exceeds kHigh*8=192,000,000, so SendQuantum is set to
-// min(PacingRate*1000/8, 65536) = 65536.
+// min(PacingRate/1000/8, 65536) = 36083.
 //
 TEST_F(BbrTest_DeepTest, SetSendQuantum_HighPacingRate)
 {
@@ -1816,9 +1734,9 @@ TEST_F(BbrTest_DeepTest, SetSendQuantum_HighPacingRate)
     // BW=100,000,000. In STARTUP, PacingGain=kHighGain=739.
     // PacingRate = 100000000*739/256 = 288,671,875.
     // 288,671,875 >= kHigh*8=192,000,000
-    // → high pacing rate path → SendQuantum = min(288671875*1000/8, 65536) = 65536
+    // → high pacing rate path → SendQuantum = min(288671875/1000/8, 65536) = 36083
     //
-    ASSERT_EQ(Bbr->SendQuantum, (uint64_t)65536);
+    ASSERT_EQ(Bbr->SendQuantum, (uint64_t)36083);
 }
 
 //
@@ -2140,10 +2058,10 @@ TEST_F(BbrTest_DeepTest, ProbeBw_DrainGainAdvancesCycle)
         CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
         LargestAck += 10;
         LargestSent += 10;
-        if (Bbr->PacingCycleIndex == 1) break;
+        if (CC->Bbr.PacingCycleIndex == 1) break;
     }
 
-    ASSERT_EQ(Bbr->PacingCycleIndex, (uint8_t)1);
+    ASSERT_EQ(CC->Bbr.PacingCycleIndex, (uint8_t)1);
     ASSERT_EQ(Bbr->PacingGain, (uint32_t)192); // kDrainGain < GAIN_UNIT
 
     // Now in drain gain phase. Send an ACK with BytesInFlight <= TargetCwnd.
@@ -2155,7 +2073,7 @@ TEST_F(BbrTest_DeepTest, ProbeBw_DrainGainAdvancesCycle)
     CC->QuicCongestionControlOnDataAcknowledged(CC, &DrainAck);
 
     // Cycle should have advanced past index 1 to index 2.
-    ASSERT_EQ(Bbr->PacingCycleIndex, (uint8_t)2);
+    ASSERT_EQ(CC->Bbr.PacingCycleIndex, (uint8_t)2);
 }
 
 //
@@ -2178,7 +2096,7 @@ TEST_F(BbrTest_DeepTest, ProbeBw_HighGainSuppressesCycleAdvance)
     uint64_t LargestAck = 300;
     uint64_t LargestSent = 310;
     for (int i = 0; i < 8; i++) {
-        if (Bbr->PacingCycleIndex == 0) break;
+        if (CC->Bbr.PacingCycleIndex == 0) break;
         TimeNow += Bbr->MinRtt + 1000;
         CC->QuicCongestionControlOnDataSent(CC, 1200);
         QUIC_ACK_EVENT Ack = MakeBbrAckEvent(TimeNow, LargestAck, LargestSent, 1200, 50000, 45000, TRUE);
@@ -2188,7 +2106,7 @@ TEST_F(BbrTest_DeepTest, ProbeBw_HighGainSuppressesCycleAdvance)
         LargestSent += 10;
     }
 
-    ASSERT_EQ(Bbr->PacingCycleIndex, (uint8_t)0);
+    ASSERT_EQ(CC->Bbr.PacingCycleIndex, (uint8_t)0);
     ASSERT_EQ(Bbr->PacingGain, (uint32_t)320); // kHighGain > GAIN_UNIT
 
     // Now in high gain phase. Send an ACK with:
@@ -2203,7 +2121,7 @@ TEST_F(BbrTest_DeepTest, ProbeBw_HighGainSuppressesCycleAdvance)
     CC->QuicCongestionControlOnDataAcknowledged(CC, &HighGainAck);
 
     // Cycle should NOT have advanced — still at index 0.
-    ASSERT_EQ(Bbr->PacingCycleIndex, (uint8_t)0);
+    ASSERT_EQ(CC->Bbr.PacingCycleIndex, (uint8_t)0);
 }
 
 

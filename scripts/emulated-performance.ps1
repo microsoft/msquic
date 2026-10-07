@@ -53,7 +53,7 @@ be in the current directory.
     Doesn't include the Date/Time in the log directory path.
 
 .PARAMETER CongestionControl
-    The congestion control algorithm used to test
+    The congestion control algorithm(s) used to test: cubic, bbr, or bbrv3.
 
 #>
 
@@ -238,7 +238,8 @@ function Find-MatchingTest([Object]$TestResult, [Object]$RemoteResults) {
             $TestResult.ReorderDelayDeltaMs -eq $Remote.ReorderDelayDeltaMs -and
             $TestResult.Tcp -eq $Remote.Tcp -and
             $TestResult.DurationMs -eq $Remote.DurationMs -and
-            $TestResult.Pacing -eq $Remote.Pacing
+            $TestResult.Pacing -eq $Remote.Pacing -and
+            $TestResult.CongestionControl -eq $Remote.CongestionControl
         ) {
             return $Remote
         }

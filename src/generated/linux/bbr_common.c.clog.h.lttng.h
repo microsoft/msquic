@@ -22,7 +22,7 @@
 // arg7 = arg7 = Event.NETWORK_STATISTICS.CongestionWindow = arg7
 // arg8 = arg8 = Event.NETWORK_STATISTICS.Bandwidth = arg8
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BBR_C, IndicateDataAcked,
+TRACEPOINT_EVENT(CLOG_BBR_COMMON_C, IndicateDataAcked,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
@@ -53,23 +53,23 @@ TRACEPOINT_EVENT(CLOG_BBR_C, IndicateDataAcked,
         Connection,
         Bbr->BbrState,
         Bbr->RecoveryState,
-        BbrCongestionControlGetCongestionWindow(Cc),
+        QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl),
         Bbr->BytesInFlight,
         Bbr->BytesInFlightMax,
         Bbr->MinRtt,
-        BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
-        BbrCongestionControlIsAppLimited(Cc));
+        Bandwidth / BW_UNIT,
+        Bbr->BandwidthFilter.AppLimited);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Bbr->BbrState = arg3
 // arg4 = arg4 = Bbr->RecoveryState = arg4
-// arg5 = arg5 = BbrCongestionControlGetCongestionWindow(Cc) = arg5
+// arg5 = arg5 = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl) = arg5
 // arg6 = arg6 = Bbr->BytesInFlight = arg6
 // arg7 = arg7 = Bbr->BytesInFlightMax = arg7
 // arg8 = arg8 = Bbr->MinRtt = arg8
-// arg9 = arg9 = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT = arg9
-// arg10 = arg10 = BbrCongestionControlIsAppLimited(Cc) = arg10
+// arg9 = arg9 = Bandwidth / BW_UNIT = arg9
+// arg10 = arg10 = Bbr->BandwidthFilter.AppLimited = arg10
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BBR_C, ConnBbr,
+TRACEPOINT_EVENT(CLOG_BBR_COMMON_C, ConnBbr,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
@@ -120,7 +120,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnBbr,
 // arg9 = arg9 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg9
 // arg10 = arg10 = Path->OneWayDelay = arg10
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BBR_C, ConnOutFlowStatsV2,
+TRACEPOINT_EVENT(CLOG_BBR_COMMON_C, ConnOutFlowStatsV2,
     TP_ARGS(
         const void *, arg2,
         unsigned long long, arg3,
@@ -150,12 +150,12 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnOutFlowStatsV2,
 // Decoder Ring for ConnRecoveryExit
 // [conn][%p] Recovery complete
 // QuicTraceEvent(
-                ConnRecoveryExit,
-                "[conn][%p] Recovery complete",
-                Connection);
+        ConnRecoveryExit,
+        "[conn][%p] Recovery complete",
+        Connection);
 // arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BBR_C, ConnRecoveryExit,
+TRACEPOINT_EVENT(CLOG_BBR_COMMON_C, ConnRecoveryExit,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -176,7 +176,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnRecoveryExit,
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = FALSE = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BBR_C, ConnCongestionV2,
+TRACEPOINT_EVENT(CLOG_BBR_COMMON_C, ConnCongestionV2,
     TP_ARGS(
         const void *, arg2,
         unsigned short, arg3), 
@@ -192,12 +192,12 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnCongestionV2,
 // Decoder Ring for ConnPersistentCongestion
 // [conn][%p] Persistent congestion event
 // QuicTraceEvent(
-            ConnPersistentCongestion,
-            "[conn][%p] Persistent congestion event",
-            Connection);
+        ConnPersistentCongestion,
+        "[conn][%p] Persistent congestion event",
+        Connection);
 // arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BBR_C, ConnPersistentCongestion,
+TRACEPOINT_EVENT(CLOG_BBR_COMMON_C, ConnPersistentCongestion,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(

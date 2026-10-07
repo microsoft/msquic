@@ -33,7 +33,9 @@ QuicPathInitialize(
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     Path->RttVariance = Path->SmoothedRtt / 2;
     Path->EcnValidationState =
-        Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
+        Connection->Settings.EcnEnabled &&
+        Connection->CongestionControl.QuicCongestionControlOnEcn != NULL ?
+            ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
 
     if (Connection->Settings.QTIPEnabled) {
         CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
