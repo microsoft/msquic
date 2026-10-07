@@ -9,6 +9,7 @@ set(SOURCES
     PacketNumberTest.cpp
     PartitionTest.cpp
     RangeTest.cpp
+    RetireCidTest.cpp
     RecvBufferTest.cpp
     SettingsTest.cpp
     SlidingWindowExtremumTest.cpp
