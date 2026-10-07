@@ -57,6 +57,7 @@ QuicBindingInitialize(
 
     Binding->RefCount = 0; // No refs until it's added to the library's list
     Binding->Exclusive = !(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+    Binding->ExclusivePort = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT);
     Binding->ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
     Binding->Connected = UdpConfig->RemoteAddress == NULL ? FALSE : TRUE;
     Binding->Partitioned = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED);

@@ -2363,6 +2363,7 @@ QuicLibraryGetBinding(
     const BOOLEAN PortUnspecified =
         UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
     const BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+    const BOOLEAN ExclusivePort = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_EXCLUSIVE_PORT);
     const BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
     const BOOLEAN Partitioned = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED);
     const BOOLEAN EnableQtip = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_QTIP);
@@ -2400,6 +2401,7 @@ SharedEphemeralRetry:
         QuicLibraryLookupBinding(UdpConfig);
     if (Binding != NULL) {
         if (!ShareBinding || Binding->Exclusive ||
+            (ExclusivePort != Binding->ExclusivePort) ||
             (ServerOwned != Binding->ServerOwned) ||
             (Partitioned != Binding->Partitioned) ||
             (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex) ||

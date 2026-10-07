@@ -821,6 +821,13 @@ TEST_P(WithFamilyArgs, StartListenerExplicit) {
     }
 }
 
+#if defined(__linux__)
+TEST_P(WithFamilyArgs, PartitionedListenerPort) {
+    TestLoggerT<ParamType> Logger("QuicTestPartitionedListenerPort", GetParam());
+    QuicTestPartitionedListenerPort(GetParam());
+}
+#endif
+
 TEST(Basic, CreateConnection) {
     TestLogger Logger("QuicTestCreateConnection");
     if (TestingKernelMode) {
