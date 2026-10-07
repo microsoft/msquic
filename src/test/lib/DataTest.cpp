@@ -2611,6 +2611,210 @@ QuicTestAckSendDelay(
     MsQuic->ConnectionShutdown(ClientConnection.Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 }
 
+class AckFrequencyMaxAckDelayTestContext {
+private:
+    StreamScope ServerStream;
+
+public:
+    CxPlatEvent ConnectedEvent;
+    CxPlatEvent ServerReceiveCompleteEvent;
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_STREAM_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    ClientStreamHandler(
+        _In_ HQUIC /* QuicStream */,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_STREAM_EVENT* /* Event */
+        )
+    {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_STREAM_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    ServerStreamHandler(
+        _In_ HQUIC /* QuicStream */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        )
+    {
+        auto* TestContext = static_cast<AckFrequencyMaxAckDelayTestContext*>(Context);
+        if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
+            TestContext->ServerReceiveCompleteEvent.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_CONNECTION_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    ClientConnectionHandler(
+        _In_ HQUIC /* QuicConnection */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
+        auto* TestContext = static_cast<AckFrequencyMaxAckDelayTestContext*>(Context);
+        if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            TestContext->ConnectedEvent.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_CONNECTION_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    ServerConnectionHandler(
+        _In_ MsQuicConnection* /* QuicConnection */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
+        auto* TestContext = static_cast<AckFrequencyMaxAckDelayTestContext*>(Context);
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            MsQuic->SetCallbackHandler(
+                Event->PEER_STREAM_STARTED.Stream,
+                reinterpret_cast<void*>(ServerStreamHandler),
+                Context);
+            TestContext->ServerStream.Handle = Event->PEER_STREAM_STARTED.Stream;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestAckFrequencyMaxAckDelay(
+    const FamilyArgs& Params
+    )
+{
+    int Family = Params.Family;
+
+    //
+    // Validates that the max ACK delay requested in ACK_FREQUENCY frames does not
+    // change the configured value. A bulk transfer makes the client scheduling
+    // limited, so it sends ACK_FREQUENCY frames, which the server applies as its
+    // own max ACK delay. Previously the requested value included the sender's timer
+    // resolution, so the server's value grew by one timer tick on every exchange.
+    //
+
+    const uint32_t TestTimeout = 20000;
+    const uint32_t AckDelayMs = 25;
+    const uint32_t ChunkSize = 64 * 1024;
+    const uint32_t ChunkCount = 800;
+    const QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings{};
+    Settings.SetIdleTimeoutMs(TestTimeout);
+    Settings.SetMaxAckDelayMs(AckDelayMs);
+    Settings.SetPeerBidiStreamCount(1);
+
+    AckFrequencyMaxAckDelayTestContext TestContext{};
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicAutoAcceptListener Listener{
+        Registration,
+        ServerConfiguration,
+        AckFrequencyMaxAckDelayTestContext::ServerConnectionHandler,
+        &TestContext};
+
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    ConnectionScope ClientConnection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            AckFrequencyMaxAckDelayTestContext::ClientConnectionHandler,
+            &TestContext,
+            &ClientConnection.Handle));
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionStart(
+            ClientConnection.Handle,
+            ClientConfiguration,
+            QuicAddrFamily,
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+            ServerLocalAddr.GetPort()));
+
+    if (!CxPlatEventWaitWithTimeout(TestContext.ConnectedEvent.Handle, TestTimeout)) {
+        TEST_FAILURE("The connection did not succeed before timeout!");
+        return;
+    }
+
+    StreamScope ClientStream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            ClientConnection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            AckFrequencyMaxAckDelayTestContext::ClientStreamHandler,
+            &TestContext,
+            &ClientStream.Handle));
+
+    QuicSendBuffer SendBuffer(1, ChunkSize);
+    for (uint32_t i = 0; i < ChunkCount; ++i) {
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->StreamSend(
+                ClientStream.Handle,
+                SendBuffer.Buffers,
+                SendBuffer.BufferCount,
+                (i == 0 ? QUIC_SEND_FLAG_START : QUIC_SEND_FLAG_NONE) |
+                    (i + 1 == ChunkCount ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE),
+                nullptr));
+    }
+
+    if (!CxPlatEventWaitWithTimeout(TestContext.ServerReceiveCompleteEvent.Handle, TestTimeout)) {
+        TEST_FAILURE("The server did not receive all the data before timeout!");
+        return;
+    }
+
+    TEST_NOT_EQUAL(nullptr, Listener.LastConnection);
+
+    QUIC_SETTINGS ClientSettings{};
+    uint32_t SettingsSize = sizeof(ClientSettings);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            ClientConnection.Handle,
+            QUIC_PARAM_CONN_SETTINGS,
+            &SettingsSize,
+            &ClientSettings));
+    TEST_EQUAL(AckDelayMs, ClientSettings.MaxAckDelayMs);
+
+    QUIC_SETTINGS ServerSettings{};
+    SettingsSize = sizeof(ServerSettings);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            Listener.LastConnection->Handle,
+            QUIC_PARAM_CONN_SETTINGS,
+            &SettingsSize,
+            &ServerSettings));
+    TEST_EQUAL(AckDelayMs, ServerSettings.MaxAckDelayMs);
+
+    MsQuic->ConnectionShutdown(ClientConnection.Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+}
+
 enum QUIC_ABORT_RECEIVE_TYPE {
     QUIC_ABORT_RECEIVE_PAUSED,
     QUIC_ABORT_RECEIVE_PENDING,
