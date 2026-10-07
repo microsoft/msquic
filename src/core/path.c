@@ -291,7 +291,7 @@ QuicPathUpdateDestCids(
                 QUIC_CID_LIST_ENTRY,
                 Link);
         if (DestCid->CID.Retired) {
-            QuicCidValidateNull(&Connection->Paths, DestCid);
+            QuicCidValidateUnused(&Connection->Paths, DestCid);
         }
     }
 #endif

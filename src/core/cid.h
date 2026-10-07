@@ -162,7 +162,7 @@ QuicCidSetPath(
 
 QUIC_INLINE
 void
-QuicCidValidateNull(
+QuicCidValidateUnused(
     _In_ const QUIC_PATH_SET* PathSet,
     _In_ const QUIC_CID_LIST_ENTRY* Cid
     )
@@ -186,7 +186,7 @@ QuicPathValidate(
 }
 #else
 #define QuicCidSetPath(PathSet, Cid, Path)
-#define QuicCidValidateNull(PathSet, Cid)
+#define QuicCidValidateUnused(PathSet, Cid)
 #define QuicPathValidate(Path) UNREFERENCED_PARAMETER(Path)
 #endif
 
