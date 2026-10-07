@@ -5884,14 +5884,15 @@ QuicConnRecvDatagrams(
     // Iterate backward when removing path to not invalidate the array.
     //
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    for (int i = PathSet->Count - 1; i > 0; --i) {
-        if (!PathSet->Paths[i].GotValidPacket) {
+    for (int32_t i = PathSet->Count - 1; i > 0; --i) {
+        QUIC_PATH* Path = &PathSet->Paths[i];
+        if (!Path->GotValidPacket) {
             QuicTraceLogConnInfo(
                 PathDiscarded,
                 Connection,
                 "Removing invalid path[%u]",
-                PathSet->Paths[i].ID);
-            QuicPathRemove(Connection, &PathSet->Paths[i]);
+                Path->ID);
+            QuicPathRemove(Connection, Path);
         }
     }
 
@@ -6270,7 +6271,7 @@ QuicConnProcessPathValidationTimerOperation(
     //
     // Iterate backward when removing path to not invalidate the array.
     //
-    for (int i = PathSet->Count - 1; i >= 0; --i) {
+    for (int32_t i = PathSet->Count - 1; i >= 0; --i) {
         QUIC_PATH* Path = &PathSet->Paths[i];
         if (Path->IsPeerValidated || Path->PathValidationStartTime == 0) {
             continue;
@@ -6292,7 +6293,7 @@ QuicConnProcessPathValidationTimerOperation(
             // connection is closing. Clear the validation start time so
             // QuicConnPathValidationTimerUpdate won't re-arm the timer.
             //
-            PathSet->Paths[i].PathValidationStartTime = 0;
+            Path->PathValidationStartTime = 0;
         }
     }
 

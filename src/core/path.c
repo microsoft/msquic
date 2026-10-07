@@ -172,7 +172,7 @@ QuicPathRemove(
         PathSet->PendingActivePathId == QuicPathGetActive(PathSet)->ID ||
         Path->ID != PathSet->PendingActivePathId);
 
-    uint8_t Index = (uint8_t)(Path - PathSet->Paths);
+    size_t Index = Path - PathSet->Paths;
 
     QuicTraceEvent(
         ConnPathRemoved,
@@ -203,8 +203,8 @@ QuicPathRemove(
         // available fallback: prefer a peer-validated path, otherwise accept
         // any path.
         //
-        uint8_t FallbackIndex = 1;
-        for (uint8_t j = 1; j < PathSet->Count; ++j) {
+        size_t FallbackIndex = 1;
+        for (size_t j = 1; j < PathSet->Count; ++j) {
             if (PathSet->Paths[j].IsPeerValidated) {
                 FallbackIndex = j;
                 break;
@@ -247,7 +247,7 @@ QuicPathUpdateDestCids(
     //
     // Iterate forward so paths at the front get destination CIDs first.
     //
-    uint8_t i = 0;
+    size_t i = 0;
     while (i < PathSet->Count) {
         QUIC_PATH* Path = &PathSet->Paths[i];
         if (QuicPathUpdateDestCid(Connection, Path)) {
@@ -271,7 +271,7 @@ QuicPathUpdateDestCids(
             "Non-active path has no replacement for retired CID.");
         CXPLAT_DBG_ASSERT(i != 0);
         if (!QuicPathRemove(Connection, Path)) {
-            ++i;
+            break;
         }
     }
 
@@ -378,7 +378,7 @@ QuicConnGetPathByID(
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    for (uint8_t i = 0; i < PathSet->Count; ++i) {
+    for (size_t i = 0; i < PathSet->Count; ++i) {
         if (PathSet->Paths[i].ID == ID) {
             return &PathSet->Paths[i];
         }
@@ -411,7 +411,7 @@ QuicConnGetPathForPacket(
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    for (uint8_t i = 0; i < PathSet->Count; ++i) {
+    for (size_t i = 0; i < PathSet->Count; ++i) {
         if (!QuicPathMatchPacket(&PathSet->Paths[i], Packet)) {
             if (!Connection->State.HandshakeConfirmed) {
                 //
@@ -431,7 +431,7 @@ QuicConnGetPathForPacket(
         //
         // Iterate backward when removing path to not invalidate the array.
         //
-        for (int i = PathSet->Count - 1; i > 0; i--) {
+        for (int32_t i = PathSet->Count - 1; i > 0; --i) {
             QUIC_PATH* Path = &PathSet->Paths[i];
             if (!Path->IsActive &&
                 Path->ID != PathSet->PendingActivePathId &&
