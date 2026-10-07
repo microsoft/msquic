@@ -727,9 +727,9 @@ tracepoint(CLOG_CONNECTION_C, FirstCidUsage , arg1, arg3);\
                 PathDiscarded,
                 Connection,
                 "Removing invalid path[%u]",
-                PathSet->Paths[i].ID);
+                Path->ID);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = PathSet->Paths[i].ID = arg3
+// arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_PathDiscarded
 #define _clog_4_ARGS_TRACE_PathDiscarded(uniqueId, arg1, encoded_arg_string, arg3)\
