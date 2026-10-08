@@ -73,7 +73,8 @@ QuicRecvBufferGetChunkIterator(
         // The offset is in the first chunk. Make sure to handle a wrap-around.
         //
         Iterator.StartOffset =
-            (RecvBuffer->ReadStart + Offset) % Iterator.NextChunk->AllocLength;
+            (uint32_t)(((uint64_t)RecvBuffer->ReadStart + Offset) %
+                Iterator.NextChunk->AllocLength);
         Iterator.EndOffset =
             (uint32_t)(((uint64_t)RecvBuffer->ReadStart +
                 RecvBuffer->Capacity - 1) %
