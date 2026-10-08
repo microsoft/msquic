@@ -9,6 +9,7 @@ Abstract:
 
 --*/
 #include "platform_internal.h"
+#include "tls_openssl_record.h"
 
 #include "openssl/opensslv.h"
 #ifdef _WIN32
@@ -187,10 +188,7 @@ typedef struct AUX_DATA {
     // The buffer remains owned by the caller. OutstandingLength may remain
     // nonzero only when OpenSSL retains a borrowed record during error cleanup.
     //
-    const uint8_t* InputBuffer; // Current caller-owned input buffer.
-    size_t InputLength;         // Total input length.
-    size_t InputOffset;         // Bytes fully released by OpenSSL.
-    size_t OutstandingLength;   // Bytes still borrowed by OpenSSL.
+    QUIC_TLS_RECORD_STATE RecordState;
 
     //
     // @brief state tracking for 1_rtt secrets
@@ -378,20 +376,53 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
 }
 
 //
-// @brief Callback to lend the next complete TLS message to OpenSSL.
+// @brief Finds the next complete TLS message in the current receive state.
 //
 // The returned pointer aliases MsQuic's receive buffer and remains valid until
 // OpenSSL calls QuicTlsReleaseRecord. Only one message may be outstanding at a time.
 //
-// @param[in]  s            Pointer to the SSL connection object.
-// @param[out] buf          Pointer to the buffer containing the record data.
+// @param[in,out] State     Current receive state.
+// @param[out] Buffer       Pointer to the buffer containing the record data.
 //                          If no data is available, set to NULL.
-// @param[out] bytes_read   Length of the record returned in @p buf.
+// @param[out] BytesRead    Length of the record returned in @p Buffer.
 //                          If no data is available, set to 0.
-// @param[in]  arg          Unused argument (typically NULL).
 //
 // @return Always returns 1.
 //
+int
+QuicTlsReceiveRecordInner(
+    _Inout_ QUIC_TLS_RECORD_STATE* State,
+    _Outptr_result_buffer_maybenull_(*BytesRead)
+        const unsigned char** Buf,
+    _Out_ size_t* BytesRead
+    )
+{
+    CXPLAT_DBG_ASSERT(State != NULL);
+    CXPLAT_DBG_ASSERT(State->OutstandingLength == 0);
+
+    *Buf = NULL;
+    *BytesRead = 0;
+
+    size_t Remaining = State->InputLength - State->InputOffset;
+    if (Remaining < 4) {
+        return 1;
+    }
+
+    const uint8_t* Message = State->InputBuffer + State->InputOffset;
+    size_t MessageLength =
+        4 + ((size_t)Message[1] << 16) +
+            ((size_t)Message[2] << 8) +
+            Message[3];
+    if (MessageLength > Remaining) {
+        return 1;
+    }
+
+    State->OutstandingLength = MessageLength;
+    *Buf = Message;
+    *BytesRead = MessageLength;
+    return 1;
+}
+
 static int
 QuicTlsReceiveRecord(
     _In_ SSL* s,
@@ -406,160 +437,61 @@ QuicTlsReceiveRecord(
     UNREFERENCED_PARAMETER(Arg);
 
     CXPLAT_DBG_ASSERT(AData != NULL);
-    CXPLAT_DBG_ASSERT(AData->OutstandingLength == 0);
 
-    *Buf = NULL;
-    *BytesRead = 0;
-
-    size_t Remaining = AData->InputLength - AData->InputOffset;
-    if (Remaining < 4) {
-        return 1;
-    }
-
-    const uint8_t* Message = AData->InputBuffer + AData->InputOffset;
-    size_t MessageLength =
-        4 + ((size_t)Message[1] << 16) +
-            ((size_t)Message[2] << 8) +
-            Message[3];
-    if (MessageLength > Remaining) {
-        return 1;
-    }
-
-    AData->OutstandingLength = MessageLength;
-    *Buf = Message;
-    *BytesRead = MessageLength;
-    return 1;
-
+    return QuicTlsReceiveRecordInner(
+        &AData->RecordState,
+        Buf,
+        BytesRead);
 }
 
 //
-// @brief Callback to release TLS data borrowed from MsQuic.
+// @brief Releases TLS data borrowed from MsQuic.
 //
 // This function advances the released prefix of the current input window
 // and tracks any portion that remains outstanding.
 // The receive buffer itself remains owned by MsQuic and is drained after
 // CxPlatTlsProcessData returns.
 //
-// @param[in] bytes_read  The number of bytes OpenSSL no longer needs.
-// @param[in] arg         Unused argument (typically NULL).
+// @param[in,out] State     Current receive state.
+// @param[in] BytesRead     The number of bytes OpenSSL no longer needs.
 //
 // @return 1 if the bytes were released; 0 if the length exceeds the
 //         outstanding data.
 //
-static int QuicTlsReleaseRecord(SSL *S, size_t BytesRead,
-                            void *Arg)
+int
+QuicTlsReleaseRecordInner(
+    _Inout_ QUIC_TLS_RECORD_STATE* State,
+    _In_ size_t BytesRead
+    )
+{
+    CXPLAT_DBG_ASSERT(State != NULL);
+
+    if (BytesRead > State->OutstandingLength) {
+        return 0;
+    }
+
+    State->InputOffset += BytesRead;
+    State->OutstandingLength -= BytesRead;
+    return 1;
+}
+
+static int
+QuicTlsReleaseRecord(
+    _In_ SSL* S,
+    _In_ size_t BytesRead,
+    _In_opt_ void* Arg
+    )
 {
     struct AUX_DATA *AData = GetSslAuxData(S);
 
     UNREFERENCED_PARAMETER(Arg);
 
-    if (BytesRead > AData->OutstandingLength) {
-        return 0;
-    }
+    CXPLAT_DBG_ASSERT(AData != NULL);
 
-    AData->InputOffset += BytesRead;
-    AData->OutstandingLength -= BytesRead;
-    return 1;
+    return QuicTlsReleaseRecordInner(
+        &AData->RecordState,
+        BytesRead);
 }
-
-#ifdef QUIC_TEST_OPENSSL_CALLBACKS
-
-static SSL*
-QuicTlsCreateCallbackTestSsl(
-    _Inout_ struct AUX_DATA* AData,
-    _Out_ SSL_CTX** SslContext
-    )
-{
-    *SslContext = SSL_CTX_new(TLS_method());
-    if (*SslContext == NULL) {
-        return NULL;
-    }
-
-    SSL* Ssl = SSL_new(*SslContext);
-    if (Ssl == NULL) {
-        SSL_CTX_free(*SslContext);
-        *SslContext = NULL;
-        return NULL;
-    }
-
-    BIO* Bio = BIO_new(BIO_s_null());
-    if (Bio == NULL) {
-        SSL_free(Ssl);
-        SSL_CTX_free(*SslContext);
-        *SslContext = NULL;
-        return NULL;
-    }
-
-    BIO_set_app_data(Bio, AData);
-    SSL_set0_rbio(Ssl, Bio);
-    return Ssl;
-}
-
-static void
-QuicTlsCopyCallbackTestState(
-    _Out_ CXPLAT_TLS_OPENSSL_CALLBACK_STATE* Destination,
-    _In_ const struct AUX_DATA* Source
-    )
-{
-    Destination->InputBuffer = Source->InputBuffer;
-    Destination->InputLength = Source->InputLength;
-    Destination->InputOffset = Source->InputOffset;
-    Destination->OutstandingLength = Source->OutstandingLength;
-}
-
-int
-CxPlatTlsTestReceiveRecord(
-    _Inout_ CXPLAT_TLS_OPENSSL_CALLBACK_STATE* State,
-    _Outptr_result_buffer_maybenull_(*BytesRead)
-        const unsigned char** Buffer,
-    _Out_ size_t* BytesRead
-    )
-{
-    struct AUX_DATA AData = {0};
-    AData.InputBuffer = State->InputBuffer;
-    AData.InputLength = State->InputLength;
-    AData.InputOffset = State->InputOffset;
-    AData.OutstandingLength = State->OutstandingLength;
-
-    SSL_CTX* SslContext;
-    SSL* Ssl = QuicTlsCreateCallbackTestSsl(&AData, &SslContext);
-    if (Ssl == NULL) {
-        return 0;
-    }
-
-    int Result = QuicTlsReceiveRecord(Ssl, Buffer, BytesRead, NULL);
-    QuicTlsCopyCallbackTestState(State, &AData);
-    SSL_free(Ssl);
-    SSL_CTX_free(SslContext);
-    return Result;
-}
-
-int
-CxPlatTlsTestReleaseRecord(
-    _Inout_ CXPLAT_TLS_OPENSSL_CALLBACK_STATE* State,
-    _In_ size_t BytesRead
-    )
-{
-    struct AUX_DATA AData = {0};
-    AData.InputBuffer = State->InputBuffer;
-    AData.InputLength = State->InputLength;
-    AData.InputOffset = State->InputOffset;
-    AData.OutstandingLength = State->OutstandingLength;
-
-    SSL_CTX* SslContext;
-    SSL* Ssl = QuicTlsCreateCallbackTestSsl(&AData, &SslContext);
-    if (Ssl == NULL) {
-        return 0;
-    }
-
-    int Result = QuicTlsReleaseRecord(Ssl, BytesRead, NULL);
-    QuicTlsCopyCallbackTestState(State, &AData);
-    SSL_free(Ssl);
-    SSL_CTX_free(SslContext);
-    return Result;
-}
-
-#endif
 
 //
 // @brief Callback to yield TLS secrets to the QUIC stack.
@@ -2915,6 +2847,7 @@ CxPlatTlsProcessCryptoData(
 {
     int Ret;
     struct AUX_DATA *AData = GetSslAuxData(TlsContext->Ssl);
+    QUIC_TLS_RECORD_STATE* RecordState = &AData->RecordState;
 
     //
     // Buffer and any record pointers derived from it reference caller-owned
@@ -2922,17 +2855,17 @@ CxPlatTlsProcessCryptoData(
     // InputOffset are temporary state stored in AUX_DATA for OpenSSL's inline
     // callbacks and are reset before returning.
     //
-    CXPLAT_DBG_ASSERT(AData->InputBuffer == NULL);
-    CXPLAT_DBG_ASSERT(AData->InputLength == 0);
-    CXPLAT_DBG_ASSERT(AData->InputOffset == 0);
-    CXPLAT_DBG_ASSERT(AData->OutstandingLength == 0);
-    AData->InputBuffer = Buffer;
-    AData->InputLength = *BufferLength;
-    AData->InputOffset = 0;
+    CXPLAT_DBG_ASSERT(RecordState->InputBuffer == NULL);
+    CXPLAT_DBG_ASSERT(RecordState->InputLength == 0);
+    CXPLAT_DBG_ASSERT(RecordState->InputOffset == 0);
+    CXPLAT_DBG_ASSERT(RecordState->OutstandingLength == 0);
+    RecordState->InputBuffer = Buffer;
+    RecordState->InputLength = *BufferLength;
+    RecordState->InputOffset = 0;
 
     if (!State->HandshakeComplete) {
         do {
-            size_t PreviousInputOffset = AData->InputOffset;
+            size_t PreviousInputOffset = RecordState->InputOffset;
 
             Ret = SSL_do_handshake(TlsContext->Ssl);
             if (Ret <= 0) {
@@ -2968,15 +2901,15 @@ CxPlatTlsProcessCryptoData(
                 }
             }
 
-            CXPLAT_DBG_ASSERT(AData->InputOffset >= PreviousInputOffset);
+            CXPLAT_DBG_ASSERT(RecordState->InputOffset >= PreviousInputOffset);
 
-            if (AData->InputOffset == PreviousInputOffset) {
+            if (RecordState->InputOffset == PreviousInputOffset) {
                 //
                 // OpenSSL couldn't consume any more byte, stop for now
                 //
                 break;
             }
-        } while (AData->InputOffset < AData->InputLength);
+        } while (RecordState->InputOffset < RecordState->InputLength);
 
         if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT
             && AData->SecretSet[QUIC_PACKET_KEY_1_RTT][DIR_READ].Secret != NULL) {
@@ -3092,18 +3025,18 @@ CxPlatTlsProcessCryptoData(
 
 Exit:
 
-    if (AData->OutstandingLength != 0) {
+    if (RecordState->OutstandingLength != 0) {
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         if (State->AlertCode == 0) {
             State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
         }
         *BufferLength = 0;
     } else {
-        *BufferLength = (uint32_t)AData->InputOffset;
+        *BufferLength = (uint32_t)RecordState->InputOffset;
     }
-    AData->InputBuffer = NULL;
-    AData->InputLength = 0;
-    AData->InputOffset = 0;
+    RecordState->InputBuffer = NULL;
+    RecordState->InputLength = 0;
+    RecordState->InputOffset = 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

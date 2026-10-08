@@ -544,31 +544,6 @@ QuicTlsPopulateOffloadKeys(
     _Inout_ CXPLAT_QEO_CONNECTION* Offload
     );
 
-#ifdef QUIC_TEST_OPENSSL_CALLBACKS
-
-typedef struct CXPLAT_TLS_OPENSSL_CALLBACK_STATE {
-    const uint8_t* InputBuffer;
-    size_t InputLength;
-    size_t InputOffset;
-    size_t OutstandingLength;
-} CXPLAT_TLS_OPENSSL_CALLBACK_STATE;
-
-int
-CxPlatTlsTestReceiveRecord(
-    _Inout_ CXPLAT_TLS_OPENSSL_CALLBACK_STATE* State,
-    _Outptr_result_buffer_maybenull_(*BytesRead)
-        const unsigned char** Buffer,
-    _Out_ size_t* BytesRead
-    );
-
-int
-CxPlatTlsTestReleaseRecord(
-    _Inout_ CXPLAT_TLS_OPENSSL_CALLBACK_STATE* State,
-    _In_ size_t BytesRead
-    );
-
-#endif
-
 #if defined(__cplusplus)
 }
 #endif
