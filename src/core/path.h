@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // ECN validation state transition:
 //
@@ -377,3 +381,7 @@ QuicPathUpdateQeo(
     _In_ QUIC_PATH* Path,
     _In_ CXPLAT_QEO_OPERATION Operation
     );
+
+#if defined(__cplusplus)
+}
+#endif
