@@ -2009,6 +2009,16 @@ Exit:
     }
 
     if (QUIC_FAILED(Status)) {
+        if (StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY) {
+            //
+            // This connection was created internally (e.g. by the connection
+            // pool) and was never returned to the application. Suppress the
+            // shutdown-complete notification by clearing the callback handler.
+            // The connection stays externally owned; the creating context is
+            // responsible for closing it and releasing the owner reference.
+            //
+            Connection->ClientCallbackHandler = NULL;
+        }
         QuicConnCloseLocally(
             Connection,
             StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY ?
@@ -7623,7 +7633,7 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.Family,
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort,
-                QUIC_CONN_START_FLAG_NONE);
+                ApiCtx->CONN_START.Flags);
         ApiCtx->CONN_START.ServerName = NULL;
         break;
 
