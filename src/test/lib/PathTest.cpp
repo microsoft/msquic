@@ -19,8 +19,15 @@ struct PathTestContext {
     CxPlatEvent ShutdownEvent;
     MsQuicConnection* Connection {nullptr};
     CxPlatEvent PeerAddrChangedEvent;
+    uint32_t PeerAddrChangedCount {0};
 
-    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+    static QUIC_STATUS
+    ConnCallback(
+        _In_ MsQuicConnection* Conn,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
         PathTestContext* Ctx = static_cast<PathTestContext*>(Context);
         Ctx->Connection = Conn;
         if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
@@ -31,6 +38,7 @@ struct PathTestContext {
         } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
             Ctx->HandshakeCompleteEvent.Set();
         } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED) {
+            Ctx->PeerAddrChangedCount++;
             MsQuicSettings Settings;
             Conn->GetSettings(&Settings);
             Settings.IsSetFlags = 0;
@@ -111,6 +119,7 @@ QuicTestLocalPathChanges(
         Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
 
         TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1500));
+        TEST_EQUAL((uint32_t)i + 1, Context.PeerAddrChangedCount);
         Context.PeerAddrChangedEvent.Reset();
         QuicAddr ServerRemoteAddr;
         TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
