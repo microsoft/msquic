@@ -14,6 +14,10 @@
 #include "path.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogConnWarning
+#define _clog_MACRO_QuicTraceLogConnWarning  1
+#define QuicTraceLogConnWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogConnInfo
 #define _clog_MACRO_QuicTraceLogConnInfo  1
 #define QuicTraceLogConnInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -29,6 +33,44 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for ActivePathCidAssignmentFailed
+// [conn][%p] Failed to assign a destination CID to Path[%u], it will not become active
+// QuicTraceLogConnWarning(
+            ActivePathCidAssignmentFailed,
+            Connection,
+            "Failed to assign a destination CID to Path[%u], it will not become active",
+            NextActivePath->ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = NextActivePath->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ActivePathCidAssignmentFailed
+#define _clog_4_ARGS_TRACE_ActivePathCidAssignmentFailed(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_PATH_C, ActivePathCidAssignmentFailed , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for NonActivePathCidRetired
+// [conn][%p] Non-active path has no replacement for retired CID.
+// QuicTraceLogConnWarning(
+            NonActivePathCidRetired,
+            Connection,
+            "Non-active path has no replacement for retired CID.");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NonActivePathCidRetired
+#define _clog_3_ARGS_TRACE_NonActivePathCidRetired(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_PATH_C, NonActivePathCidRetired , arg1);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for PathActiveFallback
 // [conn][%p] Path[%u] removed; falling back to Path[%u]
@@ -167,6 +209,26 @@ tracepoint(CLOG_PATH_C, ConnRemoteAddrAdded , arg2, arg3_len, arg3);\
 #ifndef _clog_4_ARGS_TRACE_ConnPathRemoved
 #define _clog_4_ARGS_TRACE_ConnPathRemoved(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PATH_C, ConnPathRemoved , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnError
+// [conn][%p] ERROR, %s.
+// QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Active path has no replacement for retired CID");
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Active path has no replacement for retired CID" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
+#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PATH_C, ConnError , arg2, arg3);\
 
 #endif
 
