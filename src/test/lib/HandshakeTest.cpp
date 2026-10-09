@@ -941,9 +941,9 @@ QuicTestNatPortRebind(
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr);
 
     if (KeepAlivePaddingSize) {
-        Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
+        TEST_QUIC_SUCCEEDED(Connection.SetKeepAlivePadding(KeepAlivePaddingSize));
     }
-    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
+    TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25)));
 
     const uint32_t RebindCount = KeepAlivePaddingSize == 0 ? 3 : 1;
     for (uint32_t i = 0; i < RebindCount; ++i) {
@@ -1007,9 +1007,9 @@ QuicTestNatAddrRebind(
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
     if (KeepAlivePaddingSize) {
-        Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
+        TEST_QUIC_SUCCEEDED(Connection.SetKeepAlivePadding(KeepAlivePaddingSize));
     }
-    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(1));
+    TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(1)));
 
     const uint32_t RebindCount =
         KeepAlivePaddingSize == 0 && !RebindDatapathAddr ? 3 : 1;

@@ -109,23 +109,27 @@ QuicTestLocalPathChanges(
 
     uint16_t ServerPort = ServerLocalAddr.GetPort();
     for (int i = 0; i < 50; i++) {
-        uint16_t NextPort = QuicAddrGetPort(&AddrHelper.New) + 1;
-        if (NextPort == ServerPort) {
-            // Skip the port if it is same as that of server
-            // This is to avoid Loopback test failure
-            NextPort++;
-        }
-        QuicAddrSetPort(&AddrHelper.New, NextPort);
-        Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
+        //
+        // Skip the port if it collides with the server's port, because the
+        // ReplaceAddressHelper can't simulate a local path change in that case.
+        //
+        do {
+            AddrHelper.IncrementPort();
+        } while (QuicAddrGetPort(&AddrHelper.New) == ServerPort);
+        TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25)));
 
-        TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1500));
+        TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(TestWaitTimeout));
         TEST_EQUAL((uint32_t)i + 1, Context.PeerAddrChangedCount);
         Context.PeerAddrChangedEvent.Reset();
         QuicAddr ServerRemoteAddr;
         TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
         TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &ServerRemoteAddr.SockAddr));
-        Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(0));
-        TEST_TRUE(PeerStreamsChanged.WaitTimeout(1500));
+        TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(0)));
+        TEST_TRUE(PeerStreamsChanged.WaitTimeout(TestWaitTimeout));
         PeerStreamsChanged.Reset();
     }
+
+    Connection.Shutdown(1);
+    TEST_TRUE(Connection.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ShutdownEvent.WaitTimeout(TestWaitTimeout));
 }
