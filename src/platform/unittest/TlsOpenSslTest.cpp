@@ -9,10 +9,10 @@
 #include "../tls_openssl_record.h"
 
 //
-// Verifies that incomplete TLS handshake headers and payloads are not returned,
-// consumed, or marked outstanding.
+// Verifies that incomplete TLS handshake headers are not returned, consumed,
+// or marked outstanding.
 //
-TEST(TlsOpenSslCallbackTest, RejectsIncompleteMessages)
+TEST(TlsOpenSslCallbackTest, RejectsIncompleteHeaders)
 {
     const uint8_t Header[] = {1, 0, 0, 4};
     for (size_t HeaderLength = 0; HeaderLength < sizeof(Header); ++HeaderLength) {
@@ -25,7 +25,7 @@ TEST(TlsOpenSslCallbackTest, RejectsIncompleteMessages)
         const unsigned char* Record = Header;
         size_t RecordLength = sizeof(Header);
 
-        ASSERT_EQ(1, QuicTlsReceiveRecordInner(&State, &Record, &RecordLength));
+        QuicTlsReceiveRecordInner(&State, &Record, &RecordLength);
         EXPECT_EQ(nullptr, Record);
         EXPECT_EQ(0u, RecordLength);
         EXPECT_EQ(HeaderLength == 0 ? nullptr : Header, State.InputBuffer);
@@ -33,7 +33,14 @@ TEST(TlsOpenSslCallbackTest, RejectsIncompleteMessages)
         EXPECT_EQ(0u, State.InputOffset);
         EXPECT_EQ(0u, State.OutstandingLength);
     }
+}
 
+//
+// Verifies that a TLS handshake message with an incomplete payload is not
+// returned, consumed, or marked outstanding.
+//
+TEST(TlsOpenSslCallbackTest, RejectsIncompletePayload)
+{
     const uint8_t IncompletePayload[] = {1, 0, 0, 4, 1, 2, 3};
     QUIC_TLS_RECORD_STATE State = {
         IncompletePayload,
@@ -44,27 +51,36 @@ TEST(TlsOpenSslCallbackTest, RejectsIncompleteMessages)
     const unsigned char* Record = IncompletePayload;
     size_t RecordLength = sizeof(IncompletePayload);
 
-    ASSERT_EQ(1, QuicTlsReceiveRecordInner(&State, &Record, &RecordLength));
+    QuicTlsReceiveRecordInner(&State, &Record, &RecordLength);
     EXPECT_EQ(nullptr, Record);
     EXPECT_EQ(0u, RecordLength);
     EXPECT_EQ(IncompletePayload, State.InputBuffer);
     EXPECT_EQ(sizeof(IncompletePayload), State.InputLength);
     EXPECT_EQ(0u, State.InputOffset);
     EXPECT_EQ(0u, State.OutstandingLength);
+}
 
+//
+// Verifies that the maximum uint24 payload length is parsed without overflow
+// and rejected when its payload is incomplete.
+//
+TEST(TlsOpenSslCallbackTest, RejectsIncompleteMaximumLengthPayload)
+{
     const uint8_t MaximumLengthHeader[] = {1, 0xff, 0xff, 0xff};
-    State = {
+    QUIC_TLS_RECORD_STATE State = {
         MaximumLengthHeader,
         sizeof(MaximumLengthHeader),
         0,
         0
     };
-    Record = MaximumLengthHeader;
-    RecordLength = sizeof(MaximumLengthHeader);
+    const unsigned char* Record = MaximumLengthHeader;
+    size_t RecordLength = sizeof(MaximumLengthHeader);
 
-    ASSERT_EQ(1, QuicTlsReceiveRecordInner(&State, &Record, &RecordLength));
+    QuicTlsReceiveRecordInner(&State, &Record, &RecordLength);
     EXPECT_EQ(nullptr, Record);
     EXPECT_EQ(0u, RecordLength);
+    EXPECT_EQ(MaximumLengthHeader, State.InputBuffer);
+    EXPECT_EQ(sizeof(MaximumLengthHeader), State.InputLength);
     EXPECT_EQ(0u, State.InputOffset);
     EXPECT_EQ(0u, State.OutstandingLength);
 }
@@ -87,7 +103,7 @@ TEST(TlsOpenSslCallbackTest, ParsesUint24MessageLength)
     const unsigned char* Record = nullptr;
     size_t RecordLength = 0;
 
-    ASSERT_EQ(1, QuicTlsReceiveRecordInner(&State, &Record, &RecordLength));
+    QuicTlsReceiveRecordInner(&State, &Record, &RecordLength);
     EXPECT_EQ(Input, Record);
     EXPECT_EQ(sizeof(Input), RecordLength);
     EXPECT_EQ(Input, State.InputBuffer);
@@ -116,7 +132,7 @@ TEST(TlsOpenSslCallbackTest, ProcessesMultipleMessages)
     const unsigned char* Record = nullptr;
     size_t RecordLength = 0;
 
-    ASSERT_EQ(1, QuicTlsReceiveRecordInner(&State, &Record, &RecordLength));
+    QuicTlsReceiveRecordInner(&State, &Record, &RecordLength);
     EXPECT_EQ(Input, Record);
     EXPECT_EQ(8u, RecordLength);
     EXPECT_EQ(0u, State.InputOffset);
@@ -126,7 +142,7 @@ TEST(TlsOpenSslCallbackTest, ProcessesMultipleMessages)
     EXPECT_EQ(8u, State.InputOffset);
     EXPECT_EQ(0u, State.OutstandingLength);
 
-    ASSERT_EQ(1, QuicTlsReceiveRecordInner(&State, &Record, &RecordLength));
+    QuicTlsReceiveRecordInner(&State, &Record, &RecordLength);
     EXPECT_EQ(Input + 8, Record);
     EXPECT_EQ(5u, RecordLength);
     EXPECT_EQ(5u, State.OutstandingLength);
@@ -134,7 +150,7 @@ TEST(TlsOpenSslCallbackTest, ProcessesMultipleMessages)
     EXPECT_EQ(13u, State.InputOffset);
     EXPECT_EQ(0u, State.OutstandingLength);
 
-    ASSERT_EQ(1, QuicTlsReceiveRecordInner(&State, &Record, &RecordLength));
+    QuicTlsReceiveRecordInner(&State, &Record, &RecordLength);
     EXPECT_EQ(nullptr, Record);
     EXPECT_EQ(0u, RecordLength);
     EXPECT_EQ(13u, State.InputOffset);
@@ -157,7 +173,7 @@ TEST(TlsOpenSslCallbackTest, RejectsOverRelease)
     const unsigned char* Record = nullptr;
     size_t RecordLength = 0;
 
-    ASSERT_EQ(1, QuicTlsReceiveRecordInner(&State, &Record, &RecordLength));
+    QuicTlsReceiveRecordInner(&State, &Record, &RecordLength);
     ASSERT_EQ(0, QuicTlsReleaseRecordInner(&State, RecordLength + 1));
     EXPECT_EQ(0u, State.InputOffset);
     EXPECT_EQ(sizeof(Input), State.OutstandingLength);

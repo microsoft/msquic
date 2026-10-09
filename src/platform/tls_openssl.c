@@ -184,9 +184,9 @@ typedef struct AUX_DATA {
     uint32_t Level;
 
     //
-    // The fields below hold temporary state for the current CRYPTO_DATA call.
-    // The buffer remains owned by the caller. OutstandingLength may remain
-    // nonzero only when OpenSSL retains a borrowed record during error cleanup.
+    // Tracks the caller-owned CRYPTO_DATA buffer borrowed by OpenSSL. The input
+    // window is temporary, but an outstanding byte count may remain until
+    // OpenSSL releases the rest of the record during context cleanup.
     //
     QUIC_TLS_RECORD_STATE RecordState;
 
@@ -375,54 +375,6 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
     return 1;
 }
 
-//
-// @brief Finds the next complete TLS message in the current receive state.
-//
-// The returned pointer aliases MsQuic's receive buffer and remains valid until
-// OpenSSL calls QuicTlsReleaseRecord. Only one message may be outstanding at a time.
-//
-// @param[in,out] State     Current receive state.
-// @param[out] Buffer       Pointer to the buffer containing the record data.
-//                          If no data is available, set to NULL.
-// @param[out] BytesRead    Length of the record returned in @p Buffer.
-//                          If no data is available, set to 0.
-//
-// @return Always returns 1.
-//
-int
-QuicTlsReceiveRecordInner(
-    _Inout_ QUIC_TLS_RECORD_STATE* State,
-    _Outptr_result_buffer_maybenull_(*BytesRead)
-        const unsigned char** Buf,
-    _Out_ size_t* BytesRead
-    )
-{
-    CXPLAT_DBG_ASSERT(State != NULL);
-    CXPLAT_DBG_ASSERT(State->OutstandingLength == 0);
-
-    *Buf = NULL;
-    *BytesRead = 0;
-
-    size_t Remaining = State->InputLength - State->InputOffset;
-    if (Remaining < 4) {
-        return 1;
-    }
-
-    const uint8_t* Message = State->InputBuffer + State->InputOffset;
-    size_t MessageLength =
-        4 + ((size_t)Message[1] << 16) +
-            ((size_t)Message[2] << 8) +
-            Message[3];
-    if (MessageLength > Remaining) {
-        return 1;
-    }
-
-    State->OutstandingLength = MessageLength;
-    *Buf = Message;
-    *BytesRead = MessageLength;
-    return 1;
-}
-
 static int
 QuicTlsReceiveRecord(
     _In_ SSL* s,
@@ -438,40 +390,11 @@ QuicTlsReceiveRecord(
 
     CXPLAT_DBG_ASSERT(AData != NULL);
 
-    return QuicTlsReceiveRecordInner(
+    QuicTlsReceiveRecordInner(
         &AData->RecordState,
         Buf,
         BytesRead);
-}
 
-//
-// @brief Releases TLS data borrowed from MsQuic.
-//
-// This function advances the released prefix of the current input window
-// and tracks any portion that remains outstanding.
-// The receive buffer itself remains owned by MsQuic and is drained after
-// CxPlatTlsProcessData returns.
-//
-// @param[in,out] State     Current receive state.
-// @param[in] BytesRead     The number of bytes OpenSSL no longer needs.
-//
-// @return 1 if the bytes were released; 0 if the length exceeds the
-//         outstanding data.
-//
-int
-QuicTlsReleaseRecordInner(
-    _Inout_ QUIC_TLS_RECORD_STATE* State,
-    _In_ size_t BytesRead
-    )
-{
-    CXPLAT_DBG_ASSERT(State != NULL);
-
-    if (BytesRead > State->OutstandingLength) {
-        return 0;
-    }
-
-    State->InputOffset += BytesRead;
-    State->OutstandingLength -= BytesRead;
     return 1;
 }
 
@@ -3025,6 +2948,14 @@ CxPlatTlsProcessCryptoData(
 
 Exit:
 
+    //
+    // OpenSSL normally releases each complete record before returning. On some
+    // errors it releases only a prefix and retains the rest until SSL_free.
+    // Report zero bytes consumed in that case so the caller does not drain or
+    // move any part of the receive buffer while OpenSSL may still reference it.
+    // OutstandingLength remains set to track the deferred release, the other
+    // fields describe only this processing call and can be cleared.
+    //
     if (RecordState->OutstandingLength != 0) {
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         if (State->AlertCode == 0) {
