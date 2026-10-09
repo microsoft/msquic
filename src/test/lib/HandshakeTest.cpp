@@ -808,6 +808,7 @@ struct RebindContext {
     bool Shutdown {false};
     CxPlatEvent HandshakeCompleteEvent;
     CxPlatEvent PeerAddrChangedEvent;
+    CxPlatEvent ShutdownCompleteEvent;
     QuicAddr PeerAddr;
     MsQuicConnection* Connection {nullptr};
     uint32_t PeerAddrChangedCount {0};
@@ -825,6 +826,7 @@ struct RebindContext {
             This->Connection = nullptr;
             This->PeerAddrChangedEvent.Set();
             This->HandshakeCompleteEvent.Set();
+            This->ShutdownCompleteEvent.Set();
         } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
             This->Connected = true;
             This->HandshakeCompleteEvent.Set();
@@ -840,6 +842,7 @@ struct RebindContext {
 struct RebindClientContext {
     bool Shutdown {false};
     CxPlatEvent StreamsAvailableEvent;
+    CxPlatEvent ShutdownCompleteEvent;
     static QUIC_STATUS
     ConnCallback(
         _In_ MsQuicConnection*,
@@ -851,6 +854,7 @@ struct RebindClientContext {
         if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
             This->Shutdown = true;
             This->StreamsAvailableEvent.Set();
+            This->ShutdownCompleteEvent.Set();
         } else if (Event->Type == QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE) {
             This->StreamsAvailableEvent.Set();
         }
@@ -955,6 +959,8 @@ QuicTestNatPortRebind(
     }
 
     Connection.Shutdown(1);
+    TEST_TRUE(ClientContext.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
 }
 
 void
@@ -1027,6 +1033,8 @@ QuicTestNatAddrRebind(
     }
 
     Connection.Shutdown(1);
+    TEST_TRUE(ClientContext.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
 }
 
 void
