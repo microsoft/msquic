@@ -188,14 +188,11 @@ typedef struct QUIC_PATH {
 } QUIC_PATH;
 
 #if DEBUG
-#define QuicPathValidate(Path) \
-    CXPLAT_DBG_ASSERT( \
-        (Path)->DestCid == NULL || \
-        (Path)->DestCid->CID.Length == 0 || \
-        ((Path)->DestCid->AssignedPath == (Path) && \
-         (Path)->DestCid->CID.UsedLocally))
-#else
-#define QuicPathValidate(Path) UNREFERENCED_PARAMETER(Path)
+QUIC_INLINE
+void
+QuicPathValidate(
+    _In_ const QUIC_PATH* Path
+    );
 #endif
 
 CXPLAT_STATIC_ASSERT(
