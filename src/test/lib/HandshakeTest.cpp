@@ -864,7 +864,8 @@ ValidateRebind(
     _Inout_ RebindContext& Context,
     _Inout_ RebindClientContext& ClientContext,
     _In_ const QUIC_ADDR& ExpectedAddress,
-    _In_ uint32_t ExpectedCount
+    _In_ uint32_t ExpectedCount,
+    _In_ bool ValidateServerToClient
     )
 {
     TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(TestWaitTimeout));
@@ -878,14 +879,16 @@ ValidateRebind(
     TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
     TEST_TRUE(QuicAddrCompare(&ExpectedAddress, &ServerRemoteAddr.SockAddr));
 
-    ClientContext.StreamsAvailableEvent.Reset();
-    MsQuicSettings Settings;
-    TEST_QUIC_SUCCEEDED(Context.Connection->GetSettings(&Settings));
-    Settings.IsSetFlags = 0;
-    Settings.SetPeerBidiStreamCount(Settings.PeerBidiStreamCount + 1);
-    TEST_QUIC_SUCCEEDED(Context.Connection->SetSettings(Settings));
-    TEST_TRUE(ClientContext.StreamsAvailableEvent.WaitTimeout(TestWaitTimeout));
-    TEST_FALSE(ClientContext.Shutdown);
+    if (ValidateServerToClient) {
+        ClientContext.StreamsAvailableEvent.Reset();
+        MsQuicSettings Settings;
+        TEST_QUIC_SUCCEEDED(Context.Connection->GetSettings(&Settings));
+        Settings.IsSetFlags = 0;
+        Settings.SetPeerBidiStreamCount(Settings.PeerBidiStreamCount + 1);
+        TEST_QUIC_SUCCEEDED(Context.Connection->SetSettings(Settings));
+        TEST_TRUE(ClientContext.StreamsAvailableEvent.WaitTimeout(TestWaitTimeout));
+        TEST_FALSE(ClientContext.Shutdown);
+    }
 
     Context.PeerAddrChangedEvent.Reset();
     ClientContext.StreamsAvailableEvent.Reset();
@@ -948,7 +951,7 @@ QuicTestNatPortRebind(
             AddrHelper.IncrementPort();
         } while (QuicAddrGetPort(&AddrHelper.New) == ServerLocalAddr.GetPort());
 
-        ValidateRebind(Context, ClientContext, AddrHelper.New, i + 1);
+        ValidateRebind(Context, ClientContext, AddrHelper.New, i + 1, true);
     }
 
     Connection.Shutdown(1);
@@ -1016,7 +1019,11 @@ QuicTestNatAddrRebind(
             AddrHelper.IncrementAddr();
         }
 
-        ValidateRebind(Context, ClientContext, AddrHelper.New, i + 1);
+        //
+        // The raw datapath resolves the synthetic address before the send
+        // hook can translate it, so server-to-client traffic isn't supported.
+        //
+        ValidateRebind(Context, ClientContext, AddrHelper.New, i + 1, false);
     }
 
     Connection.Shutdown(1);
