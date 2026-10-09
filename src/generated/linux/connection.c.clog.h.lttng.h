@@ -773,9 +773,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, FirstCidUsage,
                 PathDiscarded,
                 Connection,
                 "Removing invalid path[%u]",
-                PathSet->Paths[i].ID);
+                Path->ID);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = PathSet->Paths[i].ID = arg3
+// arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathDiscarded,
     TP_ARGS(

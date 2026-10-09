@@ -122,9 +122,8 @@ QuicPathUpdateActive(
     //
     // A path needs a usable destination CID before it can become active.
     //
-    uint8_t NextActivePathIndex;
     QUIC_PATH* NextActivePath =
-        QuicConnGetPathByID(Connection, PathSet->PendingActivePathId, &NextActivePathIndex);
+        QuicConnGetPathByID(Connection, PathSet->PendingActivePathId);
     CXPLAT_DBG_ASSERT(NextActivePath != NULL);
     if (!QuicPathUpdateDestCid(Connection, NextActivePath)) {
         QuicTraceLogConnWarning(
@@ -161,28 +160,20 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicPathRemove(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t Index
+    _In_ QUIC_PATH* Path
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
     CXPLAT_DBG_ASSERT(PathSet->Count <= QUIC_MAX_PATH_COUNT);
-    if (PathSet->Count == 0 ||
-        Index >= QUIC_MAX_PATH_COUNT ||
-        !PathSet->Paths[Index].InUse) {
-        CXPLAT_TEL_ASSERTMSG(
-            PathSet->Count > 0 &&
-            Index < QUIC_MAX_PATH_COUNT &&
-            PathSet->Paths[Index].InUse,
-            "Double or out-of-range path removal!");
-        return FALSE;
-    }
-    CXPLAT_DBG_ASSERT(Index < PathSet->Count);
-
-    const QUIC_PATH* Path = &PathSet->Paths[Index];
+    CXPLAT_DBG_ASSERT(
+        Path >= PathSet->Paths && Path < PathSet->Paths + PathSet->Count);
     CXPLAT_DBG_ASSERT(Path->InUse);
     CXPLAT_DBG_ASSERT(
         PathSet->PendingActivePathId == QuicPathGetActive(PathSet)->ID ||
         Path->ID != PathSet->PendingActivePathId);
+
+    size_t Index = Path - PathSet->Paths;
+
     QuicTraceEvent(
         ConnPathRemoved,
         "[conn][%p] Path[%u] Removed",
@@ -212,8 +203,8 @@ QuicPathRemove(
         // available fallback: prefer a peer-validated path, otherwise accept
         // any path.
         //
-        uint8_t FallbackIndex = 1;
-        for (uint8_t j = 1; j < PathSet->Count; ++j) {
+        size_t FallbackIndex = 1;
+        for (size_t j = 1; j < PathSet->Count; ++j) {
             if (PathSet->Paths[j].IsPeerValidated) {
                 FallbackIndex = j;
                 break;
@@ -253,9 +244,14 @@ QuicPathUpdateDestCids(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    for (uint8_t i = 0; i < PathSet->Count; ++i) {
+    //
+    // Iterate forward so paths at the front get destination CIDs first.
+    //
+    size_t i = 0;
+    while (i < PathSet->Count) {
         QUIC_PATH* Path = &PathSet->Paths[i];
         if (QuicPathUpdateDestCid(Connection, Path)) {
+            ++i;
             continue;
         }
 
@@ -274,11 +270,9 @@ QuicPathUpdateDestCids(
             Connection,
             "Non-active path has no replacement for retired CID.");
         CXPLAT_DBG_ASSERT(i != 0);
-        QuicPathRemove(Connection, i);
-        //
-        // Reprocess this index because removal shifted the remaining paths down.
-        //
-        --i;
+        if (!QuicPathRemove(Connection, Path)) {
+            break;
+        }
     }
 
 #if DEBUG
@@ -380,14 +374,12 @@ _Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint32_t ID,
-    _Out_ uint8_t* Index
+    _In_ uint32_t ID
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    for (uint8_t i = 0; i < PathSet->Count; ++i) {
+    for (size_t i = 0; i < PathSet->Count; ++i) {
         if (PathSet->Paths[i].ID == ID) {
-            *Index = i;
             return &PathSet->Paths[i];
         }
     }
@@ -419,7 +411,7 @@ QuicConnGetPathForPacket(
     )
 {
     QUIC_PATH_SET* PathSet = &Connection->Paths;
-    for (uint8_t i = 0; i < PathSet->Count; ++i) {
+    for (size_t i = 0; i < PathSet->Count; ++i) {
         if (!QuicPathMatchPacket(&PathSet->Paths[i], Packet)) {
             if (!Connection->State.HandshakeConfirmed) {
                 //
@@ -436,16 +428,24 @@ QuicConnGetPathForPacket(
         //
         // See if any old paths share the same remote address, and is just a rebind.
         // If so, remove the old paths.
-        // NB: Traversing the array backwards is simpler and more efficient here due
-        // to the array shifting that happens in QuicPathRemove.
         //
-        for (int i = PathSet->Count - 1; i > 0; i--) {
-            if (!PathSet->Paths[i].IsActive
-                && PathSet->Paths[i].ID != PathSet->PendingActivePathId
-                && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&PathSet->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &PathSet->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompare(&Packet->Route->LocalAddress, &PathSet->Paths[i].Route.LocalAddress)) {
-                QuicPathRemove(Connection, (uint8_t)i);
+        // Iterate backward when removing path to not invalidate the array.
+        //
+        for (int32_t i = PathSet->Count - 1; i > 0; --i) {
+            QUIC_PATH* Path = &PathSet->Paths[i];
+            if (!Path->IsActive &&
+                Path->ID != PathSet->PendingActivePathId &&
+                QuicAddrGetFamily(&Packet->Route->RemoteAddress) ==
+                    QuicAddrGetFamily(&Path->Route.RemoteAddress) &&
+                QuicAddrCompareIp(
+                    &Packet->Route->RemoteAddress,
+                    &Path->Route.RemoteAddress) &&
+                QuicAddrCompare(
+                    &Packet->Route->LocalAddress,
+                    &Path->Route.LocalAddress)) {
+                if (QuicPathRemove(Connection, Path)) {
+                    break;
+                }
             }
         }
 
@@ -497,8 +497,7 @@ QuicPathSetActive(
     )
 {
     BOOLEAN UdpPortChangeOnly = FALSE;
-    uint8_t PathIndex;
-    QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId);
     CXPLAT_DBG_ASSERT(Path != NULL);
 
     QUIC_PATH* ActivePath = QuicPathGetActive(&Connection->Paths);

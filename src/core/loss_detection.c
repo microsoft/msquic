@@ -500,9 +500,7 @@ QuicLossDetectionOnPacketAcknowledged(
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-    uint8_t PathIndex;
-    QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
-    UNREFERENCED_PARAMETER(PathIndex);
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
 
     _Analysis_assume_(
         EncryptLevel >= QUIC_ENCRYPT_LEVEL_INITIAL &&
@@ -827,8 +825,7 @@ QuicLossDetectionRetransmitFrames(
         }
 
         case QUIC_FRAME_PATH_CHALLENGE: {
-            uint8_t PathIndex;
-            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
+            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
             if (Path != NULL && !Path->IsPeerValidated) {
                 Path->SendChallenge = TRUE;
                 NewDataQueued |=
@@ -887,9 +884,7 @@ QuicLossDetectionOnPacketDiscarded(
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
-        uint8_t PathIndex;
-        QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
-        UNREFERENCED_PARAMETER(PathIndex);
+        QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
         if (Path != NULL) {
             uint16_t PacketMtu =
                 PacketSizeFromUdpPayloadSize(

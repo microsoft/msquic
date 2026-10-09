@@ -263,7 +263,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicPathRemove(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t Index
+    _In_ QUIC_PATH* Path
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -342,8 +342,7 @@ _Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint32_t ID,
-    _Out_ uint8_t* Index
+    _In_ uint32_t ID
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
