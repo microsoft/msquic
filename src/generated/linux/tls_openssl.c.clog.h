@@ -59,12 +59,12 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAlert , arg1, arg3, arg4);\
 // Decoder Ring for OpenSslHandshakeErrorStr
 // [conn][%p] TLS handshake error: %s, file:%s:%d
 // QuicTraceLogConnError(
-                    OpenSslHandshakeErrorStr,
-                    TlsContext->Connection,
-                    "TLS handshake error: %s, file:%s:%d",
-                    buf,
-                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
-                    line);
+                        OpenSslHandshakeErrorStr,
+                        TlsContext->Connection,
+                        "TLS handshake error: %s, file:%s:%d",
+                        buf,
+                        (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                        line);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = buf = arg3
 // arg4 = arg4 = (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file) = arg4
@@ -83,10 +83,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr , arg1, arg3, arg4, arg5
 // Decoder Ring for OpenSslHandshakeError
 // [conn][%p] TLS handshake error: %d
 // QuicTraceLogConnError(
-                    OpenSslHandshakeError,
-                    TlsContext->Connection,
-                    "TLS handshake error: %d",
-                    Err);
+                        OpenSslHandshakeError,
+                        TlsContext->Connection,
+                        "TLS handshake error: %d",
+                        Err);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
@@ -409,12 +409,12 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp , arg1);\
 // Decoder Ring for OpenSslSendTicketData
 // [conn][%p] Sending ticket data, %u bytes
 // QuicTraceLogConnVerbose(
-            OpenSslSendTicketData,
-            TlsContext->Connection,
-            "Sending ticket data, %u bytes",
-            *BufferLength);
+        OpenSslSendTicketData,
+        TlsContext->Connection,
+        "Sending ticket data, %u bytes",
+        BufferLength);
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = *BufferLength = arg3
+// arg3 = arg3 = BufferLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslSendTicketData
 #define _clog_4_ARGS_TRACE_OpenSslSendTicketData(uniqueId, arg1, encoded_arg_string, arg3)\
