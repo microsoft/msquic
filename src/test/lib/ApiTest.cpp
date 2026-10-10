@@ -7197,6 +7197,80 @@ struct RegistrationCloseContext {
     CxPlatEvent Event;
 };
 
+struct ExecutionContextConnectionContext {
+    MsQuicConfiguration* ServerConfiguration;
+    MsQuicConnection** Server;
+    uint64_t BytesReceived;
+    bool ListenerStopped;
+};
+
+QUIC_STATUS
+QUIC_API ExecutionContextStreamCallback(
+    _In_ MsQuicStream*,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    )
+{
+    if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+        ((ExecutionContextConnectionContext*)Context)->BytesReceived +=
+            Event->RECEIVE.TotalBufferLength;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
+QUIC_API ExecutionContextConnectionCallback(
+    _In_ MsQuicConnection*,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    )
+{
+    if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+        auto Stream =
+            new(std::nothrow) MsQuicStream(
+                Event->PEER_STREAM_STARTED.Stream,
+                CleanUpAutoDelete,
+                ExecutionContextStreamCallback,
+                Context);
+        if (Stream == nullptr) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
+QUIC_API ExecutionContextListenerCallback(
+    _In_ MsQuicListener* Listener,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        auto ConnectionContext = (ExecutionContextConnectionContext*)Context;
+        auto Server =
+            new(std::nothrow) MsQuicConnection(
+                Event->NEW_CONNECTION.Connection,
+                CleanUpManual,
+                ExecutionContextConnectionCallback,
+                Context);
+        if (Server == nullptr) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        QUIC_STATUS Status = Server->SetConfiguration(*ConnectionContext->ServerConfiguration);
+        if (QUIC_FAILED(Status)) {
+            Server->Handle = nullptr;
+            delete Server;
+            return Status;
+        }
+        *ConnectionContext->Server = Server;
+    } else if (Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
+        Listener->Close();
+        ((ExecutionContextConnectionContext*)Context)->ListenerStopped = true;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
 _Function_class_(QUIC_REGISTRATION_CLOSE_CALLBACK)
 void
 QUIC_API RegistrationCloseCallback(
@@ -7304,6 +7378,130 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
                 QuicTestProcessEventQ(EventQs[j], 0);
             }
         }
+    }
+
+    //
+    // Verify an EC can drive connection establishment, stream traffic, and
+    // connection teardown without hard partitioning.
+    //
+    {
+        MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        TEST_TRUE(Execution.IsValid());
+
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
+
+        {
+            MsQuicAlpn Alpn("MsQuicTest");
+            MsQuicSettings Settings;
+            Settings.SetPeerBidiStreamCount(1);
+            MsQuicConfiguration ServerConfiguration(
+                Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+            TEST_TRUE(ServerConfiguration.IsValid());
+            MsQuicCredentialConfig ClientCredConfig;
+            MsQuicConfiguration ClientConfiguration(
+                Registration, Alpn, Settings, ClientCredConfig);
+            TEST_TRUE(ClientConfiguration.IsValid());
+
+            UniquePtr<MsQuicConnection> Server;
+            ExecutionContextConnectionContext ConnectionContext {
+                &ServerConfiguration,
+                (MsQuicConnection**)&Server,
+                0,
+                false
+            };
+            MsQuicListener Listener(
+                Registration,
+                CleanUpManual,
+                ExecutionContextListenerCallback,
+                &ConnectionContext);
+            TEST_TRUE(Listener.IsValid());
+            TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+            QuicAddr ServerLocalAddr;
+            TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+            MsQuicConnection Client(
+                Registration,
+                CleanUpManual,
+                ExecutionContextConnectionCallback,
+                &ConnectionContext);
+            TEST_TRUE(Client.IsValid());
+            TEST_QUIC_SUCCEEDED(
+                Client.Start(
+                    ClientConfiguration,
+                    ServerLocalAddr.GetFamily(),
+                    QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+                    ServerLocalAddr.GetPort()));
+
+            auto PollExecutionContexts = [&]() {
+                for (uint32_t i = 0; i < EcCount; i++) {
+                    MsQuic->ExecutionPoll(Execution[i]);
+                    QuicTestProcessEventQ(EventQs[i], 0);
+                }
+            };
+
+            TEST_QUIC_SUCCEEDED(
+                TryUntil(1, TestWaitTimeout, [&]() {
+                    PollExecutionContexts();
+                    return Client.HandshakeComplete && Server && Server->HandshakeComplete ?
+                        QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+                }));
+
+            uint8_t Payload[] = "execution context traffic";
+            QUIC_BUFFER SendBuffer { sizeof(Payload), Payload };
+            {
+                MsQuicStream Stream(Client, QUIC_STREAM_OPEN_FLAG_NONE);
+                TEST_TRUE(Stream.IsValid());
+                TEST_QUIC_SUCCEEDED(
+                    Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+                TEST_QUIC_SUCCEEDED(
+                    TryUntil(1, TestWaitTimeout, [&]() {
+                        PollExecutionContexts();
+                        return ConnectionContext.BytesReceived == sizeof(Payload) ?
+                            QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+                    }));
+            }
+
+            Client.Shutdown(QUIC_TEST_NO_ERROR);
+            TEST_QUIC_SUCCEEDED(
+                TryUntil(1, TestWaitTimeout, [&]() {
+                    PollExecutionContexts();
+                    return Client.ShutdownCompleteEvent.WaitTimeout(0) &&
+                        Server->ShutdownCompleteEvent.WaitTimeout(0) ?
+                            QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+                }));
+
+            BOOLEAN CloseAsync = TRUE;
+            TEST_QUIC_SUCCEEDED(
+                Client.SetParam(QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync));
+            Client.CloseAsync = true;
+            TEST_QUIC_SUCCEEDED(
+                Server->SetParam(QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync));
+            Server->CloseAsync = true;
+
+            Client.Close();
+            Server->Close();
+            Listener.Stop();
+            TEST_QUIC_SUCCEEDED(
+                TryUntil(1, TestWaitTimeout, [&]() {
+                    PollExecutionContexts();
+                    return ConnectionContext.ListenerStopped ?
+                        QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+                }));
+        }
+
+        RegistrationCloseContext CloseContext;
+        Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(1, TestWaitTimeout, [&]() {
+                for (uint32_t i = 0; i < EcCount; i++) {
+                    MsQuic->ExecutionPoll(Execution[i]);
+                    QuicTestProcessEventQ(EventQs[i], 0);
+                }
+                return CloseContext.Event.WaitTimeout(0) ?
+                    QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+            }));
     }
 }
 
