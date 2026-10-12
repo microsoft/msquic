@@ -783,7 +783,9 @@ QuicStreamOnBytesDelivered(
     )
 {
     const uint64_t RecvBufferDrainThreshold =
-        Stream->RecvBuffer.VirtualBufferLength / QUIC_RECV_BUFFER_DRAIN_RATIO;
+        CXPLAT_MAX(
+            Stream->RecvBuffer.VirtualBufferLength / QUIC_RECV_BUFFER_DRAIN_RATIO,
+            1U);
 
     Stream->RecvWindowBytesDelivered += BytesDelivered;
     Stream->Connection->Send.MaxData += BytesDelivered;

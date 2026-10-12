@@ -2974,6 +2974,15 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
+TEST(Misc, StreamTinyRecvWindow) {
+    TestLogger Logger("StreamTinyRecvWindow");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestTinyStreamRecvWindow)));
+    } else {
+        QuicTestTinyStreamRecvWindow();
+    }
+}
+
 TEST(Basic, OperationPriority) {
     TestLogger Logger("OperationPriority");
     if (TestingKernelMode) {
