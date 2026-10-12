@@ -51,11 +51,13 @@ protected:
 
     void Initialize(uint32_t WindowPackets = 100, uint16_t Mtu = 1280, bool PacingEnabled = false) {
         Connection._.Type = QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
-        Connection.PathsCount = 1;
-        Connection.Paths[0].Mtu = Mtu;
-        Connection.Paths[0].IsActive = TRUE;
-        Connection.Paths[0].IsPeerValidated = TRUE;
-        Connection.Paths[0].SmoothedRtt = 50000;
+        Connection.Paths.Count = 1;
+        Connection.Paths.NextPathId = 1;
+        Connection.Paths.Paths[0].InUse = TRUE;
+        Connection.Paths.Paths[0].Mtu = Mtu;
+        Connection.Paths.Paths[0].IsActive = TRUE;
+        Connection.Paths.Paths[0].IsPeerValidated = TRUE;
+        Connection.Paths.Paths[0].SmoothedRtt = 50000;
         Connection.Settings.InitialWindowPackets = WindowPackets;
         Connection.Settings.PacingEnabled = PacingEnabled ? TRUE : FALSE;
         Connection.Settings.CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3;
@@ -124,12 +126,13 @@ protected:
         auto& Packet = Storage.Metadata;
         Packet.PacketNumber = Number;
         Packet.PacketLength = Length;
+        Packet.PathId = QuicPathGetActive(&Connection.Paths)->ID;
         Packet.SentTime = TestTime;
         Packet.Flags.KeyType = QUIC_PACKET_KEY_1_RTT;
         Packet.Flags.IsAckEliciting = TRUE;
         Packet.FrameCount = 1;
         Packet.Frames[0].Type = QUIC_FRAME_PING;
-        QuicLossDetectionOnPacketSent(&Connection.LossDetection, &Connection.Paths[0], &Packet);
+        QuicLossDetectionOnPacketSent(&Connection.LossDetection, QuicPathGetActive(&Connection.Paths), &Packet);
     }
 };
 
@@ -468,7 +471,7 @@ TEST_F(BbrV3Test, MixedPathAckMeasuresRttFromCurrentGenerationPacket)
 
 TEST_F(BbrV3Test, ProbeLossFloorIgnoresRecoveryWindowFromPreviousEpisode)
 {
-    const uint32_t MinimumWindow = 4 * QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    const uint32_t MinimumWindow = 4 * QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection.Paths));
     uint32_t PreviousHigh = 0;
     for (uint32_t StaleRecoveryWindow : {MinimumWindow, 200000u}) {
         BbrV3CongestionControlInitialize(&Cc, &Connection.Settings);
@@ -509,6 +512,26 @@ TEST_F(BbrV3Test, InitializationSelectsV3Controller)
     ASSERT_EQ(Model.InflightLow, UINT32_MAX);
 }
 
+TEST_F(BbrV3Test, ResetUsesActivePathWhileMigrationIsPending)
+{
+    const uint32_t InitialWindow = Bbr.CongestionWindow;
+    Connection.Paths.Count = 2;
+    Connection.Paths.Paths[1] = Connection.Paths.Paths[0];
+    Connection.Paths.Paths[1].ID = 0x10001;
+    Connection.Paths.Paths[1].IsActive = FALSE;
+    Connection.Paths.Paths[1].Mtu = 1500;
+    Connection.Paths.NextPathId = Connection.Paths.Paths[1].ID + 1;
+    Connection.Paths.PendingActivePathId = Connection.Paths.Paths[1].ID;
+
+    QuicCongestionControlReset(&Cc, FALSE);
+
+    EXPECT_EQ(InitialWindow, Bbr.CongestionWindow);
+    EXPECT_EQ(InitialWindow, Bbr.InitialCongestionWindow);
+    Bbr.BbrState = BBR_STATE_PROBE_RTT;
+    EXPECT_EQ(4u * QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]),
+        QuicCongestionControlGetCongestionWindow(&Cc));
+}
+
 TEST_F(BbrV3Test, PacingUsesBytesPerMicrosecond)
 {
     Initialize(100, 1280, true);
@@ -529,7 +552,7 @@ TEST_F(BbrV3Test, SendQuantumIsOneMillisecond)
     Bbr.PacingGain = 256;
     QuicSlidingWindowExtremumUpdateMax(&Bbr.BandwidthFilter.WindowedMaxFilter, 240000000, 0);
     BbrSetSendQuantum(&Bbr, BbrV3CongestionControlGetBandwidth(&Cc),
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]));
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection.Paths)));
     ASSERT_EQ(Bbr.SendQuantum, 30000u);
 }
 
@@ -693,7 +716,7 @@ TEST_F(BbrV3Test, ProbeRttRespectsModelAndRecoveryBounds)
     auto Loss = MakeBbrLossEvent(1200, 1, 2, TRUE);
     QuicCongestionControlOnDataLost(&Cc, &Loss);
     ASSERT_EQ(QuicCongestionControlGetCongestionWindow(&Cc),
-        4u * QuicPathGetDatagramPayloadSize(&Connection.Paths[0]));
+        4u * QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection.Paths)));
 }
 
 TEST_F(BbrV3Test, ProbeLossCannotRaiseBoundFromStaleBandwidth)
@@ -734,7 +757,7 @@ TEST_F(BbrV3Test, RecoveryRestoresWindowBeforeModelCaps)
     auto Ack = MakeBbrAckEvent(1100000, 2, 10, 1200);
     Ack.HasLoss = TRUE;
     QuicCongestionControlOnDataAcknowledged(&Cc, &Ack);
-    ASSERT_LE(Bbr.CongestionWindow, 4u * QuicPathGetDatagramPayloadSize(&Connection.Paths[0]));
+    ASSERT_LE(Bbr.CongestionWindow, 4u * QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection.Paths)));
     // A clean round permits normal recovery exit; the current model still bounds it.
     Model.LossInRound = FALSE;
     Model.InflightLow = 40000;
@@ -781,7 +804,7 @@ TEST_F(BbrV3Test, WindowLimitedProbeGrowsInsteadOfDeclaringPlateau)
     QuicCongestionControlOnDataAcknowledged(&Cc, &Ack);
     ASSERT_EQ(Model.Phase, BBR_V3_PHASE_UP);
     ASSERT_EQ(Bbr.SlowStartupRoundCounter, 0u);
-    ASSERT_EQ(Model.InflightHigh, 10000u + QuicPathGetDatagramPayloadSize(&Connection.Paths[0]));
+    ASSERT_EQ(Model.InflightHigh, 10000u + QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection.Paths)));
     ASSERT_EQ(QuicCongestionControlGetCongestionWindow(&Cc), Model.InflightHigh);
 }
 
@@ -789,7 +812,7 @@ TEST_F(BbrV3Test, AggregateLossUsesPacketConservationWithoutInventingProbeBound)
 {
     Initialize(10);
     const uint32_t InitialWindow = Bbr.CongestionWindow;
-    const uint32_t LostBytes = 2 * QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    const uint32_t LostBytes = 2 * QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection.Paths));
     QuicCongestionControlOnDataSent(&Cc, InitialWindow);
     auto Loss = MakeBbrLossEvent(LostBytes, 5, 10);
     QuicCongestionControlOnDataLost(&Cc, &Loss);

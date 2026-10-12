@@ -26,15 +26,17 @@ static void InitBbrMockConnection(
     QUIC_CONNECTION& Connection,
     uint16_t Mtu)
 {
-    Connection.Paths[0].Mtu = Mtu;
-    Connection.Paths[0].IsActive = TRUE;
+    Connection.Paths.Count = 1;
+    Connection.Paths.NextPathId = 1;
+    Connection.Paths.Paths[0].Mtu = Mtu;
+    Connection.Paths.Paths[0].IsActive = TRUE;
     Connection.Send.NextPacketNumber = 0;
     Connection.Settings.PacingEnabled = FALSE;
     Connection.Settings.HyStartEnabled = FALSE;
     Connection.Settings.NetStatsEventEnabled = FALSE;
-    Connection.Paths[0].GotFirstRttSample = FALSE;
-    Connection.Paths[0].SmoothedRtt = 0;
-    Connection.Paths[0].OneWayDelay = 0;
+    Connection.Paths.Paths[0].GotFirstRttSample = FALSE;
+    Connection.Paths.Paths[0].SmoothedRtt = 0;
+    Connection.Paths.Paths[0].OneWayDelay = 0;
     Connection.Stats.Send.CongestionCount = 0;
     Connection.Stats.Send.PersistentCongestionCount = 0;
     Connection.Send.PeerMaxData = UINT64_MAX;
@@ -289,7 +291,7 @@ TEST_F(BbrTest_DeepTest, OnDataLost_PersistentCongestion)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
 
     CC->QuicCongestionControlOnDataSent(CC, 10000);
@@ -313,7 +315,7 @@ TEST_F(BbrTest_DeepTest, OnDataLost_NonPersistent)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
 
     CC->QuicCongestionControlOnDataSent(CC, 10000);
@@ -361,7 +363,7 @@ TEST_F(BbrTest_DeepTest, OnDataLost_AlreadyInRecovery)
     // Second loss: RW_local=7600 (already in recovery, no reset),
     // RW = (7600 > 600+MinCW) ? 7600-600 : MinCW = 7000.
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
     // First loss result
     uint32_t RW1 = (8800u > 1200u + MinCW) ? 8800u - 1200u : MinCW;
@@ -951,7 +953,7 @@ TEST_F(BbrTest_DeepTest, GetCongestionWindow_InRecovery)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
 
     EnterRecovery();
@@ -970,7 +972,7 @@ TEST_F(BbrTest_DeepTest, GetCongestionWindow_ProbeRtt)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
 
     DriveToProbeRtt();
@@ -1344,7 +1346,7 @@ TEST_F(BbrTest_DeepTest, Initialize_DefaultState)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
 
     ASSERT_STREQ(CC->Name, "BBR");
     EXPECT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_STARTUP);
@@ -1694,7 +1696,7 @@ TEST_F(BbrTest_DeepTest, SetSendQuantum_MediumPacingRate)
     // kLow*8=9,600,000 <= 14,433,593 < kHigh*8=192,000,000
     // → medium pacing rate path → SendQuantum = DatagramPayloadLength * 2
     //
-    const uint16_t DPL = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    const uint16_t DPL = QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     ASSERT_EQ(Bbr->SendQuantum, (uint64_t)(DPL * 2));
 }
 

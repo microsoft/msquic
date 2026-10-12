@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // ECN validation state transition:
 //
@@ -47,7 +51,7 @@ typedef struct QUIC_PATH {
     //
     // Unique identifier;
     //
-    uint8_t ID;
+    uint32_t ID;
 
     //
     // Indicates the path object is actively in use.
@@ -188,25 +192,69 @@ typedef struct QUIC_PATH {
 } QUIC_PATH;
 
 #if DEBUG
-#define QuicPathValidate(Path) \
-    CXPLAT_DBG_ASSERT( \
-        (Path)->DestCid == NULL || \
-        (Path)->DestCid->CID.Length == 0 || \
-        ((Path)->DestCid->AssignedPath == (Path) && \
-         (Path)->DestCid->CID.UsedLocally))
-#else
-#define QuicPathValidate(Path) UNREFERENCED_PARAMETER(Path)
+QUIC_INLINE
+void
+QuicPathValidate(
+    _In_ const QUIC_PATH* Path
+    );
 #endif
 
 CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_PATH) < 256,
     "Ensure path struct stays small since we prealloc them");
 
+typedef struct QUIC_PATH_SET {
+    //
+    // Per-path state. The first entry is the active path; the remaining
+    // entries are other tracked paths.
+    //
+    _Field_size_(Count)
+    QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
+
+    //
+    // Number of paths currently tracked.
+    //
+    _Field_range_(0, QUIC_MAX_PATH_COUNT)
+    uint8_t Count;
+
+    //
+    // The next identifier to use for a new path.
+    //
+    uint32_t NextPathId;
+
+    //
+    // ID of the path that will become active after the reception of the
+    // current batch of datagrams is complete.
+    //
+    uint32_t PendingActivePathId;
+
+} QUIC_PATH_SET;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPathInitialize(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
+QuicPathSetInitialize(
+    _Out_ QUIC_PATH_SET* PathSet,
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Provide the active path.
+// There is always an active path on a connection.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_PATH*
+QuicPathGetActive(
+    _In_ const QUIC_PATH_SET* PathSet
+    );
+
+//
+// Update the active path to PathSet->PendingActivePathId
+// Invalidates pointers to paths.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateActive(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -219,7 +267,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicPathRemove(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t Index
+    _In_ QUIC_PATH* Path
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateDestCids(
+    _In_ QUIC_PATH_SET* PathSet,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -286,20 +341,19 @@ QuicPathSetValid(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicPathSetActive(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 _Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ID,
-    _Out_ uint8_t* Index
+    _In_ uint32_t ID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicPathMatchPacket(
+    _In_ const QUIC_PATH* Path,
+    _In_ const QUIC_RX_PACKET* Packet
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -327,3 +381,7 @@ QuicPathUpdateQeo(
     _In_ QUIC_PATH* Path,
     _In_ CXPLAT_QEO_OPERATION Operation
     );
+
+#if defined(__cplusplus)
+}
+#endif

@@ -51,11 +51,11 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathTcpAuxBinding , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for RouteResolutionEnd
-// [conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx
+// [conn][%p] Route resolution completed on Path[%u] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx
 // QuicTraceLogConnInfo(
         RouteResolutionEnd,
         Connection,
-        "Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+        "Route resolution completed on Path[%u] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
         PathId,
         Route->NextHopLinkLayerAddress[0],
         Route->NextHopLinkLayerAddress[1],

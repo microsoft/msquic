@@ -44,12 +44,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
 
         //
-        // Indicates whether packet number encryption is enabled or not for the
-        // connection.
-        //
-        BOOLEAN HeaderProtectionEnabled : 1; // TODO - Remove since it's not used
-
-        //
         // Indicates that 1-RTT encryption has been configured/negotiated to be
         // disabled.
         //
@@ -430,17 +424,6 @@ typedef struct QUIC_CONNECTION {
     uint8_t SourceCidLimit;
 
     //
-    // Number of paths the connection is currently tracking.
-    //
-    _Field_range_(0, QUIC_MAX_PATH_COUNT)
-    uint8_t PathsCount;
-
-    //
-    // The next identifier to use for a new path.
-    //
-    uint8_t NextPathId;
-
-    //
     // Indicates whether a worker is currently processing a connection.
     // N.B. Multi-threaded access, synchronized by worker's connection lock.
     //
@@ -515,11 +498,9 @@ typedef struct QUIC_CONNECTION {
     QUIC_VAR_INT RetirePriorTo;
 
     //
-    // Per-path state. The first entry in the list is the active path. All the
-    // rest (if any) are other tracked paths, sorted from most to least recently
-    // used.
+    // Network paths known to the connection. There is always an active path in the set.
     //
-    QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
+    QUIC_PATH_SET Paths;
 
     //
     // The list of connection IDs used for receiving.
@@ -907,7 +888,7 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    const QUIC_PATH* Path = &Connection->Paths[0];
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
     UNREFERENCED_PARAMETER(Path);
 
     QuicTraceEvent(
@@ -1274,6 +1255,15 @@ QuicConnGenerateNewSourceCids(
     );
 
 //
+// Get an unused destination CID from the list provided by the peer.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_CID_LIST_ENTRY*
+QuicConnGetUnusedDestCid(
+    _In_ const QUIC_CONNECTION* Connection
+    );
+
+//
 // Retires the currently used destination connection ID.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1308,7 +1298,7 @@ QuicConnGetSourceCidFromSeq(
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
                 QuicBindingRemoveSourceConnectionID(
-                    Connection->Paths[0].Binding,
+                    QuicPathGetActive(&Connection->Paths)->Binding,
                     SourceCid,
                     Entry);
                 QuicTraceEvent(
@@ -1679,7 +1669,7 @@ QuicConnQueueRouteCompletion(
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ BOOLEAN Succeeded
     );
 
@@ -1763,13 +1753,14 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ uint64_t TimeNow
     )
 {
+    QUIC_PATH_SET* PathSet = &Connection->Paths;
     uint64_t TimeoutTime = Connection->Settings.MtuDiscoverySearchCompleteTimeoutUs;
-    for (uint8_t i = 0; i < Connection->PathsCount; i++) {
+    for (uint8_t i = 0; i < PathSet->Count; i++) {
         //
         // Only trigger a new send if we're in Search Complete and enough time has
         // passed.
         //
-        QUIC_PATH* Path = &Connection->Paths[i];
+        QUIC_PATH* Path = &PathSet->Paths[i];
         if (!Path->IsActive || !Path->MtuDiscovery.IsSearchComplete) {
             continue;
         }

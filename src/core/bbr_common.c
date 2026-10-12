@@ -510,7 +510,7 @@ BbrLogOutFlowStatus(
     _In_ const BBR_COMMON* Bbr
     )
 {
-    const QUIC_PATH* Path = &Connection->Paths[0];
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
 
     QuicTraceEvent(
         ConnOutFlowStatsV2,
@@ -535,7 +535,7 @@ BbrGetNetworkStatistics(
     _Out_ struct QUIC_NETWORK_STATISTICS* NetworkStatistics
     )
 {
-    const QUIC_PATH* Path = &Connection->Paths[0];
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
 
     NetworkStatistics->BytesInFlight = Bbr->BytesInFlight;
     NetworkStatistics->PostedBytes = Connection->SendBuffer.PostedBytes;

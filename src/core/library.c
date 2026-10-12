@@ -751,6 +751,7 @@ MsQuicLibraryUninitialize(
     CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
     MsQuicLib.RegistrationCloseCleanupWorker = 0;
 
+    CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
     CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
     CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
 
@@ -1637,7 +1638,7 @@ QuicLibraryGetGlobalParam(
             *BufferLength = QUIC_PERF_COUNTER_MAX * sizeof(int64_t);
         }
 
-        QuicLibrarySumPerfCounters(Buffer, *BufferLength);
+        QuicLibrarySumPerfCountersExternal(Buffer, *BufferLength);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

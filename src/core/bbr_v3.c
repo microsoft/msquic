@@ -89,7 +89,7 @@ BbrV3CongestionControlGetCongestionWindow(
 
     const uint16_t DatagramPayloadLength =
         // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: embedded Cc is valid.
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     uint32_t MinCongestionWindow = kMinCwndInMss * DatagramPayloadLength;
     uint32_t CongestionWindow = Bbr->CongestionWindow;
@@ -286,7 +286,7 @@ BbrV3CongestionControlHandleAckInProbeRtt(
     Bbr->BandwidthFilter.AppLimitedExitTarget = LargestSentPacketNumber;
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     if (!Bbr->ProbeRttEndTimeValid &&
         Bbr->BytesInFlight < BbrV3CongestionControlGetCongestionWindow(Cc) + DatagramPayloadLength) {
@@ -385,7 +385,7 @@ BbrV3CongestionControlUpdateCongestionWindow(
     }
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BbrUpdateCongestionWindow(Bbr, BbrV3CongestionControlGetBandwidth(Cc),
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]), TotalBytesAcked, AckedBytes);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths)), TotalBytesAcked, AckedBytes);
     // Apply the model after ACK aggregation and startup growth, including
     // when no bandwidth/RTT sample is available yet.
     Bbr->CongestionWindow = BbrV3CongestionControlGetCongestionWindow(Cc);
@@ -459,7 +459,7 @@ BbrV3UpdateProbeBw(
 {
     BBR_COMMON* Bbr = &Cc->BbrV3.Common;
     BBR_V3_MODEL* Model = &Cc->BbrV3.Model;
-    const uint32_t Mss = QuicPathGetDatagramPayloadSize(&QuicCongestionControlGetConnection(Cc)->Paths[0]);
+    const uint32_t Mss = QuicPathGetDatagramPayloadSize(QuicPathGetActive(&QuicCongestionControlGetConnection(Cc)->Paths));
 
     if (Model->Phase == BBR_V3_PHASE_DOWN || Model->Phase == BBR_V3_PHASE_CRUISE) {
         uint64_t ProbeRounds = CXPLAT_MIN(63, CXPLAT_MAX(1, BbrV3CongestionControlGetTargetCwnd(Cc, GAIN_UNIT) / Mss));
@@ -612,7 +612,7 @@ BbrV3CongestionControlOnDataAcknowledged(
             Bbr->CongestionWindow = CXPLAT_MAX(Bbr->CongestionWindow, Cc->BbrV3.Model.PriorCongestionWindow);
             BbrLogRecoveryExit(Connection);
         } else {
-            BbrUpdateRecoveryWindow(Bbr, QuicPathGetDatagramPayloadSize(&Connection->Paths[0]), AckEvent->NumRetransmittableBytes);
+            BbrUpdateRecoveryWindow(Bbr, QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths)), AckEvent->NumRetransmittableBytes);
         }
     }
 
@@ -743,7 +743,7 @@ BbrV3CongestionControlOnDataLost(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     BbrLogCongestion(Connection);
 
@@ -856,7 +856,7 @@ BbrV3CongestionControlReset(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     BbrReset(Bbr, FullReset, DatagramPayloadLength);
     uint64_t TotalBytesLost = Cc->BbrV3.Model.TotalBytesLost;

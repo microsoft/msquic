@@ -102,7 +102,7 @@ RawResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
+    _In_ uint32_t PathId
     )
 {
     QUIC_CONNECTION* Connection = (QUIC_CONNECTION*)Context;
@@ -111,7 +111,7 @@ RawResolveRouteComplete(
     QuicTraceLogConnInfo(
         RouteResolutionEnd,
         Connection,
-        "Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+        "Route resolution completed on Path[%u] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
         PathId,
         Route->NextHopLinkLayerAddress[0],
         Route->NextHopLinkLayerAddress[1],

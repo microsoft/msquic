@@ -283,7 +283,7 @@ QuicLossDetectionUpdateTimer(
         return;
     }
 
-    QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Is this right?
+    QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths); // TODO - Is this right?
 
     if (!Path->IsPeerValidated && Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
         //
@@ -502,9 +502,7 @@ QuicLossDetectionOnPacketAcknowledged(
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-    uint8_t PathIndex;
-    QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
-    UNREFERENCED_PARAMETER(PathIndex);
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
 
     _Analysis_assume_(
         EncryptLevel >= QUIC_ENCRYPT_LEVEL_INITIAL &&
@@ -610,7 +608,7 @@ QuicLossDetectionOnPacketAcknowledged(
 #pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
                 CXPLAT_DBG_ASSERT(Path == NULL || Path->DestCid != DestCid);
-                QUIC_CID_VALIDATE_NULL(Connection, DestCid);
+                QuicCidValidateUnused(&Connection->Paths, DestCid);
                 CXPLAT_DBG_ASSERT(Connection->RetiredDestCidCount > 0);
                 Connection->RetiredDestCidCount--;
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
@@ -648,7 +646,7 @@ QuicLossDetectionOnPacketAcknowledged(
             QuicTraceLogConnInfo(
                 PathMinMtuValidated,
                 Connection,
-                "Path[%hhu] Minimum MTU validated",
+                "Path[%u] Minimum MTU validated",
                 Path->ID);
         }
 
@@ -818,7 +816,7 @@ QuicLossDetectionRetransmitFrames(
                     FALSE);
             if (DestCid != NULL) {
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
-                QUIC_CID_VALIDATE_NULL(Connection, DestCid);
+                QuicCidValidateUnused(&Connection->Paths, DestCid);
                 DestCid->CID.NeedsToSend = TRUE;
                 NewDataQueued |=
                     QuicSendSetSendFlag(
@@ -829,8 +827,7 @@ QuicLossDetectionRetransmitFrames(
         }
 
         case QUIC_FRAME_PATH_CHALLENGE: {
-            uint8_t PathIndex;
-            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
+            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
             if (Path != NULL && !Path->IsPeerValidated) {
                 Path->SendChallenge = TRUE;
                 NewDataQueued |=
@@ -889,9 +886,7 @@ QuicLossDetectionOnPacketDiscarded(
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
-        uint8_t PathIndex;
-        QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
-        UNREFERENCED_PARAMETER(PathIndex);
+        QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
         if (Path != NULL) {
             uint16_t PacketMtu =
                 PacketSizeFromUdpPayloadSize(
@@ -927,7 +922,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         uint64_t TwoPto =
             QuicLossDetectionComputeProbeTimeout(
                 LossDetection,
-                &Connection->Paths[0], // TODO - Is this right?
+                QuicPathGetActive(&Connection->Paths), // TODO - Is this right?
                 2);
         while ((Packet = LossDetection->LostPackets) != NULL &&
                 Packet->PacketNumber < LossDetection->LargestAck &&
@@ -956,7 +951,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         // This implementation excludes kGranularity from the calculation,
         // because it is not needed to keep timers from firing early.
         //
-        const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
+        const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths); // TODO - Correct?
         uint64_t Rtt = CXPLAT_MAX(Path->SmoothedRtt, Path->LatestRttSample);
         uint64_t TimeReorderThreshold = QUIC_TIME_REORDER_THRESHOLD(Rtt);
         uint64_t LargestLostPacketNumber = 0;
@@ -1192,7 +1187,7 @@ QuicLossDetectionDiscardPackets(
     QuicLossValidate(LossDetection);
 
     if (AckedRetransmittableBytes > 0) {
-        const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
+        const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths); // TODO - Correct?
 
         QUIC_ACK_EVENT AckEvent = {
             .IsImplicit = TRUE,

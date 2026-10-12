@@ -57,7 +57,7 @@ BbrCongestionControlGetCongestionWindow(
 
     const uint16_t DatagramPayloadLength =
         // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: embedded Cc is valid.
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     uint32_t MinCongestionWindow = kMinCwndInMss * DatagramPayloadLength;
     uint32_t CongestionWindow = Bbr->CongestionWindow;
@@ -225,7 +225,7 @@ BbrCongestionControlHandleAckInProbeRtt(
     Bbr->BandwidthFilter.AppLimitedExitTarget = LargestSentPacketNumber;
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     if (!Bbr->ProbeRttEndTimeValid &&
         Bbr->BytesInFlight < BbrCongestionControlGetCongestionWindow(Cc) + DatagramPayloadLength) {
@@ -323,7 +323,7 @@ BbrCongestionControlUpdateCongestionWindow(
     }
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BbrUpdateCongestionWindow(Bbr, BbrCongestionControlGetBandwidth(Cc),
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]), TotalBytesAcked, AckedBytes);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths)), TotalBytesAcked, AckedBytes);
     BbrLogState(Connection, Bbr, BbrCongestionControlGetBandwidth(Cc));
 }
 
@@ -389,7 +389,7 @@ BbrCongestionControlOnDataAcknowledged(
             Bbr->RecoveryState = RECOVERY_STATE_NOT_RECOVERY;
             BbrLogRecoveryExit(Connection);
         } else {
-            BbrUpdateRecoveryWindow(Bbr, QuicPathGetDatagramPayloadSize(&Connection->Paths[0]), AckEvent->NumRetransmittableBytes);
+            BbrUpdateRecoveryWindow(Bbr, QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths)), AckEvent->NumRetransmittableBytes);
         }
     }
 
@@ -465,7 +465,7 @@ BbrCongestionControlOnDataLost(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     BbrLogCongestion(Connection);
 
@@ -548,7 +548,7 @@ BbrCongestionControlReset(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     BbrReset(Bbr, FullReset, DatagramPayloadLength);
     Cc->Bbr.ProbeRttRoundValid = FALSE;
