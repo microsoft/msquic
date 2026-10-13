@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
+#include "range_tiered.h"
 #ifdef QUIC_CLOG
 #include "RecvBufferTest.cpp.clog.h"
 #endif
@@ -351,6 +352,57 @@ struct WithMode : public ::testing::TestWithParam<QUIC_RECV_BUF_MODE> {
     static void SetUpTestSuite() {}
     static void TearDownTestSuite() {}
 };
+
+#if QUIC_RANGE_USE_TIERED
+//
+// Writes 257 disjoint byte ranges through the receive-buffer write path and
+// verifies that WrittenRanges switches to tiered storage on the 257th.
+//
+TEST(RecvBufferTest, WrittenRangesPromoteAfterArrayThreshold)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Initialize(
+            QUIC_RECV_BUF_MODE_SINGLE,
+            false,
+            DEF_TEST_BUFFER_LENGTH,
+            LARGE_TEST_BUFFER_LENGTH));
+
+    for (uint32_t i = 0;
+         i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
+         ++i) {
+        uint64_t WriteQuota = UINT64_MAX;
+        BOOLEAN NewDataReady;
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            RecvBuf.Write(
+                2ULL * i,
+                1,
+                &WriteQuota,
+                &NewDataReady));
+    }
+    ASSERT_EQ(
+        RecvBuf.RecvBuf.WrittenRanges.Mode,
+        QUIC_RANGE_MODE_ARRAY);
+
+    uint64_t WriteQuota = UINT64_MAX;
+    BOOLEAN NewDataReady;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            2ULL * QUIC_RANGE_TIERED_PROMOTE_LENGTH,
+            1,
+            &WriteQuota,
+            &NewDataReady));
+    ASSERT_EQ(
+        RecvBuf.RecvBuf.WrittenRanges.Mode,
+        QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(
+        QuicRangeSize(&RecvBuf.RecvBuf.WrittenRanges),
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
+}
+#endif
 
 TEST_P(WithMode, Alloc)
 {

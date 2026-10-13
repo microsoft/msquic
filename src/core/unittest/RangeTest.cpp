@@ -10,9 +10,21 @@ Abstract:
 --*/
 
 #include "main.h"
+#include "range_tiered.h"
 #ifdef QUIC_CLOG
 #include "RangeTest.cpp.clog.h"
 #endif
+
+//
+// Test-only wrapper that drives the production STREAM ACK path.
+//
+extern "C"
+void
+QuicTestStreamOnAck(
+    _In_ QUIC_STREAM* Stream,
+    _In_ QUIC_SEND_PACKET_FLAGS PacketFlags,
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
+    );
 
 struct SmartRange {
     QUIC_RANGE range;
@@ -443,6 +455,599 @@ TEST(RangeTest, HitMax)
     ASSERT_EQ(range.Min(), 0ull);
     ASSERT_EQ(range.Max(), MaxCount*2);
 }
+
+#if QUIC_RANGE_USE_TIERED
+
+//
+// Compares the ordered subranges returned by QuicRangeGet(), independent of
+// whether the range uses array or tiered storage.
+//
+static void
+ValidateRangesEqual(
+    const QUIC_RANGE& Left,
+    const QUIC_RANGE& Right
+    )
+{
+    ASSERT_EQ(QuicRangeSize(&Left), QuicRangeSize(&Right));
+    for (uint32_t i = 0; i < QuicRangeSize(&Left); ++i) {
+        const QUIC_SUBRANGE* LeftSub = QuicRangeGet(&Left, i);
+        const QUIC_SUBRANGE* RightSub = QuicRangeGet(&Right, i);
+        ASSERT_EQ(LeftSub->Low, RightSub->Low);
+        ASSERT_EQ(LeftSub->Count, RightSub->Count);
+    }
+}
+
+//
+// Verifies the complete sequence used by the exact-capacity test.
+//
+static void
+ValidateSequentialSingletonRanges(
+    const QUIC_RANGE& Range,
+    uint32_t ExpectedCount
+    )
+{
+    ASSERT_EQ(QuicRangeSize(&Range), ExpectedCount);
+    for (uint32_t i = 0; i < ExpectedCount; ++i) {
+        const QUIC_SUBRANGE* Sub = QuicRangeGet(&Range, i);
+        ASSERT_EQ(Sub->Low, 2ULL * (i + 1));
+        ASSERT_EQ(Sub->Count, 1u);
+    }
+}
+
+//
+// Verifies that only a new 257th subrange promotes and transfers the full array.
+//
+TEST(RangeTest, TieredPromotionPolicy)
+{
+    SmartRange Range;
+    for (uint32_t i = 0;
+         i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
+         ++i) {
+        Range.Add(4ULL * i);
+    }
+
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(
+        Range.range.AllocLength,
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+    QUIC_SUBRANGE* const OriginalSubRanges =
+        Range.range.SubRanges;
+
+    Range.Add(0, 2);
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(
+        Range.ValidCount(),
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+    ASSERT_EQ(QuicRangeGet(&Range.range, 0)->Count, 2u);
+
+    Range.Add(4ULL * QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(
+        Range.ValidCount(),
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
+    ASSERT_EQ(
+        QuicRangeGet(&Range.range, 0),
+        OriginalSubRanges);
+    for (uint32_t i = 0; i < Range.ValidCount(); ++i) {
+        ASSERT_EQ(QuicRangeGet(&Range.range, i)->Low, 4ULL * i);
+    }
+}
+
+//
+// Verifies that small fixed-budget ranges remain array-backed and evict the
+// lowest subrange when full.
+//
+TEST(RangeTest, TieredLeavesSmallBudgetsAsArrays)
+{
+    // Duplicate-packet and decoded-ACK tracking use the same 4 KiB budget.
+    const uint32_t Budgets[] = {
+        QUIC_MAX_RANGE_ACK_PACKETS,
+        QUIC_MAX_RANGE_DUPLICATE_PACKETS
+    };
+
+    for (uint32_t Budget : Budgets) {
+        SmartRange Range(Budget);
+        const uint32_t Capacity =
+            Budget / sizeof(QUIC_SUBRANGE);
+        for (uint32_t i = 0; i < Capacity; ++i) {
+            Range.Add(2ULL * i);
+        }
+
+        ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+        ASSERT_EQ(Range.range.AllocLength, Capacity);
+        ASSERT_EQ(Range.ValidCount(), Capacity);
+
+        Range.Add(2ULL * Capacity);
+        ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+        ASSERT_EQ(Range.ValidCount(), Capacity);
+        ASSERT_EQ(Range.Min(), 2u);
+        ASSERT_EQ(Range.Max(), 2ULL * Capacity);
+    }
+}
+
+#ifdef DEBUG
+//
+// Verifies that conversion and tiered-growth allocation failures preserve contents.
+//
+TEST(RangeTest, TieredAllocationFailuresAreAtomic)
+{
+    const int32_t FailurePoints[] = {-1, -2};
+    for (int32_t FailurePoint : FailurePoints) {
+        SmartRange Range;
+        for (uint32_t i = 0;
+             i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
+             ++i) {
+            Range.Add(2ULL * i);
+        }
+
+        QUIC_SUBRANGE* const OriginalSubRanges =
+            Range.range.SubRanges;
+        CxPlatSetAllocFailDenominator(FailurePoint);
+        const bool Inserted =
+            Range.TryAdd(
+                2ULL * QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+        CxPlatSetAllocFailDenominator(0);
+
+        ASSERT_FALSE(Inserted);
+        ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+        ASSERT_EQ(Range.range.SubRanges, OriginalSubRanges);
+        ASSERT_EQ(
+            Range.ValidCount(),
+            QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+        for (uint32_t i = 0;
+             i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
+             ++i) {
+            ASSERT_EQ(
+                QuicRangeGet(&Range.range, i)->Low,
+                2ULL * i);
+        }
+    }
+
+    SmartRange Range;
+    const uint32_t InitialCount =
+        2 * QUIC_RANGE_TIERED_BLOCK_CAPACITY;
+    for (uint32_t i = 0; i < InitialCount; ++i) {
+        Range.Add(4ULL * i);
+    }
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+
+    std::vector<QUIC_SUBRANGE> OriginalRanges(InitialCount);
+    for (uint32_t i = 0; i < InitialCount; ++i) {
+        OriginalRanges[i] = *QuicRangeGet(&Range.range, i);
+    }
+    const uint32_t OriginalAllocatedBytes =
+        QuicRangeTieredGetAllocatedBytes(&Range.range);
+    const uint64_t InsertLow =
+        4ULL * QUIC_RANGE_TIERED_BLOCK_CAPACITY - 2;
+
+    BOOLEAN RangeUpdated = TRUE;
+    CxPlatSetAllocFailDenominator(-1);
+    QUIC_SUBRANGE* Result =
+        QuicRangeAddRange(
+            &Range.range,
+            InsertLow,
+            1,
+            &RangeUpdated);
+    CxPlatSetAllocFailDenominator(0);
+
+    ASSERT_EQ(Result, nullptr);
+    ASSERT_FALSE(RangeUpdated);
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(Range.ValidCount(), InitialCount);
+    ASSERT_EQ(
+        QuicRangeTieredGetAllocatedBytes(&Range.range),
+        OriginalAllocatedBytes);
+    for (uint32_t i = 0; i < InitialCount; ++i) {
+        const QUIC_SUBRANGE* Sub = QuicRangeGet(&Range.range, i);
+        ASSERT_EQ(Sub->Low, OriginalRanges[i].Low);
+        ASSERT_EQ(Sub->Count, OriginalRanges[i].Count);
+    }
+
+    RangeUpdated = FALSE;
+    Result =
+        QuicRangeAddRange(
+            &Range.range,
+            InsertLow,
+            1,
+            &RangeUpdated);
+    ASSERT_NE(Result, nullptr);
+    ASSERT_TRUE(RangeUpdated);
+    ASSERT_EQ(Range.ValidCount(), InitialCount + 1);
+    ASSERT_EQ(
+        Result,
+        QuicRangeGet(
+            &Range.range,
+            QUIC_RANGE_TIERED_BLOCK_CAPACITY));
+    ASSERT_EQ(Result->Low, InsertLow);
+    ASSERT_EQ(Result->Count, 1u);
+    ASSERT_EQ(
+        QuicRangeTieredGetAllocatedBytes(&Range.range),
+        OriginalAllocatedBytes + QUIC_RANGE_TIERED_BLOCK_BYTES);
+}
+#endif
+
+//
+// Applies the same insert, remove, merge, prefix-trim, and reinsert operations
+// to tiered and array-backed ranges and verifies identical results.
+//
+TEST(RangeTest, TieredMatchesArrayAcrossMultipleBlocks)
+{
+    SmartRange Tiered;
+    SmartRange Array(QUIC_RANGE_NO_MAX_ALLOC_SIZE);
+
+    const uint32_t InitialCount =
+        4 * QUIC_RANGE_TIERED_BLOCK_CAPACITY + 257;
+    std::vector<uint64_t> Values(InitialCount);
+    for (uint32_t i = 0; i < InitialCount; ++i) {
+        Values[i] = 2ULL * i;
+    }
+
+    // Deterministic shuffling exercises insertion throughout multiple blocks.
+    uint64_t State = 0x9E3779B97F4A7C15ull;
+    for (uint32_t i = InitialCount; i > 1; --i) {
+        State ^= State << 7;
+        State ^= State >> 9;
+        State ^= State << 8;
+        const uint32_t SwapIndex =
+            (uint32_t)(State % i);
+        std::swap(Values[i - 1], Values[SwapIndex]);
+    }
+
+    uint32_t PeakCount = 0;
+    for (uint64_t Low : Values) {
+        BOOLEAN TieredUpdated;
+        BOOLEAN ArrayUpdated;
+        QUIC_SUBRANGE* TieredResult =
+            QuicRangeAddRange(
+                &Tiered.range,
+                Low,
+                1,
+                &TieredUpdated);
+        QUIC_SUBRANGE* ArrayResult =
+            QuicRangeAddRange(
+                &Array.range,
+                Low,
+                1,
+                &ArrayUpdated);
+        ASSERT_EQ(TieredResult == nullptr, ArrayResult == nullptr);
+        ASSERT_EQ(TieredUpdated, ArrayUpdated);
+        ValidateRangesEqual(Tiered.range, Array.range);
+        PeakCount =
+            CXPLAT_MAX(PeakCount, Tiered.ValidCount());
+    }
+
+    ASSERT_GE(
+        PeakCount,
+        4 * QUIC_RANGE_TIERED_BLOCK_CAPACITY);
+    ASSERT_EQ(Tiered.range.Mode, QUIC_RANGE_MODE_TIERED);
+
+    std::vector<uint64_t> RemovedValues;
+    for (uint32_t Operation = 0; Operation < 18; ++Operation) {
+        State ^= State << 7;
+        State ^= State >> 9;
+        State ^= State << 8;
+
+        const uint32_t RemoveIndex =
+            (uint32_t)(State % Tiered.ValidCount());
+        uint32_t RemoveCount;
+        // Rotate through single, short-span, and half-block removal paths.
+        if ((Operation % 3) == 0) {
+            RemoveCount = 1;
+        } else if ((Operation % 3) == 1) {
+            RemoveCount = CXPLAT_MIN(
+                2u,
+                Tiered.ValidCount() - RemoveIndex);
+        } else {
+            RemoveCount = CXPLAT_MIN(
+                QUIC_RANGE_TIERED_BLOCK_CAPACITY / 2,
+                Tiered.ValidCount() - RemoveIndex);
+        }
+
+        for (uint32_t i = 0; i < RemoveCount; ++i) {
+            RemovedValues.push_back(
+                QuicRangeGet(
+                    &Tiered.range,
+                    RemoveIndex + i)->Low);
+        }
+        (void)QuicRangeRemoveSubranges(
+            &Tiered.range,
+            RemoveIndex,
+            RemoveCount);
+        (void)QuicRangeRemoveSubranges(
+            &Array.range,
+            RemoveIndex,
+            RemoveCount);
+        ValidateRangesEqual(Tiered.range, Array.range);
+    }
+
+    for (uint64_t Low : RemovedValues) {
+        Tiered.Add(Low);
+        Array.Add(Low);
+        ValidateRangesEqual(Tiered.range, Array.range);
+    }
+
+    ASSERT_EQ(Tiered.ValidCount(), InitialCount);
+    ASSERT_EQ(Array.ValidCount(), InitialCount);
+
+    // Merge across the first block boundary and verify the returned records.
+    const uint32_t MergeFirstIndex =
+        QUIC_RANGE_TIERED_BLOCK_CAPACITY - 2;
+    const uint32_t MergeLastIndex =
+        QUIC_RANGE_TIERED_BLOCK_CAPACITY + 2;
+    const uint64_t MergeLow = 2ULL * MergeFirstIndex;
+    const uint64_t MergeCount =
+        2ULL * (MergeLastIndex - MergeFirstIndex) + 1;
+    BOOLEAN TieredUpdated = FALSE;
+    BOOLEAN ArrayUpdated = FALSE;
+    QUIC_SUBRANGE* TieredResult =
+        QuicRangeAddRange(
+            &Tiered.range,
+            MergeLow,
+            MergeCount,
+            &TieredUpdated);
+    QUIC_SUBRANGE* ArrayResult =
+        QuicRangeAddRange(
+            &Array.range,
+            MergeLow,
+            MergeCount,
+            &ArrayUpdated);
+    ASSERT_NE(TieredResult, nullptr);
+    ASSERT_NE(ArrayResult, nullptr);
+    ASSERT_TRUE(TieredUpdated);
+    ASSERT_EQ(TieredUpdated, ArrayUpdated);
+    ASSERT_EQ(
+        TieredResult,
+        QuicRangeGet(&Tiered.range, MergeFirstIndex));
+    ASSERT_EQ(
+        ArrayResult,
+        QuicRangeGet(&Array.range, MergeFirstIndex));
+    ASSERT_EQ(TieredResult->Low, MergeLow);
+    ASSERT_EQ(TieredResult->Count, MergeCount);
+    ASSERT_EQ(ArrayResult->Low, MergeLow);
+    ASSERT_EQ(ArrayResult->Count, MergeCount);
+    ValidateRangesEqual(Tiered.range, Array.range);
+
+    // Trim into the merged range so prefix removal also updates its first record.
+    const uint64_t TrimLow = MergeLow + 3;
+    QuicRangeSetMin(&Tiered.range, TrimLow);
+    QuicRangeSetMin(&Array.range, TrimLow);
+    ValidateRangesEqual(Tiered.range, Array.range);
+    ASSERT_EQ(QuicRangeGet(&Tiered.range, 0)->Low, TrimLow);
+    ASSERT_EQ(
+        QuicRangeGet(&Tiered.range, 0)->Count,
+        MergeCount - 3);
+
+    // Leave ten records tiered, then merge three into one to trigger demotion.
+    (void)QuicRangeRemoveSubranges(
+        &Tiered.range,
+        10,
+        Tiered.ValidCount() - 10);
+    (void)QuicRangeRemoveSubranges(
+        &Array.range,
+        10,
+        Array.ValidCount() - 10);
+    ASSERT_EQ(Tiered.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ValidateRangesEqual(Tiered.range, Array.range);
+
+    const uint32_t DemotionMergeIndex = 1;
+    const QUIC_SUBRANGE* DemotionMergeFirst =
+        QuicRangeGet(&Tiered.range, DemotionMergeIndex);
+    const QUIC_SUBRANGE* DemotionMergeLast =
+        QuicRangeGet(&Tiered.range, DemotionMergeIndex + 2);
+    const uint64_t DemotionMergeLow = DemotionMergeFirst->Low;
+    const uint64_t DemotionMergeCount =
+        QuicRangeGetHigh(DemotionMergeLast) -
+            DemotionMergeLow + 1;
+
+    TieredUpdated = FALSE;
+    ArrayUpdated = FALSE;
+    TieredResult =
+        QuicRangeAddRange(
+            &Tiered.range,
+            DemotionMergeLow,
+            DemotionMergeCount,
+            &TieredUpdated);
+    ArrayResult =
+        QuicRangeAddRange(
+            &Array.range,
+            DemotionMergeLow,
+            DemotionMergeCount,
+            &ArrayUpdated);
+    ASSERT_NE(TieredResult, nullptr);
+    ASSERT_NE(ArrayResult, nullptr);
+    ASSERT_TRUE(TieredUpdated);
+    ASSERT_EQ(TieredUpdated, ArrayUpdated);
+    ASSERT_EQ(Tiered.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Tiered.ValidCount(), QUIC_RANGE_INITIAL_SUB_COUNT);
+    ASSERT_EQ(
+        TieredResult,
+        QuicRangeGet(&Tiered.range, DemotionMergeIndex));
+    ASSERT_EQ(
+        ArrayResult,
+        QuicRangeGet(&Array.range, DemotionMergeIndex));
+    ASSERT_EQ(TieredResult->Low, DemotionMergeLow);
+    ASSERT_EQ(TieredResult->Count, DemotionMergeCount);
+    ASSERT_EQ(ArrayResult->Low, DemotionMergeLow);
+    ASSERT_EQ(ArrayResult->Count, DemotionMergeCount);
+    ValidateRangesEqual(Tiered.range, Array.range);
+}
+
+//
+// Verifies that removals free unused blocks, shrink back to inline array
+// storage, allow later promotion again, and reset to an empty inline range.
+//
+TEST(RangeTest, TieredReclaimsBlocksAndDemotes)
+{
+    SmartRange Range;
+    const uint32_t InitialCount =
+        8 * QUIC_RANGE_TIERED_BLOCK_CAPACITY;
+    for (uint32_t i = 0; i < InitialCount; ++i) {
+        Range.Add(2ULL * i);
+    }
+
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    const uint32_t PeakAllocatedBytes =
+        QuicRangeTieredGetAllocatedBytes(&Range.range);
+
+    // Collapse to one active block and verify excess allocations are reclaimed.
+    (void)QuicRangeRemoveSubranges(
+        &Range.range,
+        QUIC_RANGE_TIERED_BLOCK_CAPACITY,
+        Range.ValidCount() -
+            QUIC_RANGE_TIERED_BLOCK_CAPACITY);
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_LT(
+        QuicRangeTieredGetAllocatedBytes(&Range.range),
+        PeakAllocatedBytes);
+
+    // Remove one front record to advance the circular start before demotion.
+    (void)QuicRangeRemoveSubranges(
+        &Range.range,
+        0,
+        1);
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+
+    std::vector<QUIC_SUBRANGE> ExpectedInline(
+        QUIC_RANGE_INITIAL_SUB_COUNT);
+    for (uint32_t i = 0;
+         i < QUIC_RANGE_INITIAL_SUB_COUNT;
+         ++i) {
+        ExpectedInline[i] = *QuicRangeGet(&Range.range, i);
+    }
+
+    // Collapse to inline capacity and verify every surviving record is copied.
+    (void)QuicRangeRemoveSubranges(
+        &Range.range,
+        QUIC_RANGE_INITIAL_SUB_COUNT,
+        Range.ValidCount() - QUIC_RANGE_INITIAL_SUB_COUNT);
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Range.range.SubRanges, Range.range.PreAllocSubRanges);
+    ASSERT_EQ(
+        Range.ValidCount(),
+        QUIC_RANGE_INITIAL_SUB_COUNT);
+    for (uint32_t i = 0;
+         i < QUIC_RANGE_INITIAL_SUB_COUNT;
+         ++i) {
+        const QUIC_SUBRANGE* Sub = QuicRangeGet(&Range.range, i);
+        ASSERT_EQ(Sub->Low, ExpectedInline[i].Low);
+        ASSERT_EQ(Sub->Count, ExpectedInline[i].Count);
+    }
+
+    // Grow through the array threshold again and verify repromotion still works.
+    uint64_t NextLow =
+        ExpectedInline.back().Low + 2;
+    const uint32_t RegrowCount =
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH -
+            QUIC_RANGE_INITIAL_SUB_COUNT;
+    for (uint32_t i = 0; i < RegrowCount; ++i) {
+        ASSERT_TRUE(Range.TryAdd(NextLow));
+        NextLow += 2;
+    }
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(
+        Range.ValidCount(),
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+
+    ASSERT_TRUE(Range.TryAdd(NextLow));
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+
+    Range.Reset();
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Range.ValidCount(), 0u);
+}
+
+//
+// Fills a maximum-budget tiered range to 65,280 subranges and verifies that
+// another insertion fails without changing its contents or exceeding 1 MiB.
+//
+TEST(RangeTest, TieredExactCapacity)
+{
+    SmartRange Range;
+    const uint32_t ExpectedCapacity =
+        (QUIC_RANGE_TIERED_DIRECTORY_CAPACITY - 1) *
+            QUIC_RANGE_TIERED_BLOCK_CAPACITY;
+    // Descending values force front insertion until the strict capacity is reached.
+    for (uint32_t i = 0; i < ExpectedCapacity; ++i) {
+        ASSERT_TRUE(
+            Range.TryAdd(
+                2ULL * (ExpectedCapacity - i)));
+    }
+
+    ASSERT_EQ(Range.ValidCount(), ExpectedCapacity);
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(
+        QuicRangeTieredGetCapacity(&Range.range),
+        ExpectedCapacity);
+    ASSERT_LE(
+        QuicRangeTieredGetAllocatedBytes(&Range.range),
+        QUIC_MAX_RANGE_ALLOC_SIZE);
+    ValidateSequentialSingletonRanges(
+        Range.range,
+        ExpectedCapacity);
+
+    ASSERT_FALSE(Range.TryAdd(0));
+    ValidateSequentialSingletonRanges(
+        Range.range,
+        ExpectedCapacity);
+
+    ASSERT_FALSE(
+        Range.TryAdd(
+            2ULL * (ExpectedCapacity + 1)));
+    ValidateSequentialSingletonRanges(
+        Range.range,
+        ExpectedCapacity);
+}
+
+//
+// Sends disjoint acknowledgements through QuicStreamOnAck() and verifies that
+// the stream's sparse ACK range switches to tiered storage at 257 entries.
+//
+TEST(RangeTest, TieredStreamAckPromotesAfterArrayThreshold)
+{
+    QUIC_STREAM Stream = {};
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        &Stream.SparseAckRanges);
+    Stream.Flags.SendOpenAcked = TRUE;
+    Stream.QueuedSendOffset =
+        2ULL * (QUIC_RANGE_TIERED_PROMOTE_LENGTH + 2);
+    Stream.MaxSentLength = Stream.QueuedSendOffset;
+
+    QUIC_SEND_PACKET_FLAGS PacketFlags = {};
+    PacketFlags.KeyType = QUIC_PACKET_KEY_1_RTT;
+    QUIC_SENT_FRAME_METADATA FrameMetadata = {};
+    FrameMetadata.StreamLength = 1;
+
+    for (uint32_t i = 0;
+         i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
+         ++i) {
+        FrameMetadata.StreamOffset = 2ULL * (i + 1);
+        QuicTestStreamOnAck(
+            &Stream,
+            PacketFlags,
+            &FrameMetadata);
+    }
+    ASSERT_EQ(
+        Stream.SparseAckRanges.Mode,
+        QUIC_RANGE_MODE_ARRAY);
+
+    FrameMetadata.StreamOffset =
+        2ULL * (QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
+    QuicTestStreamOnAck(
+        &Stream,
+        PacketFlags,
+        &FrameMetadata);
+    ASSERT_EQ(
+        Stream.SparseAckRanges.Mode,
+        QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(
+        QuicRangeSize(&Stream.SparseAckRanges),
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
+
+    QuicRangeUninitialize(&Stream.SparseAckRanges);
+}
+
+#endif
 
 TEST(RangeTest, SearchZero)
 {
