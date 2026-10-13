@@ -5189,10 +5189,12 @@ QuicConnRecvFrames(
             for (uint8_t i = 0; i < PathSet->Count; ++i) {
                 QUIC_PATH* TempPath = &PathSet->Paths[i];
                 if (!TempPath->IsPeerValidated &&
+                    TempPath->PathValidationStartTime != 0 &&
                     !memcmp(Frame.Data, TempPath->Challenge, sizeof(Frame.Data))) {
                     QuicPerfCounterIncrement(
                         Connection->Partition, QUIC_PERF_COUNTER_PATH_VALIDATED);
                     QuicPathSetValid(Connection, TempPath, QUIC_PATH_VALID_PATH_RESPONSE);
+                    TempPath->PathValidationStartTime = 0; // Clear validation state
                     break;
                 }
             }
