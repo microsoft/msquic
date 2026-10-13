@@ -12,7 +12,15 @@ extern "C" {
 #define QUIC_RANGE_NO_MAX_ALLOC_SIZE    UINT32_MAX
 #define QUIC_RANGE_USE_BINARY_SEARCH    1
 
+#ifndef QUIC_RANGE_USE_TIERED
+#define QUIC_RANGE_USE_TIERED           1
+#endif
+
 #define QUIC_RANGE_INITIAL_SUB_COUNT    8
+
+#if QUIC_RANGE_USE_TIERED
+typedef struct QUIC_RANGE_TIERED QUIC_RANGE_TIERED;
+#endif
 
 typedef struct QUIC_SUBRANGE {
 
@@ -45,10 +53,15 @@ QuicRangeGetHigh(
 typedef struct QUIC_RANGE {
 
     //
-    // Array of subranges that represent the set of intervals.
+    // Active backing storage.
     //
-    _Field_size_(AllocLength)
-    QUIC_SUBRANGE* SubRanges;
+    union {
+        _Field_size_(AllocLength)
+        QUIC_SUBRANGE* SubRanges;
+#if QUIC_RANGE_USE_TIERED
+        QUIC_RANGE_TIERED* Tiered;
+#endif
+    };
 
     //
     // The number of currently used subranges in the 'SubRanges' array.
@@ -67,12 +80,33 @@ typedef struct QUIC_RANGE {
     _Field_range_(sizeof(QUIC_SUBRANGE), sizeof(QUIC_SUBRANGE) * QUIC_MAX_RANGE_ALLOC_SIZE)
     uint32_t MaxAllocSize;
 
+#if QUIC_RANGE_USE_TIERED
+    //
+    // Identifies which union member owns the active backing storage.
+    //
+    uint8_t Mode;
+#endif
+
     //
     // Allocates a number of subranges along with the parent object.
     //
     QUIC_SUBRANGE PreAllocSubRanges[QUIC_RANGE_INITIAL_SUB_COUNT];
 
 } QUIC_RANGE;
+
+#if QUIC_RANGE_USE_TIERED
+#define QUIC_RANGE_MODE_ARRAY   0
+#define QUIC_RANGE_MODE_TIERED  1
+
+//
+// Resolves a logical subrange index through tiered storage.
+//
+QUIC_SUBRANGE*
+QuicRangeTieredGet(
+    _In_ const QUIC_RANGE* Range,
+    _In_ uint32_t Index
+    );
+#endif
 
 //
 // Returns the number of subranges in the range.
@@ -96,6 +130,12 @@ QuicRangeGet(
     _In_ uint32_t Index
     )
 {
+#if QUIC_RANGE_USE_TIERED
+    // Mode selects the valid backing-storage union member.
+    if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
+        return QuicRangeTieredGet(Range, Index);
+    }
+#endif
     return &Range->SubRanges[Index];
 }
 
@@ -110,7 +150,7 @@ QuicRangeGetSafe(
     _In_ uint32_t Index
     )
 {
-    return Index < QuicRangeSize(Range) ? &Range->SubRanges[Index] : NULL;
+    return Index < QuicRangeSize(Range) ? QuicRangeGet(Range, Index) : NULL;
 }
 
 //
@@ -299,8 +339,8 @@ QuicRangeAddRange(
     );
 
 //
-// Removes a number of subranges from the range. Returns TRUE if the list was
-// shrunk (reallocated) because of the removal operation.
+// Removes a number of subranges from the range. Returns TRUE when callers must
+// reacquire previously returned pointers to retained QUIC_SUBRANGE records.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
