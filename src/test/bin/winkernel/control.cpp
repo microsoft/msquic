@@ -535,6 +535,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1570,6 +1571,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING:
         QuicTestCtlRun(QuicTestRetryConfigSetting());
+        break;
+
+    case IOCTL_QUIC_RUN_TINY_STREAM_RECV_WINDOW:
+        QuicTestCtlRun(QuicTestTinyStreamRecvWindow());
         break;
 
     default:

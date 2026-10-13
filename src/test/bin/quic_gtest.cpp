@@ -2392,6 +2392,15 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
+TEST(Misc, StreamTinyRecvWindow) {
+    TestLogger Logger("StreamTinyRecvWindow");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TINY_STREAM_RECV_WINDOW));
+    } else {
+        QuicTestTinyStreamRecvWindow();
+    }
+}
+
 TEST(Basic, OperationPriority) {
     TestLogger Logger("OperationPriority");
     if (TestingKernelMode) {
