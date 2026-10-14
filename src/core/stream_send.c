@@ -946,10 +946,19 @@ QuicStreamWriteStreamFrames(
             //
             Sack = NULL;
         } else {
-            uint32_t i = 0;
-            while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL &&
+            //
+            // Start at the covering SACK or its successor; all earlier SACKs
+            // end before Left and cannot constrain this frame.
+            //
+            uint32_t i =
+                QuicRangeGetFirstIndexAtOrAfter(
+                    &Stream->SparseAckRanges,
+                    Left);
+            Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i);
+            if (Sack != NULL &&
                 Sack->Low < Left) {
                 CXPLAT_DBG_ASSERT(Sack->Low + Sack->Count <= Left);
+                Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i + 1);
             }
         }
 
@@ -1308,7 +1317,14 @@ QuicStreamOnLoss(
     }
 
     QUIC_SUBRANGE* Sack;
-    uint32_t i = 0;
+    //
+    // Skip SACKs that end before Start; only the covering SACK or a later one
+    // can overlap the lost range.
+    //
+    uint32_t i =
+        QuicRangeGetFirstIndexAtOrAfter(
+            &Stream->SparseAckRanges,
+            Start);
     while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL &&
         Sack->Low < End) {
         if (Start < Sack->Low + Sack->Count) {
