@@ -11,6 +11,7 @@
 
 #include "platform_internal.h"
 #include "quic_hashtable.h"
+#include "datapath_raw_parse.h"
 
 typedef struct CXPLAT_SOCKET_POOL {
 
@@ -208,19 +209,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 HEADER_BACKFILL
 CxPlatDpRawCalculateHeaderBackFill(
     _In_ CXPLAT_ROUTE* Route
-    );
-
-//
-// Upcall from raw datapath to indicate a received chain of packets.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatDpRawParseEthernet(
-    _In_ const CXPLAT_DATAPATH* Datapath,
-    _Inout_ CXPLAT_RECV_DATA* Packet,
-    _In_reads_bytes_(Length)
-        const uint8_t* Payload,
-    _In_ uint16_t Length
     );
 
 //
