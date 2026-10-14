@@ -25,6 +25,8 @@ protected:
         Connection.Settings.InitialRttMs = 333;
         Connection.Settings.EcnEnabled = TRUE;
         Connection.Settings.QTIPEnabled = FALSE;
+        QuicPathSetInitialize(&Connection.Paths, &Connection);
+        CubicCongestionControlInitialize(&Connection.CongestionControl, &Connection.Settings);
         CxPlatListInitializeHead(&Connection.DestCids);
         EmptyCid = QuicCidNewDestination(0, nullptr);
         ASSERT_NE(nullptr, EmptyCid);
