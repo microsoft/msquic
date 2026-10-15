@@ -353,7 +353,6 @@ struct WithMode : public ::testing::TestWithParam<QUIC_RECV_BUF_MODE> {
     static void TearDownTestSuite() {}
 };
 
-#if QUIC_RANGE_USE_TIERED
 //
 // Writes 257 disjoint byte ranges through the receive-buffer write path and
 // verifies that WrittenRanges switches to tiered storage on the 257th.
@@ -402,7 +401,6 @@ TEST(RecvBufferTest, WrittenRangesPromoteAfterArrayThreshold)
         QuicRangeSize(&RecvBuf.RecvBuf.WrittenRanges),
         QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
 }
-#endif
 
 TEST_P(WithMode, Alloc)
 {

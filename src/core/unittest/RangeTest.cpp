@@ -456,8 +456,6 @@ TEST(RangeTest, HitMax)
     ASSERT_EQ(range.Max(), MaxCount*2);
 }
 
-#if QUIC_RANGE_USE_TIERED
-
 //
 // Compares the ordered subranges returned by QuicRangeGet(), independent of
 // whether the range uses array or tiered storage.
@@ -1046,8 +1044,6 @@ TEST(RangeTest, TieredStreamAckPromotesAfterArrayThreshold)
 
     QuicRangeUninitialize(&Stream.SparseAckRanges);
 }
-
-#endif
 
 TEST(RangeTest, SearchZero)
 {
