@@ -406,14 +406,6 @@ endif()
 list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
 list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
 
-# Keep the backend configurable for matched array/tiered validation.
-option(QUIC_RANGE_TIERED "Build tiered vector storage for large QUIC_RANGE instances" ON)
-if (QUIC_RANGE_TIERED)
-    list(APPEND QUIC_COMMON_DEFINES QUIC_RANGE_USE_TIERED=1)
-else()
-    list(APPEND QUIC_COMMON_DEFINES QUIC_RANGE_USE_TIERED=0)
-endif()
-
 if (QUIC_EMBED_GIT_HASH)
     list(APPEND QUIC_COMMON_DEFINES VER_GIT_HASH=${GIT_CURRENT_HASH})
 endif()

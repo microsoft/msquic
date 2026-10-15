@@ -12,15 +12,9 @@ extern "C" {
 #define QUIC_RANGE_NO_MAX_ALLOC_SIZE    UINT32_MAX
 #define QUIC_RANGE_USE_BINARY_SEARCH    1
 
-#ifndef QUIC_RANGE_USE_TIERED
-#define QUIC_RANGE_USE_TIERED           1
-#endif
-
 #define QUIC_RANGE_INITIAL_SUB_COUNT    8
 
-#if QUIC_RANGE_USE_TIERED
 typedef struct QUIC_RANGE_TIERED QUIC_RANGE_TIERED;
-#endif
 
 typedef struct QUIC_SUBRANGE {
 
@@ -58,9 +52,7 @@ typedef struct QUIC_RANGE {
     union {
         _Field_size_(AllocLength)
         QUIC_SUBRANGE* SubRanges;
-#if QUIC_RANGE_USE_TIERED
         QUIC_RANGE_TIERED* Tiered;
-#endif
     };
 
     //
@@ -80,12 +72,10 @@ typedef struct QUIC_RANGE {
     _Field_range_(sizeof(QUIC_SUBRANGE), sizeof(QUIC_SUBRANGE) * QUIC_MAX_RANGE_ALLOC_SIZE)
     uint32_t MaxAllocSize;
 
-#if QUIC_RANGE_USE_TIERED
     //
     // Identifies which union member owns the active backing storage.
     //
     uint8_t Mode;
-#endif
 
     //
     // Allocates a number of subranges along with the parent object.
@@ -94,7 +84,6 @@ typedef struct QUIC_RANGE {
 
 } QUIC_RANGE;
 
-#if QUIC_RANGE_USE_TIERED
 #define QUIC_RANGE_MODE_ARRAY   0
 #define QUIC_RANGE_MODE_TIERED  1
 
@@ -106,7 +95,6 @@ QuicRangeTieredGet(
     _In_ const QUIC_RANGE* Range,
     _In_ uint32_t Index
     );
-#endif
 
 //
 // Returns the number of subranges in the range.
@@ -130,12 +118,10 @@ QuicRangeGet(
     _In_ uint32_t Index
     )
 {
-#if QUIC_RANGE_USE_TIERED
     // Mode selects the valid backing-storage union member.
     if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
         return QuicRangeTieredGet(Range, Index);
     }
-#endif
     return &Range->SubRanges[Index];
 }
 

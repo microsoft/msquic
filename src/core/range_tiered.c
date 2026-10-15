@@ -12,8 +12,6 @@ Abstract:
 #include "precomp.h"
 #include "range_tiered.h"
 
-#if QUIC_RANGE_USE_TIERED
-
 struct QUIC_RANGE_TIERED {
 
     // Each non-NULL entry owns one fixed-capacity subrange block.
@@ -696,5 +694,3 @@ QuicRangeTieredGetCapacity(
         (uint32_t)Range->Tiered->MaxBlockCount *
             QUIC_RANGE_TIERED_BLOCK_CAPACITY;
 }
-
-#endif

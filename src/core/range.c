@@ -28,10 +28,8 @@ QuicRangeInitialize(
     Range->MaxAllocSize = MaxAllocSize;
     CXPLAT_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * QUIC_RANGE_INITIAL_SUB_COUNT < MaxAllocSize);
     Range->SubRanges = Range->PreAllocSubRanges;
-#if QUIC_RANGE_USE_TIERED
     // Invariant: New ranges begin with the array union member active.
     Range->Mode = QUIC_RANGE_MODE_ARRAY;
-#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -40,13 +38,11 @@ QuicRangeUninitialize(
     _In_ QUIC_RANGE* Range
     )
 {
-#if QUIC_RANGE_USE_TIERED
     // Dispatch before interpreting the backing-storage union as an array pointer.
     if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
         QuicRangeTieredUninitialize(Range);
         return;
     }
-#endif
     if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
         CXPLAT_FREE(Range->SubRanges, QUIC_POOL_RANGE);
     }
@@ -58,17 +54,14 @@ QuicRangeReset(
     _Inout_ QUIC_RANGE* Range
     )
 {
-#if QUIC_RANGE_USE_TIERED
     // Tiered reset also releases the directory and blocks before returning inline.
     if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
         QuicRangeTieredReset(Range);
         return;
     }
-#endif
     Range->UsedLength = 0;
 }
 
-#if QUIC_RANGE_USE_TIERED
 //
 // Returns TRUE when the next array growth should instead promote to tiered
 // storage. Only maximum-budget ranges promote; smaller capped ranges preserve
@@ -85,7 +78,6 @@ QuicRangeShouldPromote(
         Range->UsedLength == QUIC_RANGE_TIERED_PROMOTE_LENGTH &&
         Range->AllocLength == QUIC_RANGE_TIERED_PROMOTE_LENGTH;
 }
-#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
@@ -95,10 +87,8 @@ QuicRangeGrow(
     _In_ uint32_t NextIndex   // The next index to write to after the grow.
     )
 {
-#if QUIC_RANGE_USE_TIERED
     // Invariant: Tiered storage handles its own block growth.
     CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_ARRAY);
-#endif
     if (Range->AllocLength == QUIC_MAX_RANGE_ALLOC_SIZE) {
         return FALSE; // Can't grow any more.
     }
@@ -171,10 +161,8 @@ QuicRangeMakeSpace(
     _Inout_ uint32_t* Index
     )
 {
-#if QUIC_RANGE_USE_TIERED
     // Invariant: Tiered insertion bypasses the flat-array space helper.
     CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_ARRAY);
-#endif
     CXPLAT_DBG_ASSERT(*Index <= Range->UsedLength);
 
     if (Range->UsedLength == Range->AllocLength) {
@@ -231,7 +219,6 @@ QuicRangeRemoveSubranges(
     CXPLAT_DBG_ASSERT(Count > 0);
     CXPLAT_DBG_ASSERT(Index + Count <= Range->UsedLength);
 
-#if QUIC_RANGE_USE_TIERED
     if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
         //
         // Tiered removal reports pointer invalidation because records may move
@@ -239,7 +226,6 @@ QuicRangeRemoveSubranges(
         //
         return QuicRangeTieredRemove(Range, Index, Count);
     }
-#endif
 
     if (Index + Count < Range->UsedLength) {
         memmove(
@@ -376,7 +362,6 @@ QuicRangeAddRange(
         //
         // Insert before the current subrange (or at the beginning).
         //
-#if QUIC_RANGE_USE_TIERED
         if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
             //
             // Tiered insertion may physically move records before Index, so
@@ -415,9 +400,7 @@ QuicRangeAddRange(
                     "tiered range conversion",
                     0);
             }
-        } else
-#endif
-        {
+        } else {
             //
             // Array mode reserves the slot first, then initializes the new record.
             // Tiered insertion already writes the record during its mutation.

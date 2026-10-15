@@ -11,8 +11,6 @@
 extern "C" {
 #endif
 
-#if QUIC_RANGE_USE_TIERED
-
 // log2(256) = 8, used to divide a logical index by the block capacity.
 #define QUIC_RANGE_TIERED_BLOCK_SHIFT 8
 // Each fixed-size block stores 256 subranges.
@@ -127,8 +125,6 @@ uint32_t
 QuicRangeTieredGetCapacity(
     _In_ const QUIC_RANGE* Range
     );
-
-#endif
 
 #if defined(__cplusplus)
 }
