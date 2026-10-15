@@ -1292,37 +1292,53 @@ QUIC_INLINE
 QUIC_CID_HASH_ENTRY*
 QuicConnGetSourceCidFromSeq(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_VAR_INT SequenceNumber,
-    _In_ BOOLEAN RemoveFromList,
-    _Out_ BOOLEAN* IsLastCid
+    _In_ QUIC_VAR_INT SequenceNumber
+    )
+{
+    for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
+            Entry != NULL;
+            Entry = Entry->Next) {
+        QUIC_CID_HASH_ENTRY* SourceCid =
+            CXPLAT_CONTAINING_RECORD(
+                Entry,
+                QUIC_CID_HASH_ENTRY,
+                Link);
+        if (SourceCid->CID.SequenceNumber == SequenceNumber) {
+            return SourceCid;
+        }
+    }
+    return NULL;
+}
+
+//
+// Removes a source CID from the connection and binding lookup.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_INLINE
+BOOLEAN
+QuicConnRemoveSourceCid(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
     for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
             *Entry != NULL;
             Entry = &(*Entry)->Next) {
-        QUIC_CID_HASH_ENTRY* SourceCid =
-            CXPLAT_CONTAINING_RECORD(
-                *Entry,
-                QUIC_CID_HASH_ENTRY,
-                Link);
-        if (SourceCid->CID.SequenceNumber == SequenceNumber) {
-            if (RemoveFromList) {
-                QuicBindingRemoveSourceConnectionID(
-                    Connection->Paths[0].Binding,
-                    SourceCid,
-                    Entry);
-                QuicTraceEvent(
-                    ConnSourceCidRemoved,
-                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                    Connection,
-                    SourceCid->CID.SequenceNumber,
-                    CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-            }
-            *IsLastCid = Connection->SourceCids.Next == NULL;
-            return SourceCid;
+        if (*Entry == &SourceCid->Link) {
+            QuicBindingRemoveSourceConnectionID(
+                Connection->Paths[0].Binding,
+                SourceCid,
+                Entry);
+            QuicTraceEvent(
+                ConnSourceCidRemoved,
+                "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+                Connection,
+                SourceCid->CID.SequenceNumber,
+                CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+            return Connection->SourceCids.Next == NULL;
         }
     }
-    return NULL;
+    return FALSE;
 }
 
 //

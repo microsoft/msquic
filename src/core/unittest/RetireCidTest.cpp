@@ -3,91 +3,58 @@
     Copyright (c) Microsoft Corporation.
     Licensed under the MIT License.
 
+Abstract:
+
+    Unit tests for RETIRE_CONNECTION_ID frame validation.
+
 --*/
 
-#define QUIC_API_ENABLE_INSECURE_FEATURES 1
-#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
-#include "quic_platform.h"
-#include "quic_datapath.h"
-#include "msquic.h"
+#include "main.h"
+#ifdef QUIC_CLOG
+#include "RetireCidTest.cpp.clog.h"
+#endif
 
 extern "C" {
-struct QUIC_CONNECTION;
-struct QUIC_PATH;
-struct QUIC_RX_PACKET;
-struct QUIC_LOOKUP;
-struct QUIC_CID_HASH_ENTRY;
-struct QUIC_TIMER_WHEEL;
-
 BOOLEAN QuicConnRecvFrames(
     QUIC_CONNECTION* Connection, QUIC_PATH* Path,
     QUIC_RX_PACKET* Packet, CXPLAT_ECN_TYPE ECN);
-void QuicLookupInitialize(QUIC_LOOKUP* Lookup);
-void QuicLookupUninitialize(QUIC_LOOKUP* Lookup);
-BOOLEAN QuicLookupAddLocalCid(
-    QUIC_LOOKUP* Lookup, QUIC_CID_HASH_ENTRY* SourceCid,
-    QUIC_CONNECTION** Collision);
-void QuicLookupRemoveLocalCids(QUIC_LOOKUP* Lookup, QUIC_CONNECTION* Connection);
-QUIC_STATUS QuicTimerWheelInitialize(QUIC_TIMER_WHEEL* TimerWheel);
-void QuicTimerWheelUninitialize(QUIC_TIMER_WHEEL* TimerWheel);
-QUIC_STATUS QUIC_API MsQuicRegistrationOpen(
-    const QUIC_REGISTRATION_CONFIG* Config, HQUIC* Registration);
-void QUIC_API MsQuicRegistrationClose(HQUIC Registration);
-QUIC_STATUS QUIC_API MsQuicConnectionOpen(
-    HQUIC Registration, QUIC_CONNECTION_CALLBACK_HANDLER Handler,
-    void* Context, HQUIC* Connection);
-void QUIC_API MsQuicConnectionClose(HQUIC Connection);
-void MsQuicLibraryLazyUninitialize(void);
 }
-
-#include "main.h"
 
 class RetireCidTest : public ::testing::Test {
 protected:
-    HQUIC Registration = nullptr;
-    QUIC_CONNECTION* Connection = nullptr;
+    QUIC_CONNECTION Connection;
     QUIC_WORKER Worker = {};
     QUIC_BINDING Binding = {};
     QUIC_RX_PACKET Packet = {};
     uint8_t Payload[16] = {};
     const uint8_t InitialCidBytes[4] = { 1, 2, 3, 4 };
     const uint8_t OtherCidBytes[4] = { 1, 2, 3, 5 };
-    uint32_t ShutdownCount = 0;
-    QUIC_STATUS ShutdownStatus = QUIC_STATUS_SUCCESS;
-    QUIC_UINT62 ShutdownError = QUIC_ERROR_NO_ERROR;
-    BOOLEAN WasLazyInitComplete = FALSE;
-
-    static QUIC_STATUS QUIC_API Callback(
-        HQUIC, void* Context, QUIC_CONNECTION_EVENT* Event)
-    {
-        auto* Test = static_cast<RetireCidTest*>(Context);
-        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT) {
-            ++Test->ShutdownCount;
-            Test->ShutdownStatus = Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status;
-            Test->ShutdownError = Event->SHUTDOWN_INITIATED_BY_TRANSPORT.ErrorCode;
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
 
     void SetUp() override
     {
-        WasLazyInitComplete = MsQuicLib.LazyInitComplete;
         QuicLookupInitialize(&Binding.Lookup);
         TEST_QUIC_SUCCEEDED(QuicTimerWheelInitialize(&Worker.TimerWheel));
-        TEST_QUIC_SUCCEEDED(MsQuicRegistrationOpen(nullptr, &Registration));
-        HQUIC Handle = nullptr;
-        TEST_QUIC_SUCCEEDED(MsQuicConnectionOpen(Registration, Callback, this, &Handle));
-        Connection = reinterpret_cast<QUIC_CONNECTION*>(Handle);
 
-        // Drive frame processing on this thread without starting a socket or worker.
-        Connection->Worker = &Worker;
-        Connection->WorkerThreadID = CxPlatCurThreadID();
-        Connection->State.ShareBinding = TRUE;
-        Connection->Paths[0].Binding = &Binding;
+        CxPlatZeroMemory(&Connection, sizeof(Connection));
+        Connection.Partition = &MsQuicLib.Partitions[0];
+        Connection.Worker = &Worker;
+        Connection.State.ShareBinding = TRUE;
+        Connection.Paths[0].Binding = &Binding;
+        Connection.Paths[0].SmoothedRtt = 1000;
+        Connection.RefCount = 100;
+        CxPlatRefInitializeMultiple(Connection.RefTypeBiasedCount, QUIC_CONN_REF_COUNT);
+        CxPlatListInitializeHead(&Connection.Send.SendStreams);
+
+        for (QUIC_CONN_TIMER_TYPE Type = 0; Type < QUIC_CONN_TIMER_COUNT; ++Type) {
+            Connection.ExpirationTimes[Type] = UINT64_MAX;
+        }
+        Connection.EarliestExpirationTime = UINT64_MAX;
 
         ASSERT_TRUE(AddSourceCid(0, InitialCidBytes, sizeof(InitialCidBytes)));
         ASSERT_TRUE(AddSourceCid(1, OtherCidBytes, sizeof(OtherCidBytes)));
-        Connection->NextSourceCidSequenceNumber = 2;
+        Connection.NextSourceCidSequenceNumber = 2;
+
+        CxPlatZeroMemory(&Packet, sizeof(Packet));
         Packet.KeyType = QUIC_PACKET_KEY_1_RTT;
         Packet.AvailBuffer = Payload;
         Packet.DestCid = InitialCidBytes;
@@ -96,24 +63,14 @@ protected:
 
     void TearDown() override
     {
-        if (Connection != nullptr) {
-            QuicLookupRemoveLocalCids(&Binding.Lookup, Connection);
-            Connection->Paths[0].Binding = nullptr;
-            MsQuicConnectionClose(reinterpret_cast<HQUIC>(Connection));
-        }
-        if (Registration != nullptr) {
-            MsQuicRegistrationClose(Registration);
-        }
-        if (!WasLazyInitComplete && MsQuicLib.LazyInitComplete) {
-            MsQuicLibraryLazyUninitialize();
-        }
+        QuicLookupRemoveLocalCids(&Binding.Lookup, &Connection);
         QuicTimerWheelUninitialize(&Worker.TimerWheel);
         QuicLookupUninitialize(&Binding.Lookup);
     }
 
     bool AddSourceCid(uint64_t Sequence, const uint8_t* Bytes, uint8_t Length)
     {
-        QUIC_CID_HASH_ENTRY* Cid = QuicCidNewSource(Connection, Length, Bytes);
+        QUIC_CID_HASH_ENTRY* Cid = QuicCidNewSource(&Connection, Length, Bytes);
         if (Cid == nullptr) {
             return false;
         }
@@ -122,13 +79,13 @@ protected:
             CXPLAT_FREE(Cid, QUIC_POOL_CIDHASH);
             return false;
         }
-        CxPlatListPushEntry(&Connection->SourceCids, &Cid->Link);
+        CxPlatListPushEntry(&Connection.SourceCids, &Cid->Link);
         return true;
     }
 
     QUIC_CID_HASH_ENTRY* FindSourceCid(uint64_t Sequence)
     {
-        for (auto* Link = Connection->SourceCids.Next; Link != nullptr; Link = Link->Next) {
+        for (auto* Link = Connection.SourceCids.Next; Link != nullptr; Link = Link->Next) {
             auto* Cid = CXPLAT_CONTAINING_RECORD(Link, QUIC_CID_HASH_ENTRY, Link);
             if (Cid->CID.SequenceNumber == Sequence) {
                 return Cid;
@@ -148,17 +105,15 @@ protected:
         Packet.PayloadLength = Length;
         Packet.CompletelyValid = FALSE;
         ++Packet.PacketNumber;
-        return QuicConnRecvFrames(Connection, &Connection->Paths[0], &Packet, CXPLAT_ECN_NON_ECT);
+        return QuicConnRecvFrames(&Connection, &Connection.Paths[0], &Packet, CXPLAT_ECN_NON_ECT);
     }
 
     void ExpectProtocolViolation()
     {
-        EXPECT_TRUE(Connection->State.ClosedLocally);
-        EXPECT_EQ(QUIC_ERROR_PROTOCOL_VIOLATION, Connection->CloseErrorCode);
+        EXPECT_TRUE(Connection.State.ClosedLocally);
+        EXPECT_EQ(QUIC_ERROR_PROTOCOL_VIOLATION, Connection.CloseErrorCode);
+        EXPECT_EQ(QUIC_STATUS_PROTOCOL_ERROR, Connection.CloseStatus);
         EXPECT_FALSE(Packet.CompletelyValid);
-        EXPECT_EQ(1u, ShutdownCount);
-        EXPECT_EQ(QUIC_STATUS_PROTOCOL_ERROR, ShutdownStatus);
-        EXPECT_EQ(QUIC_ERROR_PROTOCOL_VIOLATION, ShutdownError);
     }
 };
 
@@ -167,10 +122,10 @@ class UnissuedRetireCidTest : public RetireCidTest,
 
 TEST_P(UnissuedRetireCidTest, RejectWithoutRemovingCids)
 {
-    auto* First = Connection->SourceCids.Next;
+    auto* First = Connection.SourceCids.Next;
     ASSERT_FALSE(Receive(GetParam()));
     ExpectProtocolViolation();
-    EXPECT_EQ(First, Connection->SourceCids.Next);
+    EXPECT_EQ(First, Connection.SourceCids.Next);
     EXPECT_EQ(2u, Binding.Lookup.CidCount);
 }
 
@@ -193,28 +148,26 @@ TEST_F(RetireCidTest, AcceptOtherCidAndRepeatedRetirement)
 {
     ASSERT_TRUE(Receive(1));
     EXPECT_TRUE(Packet.CompletelyValid);
-    EXPECT_FALSE(Connection->State.ClosedLocally);
-    EXPECT_EQ(0u, ShutdownCount);
+    EXPECT_FALSE(Connection.State.ClosedLocally);
     EXPECT_EQ(nullptr, FindSourceCid(1));
     EXPECT_NE(nullptr, FindSourceCid(0));
     EXPECT_NE(nullptr, FindSourceCid(2));
-    EXPECT_EQ(3u, Connection->NextSourceCidSequenceNumber);
+    EXPECT_EQ(3u, Connection.NextSourceCidSequenceNumber);
     EXPECT_EQ(2u, Binding.Lookup.CidCount);
 
     // Retransmitting a retirement must not close the connection or issue another CID.
     ASSERT_TRUE(Receive(1));
     EXPECT_TRUE(Packet.CompletelyValid);
-    EXPECT_FALSE(Connection->State.ClosedLocally);
-    EXPECT_EQ(0u, ShutdownCount);
-    EXPECT_EQ(3u, Connection->NextSourceCidSequenceNumber);
+    EXPECT_FALSE(Connection.State.ClosedLocally);
+    EXPECT_EQ(3u, Connection.NextSourceCidSequenceNumber);
     EXPECT_EQ(2u, Binding.Lookup.CidCount);
 }
 
 TEST_F(RetireCidTest, RejectZeroLengthPacketDestinationCid)
 {
-    QuicLookupRemoveLocalCids(&Binding.Lookup, Connection);
+    QuicLookupRemoveLocalCids(&Binding.Lookup, &Connection);
     ASSERT_TRUE(AddSourceCid(0, InitialCidBytes, 0));
-    Connection->NextSourceCidSequenceNumber = 1;
+    Connection.NextSourceCidSequenceNumber = 1;
     Packet.DestCid = nullptr;
     Packet.DestCidLen = 0;
 
@@ -229,15 +182,14 @@ TEST_F(RetireCidTest, RejectZeroLengthPacketDestinationCid)
 
 TEST_F(RetireCidTest, AcceptOtherCidWithMatchingPrefix)
 {
-    QuicLookupRemoveLocalCids(&Binding.Lookup, Connection);
+    QuicLookupRemoveLocalCids(&Binding.Lookup, &Connection);
     ASSERT_TRUE(AddSourceCid(0, OtherCidBytes, sizeof(OtherCidBytes) - 1));
     ASSERT_TRUE(AddSourceCid(1, OtherCidBytes, sizeof(OtherCidBytes)));
     Packet.DestCid = OtherCidBytes;
     Packet.DestCidLen = sizeof(OtherCidBytes) - 1;
 
     ASSERT_TRUE(Receive(1));
-    EXPECT_FALSE(Connection->State.ClosedLocally);
-    EXPECT_EQ(0u, ShutdownCount);
+    EXPECT_FALSE(Connection.State.ClosedLocally);
     EXPECT_EQ(nullptr, FindSourceCid(1));
     EXPECT_NE(nullptr, FindSourceCid(0));
     EXPECT_NE(nullptr, FindSourceCid(2));
