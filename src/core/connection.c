@@ -5152,10 +5152,8 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            BOOLEAN IsLastCid;
             QUIC_CID_HASH_ENTRY* SourceCid =
-                QuicConnGetSourceCidFromSeq(
-                    Connection, Frame.Sequence, FALSE, &IsLastCid);
+                QuicConnGetSourceCidFromSeq(Connection, Frame.Sequence);
             if (SourceCid != NULL &&
                 Packet->DestCidLen == SourceCid->CID.Length &&
                 (Packet->DestCidLen == 0 ||
@@ -5170,8 +5168,7 @@ QuicConnRecvFrames(
             }
 
             if (SourceCid != NULL) {
-                SourceCid = QuicConnGetSourceCidFromSeq(
-                    Connection, Frame.Sequence, TRUE, &IsLastCid);
+                BOOLEAN IsLastCid = QuicConnRemoveSourceCid(Connection, SourceCid);
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
                 if (CidAlreadyRetired) {
                     CXPLAT_DBG_ASSERT(Connection->RetiredSourceCidCount > 0);
