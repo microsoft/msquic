@@ -418,6 +418,11 @@ typedef struct QUIC_CONNECTION {
     uint8_t RetiredDestCidCount;
 
     //
+    // Number of retired source CIDs not yet acknowledged by the peer.
+    //
+    uint8_t RetiredSourceCidCount;
+
+    //
     // The maximum number of source CIDs to give the peer. This is a minimum of
     // what we're willing to support and what the peer is willing to accept.
     //

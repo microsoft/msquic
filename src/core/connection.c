@@ -999,8 +999,20 @@ QuicConnGenerateNewSourceCids(
         while (Entry != NULL) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 CXPLAT_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
-            SourceCid->CID.Retired = TRUE;
+            if (!SourceCid->CID.Retired) {
+                SourceCid->CID.Retired = TRUE;
+                Connection->RetiredSourceCidCount++;
+            }
             Entry = Entry->Next;
+        }
+        if (Connection->RetiredSourceCidCount > 8 * QUIC_ACTIVE_CONNECTION_ID_LIMIT) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer exceeded source CID retire limit");
+            QuicConnSilentlyAbort(Connection);
+            return;
         }
     } else {
         uint8_t CurrentCidCount = QuicConnSourceCidsCount(Connection);
@@ -5116,6 +5128,10 @@ QuicConnRecvFrames(
                     &IsLastCid);
             if (SourceCid != NULL) {
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
+                if (CidAlreadyRetired) {
+                    CXPLAT_DBG_ASSERT(Connection->RetiredSourceCidCount > 0);
+                    Connection->RetiredSourceCidCount--;
+                }
                 CXPLAT_FREE(SourceCid, QUIC_POOL_CIDHASH);
                 if (IsLastCid) {
                     QuicTraceEvent(
