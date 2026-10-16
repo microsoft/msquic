@@ -142,7 +142,7 @@ function Install-XDP {
     param ($Session, $RemoteDir)
     whoami
     Write-Host "Installing XDP driver locally"
-    .\scripts\prepare-machine.ps1 -InstallXdpDriver
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver -UseXdp "xdp-v1.4"
     Write-Host "Installing XDP driver on peer"
 
     if ($Session -eq "NOT_SUPPORTED") {
@@ -152,7 +152,7 @@ function Install-XDP {
     }
 
     Invoke-Command -Session $Session -ScriptBlock {
-        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
+        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver -UseXdp "xdp-v1.4"
     }
 }
 

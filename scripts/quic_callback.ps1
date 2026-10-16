@@ -89,7 +89,7 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Invoke-Expression "$WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
 } elseif ($Command.Contains("Install_XDP")) {
     Write-Host "Executing command: Install_XDP"
-    .\scripts\prepare-machine.ps1 -InstallXdpDriver
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver -UseXdp "xdp-v1.4"
 } elseif ($Command -eq "Install_Kernel") {
     Write-Host "Executing command: Install_Kernel"
     $KernelDir = Repo-Path "./artifacts/bin/winkernel/x64_Release_schannel"

@@ -25,6 +25,10 @@ own `xdp-setup.ps1`:
 `-UseXdp` takes the version moniker to install (any key from `xdp.json`); omit it
 to skip XDP entirely.
 
+The Windows `secnetperf.ps1` performance tests select `xdp-v1.4` when installing
+XDP on both the client and the peer, including peers managed through the 1ES
+shared cache.
+
 ## What is XDP
 
 XDP enables received packets to completely bypass the OS networking stack.
