@@ -45,6 +45,7 @@
     <ClCompile Include="packet_space.c" />
     <ClCompile Include="path.c" />
     <ClCompile Include="range.c" />
+    <ClCompile Include="range_tiered.c" />
     <ClCompile Include="recv_buffer.c" />
     <ClCompile Include="registration.c" />
     <ClCompile Include="send.c" />
@@ -87,6 +88,7 @@
     <ClInclude Include="precomp.h" />
     <ClInclude Include="quicdef.h" />
     <ClInclude Include="range.h" />
+    <ClInclude Include="range_tiered.h" />
     <ClInclude Include="recv_buffer.h" />
     <ClInclude Include="registration.h" />
     <ClInclude Include="send.h" />
@@ -133,6 +135,7 @@
     <QUIC_VER_BUILD_ID Condition="'$(QUIC_VER_BUILD_ID)' == ''">0</QUIC_VER_BUILD_ID>
     <QUIC_VER_SUFFIX Condition="'$(QUIC_VER_SUFFIX)' == ''">-private</QUIC_VER_SUFFIX>
     <QUIC_VER_GIT_HASH Condition="'$(QUIC_VER_GIT_HASH)' == ''">0</QUIC_VER_GIT_HASH>
+    <QUIC_RANGE_USE_TIERED Condition="'$(QUIC_RANGE_USE_TIERED)' == ''">1</QUIC_RANGE_USE_TIERED>
   </PropertyGroup>
   <PropertyGroup>
     <RunCodeAnalysis>true</RunCodeAnalysis>
@@ -152,6 +155,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>QUIC_RANGE_USE_TIERED=$(QUIC_RANGE_USE_TIERED);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalOptions Condition="'$(Platform)'!='x64'">/Gw /kernel /ZH:SHA_256</AdditionalOptions>
