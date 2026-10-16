@@ -94,6 +94,15 @@ QuicStreamSetTraceRundown(
     );
 
 //
+// Called on the client when the server rejects 0-RTT.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamSetOnZeroRttRejected(
+    _Inout_ QUIC_STREAM_SET* StreamSet
+    );
+
+//
 // Shuts down (silent, abortive) all streams.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

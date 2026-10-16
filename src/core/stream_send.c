@@ -973,8 +973,11 @@ QuicStreamWriteStreamFrames(
         //
         // Connection flow control
         //
+        CXPLAT_DBG_ASSERT(Send->OrderedStreamBytesSent <= Send->PeerMaxData);
         const uint64_t MaxConnFlowControlOffset =
-             Stream->MaxSentLength + (Send->PeerMaxData - Send->OrderedStreamBytesSent);
+             Stream->MaxSentLength +
+             (Send->PeerMaxData > Send->OrderedStreamBytesSent ?
+                Send->PeerMaxData - Send->OrderedStreamBytesSent : 0);
         if (Right > MaxConnFlowControlOffset) {
             Right = MaxConnFlowControlOffset;
         }
@@ -1245,6 +1248,29 @@ QuicStreamSendWrite(
     UNREFERENCED_PARAMETER(RanOutOfRoom);
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamOnZeroRttRejected(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    QUIC_SEND* Send = &Stream->Connection->Send;
+
+    //
+    // Nothing sent in rejected 0-RTT packets can have been acknowledged.
+    //
+    CXPLAT_DBG_ASSERT(Stream->UnAckedOffset == 0);
+    CXPLAT_DBG_ASSERT(Send->OrderedStreamBytesSent >= Stream->MaxSentLength);
+
+    //
+    // The 0-RTT packets were already marked lost, so the data is queued for
+    // retransmission. Reset MaxSentLength so those bytes are counted again,
+    // against the peer's real limits, as they are resent.
+    //
+    Send->OrderedStreamBytesSent -= Stream->MaxSentLength;
+    Stream->MaxSentLength = 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

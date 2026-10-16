@@ -1429,6 +1429,7 @@ QuicCryptoProcessTlsCompletion(
         if (QuicConnIsClient(Connection)) {
             QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_0_RTT);
             QuicLossDetectionOnZeroRttRejected(&Connection->LossDetection);
+            QuicStreamSetOnZeroRttRejected(&Connection->Streams);
         } else {
             QuicConnDiscardDeferred0Rtt(Connection);
         }
