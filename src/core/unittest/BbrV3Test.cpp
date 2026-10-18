@@ -333,6 +333,46 @@ TEST_F(BbrV3Test, SpuriousLossRestoresBoundsAndRecoveryWithoutDoubleAck)
     EXPECT_EQ(Bbr.BytesInFlight, 57600u);
 }
 
+TEST_F(BbrV3Test, SpuriousLossAfterRecoveryExitDoesNotRevertState)
+{
+    EnterCruise();
+    Model.Phase = BBR_V3_PHASE_UP;
+    Model.ProbeSamples = TRUE;
+    Bbr.PacingGain = 320;
+    Model.InflightHigh = 100000;
+    QuicCongestionControlOnDataSent(&Cc, 60000);
+    auto Storage = LossPacket(10, 2400);
+    QUIC_LOSS_EVENT Loss{};
+    Loss.TimeNow = TestTime;
+    Loss.LostPackets = &Storage.Metadata;
+    Loss.NumRetransmittableBytes = 2400;
+    Loss.LargestPacketNumberLost = 10;
+    Loss.LargestSentPacketNumber = 50;
+    QuicCongestionControlOnDataLost(&Cc, &Loss);
+    ASSERT_LT(Model.InflightHigh, 100000u);
+    ASSERT_EQ(Model.Phase, BBR_V3_PHASE_DOWN);
+    ASSERT_NE(Bbr.RecoveryState, RECOVERY_STATE_NOT_RECOVERY);
+    ASSERT_TRUE(Model.UndoValid);
+
+    // A clean ACK past the recovery boundary ends the episode.
+    auto Exit = Ack(1200, 51);
+    Exit.LargestSentPacketNumber = 60;
+    QuicCongestionControlOnDataAcknowledged(&Cc, &Exit);
+    ASSERT_EQ(Bbr.RecoveryState, RECOVERY_STATE_NOT_RECOVERY);
+    EXPECT_FALSE(Model.UndoValid);
+    const auto InflightHigh = Model.InflightHigh;
+    const auto Phase = Model.Phase;
+    const auto BtlbwFound = Bbr.BtlbwFound;
+
+    // The lost packet stays on the loss list, so its late ACK still reports a
+    // spurious loss. It must not reinstate the probe bound or an older phase.
+    EXPECT_FALSE(QuicCongestionControlOnSpuriousCongestionEvent(&Cc));
+    EXPECT_EQ(Model.InflightHigh, InflightHigh);
+    EXPECT_EQ(Model.Phase, Phase);
+    EXPECT_EQ(Bbr.BtlbwFound, BtlbwFound);
+    EXPECT_EQ(Bbr.RecoveryState, RECOVERY_STATE_NOT_RECOVERY);
+}
+
 TEST_F(BbrV3Test, OldPathLossCannotPushCurrentProbeOverLossThreshold)
 {
     Model.TotalBytesLost = 9000;

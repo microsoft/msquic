@@ -112,6 +112,16 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ uint32_t NumRetransmittableBytes
         );
 
+    //
+    // Optional. Lets the algorithm record its current state in the metadata
+    // of a packet that was just sent, for use when that packet is later
+    // acknowledged or declared lost.
+    //
+    void (*QuicCongestionControlOnPacketSent)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _Inout_ QUIC_SENT_PACKET_METADATA* Packet
+        );
+
     BOOLEAN (*QuicCongestionControlOnDataInvalidated)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc,
         _In_ uint32_t NumRetransmittableBytes
@@ -285,6 +295,24 @@ QuicCongestionControlOnDataSent(
     )
 {
     Cc->QuicCongestionControlOnDataSent(Cc, NumRetransmittableBytes);
+}
+
+//
+// Called once the metadata of a sent packet is complete, so the algorithm can
+// snapshot any per-packet state it needs. Algorithms that do not track such
+// state leave the callback unset.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_INLINE
+void
+QuicCongestionControlOnPacketSent(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _Inout_ QUIC_SENT_PACKET_METADATA* Packet
+    )
+{
+    if (Cc->QuicCongestionControlOnPacketSent) {
+        Cc->QuicCongestionControlOnPacketSent(Cc, Packet);
+    }
 }
 
 //

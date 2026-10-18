@@ -69,13 +69,6 @@ BbrV3CongestionControlInitialize(
     _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-BbrV3CongestionControlOnPacketSent(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc,
-    _Inout_ QUIC_SENT_PACKET_METADATA* Packet
-    );
-
 #if defined(__cplusplus)
 }
 #endif

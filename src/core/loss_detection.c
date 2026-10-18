@@ -470,7 +470,14 @@ QuicLossDetectionOnPacketSent(
 
     SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
 
-    BbrV3CongestionControlOnPacketSent(&Connection->CongestionControl, SentPacket);
+    //
+    // Give the congestion controller a chance to snapshot its state into the
+    // packet. The defaults cover controllers without per-packet state.
+    //
+    SentPacket->Flags.IsBbrProbe = FALSE;
+    SentPacket->InflightAtSend = 0;
+    SentPacket->TotalBytesLost = 0;
+    QuicCongestionControlOnPacketSent(&Connection->CongestionControl, SentPacket);
 
     LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
 

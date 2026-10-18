@@ -238,20 +238,20 @@ BbrV3CongestionControlOnDataSent(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrV3CongestionControlOnPacketSent(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _Inout_ QUIC_SENT_PACKET_METADATA* Packet
     )
 {
-    Packet->Flags.IsBbrProbe = FALSE;
-    Packet->InflightAtSend = 0;
-    Packet->TotalBytesLost = 0;
-    // Settings can be changed while the active controller stays the same.
-    if (Cc->QuicCongestionControlOnDataSent == BbrV3CongestionControlOnDataSent) {
-        Packet->InflightAtSend = Cc->BbrV3.Common.BytesInFlight;
-        Packet->TotalBytesLost = Cc->BbrV3.Model.TotalBytesLost;
-        Packet->Flags.IsBbrProbe = Cc->BbrV3.Common.BbrState == BBR_STATE_STARTUP ||
-            (Cc->BbrV3.Common.BbrState == BBR_STATE_PROBE_BW && Cc->BbrV3.Model.Phase == BBR_V3_PHASE_UP);
-    }
+    //
+    // Loss samples need the flight size and cumulative loss at transmission
+    // time, and whether the packet was sent while probing for bandwidth.
+    //
+    Packet->InflightAtSend = Cc->BbrV3.Common.BytesInFlight;
+    Packet->TotalBytesLost = Cc->BbrV3.Model.TotalBytesLost;
+    Packet->Flags.IsBbrProbe =
+        Cc->BbrV3.Common.BbrState == BBR_STATE_STARTUP ||
+        (Cc->BbrV3.Common.BbrState == BBR_STATE_PROBE_BW &&
+            Cc->BbrV3.Model.Phase == BBR_V3_PHASE_UP);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -610,6 +610,8 @@ BbrV3CongestionControlOnDataAcknowledged(
         if (!AckEvent->HasLoss && Bbr->EndOfRecovery < AckEvent->LargestAck) {
             Bbr->RecoveryState = RECOVERY_STATE_NOT_RECOVERY;
             Bbr->CongestionWindow = CXPLAT_MAX(Bbr->CongestionWindow, Cc->BbrV3.Model.PriorCongestionWindow);
+            // The saved state only describes the episode that just ended.
+            Cc->BbrV3.Model.UndoValid = FALSE;
             BbrLogRecoveryExit(Connection);
         } else {
             BbrUpdateRecoveryWindow(Bbr, QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths)), AckEvent->NumRetransmittableBytes);
@@ -797,7 +799,12 @@ BbrV3CongestionControlOnSpuriousCongestionEvent(
     )
 {
     BBR_COMMON* Bbr = &Cc->BbrV3.Common;
-    if (!Cc->BbrV3.Model.UndoValid) {
+    //
+    // Packets declared lost stay on the loss list after recovery ends, so a
+    // late acknowledgment can arrive once the controller has moved on. Only
+    // undo while the recovery episode that saved the state is still active.
+    //
+    if (!Cc->BbrV3.Model.UndoValid || !BbrV3CongestionControlInRecovery(Cc)) {
         return FALSE;
     }
     BOOLEAN PreviousCanSendState = BbrV3CongestionControlCanSend(Cc);
@@ -885,6 +892,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlBbrV3 = {
     .QuicCongestionControlGetSendAllowance = BbrV3CongestionControlGetSendAllowance,
     .QuicCongestionControlGetCongestionWindow = BbrV3CongestionControlGetCongestionWindow,
     .QuicCongestionControlOnDataSent = BbrV3CongestionControlOnDataSent,
+    .QuicCongestionControlOnPacketSent = BbrV3CongestionControlOnPacketSent,
     .QuicCongestionControlOnDataInvalidated = BbrV3CongestionControlOnDataInvalidated,
     .QuicCongestionControlOnDataAcknowledged = BbrV3CongestionControlOnDataAcknowledged,
     .QuicCongestionControlOnDataLost = BbrV3CongestionControlOnDataLost,
