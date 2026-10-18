@@ -653,6 +653,51 @@ TEST_F(BbrV3Test, RefillClearsShortTermBoundsAndWaitsForPacketRound)
     QuicCongestionControlOnDataAcknowledged(&Cc, &Ack);
     ASSERT_EQ(Model.Phase, BBR_V3_PHASE_UP);
     ASSERT_EQ(Bbr.PacingGain, 320u);
+    ASSERT_EQ(Bbr.CycleStart, Ack.TimeNow);
+}
+
+TEST_F(BbrV3Test, ProbeUpEndsOnceFlightExceedsProbeTargetForAMinRtt)
+{
+    // One MB/s over 50 ms gives a 50 KB BDP, so the 1.25x probe target is
+    // about 62.5 KB plus the send quanta.
+    EnterCruise();
+    Model.Phase = BBR_V3_PHASE_UP;
+    Model.ProbeSamples = TRUE;
+    Bbr.PacingGain = 320;
+    Bbr.CycleStart = TestTime;
+    Bbr.EndOfRoundTripValid = TRUE;
+    Bbr.EndOfRoundTrip = 100;
+    QuicCongestionControlOnDataSent(&Cc, 80000);
+
+    // Less than a minimum RTT into the probe: keep probing above the target.
+    auto Early = MakeBbrAckEvent(TestTime + 10000, 10, 100, 1200, 50000, 50000);
+    QuicCongestionControlOnDataAcknowledged(&Cc, &Early);
+    ASSERT_EQ(Model.Phase, BBR_V3_PHASE_UP);
+    ASSERT_EQ(Bbr.PacingGain, 320u);
+
+    // A minimum RTT later the flight is still above the target: pipe is full.
+    auto Late = MakeBbrAckEvent(TestTime + 50000, 11, 100, 1200, 50000, 50000);
+    QuicCongestionControlOnDataAcknowledged(&Cc, &Late);
+    ASSERT_EQ(Model.Phase, BBR_V3_PHASE_DOWN);
+    ASSERT_EQ(Bbr.PacingGain, 230u);
+    ASSERT_EQ(Bbr.CycleStart, Late.TimeNow);
+}
+
+TEST_F(BbrV3Test, ProbeUpBelowProbeTargetKeepsProbing)
+{
+    EnterCruise();
+    Model.Phase = BBR_V3_PHASE_UP;
+    Model.ProbeSamples = TRUE;
+    Bbr.PacingGain = 320;
+    Bbr.CycleStart = TestTime;
+    Bbr.EndOfRoundTripValid = TRUE;
+    Bbr.EndOfRoundTrip = 100;
+    QuicCongestionControlOnDataSent(&Cc, 40000);
+
+    auto Ack = MakeBbrAckEvent(TestTime + 100000, 10, 100, 1200, 50000, 50000);
+    QuicCongestionControlOnDataAcknowledged(&Cc, &Ack);
+    ASSERT_EQ(Model.Phase, BBR_V3_PHASE_UP);
+    ASSERT_EQ(Bbr.PacingGain, 320u);
 }
 
 TEST_F(BbrV3Test, ProbeLossThresholdUsesSentFlight)

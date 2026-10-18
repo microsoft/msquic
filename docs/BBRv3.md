@@ -23,8 +23,11 @@ fairness or throughput on real networks.
   bandwidth probing. Clean ACKs preserve those limits; entering REFILL clears
   them so that newly available capacity can be discovered.
 - DOWN drains the queue, CRUISE waits before the next probe, REFILL waits for a
-  packet round, and UP increases the probing limit. The probe interval combines
-  a randomized two-to-three-second timer with a packet-round bound.
+  packet round, and UP increases the probing limit. UP ends when loss crosses
+  the threshold, when the flight has exceeded 1.25x the BDP for at least a
+  minimum RTT, or when the bandwidth estimate plateaus for three rounds. The
+  probe interval combines a randomized two-to-three-second timer with a
+  packet-round bound.
 - ACK aggregation and startup growth precede the model's congestion-window
   limits. CRUISE leaves headroom below the long-term inflight limit.
 - Pacing converts the bandwidth sample to bytes over the elapsed microseconds.

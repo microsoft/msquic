@@ -70,6 +70,7 @@ BbrV3StartPhase(
         Bbr->EndOfRoundTrip = LargestSentPacketNumber;
     } else if (Phase == BBR_V3_PHASE_UP) {
         Bbr->PacingGain = GAIN_UNIT * 5 / 4;
+        Bbr->CycleStart = TimeNow;
         BbrV3->Model.ProbeSamples = TRUE;
         BbrV3->Model.ProbeStartPacketNumber = LargestSentPacketNumber + 1;
         BbrV3->Model.AwaitingProbeFeedback = FALSE;
@@ -454,7 +455,8 @@ void
 BbrV3UpdateProbeBw(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ const QUIC_ACK_EVENT* AckEvent,
-    _In_ BOOLEAN NewRoundTrip
+    _In_ BOOLEAN NewRoundTrip,
+    _In_ uint32_t PriorBytesInFlight
     )
 {
     BBR_COMMON* Bbr = &Cc->BbrV3.Common;
@@ -500,7 +502,17 @@ BbrV3UpdateProbeBw(
                 Model->InflightHigh = (uint32_t)CXPLAT_MIN((uint64_t)Model->InflightHigh + Increase, UINT32_MAX);
             }
         }
-        if (Bbr->SlowStartupRoundCounter >= kStartupSlowGrowRoundLimit) {
+        //
+        // The probe is done once it has run for a minimum RTT and pushed the
+        // flight past the probing target (the pipe is full and a queue is
+        // building), or once the bandwidth estimate has stopped growing for
+        // several rounds (the plateau test shared with STARTUP).
+        //
+        BOOLEAN ProbeFilledPipe =
+            Bbr->MinRttTimestampValid &&
+            CxPlatTimeDiff64(Bbr->CycleStart, AckEvent->TimeNow) >= Bbr->MinRtt &&
+            PriorBytesInFlight >= BbrV3CongestionControlGetTargetCwnd(Cc, GAIN_UNIT * 5 / 4);
+        if (ProbeFilledPipe || Bbr->SlowStartupRoundCounter >= kStartupSlowGrowRoundLimit) {
             BbrV3StartPhase(&Cc->BbrV3, BBR_V3_PHASE_DOWN, AckEvent->TimeNow, AckEvent->LargestSentPacketNumber);
         }
     }
@@ -529,6 +541,8 @@ BbrV3CongestionControlOnDataAcknowledged(
         }
         return BbrUpdateBlockedState(Cc, PreviousCanSendState);
     }
+
+    uint32_t PrevInflightBytes = Bbr->BytesInFlight;
 
     CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= AckEvent->NumRetransmittableBytes);
     Bbr->BytesInFlight -= AckEvent->NumRetransmittableBytes;
@@ -627,7 +641,7 @@ BbrV3CongestionControlOnDataAcknowledged(
     }
 
     if (Bbr->BbrState == BBR_STATE_PROBE_BW) {
-        BbrV3UpdateProbeBw(Cc, AckEvent, NewRoundTrip);
+        BbrV3UpdateProbeBw(Cc, AckEvent, NewRoundTrip, PrevInflightBytes);
     }
 
     if (Bbr->BbrState == BBR_STATE_STARTUP && Bbr->BtlbwFound) {
