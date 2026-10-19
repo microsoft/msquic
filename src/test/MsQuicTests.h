@@ -409,6 +409,11 @@ QuicTestPathValidationTimeout(
     );
 
 void
+QuicTestPathValidationLastPathClose(
+    _In_ int Family
+    );
+
+void
 QuicTestChangeMaxStreamID(
     _In_ int Family
     );
@@ -1426,4 +1431,8 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
 #define IOCTL_QUIC_RUN_TINY_STREAM_RECV_WINDOW \
     QUIC_CTL_CODE(137, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 137
+#define IOCTL_QUIC_RUN_PATH_VALIDATION_LAST_PATH_CLOSE \
+    QUIC_CTL_CODE(138, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 138

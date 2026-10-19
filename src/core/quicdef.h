@@ -92,6 +92,20 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_CLOSE_PTO_COUNT                    3
 
 //
+// The number of PTOs to wait before abandoning path validation. Per RFC 9000
+// section 8.2.4 the recommended value is 3.
+//
+#define QUIC_PATH_VALIDATION_PTO_COUNT          3
+
+//
+// The minimum path validation timeout, expressed as a multiple of the
+// connection's configured initial RTT. Used as a floor when the path's
+// current PTO (multiplied by QUIC_PATH_VALIDATION_PTO_COUNT) would otherwise
+// produce too short a timeout.
+//
+#define QUIC_PATH_VALIDATION_MIN_INITIAL_RTT_MULTIPLE   6
+
+//
 // The congestion window to use after persistent congestion. TCP uses one
 // packet, but here we use two, as recommended by the QUIC spec.
 //
