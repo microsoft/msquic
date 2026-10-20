@@ -1625,28 +1625,36 @@ QuicCryptoProcessTlsCompletion(
             QuicCryptoHandshakeConfirmed(&Connection->Crypto, FALSE);
 
             //
-            // Take this opportinuty to clean up the client chosen initial CID.
-            // It will be the second one in the list.
+            // Clean up the client-chosen initial source CID.
             //
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next->Next == NULL);
-            QUIC_CID_HASH_ENTRY* InitialSourceCid =
-                CXPLAT_CONTAINING_RECORD(
-                    Connection->SourceCids.Next->Next,
-                    QUIC_CID_HASH_ENTRY,
-                    Link);
-            CXPLAT_DBG_ASSERT(InitialSourceCid->CID.IsInitial);
-            Connection->SourceCids.Next->Next = Connection->SourceCids.Next->Next->Next;
-            CXPLAT_DBG_ASSERT(!InitialSourceCid->CID.IsInLookupTable);
-            QuicTraceEvent(
-                ConnSourceCidRemoved,
-                "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                Connection,
-                InitialSourceCid->CID.SequenceNumber,
-                CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
-            CXPLAT_FREE(InitialSourceCid, QUIC_POOL_CIDHASH);
+            CXPLAT_SLIST_ENTRY** PrevLink = &Connection->SourceCids.Next;
+            BOOLEAN Found = FALSE;
+            while (*PrevLink != NULL) {
+                QUIC_CID_HASH_ENTRY* CidEntry =
+                    CXPLAT_CONTAINING_RECORD(
+                        *PrevLink,
+                        QUIC_CID_HASH_ENTRY,
+                        Link);
+                //
+                // The client-provided initial CID is the only one that is
+                // both marked IsInitial and not registered in the lookup table.
+                //
+                if (CidEntry->CID.IsInitial && !CidEntry->CID.IsInLookupTable) {
+                    *PrevLink = (*PrevLink)->Next;
+                    QuicTraceEvent(
+                        ConnSourceCidRemoved,
+                        "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+                        Connection,
+                        CidEntry->CID.SequenceNumber,
+                        CASTED_CLOG_BYTEARRAY(CidEntry->CID.Length, CidEntry->CID.Data));
+                    CXPLAT_FREE(CidEntry, QUIC_POOL_CIDHASH);
+                    Found = TRUE;
+                    break;
+                }
+                PrevLink = &(*PrevLink)->Next;
+            }
+            CXPLAT_DBG_ASSERT(Found);
+            UNREFERENCED_PARAMETER(Found);
         }
 
         //
