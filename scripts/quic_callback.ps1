@@ -87,18 +87,18 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
 } elseif ($Command.Contains("Prepare_MachineForTest")) {
     Write-Host "Executing command: $WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
     Invoke-Expression "$WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
-} elseif ($Command -eq "Install_XDP" -or $Command.StartsWith("Install_XDP;")) {
+} elseif ($Command.StartsWith("Install_XDP")) {
     $XdpCommand = $Command.Split(";")
     if ($XdpCommand.Count -ne 2 -or [string]::IsNullOrWhiteSpace($XdpCommand[1])) {
         throw "Install_XDP requires an XDP version: Install_XDP;<version>."
     }
-    $UseXdp = $XdpCommand[1]
+    $XdpVersion = $XdpCommand[1]
     $XdpVersions = Get-Content (Join-Path $PSScriptRoot "xdp.json") -Raw | ConvertFrom-Json
-    if ($UseXdp -notin $XdpVersions.PSObject.Properties.Name) {
-        throw "Unknown XDP version '$UseXdp'. Available versions: $($XdpVersions.PSObject.Properties.Name -join ', ')"
+    if ($XdpVersion -notin $XdpVersions.PSObject.Properties.Name) {
+        throw "Unknown XDP version '$XdpVersion'. Available versions: $($XdpVersions.PSObject.Properties.Name -join ', ')"
     }
-    Write-Host "Executing command: Install_XDP;$UseXdp"
-    .\scripts\prepare-machine.ps1 -InstallXdpDriver -UseXdp $UseXdp
+    Write-Host "Executing command: Install_XDP;$XdpVersion"
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver -UseXdp $XdpVersion
 } elseif ($Command -eq "Install_Kernel") {
     Write-Host "Executing command: Install_Kernel"
     $KernelDir = Repo-Path "./artifacts/bin/winkernel/x64_Release_schannel"

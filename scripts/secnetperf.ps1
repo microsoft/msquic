@@ -237,7 +237,7 @@ if ($isWindows -and !($environment -eq "azure")) {
 Configure-DumpCollection $Session
 
 # Install any dependent drivers.
-if ($XdpRequired -and $isWindows) { Install-XDP $Session $RemoteDir -UseXdp $UseXdp }
+if ($XdpRequired -and $isWindows) { Install-XDP $Session $RemoteDir -XdpVersion $UseXdp }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {

@@ -144,26 +144,26 @@ function Install-XDP {
         $RemoteDir,
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$UseXdp
+        [string]$XdpVersion
     )
     $XdpVersions = Get-Content (Join-Path $PSScriptRoot "xdp.json") -Raw | ConvertFrom-Json
-    if ($UseXdp -notin $XdpVersions.PSObject.Properties.Name) {
-        throw "Unknown XDP version '$UseXdp'. Available versions: $($XdpVersions.PSObject.Properties.Name -join ', ')"
+    if ($XdpVersion -notin $XdpVersions.PSObject.Properties.Name) {
+        throw "Unknown XDP version '$XdpVersion'. Available versions: $($XdpVersions.PSObject.Properties.Name -join ', ')"
     }
 
     whoami
     Write-Host "Installing XDP driver locally"
-    .\scripts\prepare-machine.ps1 -InstallXdpDriver -UseXdp $UseXdp
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver -UseXdp $XdpVersion
     Write-Host "Installing XDP driver on peer"
 
     if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Install_XDP;$UseXdp"
+        NetperfSendCommand "Install_XDP;$XdpVersion"
         NetperfWaitServerFinishExecution
         return
     }
 
     Invoke-Command -Session $Session -ScriptBlock {
-        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver -UseXdp $Using:UseXdp
+        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver -UseXdp $Using:XdpVersion
     }
 }
 
