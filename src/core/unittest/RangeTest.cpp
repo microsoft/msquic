@@ -15,17 +15,6 @@ Abstract:
 #include "RangeTest.cpp.clog.h"
 #endif
 
-//
-// Test-only wrapper that drives the production STREAM ACK path.
-//
-extern "C"
-void
-QuicTestStreamOnAck(
-    _In_ QUIC_STREAM* Stream,
-    _In_ QUIC_SEND_PACKET_FLAGS PacketFlags,
-    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
-    );
-
 static constexpr QUIC_RANGE_MODE_MASK ArrayOnlyModes =
     QUIC_RANGE_MODE_ARRAY;
 static constexpr QUIC_RANGE_MODE_MASK TieredModes =
@@ -1256,7 +1245,7 @@ TEST(RangeTest, TieredStreamAckPromotesAfterArrayThreshold)
          i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
          ++i) {
         FrameMetadata.StreamOffset = 2ULL * (i + 1);
-        QuicTestStreamOnAck(
+        QuicStreamOnAck(
             &Stream,
             PacketFlags,
             &FrameMetadata);
@@ -1271,7 +1260,7 @@ TEST(RangeTest, TieredStreamAckPromotesAfterArrayThreshold)
 
     FrameMetadata.StreamOffset =
         2ULL * (QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
-    QuicTestStreamOnAck(
+    QuicStreamOnAck(
         &Stream,
         PacketFlags,
         &FrameMetadata);
