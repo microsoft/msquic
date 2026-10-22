@@ -460,6 +460,10 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestListenerParam);
     RegisterTestFunction(QuicTestConnectionParam);
     RegisterTestFunction(QuicTestTlsParam);
+    RegisterTestFunction(QuicTestTlsUtf8ToUnicodeStringEmpty);
+    RegisterTestFunction(QuicTestTlsUtf8ToUnicodeStringMultibyte);
+    RegisterTestFunction(QuicTestTlsUtf8ToUnicodeStringMaximumLength);
+    RegisterTestFunction(QuicTestTlsUtf8ToUnicodeStringOversized);
     RegisterTestFunction(QuicTestTlsHandshakeInfo);
     RegisterTestFunction(QuicTestStreamParam);
     RegisterTestFunction(QuicTestGetPerfCounters);

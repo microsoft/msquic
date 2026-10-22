@@ -682,7 +682,7 @@ CxPlatTlsUtf8ToUnicodeString(
         goto Error;
     }
 
-    if (RequiredSize < sizeof(WCHAR) || RequiredSize > MAXUSHORT) {
+    if (RequiredSize > MAXUSHORT) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }

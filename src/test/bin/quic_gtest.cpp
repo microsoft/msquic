@@ -415,6 +415,44 @@ TEST(ParameterValidation, ValidateTlsParam) {
     }
 }
 
+TEST(ParameterValidation, TlsUtf8ToUnicodeStringEmpty) {
+    if (!TestingKernelMode) {
+        GTEST_SKIP() <<
+            "QuicTestTlsUtf8ToUnicodeStringEmpty only applies to kernel mode.";
+    }
+    TestLogger Logger("QuicTestTlsUtf8ToUnicodeStringEmpty");
+    ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestTlsUtf8ToUnicodeStringEmpty)));
+}
+
+TEST(ParameterValidation, TlsUtf8ToUnicodeStringMultibyte) {
+    if (!TestingKernelMode) {
+        GTEST_SKIP() <<
+            "QuicTestTlsUtf8ToUnicodeStringMultibyte only applies to kernel mode.";
+    }
+    TestLogger Logger("QuicTestTlsUtf8ToUnicodeStringMultibyte");
+    ASSERT_TRUE(
+        InvokeKernelTest(FUNC(QuicTestTlsUtf8ToUnicodeStringMultibyte)));
+}
+
+TEST(ParameterValidation, TlsUtf8ToUnicodeStringMaximumLength) {
+    if (!TestingKernelMode) {
+        GTEST_SKIP() <<
+            "QuicTestTlsUtf8ToUnicodeStringMaximumLength only applies to kernel mode.";
+    }
+    TestLogger Logger("QuicTestTlsUtf8ToUnicodeStringMaximumLength");
+    ASSERT_TRUE(
+        InvokeKernelTest(FUNC(QuicTestTlsUtf8ToUnicodeStringMaximumLength)));
+}
+
+TEST(ParameterValidation, TlsUtf8ToUnicodeStringOversized) {
+    if (!TestingKernelMode) {
+        GTEST_SKIP() <<
+            "QuicTestTlsUtf8ToUnicodeStringOversized only applies to kernel mode.";
+    }
+    TestLogger Logger("QuicTestTlsUtf8ToUnicodeStringOversized");
+    ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestTlsUtf8ToUnicodeStringOversized)));
+}
+
 TEST_P(WithBool, ValidateTlsHandshakeInfo) {
     TestLoggerT<ParamType> Logger("QuicTestValidateTlsHandshakeInfo", GetParam());
     if (TestingKernelMode) {
