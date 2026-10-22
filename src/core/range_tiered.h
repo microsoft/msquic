@@ -15,20 +15,13 @@ extern "C" {
 
 typedef struct QUIC_RANGE_TIERED QUIC_RANGE_TIERED;
 
-// log2(256) = 8, used to divide a logical index by the block capacity.
-#define QUIC_RANGE_TIERED_BLOCK_SHIFT 8
 // Each fixed-size block stores 256 subranges.
-#define QUIC_RANGE_TIERED_BLOCK_CAPACITY \
-    (1u << QUIC_RANGE_TIERED_BLOCK_SHIFT)
-// Mask 255 extracts or wraps a block-local slot without modulo.
-#define QUIC_RANGE_TIERED_BLOCK_MASK \
-    (QUIC_RANGE_TIERED_BLOCK_CAPACITY - 1)
+#define QUIC_RANGE_TIERED_BLOCK_CAPACITY 256u
 // One complete 256-subrange block occupies 4,096 bytes.
 #define QUIC_RANGE_TIERED_BLOCK_BYTES \
     (QUIC_RANGE_TIERED_BLOCK_CAPACITY * sizeof(QUIC_SUBRANGE))
 // The 256 directory slots address at most 65,536 logical subranges.
-#define QUIC_RANGE_TIERED_DIRECTORY_CAPACITY \
-    (1u << (16 - QUIC_RANGE_TIERED_BLOCK_SHIFT))
+#define QUIC_RANGE_TIERED_DIRECTORY_CAPACITY 256u
 // Promote when the array contains one full block of 256 subranges.
 #define QUIC_RANGE_TIERED_PROMOTE_LENGTH \
     QUIC_RANGE_TIERED_BLOCK_CAPACITY
