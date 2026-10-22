@@ -122,6 +122,7 @@ QuicConnAlloc(
     Connection->Settings.IsSetFlags = 0; // Just grab the global values, not IsSet flags.
     CxPlatDispatchLockInitialize(&Connection->ReceiveQueueLock);
     CxPlatListInitializeHead(&Connection->DestCids);
+    CxPlatListInitializeHead(&Connection->DestCidsPendingDeletion);
     QuicStreamSetInitialize(&Connection->Streams);
     QuicSendBufferInitialize(&Connection->SendBuffer);
     QuicOperationQueueInitialize(&Connection->OperQ);
@@ -297,6 +298,14 @@ Error:
                 Link);
         CXPLAT_FREE(CID, QUIC_POOL_CIDLIST);
     }
+    while (!CxPlatListIsEmpty(&Connection->DestCidsPendingDeletion)) {
+        QUIC_CID_LIST_ENTRY *CID =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Connection->DestCidsPendingDeletion),
+                QUIC_CID_LIST_ENTRY,
+                Link);
+        CXPLAT_FREE(CID, QUIC_POOL_CIDLIST);
+    }
     QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
     return Status;
@@ -345,6 +354,14 @@ QuicConnFree(
         QUIC_CID_LIST_ENTRY *CID =
             CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Connection->DestCids),
+                QUIC_CID_LIST_ENTRY,
+                Link);
+        CXPLAT_FREE(CID, QUIC_POOL_CIDLIST);
+    }
+    while (!CxPlatListIsEmpty(&Connection->DestCidsPendingDeletion)) {
+        QUIC_CID_LIST_ENTRY *CID =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Connection->DestCidsPendingDeletion),
                 QUIC_CID_LIST_ENTRY,
                 Link);
         CXPLAT_FREE(CID, QUIC_POOL_CIDLIST);
@@ -1074,8 +1091,8 @@ QuicConnRetireCid(
     DestCid->CID.NeedsToSend = TRUE;
     QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID);
 
-    Connection->RetiredDestCidCount++;
-    if (Connection->RetiredDestCidCount > 8 * QUIC_ACTIVE_CONNECTION_ID_LIMIT) {
+    Connection->DestCidsPendingDeletionCount++;
+    if (Connection->DestCidsPendingDeletionCount > 8 * QUIC_ACTIVE_CONNECTION_ID_LIMIT) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",

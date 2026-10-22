@@ -480,6 +480,37 @@ QuicSendClearStreamSendFlag(
     }
 }
 
+//
+// Encodes a RETIRE_CONNECTION_ID frame for the given CID entry.
+// Returns TRUE on success, FALSE if there's not enough room.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicSendWriteRetireCidFrame(
+    _Inout_ QUIC_PACKET_BUILDER* Builder,
+    _Inout_ QUIC_CID_LIST_ENTRY* DestCid,
+    _In_ uint16_t AvailableBufferLength
+    )
+{
+    QUIC_RETIRE_CONNECTION_ID_EX Frame = {
+        DestCid->CID.SequenceNumber
+    };
+    if (!QuicRetireConnectionIDFrameEncode(
+            &Frame,
+            &Builder->DatagramLength,
+            AvailableBufferLength,
+            Builder->Datagram->Buffer)) {
+        return FALSE;
+    }
+    DestCid->CID.NeedsToSend = FALSE;
+    Builder->Metadata->Frames[
+        Builder->Metadata->FrameCount].RETIRE_CONNECTION_ID.Sequence =
+            DestCid->CID.SequenceNumber;
+    QuicPacketBuilderAddFrame(
+        Builder, QUIC_FRAME_RETIRE_CONNECTION_ID, TRUE);
+    return TRUE;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSendWriteFrames(
@@ -870,8 +901,51 @@ QuicSendWriteFrames(
 
             BOOLEAN HasMoreCidsToSend = FALSE;
             BOOLEAN MaxFrameLimitHit = FALSE;
-            for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
-                    Entry != &Connection->DestCids;
+
+            //
+            // Iterate DestCids: for each retired CID that needs to send,
+            // encode the RETIRE_CID frame and move to DestCidsPendingDeletion.
+            // Use while+Next because we remove entries during iteration.
+            //
+            CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+            while (Entry != &Connection->DestCids) {
+                CXPLAT_LIST_ENTRY* Next = Entry->Flink;
+                QUIC_CID_LIST_ENTRY* DestCid =
+                    CXPLAT_CONTAINING_RECORD(
+                        Entry,
+                        QUIC_CID_LIST_ENTRY,
+                        Link);
+                if (!DestCid->CID.Retired || !DestCid->CID.NeedsToSend) {
+                    Entry = Next;
+                    continue;
+                }
+                if (MaxFrameLimitHit) {
+                    HasMoreCidsToSend = TRUE;
+                    break;
+                }
+                if (!QuicSendWriteRetireCidFrame(
+                        Builder, DestCid, AvailableBufferLength)) {
+                    RanOutOfRoom = TRUE;
+                    HasMoreCidsToSend = TRUE;
+                    break;
+                }
+                MaxFrameLimitHit = Builder->Metadata->FrameCount >= QUIC_MAX_FRAMES_PER_PACKET;
+                //
+                // Frame sent — CID is guaranteed path-detached.
+                // Move to DestCidsPendingDeletion so ACK processing can free it.
+                //
+                QuicCidValidateUnused(&Connection->Paths, DestCid);
+                CxPlatListEntryRemove(&DestCid->Link);
+                CxPlatListInsertTail(&Connection->DestCidsPendingDeletion, &DestCid->Link);
+                Entry = Next;
+            }
+
+            //
+            // Iterate DestCidsPendingDeletion for retransmissions (loss recovery
+            // sets NeedsToSend on entries already in this list).
+            //
+            for (Entry = Connection->DestCidsPendingDeletion.Flink;
+                    Entry != &Connection->DestCidsPendingDeletion;
                     Entry = Entry->Flink) {
                 QUIC_CID_LIST_ENTRY* DestCid =
                     CXPLAT_CONTAINING_RECORD(
@@ -886,29 +960,15 @@ QuicSendWriteFrames(
                     HasMoreCidsToSend = TRUE;
                     break;
                 }
-
-                QUIC_RETIRE_CONNECTION_ID_EX Frame = {
-                    DestCid->CID.SequenceNumber
-                };
-                if (QuicRetireConnectionIDFrameEncode(
-                        &Frame,
-                        &Builder->DatagramLength,
-                        AvailableBufferLength,
-                        Builder->Datagram->Buffer)) {
-
-                    DestCid->CID.NeedsToSend = FALSE;
-                    Builder->Metadata->Frames[
-                        Builder->Metadata->FrameCount].RETIRE_CONNECTION_ID.Sequence =
-                            DestCid->CID.SequenceNumber;
-                    MaxFrameLimitHit =
-                        QuicPacketBuilderAddFrame(
-                            Builder, QUIC_FRAME_RETIRE_CONNECTION_ID, TRUE);
-                } else {
+                if (!QuicSendWriteRetireCidFrame(
+                        Builder, DestCid, AvailableBufferLength)) {
                     RanOutOfRoom = TRUE;
                     HasMoreCidsToSend = TRUE;
                     break;
                 }
+                MaxFrameLimitHit = Builder->Metadata->FrameCount >= QUIC_MAX_FRAMES_PER_PACKET;
             }
+
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID;
             }
