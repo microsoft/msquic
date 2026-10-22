@@ -4,4 +4,4 @@
 #else
 #define TRACEPOINT_DEFINE
 #endif
-#include "range.c.clog.h"
+#include "range_tiered.c.clog.h"

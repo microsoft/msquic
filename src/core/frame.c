@@ -280,7 +280,7 @@ QuicAckFrameDecode(
     )
 {
     *InvalidFrame = FALSE;
-    CXPLAT_DBG_ASSERT(AckRanges->SubRanges); // Should be pre-initialized.
+    CXPLAT_DBG_ASSERT(QuicRangeIsInitialized(AckRanges)); // Should be pre-initialized.
 
     //
     // Decode the ACK frame header.

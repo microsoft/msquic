@@ -2,16 +2,16 @@
 #include <clog.h>
 #endif
 #undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER CLOG_RANGE_C
+#define TRACEPOINT_PROVIDER CLOG_RANGE_TIERED_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #define  TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "range.c.clog.h.lttng.h"
-#if !defined(DEF_CLOG_RANGE_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define DEF_CLOG_RANGE_C
+#define TRACEPOINT_INCLUDE "range_tiered.c.clog.h.lttng.h"
+#if !defined(DEF_CLOG_RANGE_TIERED_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
+#define DEF_CLOG_RANGE_TIERED_C
 #include <lttng/tracepoint.h>
 #define __int64 __int64_t
-#include "range.c.clog.h.lttng.h"
+#include "range_tiered.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
 #ifndef _clog_MACRO_QuicTraceEvent
@@ -25,16 +25,16 @@ extern "C" {
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "range (realloc)",
-            NewAllocLength);
-// arg2 = arg2 = "range (realloc)" = arg2
-// arg3 = arg3 = NewAllocLength = arg3
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "tiered range block",
+                (unsigned long long)QUIC_RANGE_TIERED_BLOCK_BYTES);
+// arg2 = arg2 = "tiered range block" = arg2
+// arg3 = arg3 = (unsigned long long)QUIC_RANGE_TIERED_BLOCK_BYTES = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_RANGE_C, AllocFailure , arg2, arg3);\
+tracepoint(CLOG_RANGE_TIERED_C, AllocFailure , arg2, arg3);\
 
 #endif
 
@@ -45,5 +45,5 @@ tracepoint(CLOG_RANGE_C, AllocFailure , arg2, arg3);\
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_range.c.clog.h.c"
+#include "quic.clog_range_tiered.c.clog.h.c"
 #endif
