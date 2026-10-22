@@ -48,12 +48,16 @@ QuicAckTrackerInitialize(
     _Inout_ QUIC_ACK_TRACKER* Tracker
     )
 {
+    // Array-only: duplicate tracking is capped at 256 subranges.
     QuicRangeInitialize(
         QUIC_MAX_RANGE_DUPLICATE_PACKETS,
+        QUIC_RANGE_MODE_ARRAY,
         &Tracker->PacketNumbersReceived);
 
+    // Array-only: ACK generation is capped at 128 subranges.
     QuicRangeInitialize(
         QUIC_MAX_RANGE_ACK_PACKETS,
+        QUIC_RANGE_MODE_ARRAY,
         &Tracker->PacketNumbersToAck);
 }
 

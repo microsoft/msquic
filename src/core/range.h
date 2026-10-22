@@ -5,25 +5,17 @@
 
 --*/
 
+#pragma once
+
+#include "range_array.h"
+#include "range_tiered.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 #define QUIC_RANGE_NO_MAX_ALLOC_SIZE    UINT32_MAX
 #define QUIC_RANGE_USE_BINARY_SEARCH    1
-
-#define QUIC_RANGE_INITIAL_SUB_COUNT    8
-
-typedef struct QUIC_RANGE_TIERED QUIC_RANGE_TIERED;
-
-typedef struct QUIC_SUBRANGE {
-
-    uint64_t Low;
-    uint64_t Count;
-
-} QUIC_SUBRANGE;
-
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(sizeof(QUIC_SUBRANGE)), "Must be power of two");
 
 typedef struct QUIC_RANGE_SEARCH_KEY {
 
@@ -32,17 +24,16 @@ typedef struct QUIC_RANGE_SEARCH_KEY {
 
 } QUIC_RANGE_SEARCH_KEY;
 
-//
-// Returns the largest value in a subrange.
-//
-QUIC_INLINE
-uint64_t
-QuicRangeGetHigh(
-    _In_ const QUIC_SUBRANGE* const Sub
-    )
-{
-    return Sub->Low + Sub->Count - 1;
-}
+typedef uint8_t QUIC_RANGE_MODE;
+typedef uint8_t QUIC_RANGE_MODE_MASK;
+
+enum QUIC_RANGE_MODE_VALUE {
+
+    QUIC_RANGE_MODE_NONE =   0x00U,
+    QUIC_RANGE_MODE_ARRAY =  0x01U,
+    QUIC_RANGE_MODE_TIERED = 0x02U
+
+};
 
 typedef struct QUIC_RANGE {
 
@@ -50,24 +41,12 @@ typedef struct QUIC_RANGE {
     // Active backing storage.
     //
     union {
-        _Field_size_(AllocLength)
-        QUIC_SUBRANGE* SubRanges;
+        QUIC_RANGE_ARRAY Array;
         QUIC_RANGE_TIERED* Tiered;
     };
 
     //
-    // The number of currently used subranges in the 'SubRanges' array.
-    //
-    uint32_t UsedLength;
-
-    //
-    // The number of allocated subranges in the 'SubRanges' array.
-    //
-    _Field_range_(1, QUIC_MAX_RANGE_ALLOC_SIZE)
-    uint32_t AllocLength;
-
-    //
-    // The maximum allocation byte count for the 'SubRanges' array.
+    // The maximum allocation byte count for the active representation.
     //
     _Field_range_(sizeof(QUIC_SUBRANGE), sizeof(QUIC_SUBRANGE) * QUIC_MAX_RANGE_ALLOC_SIZE)
     uint32_t MaxAllocSize;
@@ -75,26 +54,32 @@ typedef struct QUIC_RANGE {
     //
     // Identifies which union member owns the active backing storage.
     //
-    uint8_t Mode;
+    QUIC_RANGE_MODE Mode;
 
     //
-    // Allocates a number of subranges along with the parent object.
+    // Identifies the backing-storage representations permitted for this range.
     //
-    QUIC_SUBRANGE PreAllocSubRanges[QUIC_RANGE_INITIAL_SUB_COUNT];
+    QUIC_RANGE_MODE_MASK AllowedModes;
 
 } QUIC_RANGE;
 
-#define QUIC_RANGE_MODE_ARRAY   0
-#define QUIC_RANGE_MODE_TIERED  1
-
 //
-// Resolves a logical subrange index through tiered storage.
+// Returns TRUE when the active representation has initialized storage.
 //
-QUIC_SUBRANGE*
-QuicRangeTieredGet(
-    _In_ const QUIC_RANGE* Range,
-    _In_ uint32_t Index
-    );
+QUIC_INLINE
+BOOLEAN
+QuicRangeIsInitialized(
+    _In_ const QUIC_RANGE* Range
+    )
+{
+    if (Range->Mode == QUIC_RANGE_MODE_ARRAY) {
+        return Range->Array.SubRanges != NULL;
+    }
+    if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
+        return Range->Tiered != NULL;
+    }
+    return FALSE;
+}
 
 //
 // Returns the number of subranges in the range.
@@ -105,7 +90,10 @@ QuicRangeSize(
     _In_ const QUIC_RANGE * const Range
     )
 {
-    return Range->UsedLength;
+    return
+        Range->Mode == QUIC_RANGE_MODE_TIERED ?
+            QuicRangeTieredSize(Range->Tiered) :
+            QuicRangeArraySize(&Range->Array);
 }
 
 //
@@ -120,9 +108,9 @@ QuicRangeGet(
 {
     // Mode selects the valid backing-storage union member.
     if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
-        return QuicRangeTieredGet(Range, Index);
+        return QuicRangeTieredGet(Range->Tiered, Index);
     }
-    return &Range->SubRanges[Index];
+    return QuicRangeArrayGet(&Range->Array, Index);
 }
 
 //
@@ -187,9 +175,9 @@ QuicRangeSearch(
     _In_ const QUIC_RANGE_SEARCH_KEY* Key
     )
 {
-    uint32_t Num = Range->UsedLength;
+    uint32_t Num = QuicRangeSize(Range);
     uint32_t Lo = 0;
-    uint32_t Hi = Range->UsedLength - 1;
+    uint32_t Hi = Num - 1;
     uint32_t Mid = 0;
     int Result = 0;
 
@@ -258,6 +246,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeInitialize(
     _In_ uint32_t MaxAllocSize,
+    _In_ QUIC_RANGE_MODE_MASK AllowedModes,
     _Out_ QUIC_RANGE* Range
     );
 

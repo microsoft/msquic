@@ -506,7 +506,11 @@ void WriteAckFrame(
         return;
     }
     QUIC_RANGE AckRange;
-    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
+    // Array-only: generated ACK frames use the 256-subrange decode cap.
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_DECODE_ACKS,
+        QUIC_RANGE_MODE_ARRAY,
+        &AckRange);
     BOOLEAN RangeUpdated;
     QuicRangeAddRange(&AckRange, LargestAcknowledge, 1, &RangeUpdated);
     uint64_t AckDelay = 40;
