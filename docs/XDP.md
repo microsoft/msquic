@@ -25,6 +25,13 @@ own `xdp-setup.ps1`:
 `-UseXdp` takes the version moniker to install (any key from `xdp.json`); omit it
 to skip XDP entirely.
 
+The Windows `secnetperf.ps1` performance tests accept `-UseXdp <version>` to select
+the runtime from `scripts/xdp.json`. The default is `xdp-v1.4`; to test a prerelease,
+add `-UseXdp xdp-prerelease` to the existing performance-test arguments. The selected
+version is installed on both the client and the peer, including peers managed
+through the 1ES shared cache. This parameter does not enable XDP by itself: either
+`-io` or `-serverio` must select `xdp` or `qtip`.
+
 ## What is XDP
 
 XDP enables received packets to completely bypass the OS networking stack.

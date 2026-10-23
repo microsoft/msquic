@@ -28,6 +28,10 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 .PARAMETER serverio
     The network IO interface to be used on the server (not all are supported on all platforms).
 
+.PARAMETER UseXdp
+    The XDP runtime version from scripts/xdp.json to install on both machines when
+    either IO interface requires XDP. Defaults to xdp-v1.4.
+
 .PARAMETER filter
     Run only the tests whose arguments match one of the positive patterns but
     none of the negative patterns (prefixed by '-'). '?' matches any single
@@ -70,6 +74,10 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("", "iocp", "xdp", "qtip", "wsk", "epoll", "iouring","kqueue")]
     [string]$serverio = "",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateNotNullOrEmpty()]
+    [string]$UseXdp = "xdp-v1.4",
 
     [Parameter(Mandatory = $false)]
     [string]$filter = "",
@@ -126,7 +134,7 @@ if ($isWindows -and $NoLogs) {
     $LogProfile = "Basic.Light"
 }
 
-$useXDP = (Is-XdpRequiredByIo $io) -or (Is-XdpRequiredByIo $serverio)
+$XdpRequired = (Is-XdpRequiredByIo $io) -or (Is-XdpRequiredByIo $serverio)
 
 $Session = InitNetperfLib "quic_callback.ps1" $RemoteDir $RemoteName $UserName
 
@@ -229,7 +237,7 @@ if ($isWindows -and !($environment -eq "azure")) {
 Configure-DumpCollection $Session
 
 # Install any dependent drivers.
-if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
+if ($XdpRequired -and $isWindows) { Install-XDP $Session $RemoteDir -XdpVersion $UseXdp }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
