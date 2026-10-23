@@ -637,7 +637,7 @@ QuicRecvBufferWriteNewBytes(
     // Earlier subranges end before WriteOffset and cannot affect this write.
     //
     const uint32_t StartIndex =
-        QuicRangeGetFirstIndexAtOrAfter(
+        QuicRangeFindContainingOrNext(
             &RecvBuffer->WrittenRanges,
             WriteOffset);
     for (uint32_t i = StartIndex;

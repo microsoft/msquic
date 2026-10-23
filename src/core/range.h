@@ -229,18 +229,17 @@ QuicRangeSearch(
 #endif
 
 //
-// Returns the index of the subrange containing Low, or the first subrange
-// whose Low is greater than the input. Returns Range->UsedLength when every
-// subrange is before Low.
+// Returns the index of the subrange containing Value, or the next subrange.
+// Returns Range->UsedLength if no such subrange exists.
 //
 QUIC_INLINE
 uint32_t
-QuicRangeGetFirstIndexAtOrAfter(
+QuicRangeFindContainingOrNext(
     _In_ const QUIC_RANGE* Range,
-    _In_ uint64_t Low
+    _In_ uint64_t Value
     )
 {
-    const QUIC_RANGE_SEARCH_KEY Key = {Low, Low};
+    const QUIC_RANGE_SEARCH_KEY Key = {Value, Value};
     const int Result = QuicRangeSearch(Range, &Key);
     // A match is already an index; an insertion result encodes the first gap.
     return

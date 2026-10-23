@@ -52,8 +52,8 @@ struct SmartRange {
         QUIC_RANGE_SEARCH_KEY Key = { value, value + count - 1 };
         return QuicRangeSearch(&range, &Key);
     }
-    uint32_t FirstIndexAtOrAfter(uint64_t value) {
-        return QuicRangeGetFirstIndexAtOrAfter(&range, value);
+    uint32_t FindContainingOrNext(uint64_t value) {
+        return QuicRangeFindContainingOrNext(&range, value);
     }
     uint64_t Min() {
         uint64_t value;
@@ -758,20 +758,20 @@ TEST(RangeTest, SearchRangeThree)
 }
 
 //
-// Verifies lower-bound lookup at overlaps, gaps, large indices, and the end.
+// Verifies containing-or-next lookup at overlaps, gaps, large indices, and the end.
 //
-TEST(RangeTest, FirstIndexAtOrAfter)
+TEST(RangeTest, FindContainingOrNext)
 {
     SmartRange Range;
     for (uint32_t i = 0; i < 1024; ++i) {
         Range.Add(4ULL * i, 2);
     }
 
-    ASSERT_EQ(Range.FirstIndexAtOrAfter(0), 0u);
-    ASSERT_EQ(Range.FirstIndexAtOrAfter(1), 0u);
-    ASSERT_EQ(Range.FirstIndexAtOrAfter(2), 1u);
-    ASSERT_EQ(Range.FirstIndexAtOrAfter(1023), 256u);
-    ASSERT_EQ(Range.FirstIndexAtOrAfter(2047), 512u);
-    ASSERT_EQ(Range.FirstIndexAtOrAfter(4093), 1023u);
-    ASSERT_EQ(Range.FirstIndexAtOrAfter(4094), 1024u);
+    ASSERT_EQ(Range.FindContainingOrNext(0), 0u);
+    ASSERT_EQ(Range.FindContainingOrNext(1), 0u);
+    ASSERT_EQ(Range.FindContainingOrNext(2), 1u);
+    ASSERT_EQ(Range.FindContainingOrNext(1023), 256u);
+    ASSERT_EQ(Range.FindContainingOrNext(2047), 512u);
+    ASSERT_EQ(Range.FindContainingOrNext(4093), 1023u);
+    ASSERT_EQ(Range.FindContainingOrNext(4094), 1024u);
 }

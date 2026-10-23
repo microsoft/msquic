@@ -951,12 +951,11 @@ QuicStreamWriteStreamFrames(
             // end before Left and cannot constrain this frame.
             //
             uint32_t i =
-                QuicRangeGetFirstIndexAtOrAfter(
+                QuicRangeFindContainingOrNext(
                     &Stream->SparseAckRanges,
                     Left);
             Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i);
-            if (Sack != NULL &&
-                Sack->Low < Left) {
+            if (Sack != NULL && Sack->Low < Left) {
                 CXPLAT_DBG_ASSERT(Sack->Low + Sack->Count <= Left);
                 Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i + 1);
             }
@@ -1322,7 +1321,7 @@ QuicStreamOnLoss(
     // can overlap the lost range.
     //
     uint32_t i =
-        QuicRangeGetFirstIndexAtOrAfter(
+        QuicRangeFindContainingOrNext(
             &Stream->SparseAckRanges,
             Start);
     while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL &&
