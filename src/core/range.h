@@ -14,6 +14,8 @@ extern "C" {
 
 #define QUIC_RANGE_INITIAL_SUB_COUNT    8
 
+typedef struct QUIC_RANGE_TIERED QUIC_RANGE_TIERED;
+
 typedef struct QUIC_SUBRANGE {
 
     uint64_t Low;
@@ -45,10 +47,13 @@ QuicRangeGetHigh(
 typedef struct QUIC_RANGE {
 
     //
-    // Array of subranges that represent the set of intervals.
+    // Active backing storage.
     //
-    _Field_size_(AllocLength)
-    QUIC_SUBRANGE* SubRanges;
+    union {
+        _Field_size_(AllocLength)
+        QUIC_SUBRANGE* SubRanges;
+        QUIC_RANGE_TIERED* Tiered;
+    };
 
     //
     // The number of currently used subranges in the 'SubRanges' array.
@@ -68,11 +73,28 @@ typedef struct QUIC_RANGE {
     uint32_t MaxAllocSize;
 
     //
+    // Identifies which union member owns the active backing storage.
+    //
+    uint8_t Mode;
+
+    //
     // Allocates a number of subranges along with the parent object.
     //
     QUIC_SUBRANGE PreAllocSubRanges[QUIC_RANGE_INITIAL_SUB_COUNT];
 
 } QUIC_RANGE;
+
+#define QUIC_RANGE_MODE_ARRAY   0
+#define QUIC_RANGE_MODE_TIERED  1
+
+//
+// Resolves a logical subrange index through tiered storage.
+//
+QUIC_SUBRANGE*
+QuicRangeTieredGet(
+    _In_ const QUIC_RANGE* Range,
+    _In_ uint32_t Index
+    );
 
 //
 // Returns the number of subranges in the range.
@@ -96,6 +118,10 @@ QuicRangeGet(
     _In_ uint32_t Index
     )
 {
+    // Mode selects the valid backing-storage union member.
+    if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
+        return QuicRangeTieredGet(Range, Index);
+    }
     return &Range->SubRanges[Index];
 }
 
@@ -110,7 +136,7 @@ QuicRangeGetSafe(
     _In_ uint32_t Index
     )
 {
-    return Index < QuicRangeSize(Range) ? &Range->SubRanges[Index] : NULL;
+    return Index < QuicRangeSize(Range) ? QuicRangeGet(Range, Index) : NULL;
 }
 
 //
@@ -299,8 +325,8 @@ QuicRangeAddRange(
     );
 
 //
-// Removes a number of subranges from the range. Returns TRUE if the list was
-// shrunk (reallocated) because of the removal operation.
+// Removes a number of subranges from the range. Returns TRUE when callers must
+// reacquire previously returned pointers to retained QUIC_SUBRANGE records.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
