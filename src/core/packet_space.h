@@ -54,7 +54,7 @@ typedef struct QUIC_PACKET_SPACE {
     //
     // Numbers of entries in the DeferredPackets list.
     //
-    uint8_t DeferredPacketsCount;
+    uint16_t DeferredPacketsCount;
 
     //
     // The (expected) next packet number to receive. Used for decoding received
