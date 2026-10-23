@@ -766,10 +766,18 @@ QuicCryptoWriteCryptoFrames(
             //
             Sack = NULL;
         } else {
-            uint32_t i = 0;
-            while ((Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i++)) != NULL &&
-                Sack->Low < (uint64_t)Left) {
+            //
+            // Start at the covering subrange or its successor; all earlier
+            // SACKs end before Left and cannot constrain this frame.
+            //
+            uint32_t i =
+                QuicRangeFindContainingOrNext(
+                    &Crypto->SparseAckRanges,
+                    (uint64_t)Left);
+            Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i);
+            if (Sack != NULL && Sack->Low < (uint64_t)Left) {
                 CXPLAT_DBG_ASSERT(Sack->Low + Sack->Count <= (uint64_t)Left);
+                Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i + 1);
             }
         }
 
@@ -998,7 +1006,14 @@ QuicCryptoOnLoss(
     }
 
     QUIC_SUBRANGE* Sack;
-    uint32_t i = 0;
+    //
+    // Skip SACKs that end before Start; only the covering subrange or a later
+    // one can overlap the lost range.
+    //
+    uint32_t i =
+        QuicRangeFindContainingOrNext(
+            &Crypto->SparseAckRanges,
+            Start);
     while ((Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i++)) != NULL &&
         Sack->Low < End) {
         if (Start < Sack->Low + Sack->Count) {
