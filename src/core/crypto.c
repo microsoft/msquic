@@ -127,8 +127,10 @@ QuicCryptoInitialize(
 
     CXPLAT_PASSIVE_CODE();
 
+    // Tiered: sparse crypto ACKs may exceed 256 subranges.
     QuicRangeInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
+        QUIC_RANGE_MODE_ARRAY | QUIC_RANGE_MODE_TIERED,
         &Crypto->SparseAckRanges);
 
     Crypto->TlsState.BufferAllocLength = SendBufferLength;
