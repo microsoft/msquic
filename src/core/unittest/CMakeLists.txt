@@ -4,6 +4,7 @@
 set(SOURCES
     main.cpp
     BbrTest.cpp
+    CryptoTest.cpp
     CubicTest.cpp
     FrameTest.cpp
     PacketNumberTest.cpp
