@@ -953,8 +953,8 @@ struct ReplaceAddressHelper : public DatapathHook
         DatapathHooks::Instance->RemoveHook(this);
     }
     void IncrementPort() {
-        CXPLAT_DBG_ASSERT(QuicAddrGetPort(&New) != 0xFFFF);
-        QuicAddrSetPort(&New, (uint16_t)1 + QuicAddrGetPort(&New));
+        uint16_t Port = QuicAddrGetPort(&New);
+        QuicAddrSetPort(&New, Port == UINT16_MAX ? 1 : (uint16_t)(Port + 1));
     }
     void IncrementAddr() {
         QuicAddrIncrement(&New);
