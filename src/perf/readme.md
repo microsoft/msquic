@@ -21,7 +21,7 @@ There are all the arguments that can be passed to the server:
 Argument | Usage | Meaning
 --- | --- | ---
 bind | `-bind:<address>` | Binds to the specified local address.
-cc | `-cc:<cubic,bbr>` | Congestion control algorithm used.
+cc | `-cc:<cubic,bbr,bbrv3>` | Congestion control algorithm used.
 cibir | `-cibir:<hex_bytes>` | The well-known CIBIR identifier.
 cipher | `-cipher:<value>` | Decimal value of 1 or more `QUIC_ALLOWED_CIPHER_SUITE_FLAGS`.
 cpu | `-cpu:<cpu_indexes>` | Comma-separated list of CPUs to run on.
@@ -167,4 +167,13 @@ Started!
 
 Result: 30555 RPS, Latency,us 0th: 24, 50th: 32, 90th: 34, 99th: 81, 99.9th: 131, 99.99th: 192, 99.999th: 456, 99.9999th: 1766, Max: 1766
 App Main returning status 0
+```
+
+## Emulated Network Comparisons
+
+With DuoNic installed, use the existing performance script to compare QUIC
+congestion controllers under configurable RTT, bandwidth, queue, and loss conditions:
+
+```powershell
+scripts\emulated-performance.ps1 -Protocol QUIC -CongestionControl cubic,bbr,bbrv3
 ```
