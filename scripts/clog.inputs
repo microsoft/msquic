@@ -18,6 +18,7 @@
 ../src/platform/datapath_linux.c
 ../src/platform/datapath_unix.c
 ../src/platform/datapath_xplat.c
+../src/platform/datapath_raw_parse.c
 ../src/platform/datapath_raw_socket.c
 ../src/platform/datapath_raw_socket_win.c
 ../src/platform/datapath_raw_xdp_win.c
