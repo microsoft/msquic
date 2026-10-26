@@ -1276,6 +1276,16 @@ QuicConnGetUnusedDestCid(
     );
 
 //
+// Retires a specific destination connection ID.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnRetireCid(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CID_LIST_ENTRY* DestCid
+    );
+
+//
 // Retires the currently used destination connection ID.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
