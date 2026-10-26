@@ -11025,6 +11025,18 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "SettingsOfferedVersionsTooLong": {
+      "ModuleProperites": {},
+      "TraceString": "Offered versions list exceeds VN response capacity: %u entries",
+      "UniqueId": "SettingsOfferedVersionsTooLong",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "SettingsStreamMultiReceiveEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] StreamMultiReceiveEnabled= %hhu",
@@ -16549,6 +16561,11 @@
         "UniquenessHash": "81035efa-7e5c-22d0-3a02-16a2f7cc7f1f",
         "TraceID": "SettingsLoadInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion loaded from storage! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "b958b421-1091-2b5a-3600-7587dd8f8610",
+        "TraceID": "SettingsOfferedVersionsTooLong",
+        "EncodingString": "Offered versions list exceeds VN response capacity: %u entries"
       },
       {
         "UniquenessHash": "7db0f817-cc89-749d-01ec-356d35f7189a",
