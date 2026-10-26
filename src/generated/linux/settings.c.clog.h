@@ -889,6 +889,24 @@ tracepoint(CLOG_SETTINGS_C, SettingXdpDisabledInMapMode );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingsOfferedVersionsTooLong
+// Offered versions list exceeds VN response capacity: %u entries
+// QuicTraceLogError(
+                    SettingsOfferedVersionsTooLong,
+                    "Offered versions list exceeds VN response capacity: %u entries",
+                    OfferedVersionsSize / (uint32_t)sizeof(uint32_t));
+// arg2 = arg2 = OfferedVersionsSize / (uint32_t)sizeof(uint32_t) = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingsOfferedVersionsTooLong
+#define _clog_3_ARGS_TRACE_SettingsOfferedVersionsTooLong(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingsOfferedVersionsTooLong , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(

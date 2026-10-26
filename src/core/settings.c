@@ -1134,6 +1134,14 @@ QuicSettingsLoad(
                 AcceptableVersionsSize +
                 OfferedVersionsSize +
                 FullyDeployedVersionsSize;
+            if (OfferedVersionsSize >
+                QUIC_MAX_VERSION_NEGOTIATION_VERSIONS * sizeof(uint32_t)) {
+                QuicTraceLogError(
+                    SettingsOfferedVersionsTooLong,
+                    "Offered versions list exceeds VN response capacity: %u entries",
+                    OfferedVersionsSize / (uint32_t)sizeof(uint32_t));
+                goto VersionSettingsFail;
+            }
             VersionSettings =
                 CXPLAT_ALLOC_NONPAGED(
                     AllocSize,
@@ -1740,6 +1748,14 @@ QuicSettingsVersionSettingsToInternal(
     }
 
     InternalSettings->IsSetFlags = 0;
+
+    if (Settings->OfferedVersionsLength > QUIC_MAX_VERSION_NEGOTIATION_VERSIONS) {
+        QuicTraceLogError(
+            SettingsOfferedVersionsTooLong,
+            "Offered versions list exceeds VN response capacity: %u entries",
+            Settings->OfferedVersionsLength);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     //
     // Validate the external list only contains versions which MsQuic supports.

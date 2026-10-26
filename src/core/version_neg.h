@@ -20,6 +20,12 @@ extern "C" {
 //
 extern const uint32_t DefaultSupportedVersionsList[4];
 
+#define QUIC_MAX_VERSION_NEGOTIATION_VERSIONS \
+    ((QUIC_DPLPMTUD_MIN_MTU - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE - \
+      sizeof(QUIC_VERSION_NEGOTIATION_PACKET) - \
+      2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT - sizeof(uint8_t) - \
+      sizeof(uint32_t)) / sizeof(uint32_t))
+
 typedef struct QUIC_VERSION_INFORMATION_V1 {
     uint32_t ChosenVersion;
     uint32_t AvailableVersionsCount;

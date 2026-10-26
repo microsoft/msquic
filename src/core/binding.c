@@ -21,16 +21,8 @@ Abstract:
 // which includes both the global, constant list of supported versions and the
 // randomly generated version.
 //
-#define MAX_VER_NEG_PACKET_LENGTH \
-( \
-    sizeof(QUIC_VERSION_NEGOTIATION_PACKET) + \
-    QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
-    QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
-    sizeof(uint32_t) + \
-    (ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t)) \
-)
 CXPLAT_STATIC_ASSERT(
-    QUIC_DPLPMTUD_MIN_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
+    ARRAYSIZE(DefaultSupportedVersionsList) <= QUIC_MAX_VERSION_NEGOTIATION_VERSIONS,
     "Too many supported version numbers! Requires too big of buffer for response!");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -848,13 +840,18 @@ QuicBindingProcessStatelessOperation(
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
         }
 
-        const uint16_t PacketLength =
+        if (SupportedVersionsLength > QUIC_MAX_VERSION_NEGOTIATION_VERSIONS) {
+            QuicPacketLogDrop(Binding, RecvPacket, "Too many versions for VN response");
+            goto Exit;
+        }
+
+        const uint16_t PacketLength = (uint16_t)(
             sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +               // Header
             RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
             sizeof(uint32_t) +                                      // One random version
-            (uint16_t)(SupportedVersionsLength * sizeof(uint32_t)); // Our actual supported versions
+            SupportedVersionsLength * sizeof(uint32_t));           // Our actual supported versions
 
         SendDatagram =
             CxPlatSendDataAllocBuffer(SendData, PacketLength);
