@@ -634,7 +634,13 @@ QuicRecvBufferWriteNewBytes(
     // Walk existing WrittenRanges to find gaps within [WriteOffset, WriteEnd).
     // For each gap, copy only those new bytes into the chunks.
     //
-    for (uint32_t i = 0;
+    // Earlier subranges end before WriteOffset and cannot affect this write.
+    //
+    const uint32_t StartIndex =
+        QuicRangeFindContainingOrNext(
+            &RecvBuffer->WrittenRanges,
+            WriteOffset);
+    for (uint32_t i = StartIndex;
          i < RecvBuffer->WrittenRanges.UsedLength && CopyOffset < WriteEnd;
          i++) {
         QUIC_SUBRANGE* Sub = QuicRangeGet(&RecvBuffer->WrittenRanges, i);
