@@ -314,8 +314,7 @@ QuicPacketValidateInitialToken(
     _In_ const QUIC_RX_PACKET* const Packet,
     _In_range_(>, 0) uint16_t TokenLength,
     _In_reads_(TokenLength)
-        const uint8_t* TokenBuffer,
-    _Inout_ BOOLEAN* DropPacket
+        const uint8_t* TokenBuffer
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
