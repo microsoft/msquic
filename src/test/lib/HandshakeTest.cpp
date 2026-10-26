@@ -805,24 +805,98 @@ QuicTestConnect_AsyncSecurityConfig_Delayed(
 
 struct RebindContext {
     bool Connected {false};
+    bool Shutdown {false};
     CxPlatEvent HandshakeCompleteEvent;
     CxPlatEvent PeerAddrChangedEvent;
+    CxPlatEvent ShutdownCompleteEvent;
     QuicAddr PeerAddr;
-    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+    MsQuicConnection* Connection {nullptr};
+    uint32_t PeerAddrChangedCount {0};
+    static QUIC_STATUS
+    ConnCallback(
+        _In_ MsQuicConnection* Connection,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
         auto This = static_cast<RebindContext*>(Context);
+        This->Connection = Connection;
         if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            This->Shutdown = true;
+            This->Connection = nullptr;
             This->PeerAddrChangedEvent.Set();
             This->HandshakeCompleteEvent.Set();
+            This->ShutdownCompleteEvent.Set();
         } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
             This->Connected = true;
             This->HandshakeCompleteEvent.Set();
         } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED) {
+            This->PeerAddrChangedCount++;
             This->PeerAddr.SockAddr = *Event->PEER_ADDRESS_CHANGED.Address;
             This->PeerAddrChangedEvent.Set();
         }
         return QUIC_STATUS_SUCCESS;
     }
 };
+
+struct RebindClientContext {
+    bool Shutdown {false};
+    CxPlatEvent StreamsAvailableEvent;
+    CxPlatEvent ShutdownCompleteEvent;
+    static QUIC_STATUS
+    ConnCallback(
+        _In_ MsQuicConnection*,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
+        auto This = static_cast<RebindClientContext*>(Context);
+        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            This->Shutdown = true;
+            This->StreamsAvailableEvent.Set();
+            This->ShutdownCompleteEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE) {
+            This->StreamsAvailableEvent.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+static
+void
+ValidateRebind(
+    _Inout_ RebindContext& Context,
+    _Inout_ RebindClientContext& ClientContext,
+    _In_ const QUIC_ADDR& ExpectedAddress,
+    _In_ uint32_t ExpectedCount,
+    _In_ bool ValidateServerToClient
+    )
+{
+    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(TestWaitTimeout));
+    TEST_FALSE(Context.Shutdown);
+    TEST_FALSE(ClientContext.Shutdown);
+    TEST_EQUAL(ExpectedCount, Context.PeerAddrChangedCount);
+    TEST_TRUE(QuicAddrCompare(&ExpectedAddress, &Context.PeerAddr.SockAddr));
+    TEST_NOT_EQUAL(nullptr, Context.Connection);
+
+    QuicAddr ServerRemoteAddr;
+    TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
+    TEST_TRUE(QuicAddrCompare(&ExpectedAddress, &ServerRemoteAddr.SockAddr));
+
+    if (ValidateServerToClient) {
+        ClientContext.StreamsAvailableEvent.Reset();
+        MsQuicSettings Settings;
+        TEST_QUIC_SUCCEEDED(Context.Connection->GetSettings(&Settings));
+        Settings.IsSetFlags = 0;
+        Settings.SetPeerBidiStreamCount(Settings.PeerBidiStreamCount + 1);
+        TEST_QUIC_SUCCEEDED(Context.Connection->SetSettings(Settings));
+        TEST_TRUE(ClientContext.StreamsAvailableEvent.WaitTimeout(TestWaitTimeout));
+        TEST_FALSE(ClientContext.Shutdown);
+    }
+
+    Context.PeerAddrChangedEvent.Reset();
+    ClientContext.StreamsAvailableEvent.Reset();
+}
 
 void
 QuicTestNatPortRebind(
@@ -848,7 +922,12 @@ QuicTestNatPortRebind(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration);
+    RebindClientContext ClientContext;
+    MsQuicConnection Connection(
+        Registration,
+        CleanUpManual,
+        RebindClientContext::ConnCallback,
+        &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
@@ -861,21 +940,27 @@ QuicTestNatPortRebind(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr);
 
-    // Skip the port if it collides with the server's port,
-    // the ReplaceAddressHelper can't simulate a NAT rebind in that case.
-    do {
-        AddrHelper.IncrementPort();
-    } while (QuicAddrGetPort(&AddrHelper.New) == ServerLocalAddr.GetPort());
-
     if (KeepAlivePaddingSize) {
-        Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
+        TEST_QUIC_SUCCEEDED(Connection.SetKeepAlivePadding(KeepAlivePaddingSize));
     }
-    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
+    TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25)));
 
-    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(TestWaitTimeout))
-    TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &Context.PeerAddr.SockAddr));
+    const uint32_t RebindCount = KeepAlivePaddingSize == 0 ? 3 : 1;
+    for (uint32_t i = 0; i < RebindCount; ++i) {
+        //
+        // Skip the port if it collides with the server's port, because the
+        // ReplaceAddressHelper can't simulate a NAT rebind in that case.
+        //
+        do {
+            AddrHelper.IncrementPort();
+        } while (QuicAddrGetPort(&AddrHelper.New) == ServerLocalAddr.GetPort());
+
+        ValidateRebind(Context, ClientContext, AddrHelper.New, i + 1, true);
+    }
 
     Connection.Shutdown(1);
+    TEST_TRUE(ClientContext.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
 }
 
 void
@@ -903,7 +988,12 @@ QuicTestNatAddrRebind(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration);
+    RebindClientContext ClientContext;
+    MsQuicConnection Connection(
+        Registration,
+        CleanUpManual,
+        RebindClientContext::ConnCallback,
+        &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
@@ -916,22 +1006,35 @@ QuicTestNatAddrRebind(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
-    if (RebindDatapathAddr) {
-        QuicAddrFromString(UseDuoNic ? ((Family == AF_INET) ? "127.0.0.1" : "::1") : ((Family == AF_INET) ? "192.168.1.11" : "fc00::1:11"),
-                           OrigLocalAddr.GetPort(),
-                           &AddrHelper.New);
-    } else {
-        AddrHelper.IncrementAddr();
-    }
     if (KeepAlivePaddingSize) {
-        Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
+        TEST_QUIC_SUCCEEDED(Connection.SetKeepAlivePadding(KeepAlivePaddingSize));
     }
-    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(1));
+    TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(1)));
 
-    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(TestWaitTimeout))
-    TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &Context.PeerAddr.SockAddr));
+    const uint32_t RebindCount =
+        KeepAlivePaddingSize == 0 && !RebindDatapathAddr ? 3 : 1;
+    for (uint32_t i = 0; i < RebindCount; ++i) {
+        if (RebindDatapathAddr) {
+            QuicAddrFromString(
+                UseDuoNic ?
+                    ((Family == AF_INET) ? "127.0.0.1" : "::1") :
+                    ((Family == AF_INET) ? "192.168.1.11" : "fc00::1:11"),
+                OrigLocalAddr.GetPort(),
+                &AddrHelper.New);
+        } else {
+            AddrHelper.IncrementAddr();
+        }
+
+        //
+        // The raw datapath resolves the synthetic address before the send
+        // hook can translate it, so server-to-client traffic isn't supported.
+        //
+        ValidateRebind(Context, ClientContext, AddrHelper.New, i + 1, false);
+    }
 
     Connection.Shutdown(1);
+    TEST_TRUE(ClientContext.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ShutdownCompleteEvent.WaitTimeout(TestWaitTimeout));
 }
 
 void
