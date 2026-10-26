@@ -184,7 +184,7 @@ CxPlatWorkerPoolInitWorker(
     Worker->IdealProcessor = IdealProcessor;
     Worker->State.WaitTime = UINT32_MAX;
     Worker->State.ThreadID = UINT32_MAX;
-    Worker->CleanupEvent = &WorkerPool->CleanupEvent;
+    Worker->CleanupEvent = WorkerPool->External ? &WorkerPool->CleanupEvent : NULL;
 
     if (EventQ != NULL) {
         Worker->EventQ = *EventQ;
@@ -455,6 +455,8 @@ CxPlatWorkerPoolCreateExternal(
     return WorkerPool;
 
 Error:
+
+    CxPlatEventSet(WorkerPool->CleanupEvent);
 
     //
     // On failure, clean up all the workers that did get started.
