@@ -46,6 +46,30 @@ QuicUint8tDecode(
     return TRUE;
 }
 
+static
+uint16_t
+QuicAckHeaderFixedSize(
+    _In_ const QUIC_ACK_EX * const Frame
+    )
+{
+    return
+        sizeof(uint8_t) +     // Type
+        QuicVarIntSize(Frame->LargestAcknowledged) +
+        QuicVarIntSize(Frame->AckDelay) +
+        QuicVarIntSize(Frame->FirstAckBlock);
+}
+
+static
+uint16_t
+QuicAckHeaderSize(
+    _In_ const QUIC_ACK_EX * const Frame
+    )
+{
+    return
+        QuicAckHeaderFixedSize(Frame) +
+        QuicVarIntSize(Frame->AdditionalAckBlockCount);
+}
+
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckHeaderEncode(
@@ -56,12 +80,7 @@ QuicAckHeaderEncode(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    uint16_t RequiredLength =
-        sizeof(uint8_t) +     // Type
-        QuicVarIntSize(Frame->LargestAcknowledged) +
-        QuicVarIntSize(Frame->AckDelay) +
-        QuicVarIntSize(Frame->AdditionalAckBlockCount) +
-        QuicVarIntSize(Frame->FirstAckBlock);
+    const uint16_t RequiredLength = QuicAckHeaderSize(Frame);
 
     if (BufferLength < *Offset + RequiredLength) {
         return FALSE;
@@ -98,6 +117,18 @@ QuicAckHeaderDecode(
     return TRUE;
 }
 
+static
+uint16_t
+QuicAckBlockSize(
+    _In_ uint64_t Gap,
+    _In_ uint64_t AckBlock
+    )
+{
+    return
+        QuicVarIntSize(Gap) +
+        QuicVarIntSize(AckBlock);
+}
+
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckBlockEncode(
@@ -107,9 +138,8 @@ QuicAckBlockEncode(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    uint16_t RequiredLength =
-        QuicVarIntSize(Block->Gap) +
-        QuicVarIntSize(Block->AckBlock);
+    const uint16_t RequiredLength =
+        QuicAckBlockSize(Block->Gap, Block->AckBlock);
 
     if (BufferLength < *Offset + RequiredLength) {
         return FALSE;
@@ -140,6 +170,18 @@ QuicAckBlockDecode(
     return TRUE;
 }
 
+static
+uint16_t
+QuicAckEcnSize(
+    _In_ const QUIC_ACK_ECN_EX * const Ecn
+    )
+{
+    return
+        QuicVarIntSize(Ecn->ECT_0_Count) +
+        QuicVarIntSize(Ecn->ECT_1_Count) +
+        QuicVarIntSize(Ecn->CE_Count);
+}
+
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckEcnEncode(
@@ -149,10 +191,7 @@ QuicAckEcnEncode(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    uint16_t RequiredLength =
-        QuicVarIntSize(Ecn->ECT_0_Count) +
-        QuicVarIntSize(Ecn->ECT_1_Count) +
-        QuicVarIntSize(Ecn->CE_Count);
+    const uint16_t RequiredLength = QuicAckEcnSize(Ecn);
 
     if (BufferLength < *Offset + RequiredLength) {
         return FALSE;
@@ -185,6 +224,68 @@ QuicAckEcnDecode(
     return TRUE;
 }
 
+//
+// The Gap field is the number of missing packets between two ACK Blocks,
+// minus one.
+//
+static
+uint64_t
+QuicAckBlockGap(
+    _In_ const QUIC_SUBRANGE* Current,
+    _In_ const QUIC_SUBRANGE* Next
+    )
+{
+    const uint64_t NextLargest = QuicRangeGetHigh(Next);
+    CXPLAT_DBG_ASSERT(Current->Low > NextLargest + 1);
+    return Current->Low - NextLargest - 2;
+}
+
+//
+// Calculates the number of additional ACK Blocks that fit after the First ACK Block.
+//
+static
+uint32_t
+QuicAckCalculateAdditionalAckBlockCount(
+    _In_ const QUIC_RANGE * const AckBlocks,
+    _In_ uint32_t CurIndex,
+    _In_ const QUIC_SUBRANGE* Current,
+    _In_ uint16_t FixedFrameLength,
+    _In_ uint32_t AvailableLength
+    )
+{
+    uint32_t AdditionalAckBlockCount = 0;
+    uint32_t AckBlocksLength = 0;
+
+    for (uint32_t i = CurIndex; i != 0; i--) {
+
+        const QUIC_SUBRANGE* Next = QuicRangeGet(AckBlocks, i - 1);
+
+        CXPLAT_DBG_ASSERT(Next->Count > 0);
+
+        const uint32_t NewAckBlockCount = AdditionalAckBlockCount + 1;
+        const uint16_t AckBlockLength =
+            QuicAckBlockSize(
+                QuicAckBlockGap(Current, Next),
+                Next->Count - 1);               // AckBlock
+
+        const uint32_t NewFrameLength =
+            FixedFrameLength +                 // Other header fields and ECN Counts
+            QuicVarIntSize(NewAckBlockCount) + // AdditionalAckBlockCount
+            AckBlocksLength +                  // ACK Blocks already selected
+            AckBlockLength;                    // ACK Block being added
+
+        if (NewFrameLength > AvailableLength) {
+            return AdditionalAckBlockCount;
+        }
+
+        AckBlocksLength += AckBlockLength;
+        AdditionalAckBlockCount = NewAckBlockCount;
+        Current = Next;
+    }
+
+    return AdditionalAckBlockCount;
+}
+
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckFrameEncode(
@@ -196,57 +297,78 @@ QuicAckFrameEncode(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    uint32_t i = QuicRangeSize(AckBlocks) - 1;
+    if (*Offset >= BufferLength) {
+        return FALSE;
+    }
 
-    QUIC_SUBRANGE* LastSub = QuicRangeGet(AckBlocks, i);
-    uint64_t Largest = QuicRangeGetHigh(LastSub);
-    uint64_t Count = LastSub->Count;
+    uint32_t CurIndex = QuicRangeSize(AckBlocks) - 1;
+    const QUIC_SUBRANGE* Current = QuicRangeGet(AckBlocks, CurIndex);
+
+    const uint32_t AvailableLength = BufferLength - *Offset;
+
+    QUIC_ACK_EX Frame = {
+        QuicRangeGetHigh(Current),  // LargestAcknowledged
+        AckDelay,                   // AckDelay
+        0,                          // AdditionalAckBlockCount
+        Current->Count - 1          // FirstAckBlock
+    };
+
+    const uint16_t EcnLength =
+        Ecn == NULL ? 0 : QuicAckEcnSize(Ecn);
+
+    const uint16_t FixedFrameLength =
+        QuicAckHeaderFixedSize(&Frame) + EcnLength;
+
+    const uint32_t MinAckFrameLength =
+        FixedFrameLength +
+        QuicVarIntSize(0); // No additional ACK Blocks.
+
+    if (MinAckFrameLength > AvailableLength) {
+        return FALSE;
+    }
+
+    Frame.AdditionalAckBlockCount =
+        QuicAckCalculateAdditionalAckBlockCount(
+            AckBlocks,
+            CurIndex,
+            Current,
+            FixedFrameLength,
+            AvailableLength);
 
     //
     // Write the ACK Frame Header
     //
-    QUIC_ACK_EX Frame = {
-        Largest,                // LargestAcknowledged
-        AckDelay,               // AckDelay
-        i,                      // AdditionalAckBlockCount
-        Count - 1               // FirstAckBlock
-    };
-
     if (!QuicAckHeaderEncode(&Frame, Ecn, Offset, BufferLength, Buffer)) {
+        CXPLAT_TEL_ASSERT(FALSE);
         return FALSE;
     }
 
     //
     // Write any additional ACK Blocks
     //
-    while (i != 0) {
+    for (uint32_t i = 0; i < Frame.AdditionalAckBlockCount; ++i) {
 
-        CXPLAT_DBG_ASSERT(Largest >= Count);
-        Largest -= Count;
+        const QUIC_SUBRANGE* Next = QuicRangeGet(AckBlocks, CurIndex - 1);
 
-        QUIC_SUBRANGE* Next = QuicRangeGet(AckBlocks, i - 1);
-        uint64_t NextLargest = QuicRangeGetHigh(Next);
-        Count = Next->Count;
+        CXPLAT_DBG_ASSERT(Next->Count > 0);
 
-        CXPLAT_DBG_ASSERT(Largest > NextLargest);
-        CXPLAT_DBG_ASSERT(Count > 0);
-
-        QUIC_ACK_BLOCK_EX Block = {
-            (Largest - NextLargest) - 1,    // Gap
-            Count - 1                       // AckBlock
+        const QUIC_ACK_BLOCK_EX Block = {
+            QuicAckBlockGap(Current, Next), // Gap
+            Next->Count - 1                 // AckBlock
         };
 
         if (!QuicAckBlockEncode(&Block, Offset, BufferLength, Buffer)) {
-            CXPLAT_TEL_ASSERT(FALSE); // TODO - Support partial ACK array encoding by updating the 'AdditionalAckBlockCount' field.
+            CXPLAT_TEL_ASSERT(FALSE);
             return FALSE;
         }
 
-        Largest = NextLargest;
-        i--;
+        Current = Next;
+        CurIndex--;
     }
 
     if (Ecn != NULL) {
         if (!QuicAckEcnEncode(Ecn, Offset, BufferLength, Buffer)) {
+            CXPLAT_TEL_ASSERT(FALSE);
             return FALSE;
         }
     }

@@ -297,12 +297,14 @@ QuicAckTrackerAckFrameEncode(
         CxPlatTimeDiff64(Tracker->LargestPacketNumberRecvTime, Timestamp)
           >> Builder->Connection->AckDelayExponent;
 
+    uint16_t Offset = Builder->DatagramLength;
+
     if (Builder->Connection->State.TimestampSendNegotiated &&
         Builder->EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT) {
         QUIC_TIMESTAMP_EX Frame = { Timestamp - Builder->Connection->Stats.Timing.Start };
         if (!QuicTimestampFrameEncode(
                 &Frame,
-                &Builder->DatagramLength,
+                &Offset,
                 (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead,
                 Builder->Datagram->Buffer)) {
             return FALSE;
@@ -315,11 +317,13 @@ QuicAckTrackerAckFrameEncode(
             Tracker->NonZeroRecvECN ?
                 &Tracker->ReceivedECN :
                 NULL,
-            &Builder->DatagramLength,
+            &Offset,
             (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead,
             Builder->Datagram->Buffer)) {
         return FALSE;
     }
+
+    Builder->DatagramLength = Offset;
 
     if (Tracker->AckElicitingPacketsToAcknowledge) {
         Tracker->AckElicitingPacketsToAcknowledge = 0;
