@@ -971,12 +971,12 @@ QuicConnGenerateNewSourceCid(
     return SourceCid;
 }
 
-uint8_t
+uint32_t
 QuicConnSourceCidsCount(
     _In_ const QUIC_CONNECTION* Connection
     )
 {
-    uint8_t Count = 0;
+    uint32_t Count = 0;
     const CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
     while (Entry != NULL) {
         ++Count;
@@ -1009,7 +1009,7 @@ QuicConnGenerateNewSourceCids(
     // limit). Otherwise, just generate whatever number we need to hit the
     // limit.
     //
-    uint8_t NewCidCount;
+    uint32_t NewCidCount;
     if (ReplaceExistingCids) {
         NewCidCount = Connection->SourceCidLimit;
         CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
@@ -1032,7 +1032,7 @@ QuicConnGenerateNewSourceCids(
             return;
         }
     } else {
-        uint8_t CurrentCidCount = QuicConnSourceCidsCount(Connection);
+        uint32_t CurrentCidCount = QuicConnSourceCidsCount(Connection);
         CXPLAT_DBG_ASSERT(CurrentCidCount <= Connection->SourceCidLimit);
         if (CurrentCidCount < Connection->SourceCidLimit) {
             NewCidCount = Connection->SourceCidLimit - CurrentCidCount;
@@ -1041,7 +1041,7 @@ QuicConnGenerateNewSourceCids(
         }
     }
 
-    for (uint8_t i = 0; i < NewCidCount; ++i) {
+    for (uint32_t i = 0; i < NewCidCount; ++i) {
         if (QuicConnGenerateNewSourceCid(Connection, FALSE) == NULL) {
             break;
         }
