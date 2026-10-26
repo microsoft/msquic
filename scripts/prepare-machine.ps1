@@ -223,6 +223,25 @@ function Get-XdpArch {
 $XdpPath = Join-Path $ArtifactsPath "xdp"
 $XdpRuntimeNativePath = Join-Path $XdpPath "runtime\native"
 
+function Restore-NuGetPackages {
+    $PackagesConfig = Join-Path $RootDir "packages.config"
+    if (!(Test-Path $PackagesConfig -PathType Leaf)) {
+        throw "NuGet package manifest not found: $PackagesConfig"
+    }
+
+    $NuGet = Get-Command nuget.exe -ErrorAction SilentlyContinue
+    if ($null -eq $NuGet) {
+        throw "nuget.exe is required to restore Windows build dependencies."
+    }
+
+    & $NuGet.Source restore $PackagesConfig `
+        -SolutionDirectory $RootDir `
+        -NonInteractive
+    if ($LASTEXITCODE -ne 0) {
+        throw "NuGet restore failed with exit code $LASTEXITCODE."
+    }
+}
+
 # Installs the XDP driver (for testing).
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
@@ -238,7 +257,8 @@ function Install-Xdp-Driver {
     $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
     $XdpEntry = $XdpJson.$XdpVersion
     if ($null -eq $XdpEntry) {
-        Write-Error "Unknown XDP version '$XdpVersion'. Available versions: $($XdpJson.PSObject.Properties.Name -join ', ')"
+        $XdpVersions = $XdpJson.PSObject.Properties.Name
+        Write-Error "Unknown XDP version '$XdpVersion'. Available versions: $($XdpVersions -join ', ')"
     }
     $XdpArch = Get-XdpArch
     $XdpInstaller = $XdpEntry.PSObject.Properties[$XdpArch]
@@ -563,11 +583,6 @@ if ($ForBuild -or $ForContainerBuild) {
     Write-Host "Initializing clog submodule"
     git submodule init $RootDir/submodules/clog
 
-    if (!$IsLinux) {
-        Write-Host "Initializing XDP-for-Windows submodule"
-        git submodule init $RootDir/submodules/xdp-for-windows
-    }
-
     if ($Tls -eq "quictls") {
         Write-Host "Initializing quictls submodule"
         git submodule init $RootDir/submodules/quictls
@@ -584,6 +599,10 @@ if ($ForBuild -or $ForContainerBuild) {
     }
 
     git submodule update --jobs=8
+}
+
+if ($IsWindows -and $ForBuild -and !$ForKernel) {
+    Restore-NuGetPackages
 }
 
 if ($IsWindows -and $ForTest) {
