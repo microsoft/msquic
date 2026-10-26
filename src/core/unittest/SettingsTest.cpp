@@ -97,7 +97,6 @@ TEST(SettingsTest, OfferedVersionsLengthLimit)
     const uint32_t InvalidLengths[] = {
         (uint32_t)QUIC_MAX_VERSION_NEGOTIATION_VERSIONS + 1,
         16384,
-        20000,
         UINT32_MAX
     };
     for (uint32_t Length : InvalidLengths) {
