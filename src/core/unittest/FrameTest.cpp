@@ -112,7 +112,7 @@ protected:
 
 TEST(FrameTest, FrameAllowedInZeroRtt)
 {
-    const uint64_t AllowedFrames[] = {
+    const QUIC_FRAME_TYPE AllowedFrames[] = {
         QUIC_FRAME_PADDING,
         QUIC_FRAME_PING,
         QUIC_FRAME_RESET_STREAM,
@@ -141,11 +141,11 @@ TEST(FrameTest, FrameAllowedInZeroRtt)
         QUIC_FRAME_DATAGRAM,
         QUIC_FRAME_DATAGRAM_1
     };
-    for (uint64_t FrameType : AllowedFrames) {
+    for (QUIC_FRAME_TYPE FrameType : AllowedFrames) {
         EXPECT_TRUE(QuicFrameAllowedIn0Rtt(FrameType)) << FrameType;
     }
 
-    const uint64_t RejectedFrames[] = {
+    const QUIC_FRAME_TYPE RejectedFrames[] = {
         QUIC_FRAME_ACK,
         QUIC_FRAME_ACK_1,
         QUIC_FRAME_CRYPTO,
@@ -157,9 +157,35 @@ TEST(FrameTest, FrameAllowedInZeroRtt)
         QUIC_FRAME_IMMEDIATE_ACK,
         QUIC_FRAME_TIMESTAMP
     };
-    for (uint64_t FrameType : RejectedFrames) {
+    for (QUIC_FRAME_TYPE FrameType : RejectedFrames) {
         EXPECT_FALSE(QuicFrameAllowedIn0Rtt(FrameType)) << FrameType;
     }
+
+    for (uint64_t FrameType = 0; FrameType < QUIC_FRAME_MAX_SUPPORTED; ++FrameType) {
+        if (!QUIC_FRAME_IS_KNOWN(FrameType)) {
+            continue;
+        }
+
+        BOOLEAN IsEnumerated = FALSE;
+        for (QUIC_FRAME_TYPE AllowedFrame : AllowedFrames) {
+            if (FrameType == AllowedFrame) {
+                IsEnumerated = TRUE;
+                break;
+            }
+        }
+        if (!IsEnumerated) {
+            for (QUIC_FRAME_TYPE RejectedFrame : RejectedFrames) {
+                if (FrameType == RejectedFrame) {
+                    IsEnumerated = TRUE;
+                    break;
+                }
+            }
+        }
+        EXPECT_TRUE(IsEnumerated) << "Known frame type omitted: " << FrameType;
+    }
+
+    const uint64_t UnknownFrameType = (uint64_t)QUIC_FRAME_MAX_SUPPORTED + 1;
+    EXPECT_FALSE(QuicFrameAllowedIn0Rtt(UnknownFrameType));
 }
 
 TEST_F(ZeroRttFrameTest, RejectRetireConnectionIdBeforeDecode)
