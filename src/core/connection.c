@@ -4498,13 +4498,9 @@ QuicConnRecvDecryptAndAuthenticate(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicFrameAllowedIn0Rtt(
-    _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t FrameType
     )
 {
-    //
-    // Frame permitted in 0-RTT
-    //
     switch (FrameType) {
     case QUIC_FRAME_PADDING:
     case QUIC_FRAME_PING:
@@ -4534,51 +4530,7 @@ QuicFrameAllowedIn0Rtt(
     case QUIC_FRAME_DATAGRAM:
     case QUIC_FRAME_DATAGRAM_1:
         return TRUE;
-
-    //
-    // Frame rejected by RFC 9000 in 0-RTT
-    //
-    case QUIC_FRAME_ACK:
-    case QUIC_FRAME_ACK_1:
-    case QUIC_FRAME_CRYPTO:
-    case QUIC_FRAME_NEW_TOKEN:
-    case QUIC_FRAME_PATH_RESPONSE:
-    case QUIC_FRAME_HANDSHAKE_DONE:
-    case QUIC_FRAME_ACK_FREQUENCY:
-    case QUIC_FRAME_IMMEDIATE_ACK:
-    case QUIC_FRAME_TIMESTAMP:
-        QuicTraceEvent(
-            ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
-            Connection,
-            (uint32_t)FrameType,
-            "Frame type not allowed in 0-RTT");
-        return FALSE;
-
-    //
-    // RETIRE_CONNECTION_ID is allowed by RFC 9000 in 0-RTT but blocked
-    // here to prevent use-after-free in source CID handling during the
-    // handshake.
-    //
-    case QUIC_FRAME_RETIRE_CONNECTION_ID:
-        QuicTraceEvent(
-            ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
-            Connection,
-            (uint32_t)FrameType,
-            "RETIRE_CONNECTION_ID blocked in 0-RTT");
-        return FALSE;
-
-    //
-    // Deny unknown frame
-    //
     default:
-        QuicTraceEvent(
-            ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
-            Connection,
-            (uint32_t)FrameType,
-            "Unknown frame type in 0-RTT");
         return FALSE;
     }
 }
@@ -4683,7 +4635,13 @@ QuicConnRecvFrames(
             }
 
         } else if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
-            if (!QuicFrameAllowedIn0Rtt(Connection, FrameType)) {
+            if (!QuicFrameAllowedIn0Rtt(FrameType)) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    (uint32_t)FrameType,
+                    "Disallowed frame type");
                 QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
                 return FALSE;
             }
