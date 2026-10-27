@@ -380,6 +380,12 @@ Error:
     return NULL;
 }
 
+//
+// External workers are normally driven by the application. This cleanup thread
+// waits until ExecutionDelete takes ownership of the event queue, then runs the
+// normal worker loop on this thread to finish outstanding asynchronous cleanup.
+// Initialization failure also releases the wait so the thread can shut down.
+//
 CXPLAT_THREAD_CALLBACK(CxPlatExecutionCleanupThread, Context)
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context;
