@@ -14,8 +14,177 @@ Abstract:
 #include "FrameTest.cpp.clog.h"
 #endif
 
+extern "C"
+BOOLEAN
+QuicFrameAllowedIn0Rtt(
+    _In_ uint64_t FrameType
+    );
+
+extern "C"
+BOOLEAN
+QuicConnRecvFrames(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path,
+    _In_ QUIC_RX_PACKET* Packet,
+    _In_ CXPLAT_ECN_TYPE ECN
+    );
+
 struct AckFrameTest : ::testing::TestWithParam<QUIC_FRAME_TYPE> {
 };
+
+class ZeroRttFrameTest : public ::testing::Test {
+protected:
+    QUIC_CONNECTION Connection{};
+    QUIC_PARTITION Partition{};
+    QUIC_WORKER Worker{};
+
+    void SetUp() override
+    {
+        Connection._.Type = QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
+        Connection.Partition = &Partition;
+        Connection.Worker = &Worker;
+        Connection.RefCount = 1;
+#if DEBUG
+        CxPlatRefInitializeMultiple(
+            Connection.RefTypeBiasedCount,
+            QUIC_CONN_REF_COUNT);
+        CxPlatRefIncrement(
+            &Connection.RefTypeBiasedCount[QUIC_CONN_REF_HANDLE_OWNER]);
+#endif
+        Connection.State.GotFirstServerResponse = TRUE;
+        Connection.Settings.MinimumMtu = 1280;
+        Connection.Settings.InitialRttMs = 333;
+        Connection.EarliestExpirationTime = UINT64_MAX;
+        for (QUIC_CONN_TIMER_TYPE Type = QUIC_CONN_TIMER_IDLE;
+             Type < QUIC_CONN_TIMER_COUNT;
+             Type = (QUIC_CONN_TIMER_TYPE)(Type + 1)) {
+            Connection.ExpirationTimes[Type] = UINT64_MAX;
+        }
+
+        Worker.TimerWheel.NextExpirationTime = UINT64_MAX;
+        Worker.TimerWheel.SlotCount = 32;
+        Worker.TimerWheel.Slots =
+            (CXPLAT_LIST_ENTRY*)CXPLAT_ALLOC_NONPAGED(
+                Worker.TimerWheel.SlotCount * sizeof(CXPLAT_LIST_ENTRY),
+                QUIC_POOL_TIMERWHEEL);
+        ASSERT_NE(nullptr, Worker.TimerWheel.Slots);
+        for (uint32_t i = 0; i < Worker.TimerWheel.SlotCount; ++i) {
+            CxPlatListInitializeHead(&Worker.TimerWheel.Slots[i]);
+        }
+
+        CxPlatListInitializeHead(&Connection.Send.SendStreams);
+        CxPlatListInitializeHead(&Connection.Streams.WaitingStreams);
+        QuicPathSetInitialize(&Connection.Paths, &Connection);
+        Connection.LossDetection.SentPacketsTail =
+            &Connection.LossDetection.SentPackets;
+        Connection.LossDetection.LostPacketsTail =
+            &Connection.LossDetection.LostPackets;
+    }
+
+    void TearDown() override
+    {
+        if (Connection.TimerLink.Flink != nullptr) {
+            CxPlatListEntryRemove(&Connection.TimerLink);
+        }
+        CXPLAT_FREE(Worker.TimerWheel.Slots, QUIC_POOL_TIMERWHEEL);
+    }
+
+    void RunRejectedFrameTest(
+        const uint8_t* Payload,
+        uint16_t PayloadLength)
+    {
+        QUIC_RX_PACKET Packet{};
+        Packet.AvailBuffer = Payload;
+        Packet.PayloadLength = PayloadLength;
+        Packet.KeyType = QUIC_PACKET_KEY_0_RTT;
+
+        ASSERT_FALSE(
+            QuicConnRecvFrames(
+                &Connection,
+                QuicPathGetActive(&Connection.Paths),
+                &Packet,
+                CXPLAT_ECN_NON_ECT));
+        EXPECT_TRUE(Connection.State.ClosedLocally);
+        EXPECT_EQ(QUIC_ERROR_PROTOCOL_VIOLATION, Connection.CloseErrorCode);
+        EXPECT_FALSE(Packet.HasNonProbingFrame);
+    }
+};
+
+TEST(FrameTest, FrameAllowedInZeroRtt)
+{
+    const uint64_t AllowedFrames[] = {
+        QUIC_FRAME_PADDING,
+        QUIC_FRAME_PING,
+        QUIC_FRAME_RESET_STREAM,
+        QUIC_FRAME_STOP_SENDING,
+        QUIC_FRAME_STREAM,
+        QUIC_FRAME_STREAM_1,
+        QUIC_FRAME_STREAM_2,
+        QUIC_FRAME_STREAM_3,
+        QUIC_FRAME_STREAM_4,
+        QUIC_FRAME_STREAM_5,
+        QUIC_FRAME_STREAM_6,
+        QUIC_FRAME_STREAM_7,
+        QUIC_FRAME_MAX_DATA,
+        QUIC_FRAME_MAX_STREAM_DATA,
+        QUIC_FRAME_MAX_STREAMS,
+        QUIC_FRAME_MAX_STREAMS_1,
+        QUIC_FRAME_DATA_BLOCKED,
+        QUIC_FRAME_STREAM_DATA_BLOCKED,
+        QUIC_FRAME_STREAMS_BLOCKED,
+        QUIC_FRAME_STREAMS_BLOCKED_1,
+        QUIC_FRAME_NEW_CONNECTION_ID,
+        QUIC_FRAME_PATH_CHALLENGE,
+        QUIC_FRAME_CONNECTION_CLOSE,
+        QUIC_FRAME_CONNECTION_CLOSE_1,
+        QUIC_FRAME_RELIABLE_RESET_STREAM,
+        QUIC_FRAME_DATAGRAM,
+        QUIC_FRAME_DATAGRAM_1
+    };
+    for (uint64_t FrameType : AllowedFrames) {
+        EXPECT_TRUE(QuicFrameAllowedIn0Rtt(FrameType)) << FrameType;
+    }
+
+    const uint64_t RejectedFrames[] = {
+        QUIC_FRAME_ACK,
+        QUIC_FRAME_ACK_1,
+        QUIC_FRAME_CRYPTO,
+        QUIC_FRAME_NEW_TOKEN,
+        QUIC_FRAME_RETIRE_CONNECTION_ID,
+        QUIC_FRAME_PATH_RESPONSE,
+        QUIC_FRAME_HANDSHAKE_DONE,
+        QUIC_FRAME_ACK_FREQUENCY,
+        QUIC_FRAME_IMMEDIATE_ACK,
+        QUIC_FRAME_TIMESTAMP
+    };
+    for (uint64_t FrameType : RejectedFrames) {
+        EXPECT_FALSE(QuicFrameAllowedIn0Rtt(FrameType)) << FrameType;
+    }
+}
+
+TEST_F(ZeroRttFrameTest, RejectRetireConnectionIdBeforeDecode)
+{
+    const uint8_t Payload[] = {
+        QUIC_FRAME_RETIRE_CONNECTION_ID,
+        7
+    };
+    CXPLAT_SLIST_ENTRY* const SourceCids = Connection.SourceCids.Next;
+    const uint8_t RetiredSourceCidCount = Connection.RetiredSourceCidCount;
+
+    RunRejectedFrameTest(Payload, sizeof(Payload));
+
+    EXPECT_EQ(SourceCids, Connection.SourceCids.Next);
+    EXPECT_EQ(RetiredSourceCidCount, Connection.RetiredSourceCidCount);
+}
+
+TEST_F(ZeroRttFrameTest, RejectCryptoBeforeDecode)
+{
+    const uint8_t Payload[] = {
+        QUIC_FRAME_CRYPTO
+    };
+
+    RunRejectedFrameTest(Payload, sizeof(Payload));
+}
 
 TEST_P(AckFrameTest, AckFrameEncodeDecode)
 {
