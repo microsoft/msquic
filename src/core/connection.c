@@ -4502,6 +4502,9 @@ QuicFrameAllowedIn0Rtt(
     )
 {
     switch (FrameType) {
+    //
+    // Frames allowed in 0-RTT.
+    //
     case QUIC_FRAME_PADDING:
     case QUIC_FRAME_PING:
     case QUIC_FRAME_RESET_STREAM:
@@ -4530,6 +4533,22 @@ QuicFrameAllowedIn0Rtt(
     case QUIC_FRAME_DATAGRAM:
     case QUIC_FRAME_DATAGRAM_1:
         return TRUE;
+
+    //
+    // Frames rejected in 0-RTT.
+    //
+    case QUIC_FRAME_ACK:
+    case QUIC_FRAME_ACK_1:
+    case QUIC_FRAME_CRYPTO:
+    case QUIC_FRAME_NEW_TOKEN:
+    case QUIC_FRAME_RETIRE_CONNECTION_ID:
+    case QUIC_FRAME_PATH_RESPONSE:
+    case QUIC_FRAME_HANDSHAKE_DONE:
+    case QUIC_FRAME_ACK_FREQUENCY:
+    case QUIC_FRAME_IMMEDIATE_ACK:
+    case QUIC_FRAME_TIMESTAMP:
+        return FALSE;
+
     default:
         return FALSE;
     }
@@ -4641,7 +4660,7 @@ QuicConnRecvFrames(
                     "[conn][%p] ERROR, %u, %s.",
                     Connection,
                     (uint32_t)FrameType,
-                    "Disallowed frame type");
+                    "Frame type not allowed in 0-RTT");
                 QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
                 return FALSE;
             }
