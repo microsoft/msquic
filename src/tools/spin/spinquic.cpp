@@ -18,7 +18,7 @@
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
 #define QUIC_API_ENABLE_PREVIEW_FEATURES // Needed for VN
 #ifndef NOMINMAX
-#define NOMINMAX 
+#define NOMINMAX
 #endif
 #include "msquichelper.h"
 #include "msquic.hpp"
