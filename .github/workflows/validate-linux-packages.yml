@@ -239,7 +239,7 @@ jobs:
             pkg_arch: armhf
             prod_url: "https://packages.microsoft.com/debian/13/prod/pool/main/libm/libmsquic"
 
-          # Azure Linux 3.0 (RPM) - No arm32 support, has separate arch URLs
+          # Azure Linux 3.0 and 4.0 (RPM) - No arm32 support, has separate arch URLs
           - friendlyName: "Azure Linux 3.0 x64"
             arch: x64
             platform: "linux/amd64"
@@ -256,6 +256,22 @@ jobs:
             pkg_arch: aarch64
             prod_url: "https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/aarch64/Packages/l"
             testing_url: "https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/aarch64/Packages/l"
+          - friendlyName: "Azure Linux 4.0 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "mcr.microsoft.com/azurelinux/core:4.0"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/azurelinux/4/prod/microsoft/x86_64/Packages/l"
+            testing_url: "https://packages.microsoft.com/azurelinux/4/preview/microsoft/x86_64/Packages/l"
+          - friendlyName: "Azure Linux 4.0 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "mcr.microsoft.com/azurelinux/core:4.0"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/azurelinux/4/prod/microsoft/aarch64/Packages/l"
+            testing_url: "https://packages.microsoft.com/azurelinux/4/preview/microsoft/aarch64/Packages/l"
 
           # CentOS Stream 9 (RPM) - No arm32 support
           - friendlyName: "CentOS Stream 9 x64"
