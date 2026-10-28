@@ -87,9 +87,33 @@
         <article data-uid="">
 <h1 id="executiondelete-function">ExecutionDelete function</h1>
 
-<p>TODO</p>
+<p>Deletes the externally managed execution contexts and waits for remaining internal cleanup to complete.</p>
+<h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API * QUIC_EXECUTION_DELETE_FN)(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION** Executions
+    );
+</code></pre>
+<h1 id="parameters">Parameters</h1>
+<p><code>Count</code></p>
+<p>The number of execution contexts in <code>Executions</code>.</p>
+<p><code>Executions</code></p>
+<p>The array of execution contexts returned by <a href="ExecutionCreate.html">ExecutionCreate</a>.</p>
+<h1 id="remarks">Remarks</h1>
+<p>Each execution context requires its own distinct event queue. Different execution contexts must not share the same underlying queue.</p>
+<p>Before calling this function, the application must close all listeners, connections, streams, and configurations and complete closure of all registrations. Continue calling <a href="ExecutionPoll.html">ExecutionPoll</a> and dispatching event queue completions until the final <a href="RegistrationClose.html">RegistrationClose</a> returns or the final <a href="RegistrationClose2.html">RegistrationClose2</a> completion callback is delivered. A synchronous registration close must run on a separate thread from the one driving its execution contexts.</p>
+<p>After registration closure completes, stop and synchronize with all application threads polling these execution contexts or dispatching their queue completions before calling <code>ExecutionDelete</code>. Do not call this function from a polling or completion callback while application dispatch is still active.</p>
+<p>Registration closure does not guarantee that all internal cleanup has completed. For example, canceled socket I/O may still have queued completions that retain internal resources. There is no separate notification that the execution queues are fully drained, and the timeout returned by <code>ExecutionPoll</code> is not such a notification.</p>
+<p>This function blocks while MsQuic cleanup threads take over the event queues, process remaining completions, and release internal resources. These threads may also dispatch application-owned completions on the supplied queues. Keep the queues and any completion-handler state valid until this function returns. The application remains responsible for closing the queues afterward.</p>
+<p>The execution contexts are invalid after this function returns and must not be polled or otherwise used.</p>
 <h1 id="see-also">See Also</h1>
-<p><a href="QUIC_API_TABLE.html">QUIC_API_TABLE</a><br></p>
+<p><a href="ExecutionCreate.html">ExecutionCreate</a><br>
+<a href="ExecutionPoll.html">ExecutionPoll</a><br>
+<a href="../Execution.html">Execution</a><br>
+<a href="QUIC_API_TABLE.html">QUIC_API_TABLE</a><br></p>
 
 </article>
 

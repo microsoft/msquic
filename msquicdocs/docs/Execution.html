@@ -217,7 +217,8 @@ QUIC_EXECUTION* ExecContext = nullptr;
 QUIC_STATUS Status = MsQuic-&gt;ExecutionCreate(QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, &amp;ExecConfig, &amp;ExecContext);
 </code></pre>
 <p>The above code createa a new IOCP (for Windows), sets up an execution config, indicating an ideal processor of 0 and the pointer to the IOCP, and then calls MsQuic to create 1 execution context.
-An application may expand this code to create multiple execution contexts, depending on their needs.</p>
+An application may expand this code to create multiple execution contexts, depending on their needs.
+Each execution context must use a distinct underlying event queue; two execution contexts must not share the same IOCP, epoll, or kqueue.</p>
 <p>To drive this execution context, the app will need to to periodically call <code>ExecutionPoll</code> and use the platform specific function to drain completion events from the event queue.</p>
 <pre><code class="lang-c">bool AllDone = false;
 while (!AllDone) {
@@ -237,6 +238,17 @@ while (!AllDone) {
 <code>OVERLAPPED_ENTRY</code> objects received from <code>GetQueuedCompletionStatusEx</code> are used to get the submission queue entry and then call its completion handler.</p>
 <p>In a real application, these completion events may come both from MsQuic and the application itself, therefore, this means <strong>the application must use the same base format for its own submission entries</strong>.
 This is necessary to be able to share the same event queue object.</p>
+<h3 id="shutting-down-custom-execution">Shutting Down Custom Execution</h3>
+<p>Continue polling execution contexts and dispatching event queue completions while closing all application handles and registrations.
+The final <code>RegistrationClose</code> must return, or the final <code>RegistrationClose2</code> completion callback must be delivered, before stopping execution.
+Run synchronous registration closure on a separate thread so polling can continue.</p>
+<p>Then stop and synchronize with the application's polling and completion-dispatch threads and call <a href="api/ExecutionDelete.html">ExecutionDelete</a>.
+The <code>AllDone</code> condition in the example above is controlled by the application; <code>ExecutionPoll</code> returns a timer wait duration, not a shutdown-complete indication.
+Registration closure may leave internal cleanup, such as canceled socket I/O completions, outstanding.
+There is no separate fully-drained notification: <code>ExecutionDelete</code> blocks while MsQuic cleanup threads process that remaining work.</p>
+<p>Keep the event queues and completion-handler state alive until <code>ExecutionDelete</code> returns.
+Application-owned completions on those queues may also be dispatched by the cleanup threads.
+After deletion returns, the execution contexts must no longer be used and the application may close its event queues.</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="api/QUIC_STREAM_CALLBACK.html">QUIC_STREAM_CALLBACK</a><br>
 <a href="api/QUIC_STREAM_EVENT.html">QUIC_STREAM_EVENT</a><br>
