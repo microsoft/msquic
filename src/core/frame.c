@@ -140,6 +140,18 @@ QuicAckBlockDecode(
     return TRUE;
 }
 
+static
+uint16_t
+QuicAckEcnSize(
+    _In_ const QUIC_ACK_ECN_EX * const Ecn
+    )
+{
+    return
+        QuicVarIntSize(Ecn->ECT_0_Count) +
+        QuicVarIntSize(Ecn->ECT_1_Count) +
+        QuicVarIntSize(Ecn->CE_Count);
+}
+
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckEcnEncode(
@@ -149,10 +161,7 @@ QuicAckEcnEncode(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    uint16_t RequiredLength =
-        QuicVarIntSize(Ecn->ECT_0_Count) +
-        QuicVarIntSize(Ecn->ECT_1_Count) +
-        QuicVarIntSize(Ecn->CE_Count);
+    const uint16_t RequiredLength = QuicAckEcnSize(Ecn);
 
     if (BufferLength < *Offset + RequiredLength) {
         return FALSE;
@@ -185,6 +194,33 @@ QuicAckEcnDecode(
     return TRUE;
 }
 
+CXPLAT_STATIC_ASSERT(
+    QUIC_MAX_RANGE_ACK_PACKETS / sizeof(QUIC_SUBRANGE) <= 0x4000,
+    "ACK block count must fit in a two-byte QUIC varint");
+
+//
+// Updates a one- or two-byte AdditionalAckBlockCount without changing its encoded width.
+//
+static
+void
+QuicAckUpdateBlockCount(
+    _In_ uint64_t NewAckBlockCount,
+    _In_ uint8_t AckBlockCountFieldSize,
+    _Inout_updates_bytes_(AckBlockCountFieldSize) uint8_t* Buffer
+    )
+{
+    CXPLAT_DBG_ASSERT(
+        AckBlockCountFieldSize == sizeof(uint8_t) ||
+        AckBlockCountFieldSize == sizeof(uint16_t));
+
+    if (AckBlockCountFieldSize == sizeof(uint8_t)) {
+        Buffer[0] = (uint8_t)NewAckBlockCount;
+        return;
+    }
+
+    QuicVarIntEncode2Bytes(NewAckBlockCount, Buffer);
+}
+
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckFrameEncode(
@@ -202,9 +238,6 @@ QuicAckFrameEncode(
     uint64_t Largest = QuicRangeGetHigh(LastSub);
     uint64_t Count = LastSub->Count;
 
-    //
-    // Write the ACK Frame Header
-    //
     QUIC_ACK_EX Frame = {
         Largest,                // LargestAcknowledged
         AckDelay,               // AckDelay
@@ -212,7 +245,31 @@ QuicAckFrameEncode(
         Count - 1               // FirstAckBlock
     };
 
-    if (!QuicAckHeaderEncode(&Frame, Ecn, Offset, BufferLength, Buffer)) {
+    const uint16_t EcnLength =
+        Ecn == NULL ?
+            0 :
+            QuicAckEcnSize(Ecn);
+
+    if (BufferLength < EcnLength) {
+        return FALSE;
+    }
+
+    // Type -> Largest Acknowledged -> ACK Delay -> ACK Block Count
+    const uint16_t AckBlockCountOffset =
+        *Offset +
+        sizeof(uint8_t) +                              // Type
+        QuicVarIntSize(Frame.LargestAcknowledged) +
+        QuicVarIntSize(Frame.AckDelay);
+
+    //
+    // Write the ACK Frame Header
+    //
+    if (!QuicAckHeaderEncode(
+            &Frame,
+            Ecn,
+            Offset,
+            BufferLength - EcnLength,
+            Buffer)) {
         return FALSE;
     }
 
@@ -236,9 +293,17 @@ QuicAckFrameEncode(
             Count - 1                       // AckBlock
         };
 
-        if (!QuicAckBlockEncode(&Block, Offset, BufferLength, Buffer)) {
-            CXPLAT_TEL_ASSERT(FALSE); // TODO - Support partial ACK array encoding by updating the 'AdditionalAckBlockCount' field.
-            return FALSE;
+        if (!QuicAckBlockEncode(
+                &Block,
+                Offset,
+                BufferLength - EcnLength,
+                Buffer)) {
+
+            QuicAckUpdateBlockCount(
+                Frame.AdditionalAckBlockCount - i,
+                (uint8_t)QuicVarIntSize(Frame.AdditionalAckBlockCount),
+                Buffer + AckBlockCountOffset);
+            break;
         }
 
         Largest = NextLargest;
@@ -247,6 +312,7 @@ QuicAckFrameEncode(
 
     if (Ecn != NULL) {
         if (!QuicAckEcnEncode(Ecn, Offset, BufferLength, Buffer)) {
+            CXPLAT_TEL_ASSERT(FALSE);
             return FALSE;
         }
     }
