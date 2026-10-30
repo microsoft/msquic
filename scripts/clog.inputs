@@ -33,7 +33,8 @@
 ../src/platform/platform_worker.c
 ../src/perf/bin/histogram/hdr_histogram.c
 ../src/core/api.c
-../src/core/range.c
+../src/core/range_array.c
+../src/core/range_tiered.c
 ../src/core/injection.c
 ../src/core/sent_packet_metadata.c
 ../src/core/datagram.c

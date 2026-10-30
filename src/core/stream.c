@@ -80,8 +80,10 @@ QuicStreamInitialize(
     Stream->SendPriority = QUIC_STREAM_PRIORITY_DEFAULT;
     CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);
     CxPlatRefInitialize(&Stream->RefCount);
+    // Tiered: sparse send acknowledgements may exceed 256 ranges.
     QuicRangeInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
+        QUIC_RANGE_MODE_ARRAY | QUIC_RANGE_MODE_TIERED,
         &Stream->SparseAckRanges);
     Stream->ReceiveCompleteOperation = &Stream->ReceiveCompleteOperationStorage;
     Stream->ReceiveCompleteOperationStorage.API_CALL.Context = &Stream->ReceiveCompleteApiCtxStorage;
