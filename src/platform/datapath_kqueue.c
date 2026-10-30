@@ -1022,6 +1022,16 @@ CxPlatSocketContextUninitialize(
             &SocketContext->IoSqe,
             EVFILT_READ,
             EV_DELETE);
+
+        //
+        // Close the socket now so its address can be bound again as soon as
+        // the delete returns. Events already dequeued for it are dropped
+        // because the upcall rundown has completed; the rest of the cleanup
+        // stays on the event queue.
+        //
+        close(SocketContext->SocketFd);
+        SocketContext->SocketFd = INVALID_SOCKET;
+
         CxPlatEventQEnqueue(
             SocketContext->DatapathPartition->EventQ,
             &SocketContext->ShutdownSqe);
