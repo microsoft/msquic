@@ -86,8 +86,12 @@ TEST(SettingsTest, OfferedVersionsLengthLimit)
     }
 
     QUIC_VERSION_SETTINGS Settings = {};
+    Settings.AcceptableVersions = Versions;
+    Settings.AcceptableVersionsLength = 1;
     Settings.OfferedVersions = Versions;
     Settings.OfferedVersionsLength = (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS;
+    Settings.FullyDeployedVersions = Versions;
+    Settings.FullyDeployedVersionsLength = 1;
     QUIC_SETTINGS_INTERNAL InternalSettings = {};
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
