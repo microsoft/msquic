@@ -20,6 +20,8 @@ extern "C" {
 //
 extern const uint32_t DefaultSupportedVersionsList[4];
 
+#define QUIC_MAX_NEGOTIATION_VERSIONS 10
+
 typedef struct QUIC_VERSION_INFORMATION_V1 {
     uint32_t ChosenVersion;
     uint32_t AvailableVersionsCount;

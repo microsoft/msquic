@@ -11025,6 +11025,13 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "SettingsOfferedVersionsTooLong": {
+      "ModuleProperites": {},
+      "TraceString": "Too many offered versions",
+      "UniqueId": "SettingsOfferedVersionsTooLong",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
+    },
     "SettingsStreamMultiReceiveEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] StreamMultiReceiveEnabled= %hhu",
@@ -16549,6 +16556,11 @@
         "UniquenessHash": "81035efa-7e5c-22d0-3a02-16a2f7cc7f1f",
         "TraceID": "SettingsLoadInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion loaded from storage! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "c8209584-0467-56dd-404a-4ccf28b153cb",
+        "TraceID": "SettingsOfferedVersionsTooLong",
+        "EncodingString": "Too many offered versions"
       },
       {
         "UniquenessHash": "7db0f817-cc89-749d-01ec-356d35f7189a",
