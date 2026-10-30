@@ -19,6 +19,12 @@ Abstract:
 #include "DataPathTest.cpp.clog.h"
 #endif
 
+#ifdef __linux__
+#include <dirent.h>
+#include <fcntl.h>
+#include <map>
+#endif
+
 #define QUIC_INVALID_FILE_HANDLE (-1)
 
 extern bool UseDuoNic;
@@ -1364,6 +1370,108 @@ TEST_P(DataPathTest, TcpDataServer)
 // this test must be DEBUG-only.
 //
 #ifdef DEBUG
+#ifdef __linux__
+
+//
+// Returns every file descriptor open in this process and whether it is marked
+// close-on-exec.
+//
+static std::map<int, bool> GetOpenDescriptors()
+{
+    std::map<int, bool> Descriptors;
+    DIR* Dir = opendir("/proc/self/fd");
+    if (Dir == nullptr) {
+        return Descriptors;
+    }
+    while (struct dirent* Entry = readdir(Dir)) {
+        if (Entry->d_name[0] < '0' || Entry->d_name[0] > '9') {
+            continue;
+        }
+        int Fd = atoi(Entry->d_name);
+        if (Fd == dirfd(Dir)) {
+            continue;
+        }
+        int Flags = fcntl(Fd, F_GETFD);
+        if (Flags != -1) {
+            Descriptors[Fd] = (Flags & FD_CLOEXEC) != 0;
+        }
+    }
+    closedir(Dir);
+    return Descriptors;
+}
+
+//
+// A socket that is not close-on-exec is inherited by any child process the
+// application starts with fork + exec, so the flag has to be set when the
+// socket is created.
+//
+static void VerifyNewDescriptorsAreCloseOnExec(const std::map<int, bool>& Before)
+{
+    for (const auto& Descriptor : GetOpenDescriptors()) {
+        if (Before.find(Descriptor.first) == Before.end()) {
+            EXPECT_TRUE(Descriptor.second)
+                << "File descriptor " << Descriptor.first << " is not close-on-exec";
+        }
+    }
+}
+
+TEST_F(DataPathTest, UdpSocketIsCloseOnExec)
+{
+    auto Before = GetOpenDescriptors();
+
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
+    CxPlatSocket Socket(Datapath);
+    VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
+    ASSERT_NE(nullptr, Socket.Socket);
+
+    VerifyNewDescriptorsAreCloseOnExec(Before);
+}
+
+TEST_P(DataPathTest, TcpSocketsAreCloseOnExec)
+{
+    auto Before = GetOpenDescriptors();
+
+    CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TCP)) {
+        GTEST_SKIP_("TCP is not supported");
+    }
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
+    TcpListenerContext ListenerContext;
+    auto serverAddress = GetNewLocalAddr();
+    CxPlatSocket Listener; Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
+    while (Listener.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
+    }
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    serverAddress.SockAddr = Listener.GetLocalAddress();
+
+    TcpClientContext ClientContext;
+    CxPlatSocket Client; Client.CreateTcp(Datapath, nullptr, &serverAddress.SockAddr, &ClientContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
+
+    //
+    // The accepted server socket is created by accept, not socket.
+    //
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 500));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 500));
+    ASSERT_NE(nullptr, ListenerContext.Server);
+
+    VerifyNewDescriptorsAreCloseOnExec(Before);
+
+    ListenerContext.DeleteSocket();
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 500));
+}
+
+#endif // __linux__
+
 TEST_F(DataPathTest, XdpRuleAddOomCleanup)
 {
     //
