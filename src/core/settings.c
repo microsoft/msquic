@@ -1135,11 +1135,10 @@ QuicSettingsLoad(
                 OfferedVersionsSize +
                 FullyDeployedVersionsSize;
             if (OfferedVersionsSize >
-                QUIC_MAX_VERSION_NEGOTIATION_VERSIONS * sizeof(uint32_t)) {
+                QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t)) {
                 QuicTraceLogError(
                     SettingsOfferedVersionsTooLong,
-                    "Offered versions list exceeds VN response capacity: %u entries",
-                    OfferedVersionsSize / (uint32_t)sizeof(uint32_t));
+                    "Too many offered versions");
                 goto VersionSettingsFail;
             }
             VersionSettings =
@@ -1749,11 +1748,10 @@ QuicSettingsVersionSettingsToInternal(
 
     InternalSettings->IsSetFlags = 0;
 
-    if (Settings->OfferedVersionsLength > QUIC_MAX_VERSION_NEGOTIATION_VERSIONS) {
+    if (Settings->OfferedVersionsLength > QUIC_MAX_NEGOTIATION_VERSIONS) {
         QuicTraceLogError(
             SettingsOfferedVersionsTooLong,
-            "Offered versions list exceeds VN response capacity: %u entries",
-            Settings->OfferedVersionsLength);
+            "Too many offered versions");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 

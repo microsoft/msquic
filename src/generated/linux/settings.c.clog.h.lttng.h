@@ -924,18 +924,15 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingXdpDisabledInMapMode,
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingsOfferedVersionsTooLong
-// Offered versions list exceeds VN response capacity: %u entries
+// Too many offered versions
 // QuicTraceLogError(
                     SettingsOfferedVersionsTooLong,
-                    "Offered versions list exceeds VN response capacity: %u entries",
-                    OfferedVersionsSize / (uint32_t)sizeof(uint32_t));
-// arg2 = arg2 = OfferedVersionsSize / (uint32_t)sizeof(uint32_t) = arg2
+                    "Too many offered versions");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsOfferedVersionsTooLong,
     TP_ARGS(
-        unsigned int, arg2), 
+), 
     TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 

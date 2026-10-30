@@ -80,14 +80,14 @@ static uint32_t PopCount(T Value) {
 
 TEST(SettingsTest, OfferedVersionsLengthLimit)
 {
-    uint32_t Versions[QUIC_MAX_VERSION_NEGOTIATION_VERSIONS + 1];
+    uint32_t Versions[QUIC_MAX_NEGOTIATION_VERSIONS + 1];
     for (auto& Version : Versions) {
         Version = CxPlatByteSwapUint32(QUIC_VERSION_1);
     }
 
     QUIC_VERSION_SETTINGS Settings = {};
     Settings.OfferedVersions = Versions;
-    Settings.OfferedVersionsLength = (uint32_t)QUIC_MAX_VERSION_NEGOTIATION_VERSIONS;
+    Settings.OfferedVersionsLength = (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS;
     QUIC_SETTINGS_INTERNAL InternalSettings = {};
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -95,7 +95,7 @@ TEST(SettingsTest, OfferedVersionsLengthLimit)
     QuicSettingsCleanup(&InternalSettings);
 
     const uint32_t InvalidLengths[] = {
-        (uint32_t)QUIC_MAX_VERSION_NEGOTIATION_VERSIONS + 1,
+        (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS + 1,
         16384,
         UINT32_MAX
     };
@@ -478,7 +478,7 @@ TEST(SettingsTest, QuicSettingsLoad_OfferedVersionsLengthLimit)
         QuicStorageSettingScopeGuard::Create("Apps\\MsQuicUnitTestVersionStorage");
     ASSERT_NE(nullptr, (CXPLAT_STORAGE*)StorageGuard);
 
-    uint32_t Versions[QUIC_MAX_VERSION_NEGOTIATION_VERSIONS + 1];
+    uint32_t Versions[QUIC_MAX_NEGOTIATION_VERSIONS + 1];
     for (auto& Version : Versions) {
         Version = CxPlatByteSwapUint32(QUIC_VERSION_1);
     }
@@ -493,9 +493,9 @@ TEST(SettingsTest, QuicSettingsLoad_OfferedVersionsLengthLimit)
 
     QUIC_SETTINGS_INTERNAL Settings = {};
     for (uint32_t Length : {
-            (uint32_t)QUIC_MAX_VERSION_NEGOTIATION_VERSIONS + 1,
-            (uint32_t)QUIC_MAX_VERSION_NEGOTIATION_VERSIONS,
-            (uint32_t)QUIC_MAX_VERSION_NEGOTIATION_VERSIONS + 1}) {
+            (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS + 1,
+            (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS,
+            (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS + 1}) {
         ASSERT_EQ(
             QUIC_STATUS_SUCCESS,
             CxPlatStorageWriteValue(
@@ -503,7 +503,7 @@ TEST(SettingsTest, QuicSettingsLoad_OfferedVersionsLengthLimit)
                 Length * (uint32_t)sizeof(uint32_t), (uint8_t*)Versions));
         auto PreviousVersionSettings = Settings.VersionSettings;
         QuicSettingsLoad(&Settings, StorageGuard);
-        if (Length > QUIC_MAX_VERSION_NEGOTIATION_VERSIONS) {
+        if (Length > QUIC_MAX_NEGOTIATION_VERSIONS) {
             EXPECT_EQ(PreviousVersionSettings, Settings.VersionSettings);
         } else {
             EXPECT_NE(nullptr, Settings.VersionSettings);

@@ -22,7 +22,7 @@ Abstract:
 // randomly generated version.
 //
 CXPLAT_STATIC_ASSERT(
-    ARRAYSIZE(DefaultSupportedVersionsList) <= QUIC_MAX_VERSION_NEGOTIATION_VERSIONS,
+    ARRAYSIZE(DefaultSupportedVersionsList) <= QUIC_MAX_NEGOTIATION_VERSIONS,
     "Too many supported version numbers! Requires too big of buffer for response!");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -840,7 +840,7 @@ QuicBindingProcessStatelessOperation(
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
         }
 
-        if (SupportedVersionsLength > QUIC_MAX_VERSION_NEGOTIATION_VERSIONS) {
+        if (SupportedVersionsLength > QUIC_MAX_NEGOTIATION_VERSIONS) {
             QuicPacketLogDrop(Binding, RecvPacket, "Too many versions for VN response");
             goto Exit;
         }
