@@ -297,6 +297,9 @@ QuicAckTrackerAckFrameEncode(
         CxPlatTimeDiff64(Tracker->LargestPacketNumberRecvTime, Timestamp)
           >> Builder->Connection->AckDelayExponent;
 
+    //
+    // Commit TIMESTAMP and ACK together only after both are encoded.
+    //
     uint16_t Offset = Builder->DatagramLength;
 
     if (Builder->Connection->State.TimestampSendNegotiated &&

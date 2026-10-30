@@ -1306,210 +1306,201 @@ TEST_P(ConnectionCloseFrameDecodeTest, DecodeConnectionCloseFrameFail) {
 
 INSTANTIATE_TEST_SUITE_P(FrameTest, ConnectionCloseFrameDecodeTest, ::testing::ValuesIn(ConnectionCloseFrameParams::GenerateDecodeFailParams()));
 
-TEST(FrameTest, AckFrameEncodePartialBlocks)
+TEST(FrameTest, AckFrameEncodeMinimumFit)
+{
+    const uint64_t OlderRangeStart = 181;
+    const uint64_t OlderRangeCount = 2;
+    const uint64_t NewestPacketNumber = 184;
+    const uint64_t AckDelay = 3;
+    const uint16_t InitialOffset = 5;
+    const uint16_t MinimumAckFrameLength = 6;
+    const uint16_t BufferLength = InitialOffset + MinimumAckFrameLength;
+    const uint32_t ExpectedDecodedRanges = 1; // Only the newest range fits.
+
+    QUIC_RANGE AckRange;
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
+    BOOLEAN Unused = FALSE;
+    ASSERT_TRUE(
+        QuicRangeAddRange(
+            &AckRange, OlderRangeStart, OlderRangeCount, &Unused) != nullptr);
+    ASSERT_TRUE(QuicRangeAddValue(&AckRange, NewestPacketNumber));
+
+    // Scratch space is intentionally larger than the encoded frame budget.
+    uint8_t Buffer[32];
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
+
+    //
+    // The minimum frame needs exactly MinimumAckFrameLength bytes:
+    // 1 Type + 2 Largest=184 + 1 AckDelay=3 + 1 AdditionalCount=0 +
+    // 1 FirstAckBlock=0. The full 2-range frame needs 8 bytes, so the
+    // older range is omitted.
+    //
+    uint16_t Offset = InitialOffset;
+    ASSERT_TRUE(
+        QuicAckFrameEncode(
+            &AckRange, AckDelay, nullptr, &Offset, BufferLength, Buffer));
+    ASSERT_EQ(BufferLength, Offset);
+
+    QUIC_RANGE Decoded;
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &Decoded);
+    QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
+    uint64_t DecodedAckDelay = 0;
+    BOOLEAN InvalidFrame = FALSE;
+    uint16_t DecodeOffset = InitialOffset + 1; // Skip the one-byte frame type.
+    ASSERT_TRUE(
+        QuicAckFrameDecode(
+            QUIC_FRAME_ACK, Offset, Buffer, &DecodeOffset, &InvalidFrame,
+            &Decoded, &DecodedEcn, &DecodedAckDelay));
+    ASSERT_FALSE(InvalidFrame);
+    ASSERT_EQ(BufferLength, DecodeOffset);
+    ASSERT_EQ(ExpectedDecodedRanges, QuicRangeSize(&Decoded));
+    ASSERT_EQ(NewestPacketNumber, QuicRangeGetMin(&Decoded));
+    ASSERT_EQ(NewestPacketNumber, QuicRangeGetMax(&Decoded));
+
+    QuicRangeUninitialize(&Decoded);
+    QuicRangeUninitialize(&AckRange);
+}
+
+TEST(FrameTest, AckFrameEncodeCountAndEcnBudget)
+{
+    const uint32_t TotalRanges = 65; // First range plus 64 additional ranges.
+    const uint64_t PacketNumberStride = 2; // One missing packet between singletons.
+    const uint64_t LargestPacketNumber =
+        (TotalRanges - 1) * PacketNumberStride;
+    const uint16_t BufferLength = 134; // Fits 63, but not 64, additional ranges.
+    const uint16_t NonEcnEncodedLength = 133; // 5 fixed + 2 count + 63 blocks.
+    const uint32_t NonEcnDecodedRanges = 64; // First plus 63 additional ranges.
+    const uint64_t NonEcnOldestPacketNumber =
+        PacketNumberStride; // The oldest range is omitted.
+    const uint16_t EcnEncodedLength = 134; // 8 fixed + 2 count + 62 blocks.
+    const uint32_t EcnDecodedRanges = 63; // First plus 62 additional ranges.
+    const uint64_t EcnOldestPacketNumber =
+        2 * PacketNumberStride; // Two oldest ranges are omitted.
+
+    QUIC_RANGE AckRange;
+    QuicRangeInitialize(QUIC_MAX_RANGE_ACK_PACKETS, &AckRange);
+    for (uint32_t r = 0; r < TotalRanges; ++r) {
+        ASSERT_TRUE(
+            QuicRangeAddValue(
+                &AckRange, (uint64_t)r * PacketNumberStride));
+    }
+    ASSERT_EQ(TotalRanges, QuicRangeSize(&AckRange));
+
+    //
+    // Type, Largest, AckDelay, and FirstAckBlock need 5 bytes. The original
+    // count of 64 reserves 2 bytes, and 63 blocks need 126 bytes, for 133
+    // total. The patched count of 63 intentionally keeps the reserved width.
+    //
+    uint8_t Buffer[256]; // Scratch space exceeds the 134-byte frame budget.
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
+    uint16_t Offset = 0;
+    ASSERT_TRUE(
+        QuicAckFrameEncode(
+            &AckRange, 0, nullptr, &Offset, BufferLength, Buffer));
+    ASSERT_EQ(NonEcnEncodedLength, Offset);
+
+    QUIC_RANGE Decoded;
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &Decoded);
+    QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
+    uint64_t DecodedAckDelay = 0;
+    BOOLEAN InvalidFrame = FALSE;
+    uint16_t DecodeOffset = 1; // Skip the one-byte ACK frame type.
+    ASSERT_TRUE(
+        QuicAckFrameDecode(
+            QUIC_FRAME_ACK, Offset, Buffer, &DecodeOffset, &InvalidFrame,
+            &Decoded, &DecodedEcn, &DecodedAckDelay));
+    ASSERT_FALSE(InvalidFrame);
+    ASSERT_EQ(NonEcnDecodedRanges, QuicRangeSize(&Decoded));
+    ASSERT_EQ(NonEcnOldestPacketNumber, QuicRangeGetMin(&Decoded));
+    ASSERT_EQ(LargestPacketNumber, QuicRangeGetMax(&Decoded));
+
+    //
+    // ECN adds 3 fixed bytes. Sixty-two additional blocks then need the
+    // reserved 2-byte count plus 124 block bytes, for 134 total.
+    //
+    QUIC_ACK_ECN_EX Ecn = {
+        1, // ECT(0) Count
+        2, // ECT(1) Count
+        3  // CE Count
+    };
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
+    Offset = 0;
+    QuicRangeReset(&Decoded);
+    DecodeOffset = 1; // Skip the one-byte frame type.
+    ASSERT_TRUE(
+        QuicAckFrameEncode(
+            &AckRange, 0, &Ecn, &Offset, BufferLength, Buffer));
+    ASSERT_EQ(EcnEncodedLength, Offset);
+    ASSERT_TRUE(
+        QuicAckFrameDecode(
+            QUIC_FRAME_ACK_1, Offset, Buffer, &DecodeOffset, &InvalidFrame,
+            &Decoded, &DecodedEcn, &DecodedAckDelay));
+    ASSERT_FALSE(InvalidFrame);
+    ASSERT_EQ(EcnDecodedRanges, QuicRangeSize(&Decoded));
+    ASSERT_EQ(EcnOldestPacketNumber, QuicRangeGetMin(&Decoded));
+    ASSERT_EQ(LargestPacketNumber, QuicRangeGetMax(&Decoded));
+    ASSERT_EQ(Ecn.ECT_0_Count, DecodedEcn.ECT_0_Count);
+    ASSERT_EQ(Ecn.ECT_1_Count, DecodedEcn.ECT_1_Count);
+    ASSERT_EQ(Ecn.CE_Count, DecodedEcn.CE_Count);
+
+    QuicRangeUninitialize(&Decoded);
+    QuicRangeUninitialize(&AckRange);
+}
+
+TEST(FrameTest, AckFrameEncodeDefaultMtuLargeGaps)
 {
     //
-    // 1. When only the minimum ACK frame fits, omit the oldest range.
+    // 128 runs of 65 packets with 8-byte gaps (1284 bytes full):
+    // Verify that encoding into constrained packet budgets succeeds and decodes cleanly.
     //
-    {
-        const uint64_t OlderRangeStart = 181;
-        const uint64_t OlderRangeCount = 2;
-        const uint64_t NewestPacketNumber = 184;
-        const uint64_t AckDelay = 3;
-        const uint16_t InitialOffset = 5;
-        const uint16_t MinimumAckFrameLength = 6;
-        const uint16_t BufferLength = InitialOffset + MinimumAckFrameLength;
-        const uint32_t ExpectedDecodedRanges = 1; // Only the newest range fits.
+    const uint32_t TotalRanges = 128; // Maximum ranges retained by the ACK tracker.
+    const uint64_t PacketsPerRange = 65; // Encodes AckBlock=64 as two bytes.
+    const uint64_t EightByteVarIntMinimum =
+        1ULL << 30; // First value requiring an 8-byte QUIC varint.
+    const uint64_t Stride =
+        EightByteVarIntMinimum + PacketsPerRange + 1; // Gap encodes at boundary.
+    const uint16_t BufferLength = 1244; // IPv4 plaintext budget at the default minimum MTU.
+    const uint16_t InitialOffset =
+        30; // Header bytes already in the datagram; chosen for an exact fit.
+    const uint32_t ExpectedDecodedRanges = 121; // Exact fit in this budget.
 
-        QUIC_RANGE AckRange;
-        QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
+    QUIC_RANGE AckRange;
+    QuicRangeInitialize(QUIC_MAX_RANGE_ACK_PACKETS, &AckRange);
+    for (uint32_t r = 0; r < TotalRanges; ++r) {
         BOOLEAN Unused = FALSE;
         ASSERT_TRUE(
             QuicRangeAddRange(
-                &AckRange, OlderRangeStart, OlderRangeCount, &Unused) != nullptr);
-        ASSERT_TRUE(QuicRangeAddValue(&AckRange, NewestPacketNumber));
-
-        // Scratch space is intentionally larger than the encoded frame budget.
-        uint8_t Buffer[32];
-        CxPlatZeroMemory(Buffer, sizeof(Buffer));
-
-        //
-        // The minimum frame needs exactly MinimumAckFrameLength bytes:
-        // 1 Type + 2 Largest=184 + 1 AckDelay=3 + 1 AdditionalCount=0 +
-        // 1 FirstAckBlock=0. The full 2-range frame needs 8 bytes, so the
-        // older range is omitted.
-        //
-        uint16_t Offset = InitialOffset;
-        ASSERT_TRUE(
-            QuicAckFrameEncode(
-                &AckRange, AckDelay, nullptr, &Offset, BufferLength, Buffer));
-        ASSERT_EQ(BufferLength, Offset);
-
-        QUIC_RANGE Decoded;
-        QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &Decoded);
-        QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
-        uint64_t DecodedAckDelay = 0;
-        BOOLEAN InvalidFrame = FALSE;
-        uint16_t DecodeOffset = InitialOffset + 1; // Skip the one-byte frame type.
-        ASSERT_TRUE(
-            QuicAckFrameDecode(
-                QUIC_FRAME_ACK, Offset, Buffer, &DecodeOffset, &InvalidFrame,
-                &Decoded, &DecodedEcn, &DecodedAckDelay));
-        ASSERT_FALSE(InvalidFrame);
-        ASSERT_EQ(BufferLength, DecodeOffset);
-        ASSERT_EQ(ExpectedDecodedRanges, QuicRangeSize(&Decoded));
-        ASSERT_EQ(NewestPacketNumber, QuicRangeGetMin(&Decoded));
-        ASSERT_EQ(NewestPacketNumber, QuicRangeGetMax(&Decoded));
-
-        QuicRangeUninitialize(&Decoded);
-        QuicRangeUninitialize(&AckRange);
+                &AckRange,
+                (uint64_t)(r + 1) * Stride,
+                PacketsPerRange,
+                &Unused) != nullptr);
     }
+    ASSERT_EQ(TotalRanges, QuicRangeSize(&AckRange));
 
-    //
-    // 2. Varint width boundary at AdditionalAckBlockCount = 63 -> 64 (1 byte -> 2 bytes),
-    // with and without ECN counts.
-    //
-    {
-        const uint32_t TotalRanges = 65; // First range plus 64 additional ranges.
-        const uint64_t PacketNumberStride = 2; // One missing packet between singletons.
-        const uint64_t LargestPacketNumber =
-            (TotalRanges - 1) * PacketNumberStride;
-        const uint16_t BufferLength = 134; // Fits 63, but not 64, additional ranges.
-        const uint16_t NonEcnEncodedLength = 132; // 5 fixed + 1 count + 63 blocks.
-        const uint32_t NonEcnDecodedRanges = 64; // First plus 63 additional ranges.
-        const uint64_t NonEcnOldestPacketNumber =
-            PacketNumberStride; // The oldest range is omitted.
-        const uint16_t EcnEncodedLength = 133; // 8 fixed + 1 count + 62 blocks.
-        const uint32_t EcnDecodedRanges = 63; // First plus 62 additional ranges.
-        const uint64_t EcnOldestPacketNumber =
-            2 * PacketNumberStride; // Two oldest ranges are omitted.
+    std::vector<uint8_t> PktBuf(BufferLength, 0);
+    uint16_t PktOffset = InitialOffset;
+    ASSERT_TRUE(
+        QuicAckFrameEncode(
+            &AckRange, 0, nullptr, &PktOffset, BufferLength, PktBuf.data()));
+    ASSERT_EQ(BufferLength, PktOffset);
 
-        QUIC_RANGE AckRange;
-        QuicRangeInitialize(QUIC_MAX_RANGE_ACK_PACKETS, &AckRange);
-        for (uint32_t r = 0; r < TotalRanges; ++r) {
-            ASSERT_TRUE(
-                QuicRangeAddValue(
-                    &AckRange, (uint64_t)r * PacketNumberStride));
-        }
-        ASSERT_EQ(TotalRanges, QuicRangeSize(&AckRange));
+    QUIC_RANGE Decoded;
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &Decoded);
+    QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
+    uint64_t DecodedAckDelay = 0;
+    BOOLEAN InvalidFrame = FALSE;
+    uint16_t DecodeOffset = InitialOffset + 1; // Skip the one-byte frame type.
+    ASSERT_TRUE(
+        QuicAckFrameDecode(
+            QUIC_FRAME_ACK, PktOffset, PktBuf.data(), &DecodeOffset, &InvalidFrame,
+            &Decoded, &DecodedEcn, &DecodedAckDelay));
+    ASSERT_FALSE(InvalidFrame);
+    ASSERT_EQ(PktOffset, DecodeOffset);
+    ASSERT_EQ(ExpectedDecodedRanges, QuicRangeSize(&Decoded));
+    ASSERT_EQ(QuicRangeGetMax(&AckRange), QuicRangeGetMax(&Decoded));
 
-        //
-        // Type, Largest, AckDelay, and FirstAckBlock need 5 bytes. Sixty-three
-        // additional blocks need 1 count byte plus 126 block bytes, for 132 total.
-        // A sixty-fourth block grows the count to 2 bytes and needs 135 total,
-        // which exceeds BufferLength.
-        //
-        uint8_t Buffer[256]; // Scratch space exceeds the 134-byte frame budget.
-        CxPlatZeroMemory(Buffer, sizeof(Buffer));
-        uint16_t Offset = 0;
-        ASSERT_TRUE(
-            QuicAckFrameEncode(
-                &AckRange, 0, nullptr, &Offset, BufferLength, Buffer));
-        ASSERT_EQ(NonEcnEncodedLength, Offset);
-
-        QUIC_RANGE Decoded;
-        QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &Decoded);
-        QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
-        uint64_t DecodedAckDelay = 0;
-        BOOLEAN InvalidFrame = FALSE;
-        uint16_t DecodeOffset = 1; // Skip the one-byte ACK frame type.
-        ASSERT_TRUE(
-            QuicAckFrameDecode(
-                QUIC_FRAME_ACK, Offset, Buffer, &DecodeOffset, &InvalidFrame,
-                &Decoded, &DecodedEcn, &DecodedAckDelay));
-        ASSERT_FALSE(InvalidFrame);
-        ASSERT_EQ(NonEcnDecodedRanges, QuicRangeSize(&Decoded));
-        ASSERT_EQ(NonEcnOldestPacketNumber, QuicRangeGetMin(&Decoded));
-        ASSERT_EQ(LargestPacketNumber, QuicRangeGetMax(&Decoded));
-
-        //
-        // ECN adds 3 fixed bytes. Sixty-two additional blocks then need 1 count
-        // byte plus 124 block bytes, for 133 total. A sixty-third block needs
-        // 135 total, which exceeds BufferLength.
-        //
-        QUIC_ACK_ECN_EX Ecn = {
-            1, // ECT(0) Count
-            2, // ECT(1) Count
-            3  // CE Count
-        };
-        CxPlatZeroMemory(Buffer, sizeof(Buffer));
-        Offset = 0;
-        QuicRangeReset(&Decoded);
-        DecodeOffset = 1; // Skip the one-byte frame type.
-        ASSERT_TRUE(
-            QuicAckFrameEncode(
-                &AckRange, 0, &Ecn, &Offset, BufferLength, Buffer));
-        ASSERT_EQ(EcnEncodedLength, Offset);
-        ASSERT_TRUE(
-            QuicAckFrameDecode(
-                QUIC_FRAME_ACK_1, Offset, Buffer, &DecodeOffset, &InvalidFrame,
-                &Decoded, &DecodedEcn, &DecodedAckDelay));
-        ASSERT_FALSE(InvalidFrame);
-        ASSERT_EQ(EcnDecodedRanges, QuicRangeSize(&Decoded));
-        ASSERT_EQ(EcnOldestPacketNumber, QuicRangeGetMin(&Decoded));
-        ASSERT_EQ(LargestPacketNumber, QuicRangeGetMax(&Decoded));
-        ASSERT_EQ(Ecn.ECT_0_Count, DecodedEcn.ECT_0_Count);
-        ASSERT_EQ(Ecn.ECT_1_Count, DecodedEcn.ECT_1_Count);
-        ASSERT_EQ(Ecn.CE_Count, DecodedEcn.CE_Count);
-
-        QuicRangeUninitialize(&Decoded);
-        QuicRangeUninitialize(&AckRange);
-    }
-
-    //
-    // 3. 128 runs of 65 packets with 8-byte gaps (1284 bytes full):
-    // Verify that encoding into constrained packet budgets succeeds and decodes cleanly.
-    //
-    {
-        const uint32_t TotalRanges = 128; // Maximum ranges retained by the ACK tracker.
-        const uint64_t PacketsPerRange = 65; // Encodes AckBlock=64 as two bytes.
-        const uint64_t EightByteVarIntMinimum =
-            1ULL << 30; // First value requiring an 8-byte QUIC varint.
-        const uint64_t Stride =
-            EightByteVarIntMinimum + PacketsPerRange + 1; // Gap encodes at boundary.
-        const uint16_t BufferLength = 1244; // IPv4 plaintext budget at the default minimum MTU.
-        const uint16_t InitialOffset =
-            30; // Header bytes already in the datagram; chosen for an exact fit.
-        const uint32_t ExpectedDecodedRanges = 121; // Exact fit in this budget.
-
-        QUIC_RANGE AckRange;
-        QuicRangeInitialize(QUIC_MAX_RANGE_ACK_PACKETS, &AckRange);
-        for (uint32_t r = 0; r < TotalRanges; ++r) {
-            BOOLEAN Unused = FALSE;
-            ASSERT_TRUE(
-                QuicRangeAddRange(
-                    &AckRange,
-                    (uint64_t)(r + 1) * Stride,
-                    PacketsPerRange,
-                    &Unused) != nullptr);
-        }
-        ASSERT_EQ(TotalRanges, QuicRangeSize(&AckRange));
-
-        std::vector<uint8_t> PktBuf(BufferLength, 0);
-        uint16_t PktOffset = InitialOffset;
-        ASSERT_TRUE(
-            QuicAckFrameEncode(
-                &AckRange, 0, nullptr, &PktOffset, BufferLength, PktBuf.data()));
-        ASSERT_EQ(BufferLength, PktOffset);
-
-        QUIC_RANGE Decoded;
-        QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &Decoded);
-        QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
-        uint64_t DecodedAckDelay = 0;
-        BOOLEAN InvalidFrame = FALSE;
-        uint16_t DecodeOffset = InitialOffset + 1; // Skip the one-byte frame type.
-        ASSERT_TRUE(
-            QuicAckFrameDecode(
-                QUIC_FRAME_ACK, PktOffset, PktBuf.data(), &DecodeOffset, &InvalidFrame,
-                &Decoded, &DecodedEcn, &DecodedAckDelay));
-        ASSERT_FALSE(InvalidFrame);
-        ASSERT_EQ(PktOffset, DecodeOffset);
-        ASSERT_EQ(ExpectedDecodedRanges, QuicRangeSize(&Decoded));
-        ASSERT_EQ(QuicRangeGetMax(&AckRange), QuicRangeGetMax(&Decoded));
-
-        QuicRangeUninitialize(&Decoded);
-        QuicRangeUninitialize(&AckRange);
-    }
+    QuicRangeUninitialize(&Decoded);
+    QuicRangeUninitialize(&AckRange);
 }
 
 TEST(FrameTest, AckTrackerEncodeTimestampRollback)
