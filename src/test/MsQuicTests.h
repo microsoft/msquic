@@ -883,6 +883,10 @@ QuicTestTinyStreamRecvWindow(
     );
 
 void
+QuicTestReject0RttSmallerConnFlowControl(
+    );
+
+void
 QuicTestStreamReliableReset(
     );
 
