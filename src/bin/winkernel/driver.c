@@ -142,6 +142,7 @@ Return Value:
 Error:
 
     if (!NT_SUCCESS(Status)) {
+        MsQuicPcwCleanup();
         MsQuicLibraryUnload();
     }
 
