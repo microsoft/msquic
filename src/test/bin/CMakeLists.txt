@@ -41,3 +41,9 @@ endif()
 add_test(NAME msquictest
          COMMAND msquictest
          WORKING_DIRECTORY ${QUIC_OUTPUT_DIR})
+
+add_executable(quicforward_send_test ForwarderSendTest.cpp)
+target_include_directories(quicforward_send_test PRIVATE ${PROJECT_SOURCE_DIR}/src/tools/forwarder)
+target_link_libraries(quicforward_send_test PRIVATE inc warnings)
+set_property(TARGET quicforward_send_test PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+add_test(NAME quicforward_send_test COMMAND quicforward_send_test)

@@ -16,6 +16,7 @@ Abstract:
 
 #include "msquichelper.h"
 #include "msquic.hpp"
+#include "forwarder.h"
 
 const char* Alpn;
 uint16_t FrontEndPort;
@@ -60,38 +61,6 @@ bool ParseArgs(int argc, char **argv) {
     return true;
 }
 
-struct ForwardedSend {
-    uint64_t TotalLength;
-    QUIC_BUFFER Buffers[3];
-    static ForwardedSend* New(QUIC_STREAM_EVENT* Event) {
-        if (BufferedMode) {
-            auto SendContext = (ForwardedSend*)malloc(sizeof(ForwardedSend) + (size_t)Event->RECEIVE.TotalBufferLength);
-            SendContext->TotalLength = Event->RECEIVE.TotalBufferLength;
-            SendContext->Buffers[0].Buffer = (uint8_t*)SendContext + sizeof(ForwardedSend);
-            SendContext->Buffers[0].Length = 0;
-            for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-                memcpy(
-                    SendContext->Buffers[0].Buffer + SendContext->Buffers[0].Length,
-                    Event->RECEIVE.Buffers[i].Buffer,
-                    Event->RECEIVE.Buffers[i].Length);
-                SendContext->Buffers[0].Length += Event->RECEIVE.Buffers[i].Length;
-            }
-            return SendContext;
-        }
-        auto SendContext = new(std::nothrow) ForwardedSend;
-        SendContext->TotalLength = Event->RECEIVE.TotalBufferLength;
-        for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-            SendContext->Buffers[i].Length = Event->RECEIVE.Buffers[i].Length;
-            SendContext->Buffers[i].Buffer = Event->RECEIVE.Buffers[i].Buffer;
-        }
-        return SendContext;
-    }
-    static void Delete(ForwardedSend* SendContext) {
-        if (BufferedMode) { free(SendContext); }
-        else { delete SendContext; }
-    }
-};
-
 QUIC_STATUS StreamCallback(
     _In_ struct MsQuicStream* /* Stream */,
     _In_opt_ void* Context,
@@ -109,14 +78,12 @@ QUIC_STATUS StreamCallback(
             }
             return QUIC_STATUS_SUCCESS;
         }
-        auto SendContext = ForwardedSend::New(Event);
+        auto SendContext = ForwardedSend::New(Event, BufferedMode);
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)   { Flags |= QUIC_SEND_FLAG_FIN; }
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_0_RTT) { Flags |= QUIC_SEND_FLAG_ALLOW_0_RTT; }
-        // Buffered mode combines the received buffers into one send buffer.
-        const uint32_t SendBufferCount = BufferedMode ? 1 : Event->RECEIVE.BufferCount;
         auto Status =
-            PeerStream->Send(SendContext->Buffers, SendBufferCount, Flags, SendContext);
+            PeerStream->Send(SendContext->Buffers, SendContext->BufferCount, Flags, SendContext);
         if (Status == QUIC_STATUS_ABORTED || Status == QUIC_STATUS_INVALID_STATE) {
             ForwardedSend::Delete(SendContext);
             return QUIC_STATUS_SUCCESS;
