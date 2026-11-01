@@ -113,8 +113,10 @@ QUIC_STATUS StreamCallback(
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)   { Flags |= QUIC_SEND_FLAG_FIN; }
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_0_RTT) { Flags |= QUIC_SEND_FLAG_ALLOW_0_RTT; }
+        // Buffered mode combines the received buffers into one send buffer.
+        const uint32_t SendBufferCount = BufferedMode ? 1 : Event->RECEIVE.BufferCount;
         auto Status =
-            PeerStream->Send(SendContext->Buffers, Event->RECEIVE.BufferCount, Flags, SendContext);
+            PeerStream->Send(SendContext->Buffers, SendBufferCount, Flags, SendContext);
         if (Status == QUIC_STATUS_ABORTED || Status == QUIC_STATUS_INVALID_STATE) {
             ForwardedSend::Delete(SendContext);
             return QUIC_STATUS_SUCCESS;
