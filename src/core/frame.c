@@ -214,7 +214,7 @@ QuicAckUpdateBlockCount(
         AckBlockCountFieldSize == sizeof(uint16_t));
 
     if (AckBlockCountFieldSize == sizeof(uint8_t)) {
-        Buffer[0] = (uint8_t)NewAckBlockCount;
+        QuicVarIntEncode1Bytes(NewAckBlockCount, Buffer);
         return;
     }
 
@@ -246,9 +246,7 @@ QuicAckFrameEncode(
     };
 
     const uint16_t EcnLength =
-        Ecn == NULL ?
-            0 :
-            QuicAckEcnSize(Ecn);
+        Ecn == NULL ? 0 : QuicAckEcnSize(Ecn);
 
     if (BufferLength < EcnLength) {
         return FALSE;
@@ -299,6 +297,8 @@ QuicAckFrameEncode(
                 BufferLength - EcnLength,
                 Buffer)) {
 
+            // Not all ACK blocks could be written. Update the count to match what
+            // was actually written.
             QuicAckUpdateBlockCount(
                 Frame.AdditionalAckBlockCount - i,
                 (uint8_t)QuicVarIntSize(Frame.AdditionalAckBlockCount),
