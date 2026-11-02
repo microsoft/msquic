@@ -209,12 +209,29 @@ QuicPathRemove(
         // available fallback: prefer a peer-validated path, otherwise accept
         // any path.
         //
-        size_t FallbackIndex = 1;
+        size_t FallbackIndex = 0;
         for (size_t j = 1; j < PathSet->Count; ++j) {
-            if (PathSet->Paths[j].IsPeerValidated) {
+            if (PathSet->Paths[j].IsPeerValidated &&
+                QuicPathUpdateDestCid(Connection, &PathSet->Paths[j])) {
                 FallbackIndex = j;
                 break;
             }
+        }
+        if (FallbackIndex == 0) {
+            for (size_t j = 1; j < PathSet->Count; ++j) {
+                if (QuicPathUpdateDestCid(Connection, &PathSet->Paths[j])) {
+                    FallbackIndex = j;
+                    break;
+                }
+            }
+        }
+        if (FallbackIndex == 0) {
+            QuicConnCloseLocally(
+                Connection,
+                QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                (uint64_t)QUIC_STATUS_UNREACHABLE,
+                NULL);
+            return FALSE;
         }
         QuicTraceLogConnInfo(
             PathActiveFallback,
@@ -228,6 +245,14 @@ QuicPathRemove(
         // Fall through to remove it there.
         //
         Index = FallbackIndex;
+    }
+
+    QUIC_PATH* RemovedPath = &PathSet->Paths[Index];
+    if (RemovedPath->DestCid != NULL) {
+        if (RemovedPath->DestCid->CID.Length != 0 && !RemovedPath->DestCid->CID.Retired) {
+            QuicConnRetireCid(Connection, RemovedPath->DestCid);
+        }
+        RemovedPath->DestCid = NULL;
     }
 
     if (Index + 1 < PathSet->Count) {
@@ -267,6 +292,9 @@ QuicPathUpdateDestCids(
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Active path has no replacement for retired CID");
+            if (Path->DestCid != NULL) {
+                Path->DestCid->CID.Retired = FALSE;
+            }
             QuicConnSilentlyAbort(Connection);
             return;
         }
