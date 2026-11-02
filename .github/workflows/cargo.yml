@@ -16,6 +16,22 @@ permissions:
   pull-requests: write
 
 jobs:
+  cargo-arm64-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+        - aarch64-unknown-linux-gnu
+        - aarch64-linux-android
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+      with:
+        toolchain: 1.99.1
+        targets: ${{ matrix.target }}
+    # Check Rust bindings and tests without a native cross compiler or linker.
+    - run: cargo check --no-default-features --all-targets --target ${{ matrix.target }}
+
   cargo:
     strategy:
       fail-fast: false

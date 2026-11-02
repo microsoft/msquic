@@ -46,7 +46,7 @@ pub struct OVERLAPPED_ENTRY {
     pub dwNumberOfBytesTransferred: ::std::os::raw::c_ulong,
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub type epoll_event = libc::epoll_event;
 
 #[cfg(target_os = "macos")]
