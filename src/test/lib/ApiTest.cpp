@@ -7158,7 +7158,8 @@ struct TestEventQ {
     BOOLEAN Initialize() {
         Initialized = CxPlatEventQInitialize(&QuicEventQ);
 #if CXPLAT_USE_IO_URING
-        // Allow deferred ring cleanup to release resources before retrying.
+        // io_uring based event queues rapid deletions/creations have been causing runner resource exhaustion.
+        // Allow some retry to let the system recover resources.
         for (uint32_t DelayMs = 1; !Initialized && DelayMs <= 128; DelayMs *= 2) {
             CxPlatLockUninitialize(&QuicEventQ.Lock);
             CxPlatSleep(DelayMs);
