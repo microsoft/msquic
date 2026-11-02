@@ -7155,6 +7155,21 @@ struct TestEventQ {
     TestEventQ& operator=(const TestEventQ&) = delete;
     TestEventQ(TestEventQ&&) = delete;
     TestEventQ& operator=(TestEventQ&&) = delete;
+    BOOLEAN Initialize() {
+        Initialized = CxPlatEventQInitialize(&QuicEventQ);
+#if CXPLAT_USE_IO_URING
+        // Allow deferred ring cleanup to release resources before retrying.
+        for (uint32_t DelayMs = 1; !Initialized && DelayMs <= 128; DelayMs *= 2) {
+            CxPlatLockUninitialize(&QuicEventQ.Lock);
+            CxPlatSleep(DelayMs);
+            Initialized = CxPlatEventQInitialize(&QuicEventQ);
+        }
+        if (!Initialized) {
+            CxPlatLockUninitialize(&QuicEventQ.Lock);
+        }
+#endif
+        return Initialized;
+    }
     ~TestEventQ() {
         if (Initialized) {
             CxPlatEventQCleanup(&QuicEventQ);
@@ -7227,8 +7242,7 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
 
         for (uint32_t i = 0; i < EcCount; i++) {
             auto &Ec = Ecs[i];
-            TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
-            Ec.Initialized = TRUE;
+            TEST_TRUE(Ec.Initialize());
             EventQs[i] = &Ec.QuicEventQ;
         }
 
@@ -7248,8 +7262,7 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
 
         for (uint32_t i = 0; i < EcCount; i++) {
             auto &Ec = Ecs[i];
-            TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
-            Ec.Initialized = TRUE;
+            TEST_TRUE(Ec.Initialize());
             EventQs[i] = &Ec.QuicEventQ;
         }
 
@@ -7277,8 +7290,7 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
 
         for (uint32_t i = 0; i < EcCount; i++) {
             auto &Ec = Ecs[i];
-            TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
-            Ec.Initialized = TRUE;
+            TEST_TRUE(Ec.Initialize());
             EventQs[i] = &Ec.QuicEventQ;
         }
 
