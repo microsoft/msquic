@@ -1774,7 +1774,9 @@ QuicCryptoCustomCertValidationComplete(
             "Custom cert validation succeeded");
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
-        if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+        // The handshake completion above can uninitialize the crypto state.
+        if (Crypto->Initialized &&
+            QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
             //
             // More data was received while waiting for user to perform the validation.
             //
@@ -1829,6 +1831,11 @@ QuicCryptoCustomTicketValidationComplete(
         //
         Crypto->TicketValidationPending = FALSE;
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
+
+        // Ticket validation pauses ClientHello processing. The client cannot send its Finished
+        // until after receiving the server flight, so the QuicCryptoProcessDataComplete call above
+        // cannot finish the handshake and uninitialize the crypto state.
+        CXPLAT_DBG_ASSERT(Crypto->Initialized);
 
         if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
             //
