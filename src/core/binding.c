@@ -21,9 +21,21 @@ Abstract:
 // which includes both the global, constant list of supported versions and the
 // randomly generated version.
 //
+#define MAX_VER_NEG_PACKET_LENGTH \
+( \
+    sizeof(QUIC_VERSION_NEGOTIATION_PACKET) + \
+    2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
+    sizeof(uint8_t) + \
+    sizeof(uint32_t) + \
+    (QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t)) \
+)
+CXPLAT_STATIC_ASSERT(
+    QUIC_DPLPMTUD_MIN_MTU - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE >=
+        MAX_VER_NEG_PACKET_LENGTH,
+    "Too many supported version numbers! Requires too big of buffer for response!");
 CXPLAT_STATIC_ASSERT(
     ARRAYSIZE(DefaultSupportedVersionsList) <= QUIC_MAX_NEGOTIATION_VERSIONS,
-    "Too many supported version numbers! Requires too big of buffer for response!");
+    "Default supported versions exceed the negotiation limit!");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

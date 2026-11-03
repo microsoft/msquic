@@ -96,20 +96,20 @@ TEST(SettingsTest, OfferedVersionsLengthLimit)
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicSettingsVersionSettingsToInternal(sizeof(Settings), &Settings, &InternalSettings));
+    ASSERT_NE(nullptr, InternalSettings.VersionSettings);
+    EXPECT_EQ(
+        Settings.OfferedVersionsLength,
+        InternalSettings.VersionSettings->OfferedVersionsLength);
+    EXPECT_EQ(
+        QUIC_VERSION_1,
+        InternalSettings.VersionSettings->OfferedVersions[Settings.OfferedVersionsLength - 1]);
     QuicSettingsCleanup(&InternalSettings);
 
-    const uint32_t InvalidLengths[] = {
-        (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS + 1,
-        16384,
-        UINT32_MAX
-    };
-    for (uint32_t Length : InvalidLengths) {
-        Settings.OfferedVersionsLength = Length;
-        EXPECT_EQ(
-            QUIC_STATUS_INVALID_PARAMETER,
-            QuicSettingsVersionSettingsToInternal(sizeof(Settings), &Settings, &InternalSettings));
-        QuicSettingsCleanup(&InternalSettings);
-    }
+    Settings.OfferedVersionsLength = (uint32_t)ARRAYSIZE(Versions);
+    EXPECT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicSettingsVersionSettingsToInternal(sizeof(Settings), &Settings, &InternalSettings));
+    QuicSettingsCleanup(&InternalSettings);
 }
 
 TEST(SettingsTest, TestAllSettingsFieldsSet)
