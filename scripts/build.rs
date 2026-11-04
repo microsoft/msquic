@@ -26,6 +26,7 @@ fn cmake_build() {
     }
 
     let target = env::var("TARGET").unwrap().replace("\\", "/");
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let out_dir = env::var("OUT_DIR").unwrap();
     // The output directory for the native MsQuic library.
     let quic_output_dir = if cfg!(windows) {
@@ -118,7 +119,7 @@ fn cmake_build() {
         panic!("no lib or lib64 directory found under {}", dst.display());
     }
     if cfg!(feature = "static") {
-        if cfg!(target_os = "linux") {
+        if target_os == "linux" {
             let numa_lib_path = match target.as_str() {
                 "x86_64-unknown-linux-gnu" => "/usr/lib/x86_64-linux-gnu",
                 "aarch64-unknown-linux-gnu" => "/usr/lib/aarch64-linux-gnu",
@@ -126,10 +127,10 @@ fn cmake_build() {
             };
             println!("cargo:rustc-link-search=native={numa_lib_path}");
             println!("cargo:rustc-link-lib=static:+whole-archive=numa");
-        } else if cfg!(target_os = "macos") {
+        } else if target_os == "macos" {
             println!("cargo:rustc-link-lib=framework=CoreFoundation");
             println!("cargo:rustc-link-lib=framework=Security");
-        } else if cfg!(windows) {
+        } else if target_os == "windows" {
             // Windows system libraries that the static msquic.lib depends on.
             // These are excluded from the monolithic archive (via the inc/base_link
             // EXCLUDE_LIST in CMake) and must be linked explicitly by the consumer.
