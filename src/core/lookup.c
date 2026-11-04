@@ -866,7 +866,7 @@ QuicLookupRemoveLocalCids(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    uint8_t ReleaseRefCount = 0;
+    uint32_t ReleaseRefCount = 0;
 
     CxPlatDispatchRwLockAcquireExclusive(&Lookup->RwLock, PrevIrql);
     while (Connection->SourceCids.Next != NULL) {
@@ -884,7 +884,7 @@ QuicLookupRemoveLocalCids(
     }
     CxPlatDispatchRwLockReleaseExclusive(&Lookup->RwLock, PrevIrql);
 
-    for (uint8_t i = 0; i < ReleaseRefCount; i++) {
+    for (uint32_t i = 0; i < ReleaseRefCount; i++) {
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
         QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
     }
