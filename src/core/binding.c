@@ -23,11 +23,11 @@ Abstract:
 //
 #define MAX_VER_NEG_PACKET_LENGTH \
 ( \
-    sizeof(QUIC_VERSION_NEGOTIATION_PACKET) + \
-    2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
-    sizeof(uint8_t) + \
-    sizeof(uint32_t) + \
-    (QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t)) \
+    sizeof(QUIC_VERSION_NEGOTIATION_PACKET) + /* Flags, version and DestCidLength */ \
+    2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + /* Destination and source CIDs */ \
+    sizeof(uint8_t) + /* SourceCidLength (not included in the header struct) */ \
+    sizeof(uint32_t) + /* Random reserved version */ \
+    (QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t)) /* Offered versions */ \
 )
 CXPLAT_STATIC_ASSERT(
     QUIC_DPLPMTUD_MIN_MTU - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE >=

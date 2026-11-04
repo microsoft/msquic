@@ -496,27 +496,42 @@ TEST(SettingsTest, QuicSettingsLoad_OfferedVersionsLengthLimit)
     }
 
     QUIC_SETTINGS_INTERNAL Settings = {};
-    for (uint32_t Length : {
-            (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS + 1,
+
+    // Reject an oversized list before any version settings have been loaded.
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard, QUIC_SETTING_OFFERED_VERSIONS, CXPLAT_STORAGE_TYPE_BINARY,
+            sizeof(Versions), (uint8_t*)Versions));
+    QuicSettingsLoad(&Settings, StorageGuard);
+    EXPECT_EQ(nullptr, Settings.VersionSettings);
+
+    // Load a valid list at the limit.
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard, QUIC_SETTING_OFFERED_VERSIONS, CXPLAT_STORAGE_TYPE_BINARY,
+            QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t), (uint8_t*)Versions));
+    QuicSettingsLoad(&Settings, StorageGuard);
+    EXPECT_NE(nullptr, Settings.VersionSettings);
+    if (Settings.VersionSettings != nullptr) {
+        EXPECT_EQ(
             (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS,
-            (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS + 1}) {
-        ASSERT_EQ(
-            QUIC_STATUS_SUCCESS,
-            CxPlatStorageWriteValue(
-                StorageGuard, QUIC_SETTING_OFFERED_VERSIONS, CXPLAT_STORAGE_TYPE_BINARY,
-                Length * (uint32_t)sizeof(uint32_t), (uint8_t*)Versions));
-        auto PreviousVersionSettings = Settings.VersionSettings;
-        QuicSettingsLoad(&Settings, StorageGuard);
-        if (Length > QUIC_MAX_NEGOTIATION_VERSIONS) {
-            EXPECT_EQ(PreviousVersionSettings, Settings.VersionSettings);
-        } else {
-            EXPECT_NE(nullptr, Settings.VersionSettings);
-            if (Settings.VersionSettings != nullptr) {
-                EXPECT_EQ(Length, Settings.VersionSettings->OfferedVersionsLength);
-                EXPECT_EQ(QUIC_VERSION_1, Settings.VersionSettings->OfferedVersions[Length - 1]);
-            }
-        }
+            Settings.VersionSettings->OfferedVersionsLength);
+        EXPECT_EQ(
+            QUIC_VERSION_1,
+            Settings.VersionSettings->OfferedVersions[QUIC_MAX_NEGOTIATION_VERSIONS - 1]);
     }
+
+    // Reject another oversized list without replacing the valid settings.
+    auto PreviousVersionSettings = Settings.VersionSettings;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard, QUIC_SETTING_OFFERED_VERSIONS, CXPLAT_STORAGE_TYPE_BINARY,
+            sizeof(Versions), (uint8_t*)Versions));
+    QuicSettingsLoad(&Settings, StorageGuard);
+    EXPECT_EQ(PreviousVersionSettings, Settings.VersionSettings);
     QuicSettingsCleanup(&Settings);
 }
 
