@@ -81,7 +81,7 @@ jobs:
     needs: [build-packages]
     strategy:
       fail-fast: false
-      matrix: 
+      matrix:
         vec: [
           # Ubuntu 22.04 - DEB
           { friendlyName: "Ubuntu 22.04 x64", config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls", image: "ubuntu:22.04" },
