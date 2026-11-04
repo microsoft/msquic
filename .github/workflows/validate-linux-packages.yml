@@ -239,7 +239,7 @@ jobs:
             pkg_arch: armhf
             prod_url: "https://packages.microsoft.com/debian/13/prod/pool/main/libm/libmsquic"
 
-          # Azure Linux 3.0 and 4.0 (RPM) - No arm32 support, has separate arch URLs
+          # Azure Linux 3.0 (RPM) - No arm32 support, has separate arch URLs
           - friendlyName: "Azure Linux 3.0 x64"
             arch: x64
             platform: "linux/amd64"
@@ -256,6 +256,8 @@ jobs:
             pkg_arch: aarch64
             prod_url: "https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/aarch64/Packages/l"
             testing_url: "https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/aarch64/Packages/l"
+
+          # Azure Linux 4.0 (RPM) - No arm32 support, has separate arch URLs
           - friendlyName: "Azure Linux 4.0 x64"
             arch: x64
             platform: "linux/amd64"
