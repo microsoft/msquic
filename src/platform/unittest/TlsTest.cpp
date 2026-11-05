@@ -234,6 +234,7 @@ protected:
             CxPlatZeroMemory(CertParamsFromFile->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
             CertParamsFromFile->CertificatePkcs12->Asn1Blob = ReadFile(PfxPath, &CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
             CertParamsFromFile->CertificatePkcs12->PrivateKeyPassword = PfxPass;
+            CertParamsFromFile->Flags |= QUIC_CREDENTIAL_FLAG_CLIENT;
             ASSERT_NE((uint32_t)0, CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
             ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12->Asn1Blob);
         }
