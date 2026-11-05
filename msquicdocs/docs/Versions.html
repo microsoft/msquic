@@ -131,6 +131,9 @@ Settings.FullyDeployedVersionsListLength = 2;
 <h2 id="configuring-quic-versions-on-msquic-servers">Configuring QUIC Versions on MsQuic Servers</h2>
 <p>A server application may also want to restrict the QUIC versions it supports to ensure a specific feature is available, or to prevent older versions of QUIC from being used.
 Configuring the QUIC versions on a MsQuic server is similar to configuring them on a client, however, the setting for server <strong>MUST</strong> be set globally, and not on the <code>QUIC_CONFIGURATION</code> used for the <code>QUIC_LISTENER</code> or <code>QUIC_CONNECTION</code>.</p>
+<p>The offered versions list is limited to 10 entries. Oversized lists passed to
+<code>SetParam</code> are rejected with <code>QUIC_STATUS_INVALID_PARAMETER</code>; oversized lists in
+persistent storage are not loaded.</p>
 <p>If a server is not in a fleet, or the operator/application does not ever need to change QUIC versions, then all three lists in <code>QUIC_VERSION_SETTINGS</code> <strong>MUST</strong> be the same.</p>
 <p>If a server is deployed in a fleet, and the server operator wishes to change the supported QUIC versions, the <a href="https://www.rfc-editor.org/rfc/rfc9368.html#section-5">Version Negotiation specification</a> details how that should be done, quoted here:</p>
 <blockquote>
