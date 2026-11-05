@@ -131,9 +131,9 @@ CxPlatDataPathCalculateFeatureSupport(
     RecvMsg.msg_control = RecvControlBuffer;
     RecvMsg.msg_controllen = sizeof(RecvControlBuffer);
 #define VERIFY(X) if (!(X)) { goto Error; }
-    SendSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
+    SendSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_UDP);
     VERIFY(SendSocket != INVALID_SOCKET)
-    RecvSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
+    RecvSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_UDP);
     VERIFY(RecvSocket != INVALID_SOCKET)
     VERIFY(setsockopt(SendSocket, IPPROTO_IP, IP_PKTINFO, &PktInfoEnabled, sizeof(PktInfoEnabled)) != SOCKET_ERROR)
     VERIFY(setsockopt(RecvSocket, IPPROTO_IP, IP_PKTINFO, &PktInfoEnabled, sizeof(PktInfoEnabled)) != SOCKET_ERROR)
