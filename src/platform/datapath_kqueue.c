@@ -608,6 +608,65 @@ CxPlatDataPathAllocRxIoBlock(
 }
 
 //
+// The number of times to retry binding a dual-mode socket to an ephemeral port
+// chosen by an IPv4 socket, if another socket takes that port in between.
+//
+#define CXPLAT_DUAL_MODE_BIND_ATTEMPTS 10
+
+//
+// Binds a dual-mode (IPv4 and IPv6) socket to an ephemeral port.
+//
+// When the kernel picks an ephemeral port for a dual-mode socket, it only
+// checks for conflicts with other IPv6 sockets. The port it returns can already
+// be in use by an IPv4-only socket, possibly in another process. IPv4 datagrams
+// sent to that port are then delivered to the IPv4 socket and never reach this
+// one. An explicit bind of a dual-mode socket does not detect that conflict
+// either.
+//
+// So the port is picked by a temporary IPv4 socket, which does check the IPv4
+// port space, and the dual-mode socket is then bound to it explicitly.
+//
+int
+CxPlatSocketBindDualModeEphemeralPort(
+    _In_ int SocketFd,
+    _Inout_ QUIC_ADDR* MappedAddress
+    )
+{
+    int Result = SOCKET_ERROR;
+
+    for (uint32_t Attempt = 0; Attempt < CXPLAT_DUAL_MODE_BIND_ATTEMPTS; ++Attempt) {
+        int ProbeFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (ProbeFd == INVALID_SOCKET) {
+            return SOCKET_ERROR;
+        }
+
+        struct sockaddr_in ProbeAddress = {0};
+        socklen_t ProbeAddressLength = sizeof(ProbeAddress);
+        ProbeAddress.sin_family = AF_INET;
+        ProbeAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+        Result = bind(ProbeFd, (struct sockaddr*)&ProbeAddress, sizeof(ProbeAddress));
+        if (Result != SOCKET_ERROR) {
+            Result =
+                getsockname(ProbeFd, (struct sockaddr*)&ProbeAddress, &ProbeAddressLength);
+        }
+        int ProbeError = errno;
+        close(ProbeFd);
+        if (Result == SOCKET_ERROR) {
+            errno = ProbeError;
+            return SOCKET_ERROR;
+        }
+
+        MappedAddress->Ipv6.sin6_port = ProbeAddress.sin_port;
+        Result = bind(SocketFd, &MappedAddress->Ip, sizeof(struct sockaddr_in6));
+        if (Result != SOCKET_ERROR || errno != EADDRINUSE) {
+            break;
+        }
+    }
+
+    return Result;
+}
+
+//
 // Socket context interface. It abstracts a (generally per-processor) UDP socket
 // and the corresponding logic/functionality like send and receive processing.
 //
@@ -848,11 +907,20 @@ CxPlatSocketContextInitialize(
             }
         }
 
-        Result =
-            bind(
-                SocketContext->SocketFd,
-                &MappedAddress.Ip,
-                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+        if (!ForceIpv4 &&
+            QuicAddrIsWildCard(&Binding->LocalAddress) &&
+            MappedAddress.Ipv6.sin6_port == 0) {
+            Result =
+                CxPlatSocketBindDualModeEphemeralPort(
+                    SocketContext->SocketFd,
+                    &MappedAddress);
+        } else {
+            Result =
+                bind(
+                    SocketContext->SocketFd,
+                    &MappedAddress.Ip,
+                    ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+        }
         if (Result == SOCKET_ERROR) {
             Status = errno;
             QuicTraceEvent(
