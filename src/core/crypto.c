@@ -428,7 +428,26 @@ QuicCryptoOnVersionChange(
         HandshakeCid = SourceCid->CID.Data;
         HandshakeCidLength = SourceCid->CID.Length;
 
+    } else if (!Connection->State.HandshakeUsedRetryPacket &&
+               Connection->OrigDestCID != NULL) {
+        //
+        // The client's Initial keys are always derived from the Destination
+        // Connection ID of its first Initial packet, even after a server
+        // Initial packet has changed the connection ID the client uses for
+        // sending (RFC 9001 Section 5.2). The current destination CID may
+        // already be the server's Source Connection ID, so the saved original
+        // one must be used instead.
+        //
+        HandshakeCid = Connection->OrigDestCID->Data;
+        HandshakeCidLength = Connection->OrigDestCID->Length;
+
     } else {
+        //
+        // After a Retry, the Initial keys are derived from the Source
+        // Connection ID of the Retry packet, which is the current destination
+        // connection ID. Before the configuration is set, the original
+        // destination connection ID is also the current one.
+        //
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
         QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
