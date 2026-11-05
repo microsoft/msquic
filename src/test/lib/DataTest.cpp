@@ -3532,6 +3532,160 @@ QuicTestStreamAbortConnFlowControl(
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
 }
 
+struct Reject0RttConnFlowControlContext {
+    CxPlatEvent AllDataReceived;
+    uint64_t BytesReceived {0};
+    uint32_t StreamsFinished {0};
+    static constexpr uint32_t StreamLengths[] = { 800, 885 };
+    static constexpr uint64_t TotalLength = 800 + 885;
+
+    static QUIC_STATUS ServerStreamCallback(
+        _In_ MsQuicStream*,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        )
+    {
+        auto TestContext = (Reject0RttConnFlowControlContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            TestContext->BytesReceived += Event->RECEIVE.TotalBufferLength;
+        } else if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
+            if (++TestContext->StreamsFinished == ARRAYSIZE(StreamLengths) &&
+                TestContext->BytesReceived == TotalLength) {
+                TestContext->AllDataReceived.Set();
+            }
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ServerConnCallback(
+        _In_ MsQuicConnection*,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(
+                Event->PEER_STREAM_STARTED.Stream,
+                CleanUpAutoDelete,
+                ServerStreamCallback,
+                Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+//
+// The client sends 0-RTT data using the large connection flow control window
+// from its resumption ticket. The server then rejects 0-RTT and advertises a
+// much smaller window. Resending the rejected data must stay within the new
+// window instead of the client closing with FLOW_CONTROL_ERROR.
+//
+void
+QuicTestReject0RttSmallerConnFlowControl(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    QUIC_TICKET_KEY_CONFIG GoodKey;
+    CxPlatZeroMemory(&GoodKey, sizeof(GoodKey));
+    GoodKey.MaterialLength = 64;
+
+    QUIC_TICKET_KEY_CONFIG BadKey;
+    CxPlatZeroMemory(&BadKey, sizeof(BadKey));
+    BadKey.MaterialLength = 64;
+    BadKey.Material[0] = 0xFF;
+
+    MsQuicConfiguration PrimeConfiguration(
+        Registration,
+        "MsQuicTest",
+        MsQuicSettings()
+            .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)
+            .SetPeerUnidiStreamCount(2),
+        ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(PrimeConfiguration.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(PrimeConfiguration.SetTicketKey(&GoodKey));
+
+    MsQuicConfiguration ServerConfiguration(
+        Registration,
+        "MsQuicTest",
+        MsQuicSettings()
+            .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)
+            .SetPeerUnidiStreamCount(2)
+            .SetConnFlowControlWindow(256),
+        ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&BadKey));
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(
+        Registration,
+        "MsQuicTest",
+        ClientCredConfig);
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QUIC_BUFFER* ResumptionTicket = nullptr;
+    QuicTestPrimeResumption(
+        QUIC_ADDRESS_FAMILY_INET,
+        Registration,
+        PrimeConfiguration,
+        ClientConfiguration,
+        &ResumptionTicket);
+    if (ResumptionTicket == nullptr) {
+        return;
+    }
+
+    Reject0RttConnFlowControlContext Context;
+    MsQuicAutoAcceptListener Listener(
+        Registration,
+        ServerConfiguration,
+        Reject0RttConnFlowControlContext::ServerConnCallback,
+        &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(
+        Connection.SetResumptionTicket(
+            ResumptionTicket->Buffer,
+            ResumptionTicket->Length));
+    CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
+
+    uint8_t RawBuffer[Reject0RttConnFlowControlContext::TotalLength] = {};
+    QUIC_BUFFER Buffer1 { Reject0RttConnFlowControlContext::StreamLengths[0], RawBuffer };
+    QUIC_BUFFER Buffer2 { Reject0RttConnFlowControlContext::StreamLengths[1], RawBuffer };
+
+    MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream1.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(
+        Stream1.Send(
+            &Buffer1, 1,
+            QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_ALLOW_0_RTT));
+
+    MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream2.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(
+        Stream2.Send(
+            &Buffer2, 1,
+            QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_ALLOW_0_RTT));
+
+    TEST_QUIC_SUCCEEDED(
+        Connection.Start(
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_INET,
+            QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+            ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+    TEST_FALSE(Connection.HandshakeResumed);
+
+    TEST_TRUE(Context.AllDataReceived.WaitTimeout(TestWaitTimeout));
+    TEST_EQUAL(Connection.TransportShutdownStatus, QUIC_STATUS_SUCCESS);
+}
+
 struct TinyStreamRecvWindowContext {
     CxPlatEvent ServerStreamReceive;
     uint64_t BytesReceived {0};
