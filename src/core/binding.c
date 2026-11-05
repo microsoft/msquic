@@ -23,15 +23,19 @@ Abstract:
 //
 #define MAX_VER_NEG_PACKET_LENGTH \
 ( \
-    sizeof(QUIC_VERSION_NEGOTIATION_PACKET) + \
-    QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
-    QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
-    sizeof(uint32_t) + \
-    (ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t)) \
+    sizeof(QUIC_VERSION_NEGOTIATION_PACKET) + /* Flags, version and DestCidLength */ \
+    2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + /* Destination and source CIDs */ \
+    sizeof(uint8_t) + /* SourceCidLength (not included in the header struct) */ \
+    sizeof(uint32_t) + /* Random reserved version */ \
+    (QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t)) /* Offered versions */ \
 )
 CXPLAT_STATIC_ASSERT(
-    QUIC_DPLPMTUD_MIN_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
+    QUIC_DPLPMTUD_MIN_MTU - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE >=
+        MAX_VER_NEG_PACKET_LENGTH,
     "Too many supported version numbers! Requires too big of buffer for response!");
+CXPLAT_STATIC_ASSERT(
+    ARRAYSIZE(DefaultSupportedVersionsList) <= QUIC_MAX_NEGOTIATION_VERSIONS,
+    "Default supported versions exceed the negotiation limit!");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -848,13 +852,18 @@ QuicBindingProcessStatelessOperation(
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
         }
 
-        const uint16_t PacketLength =
+        if (SupportedVersionsLength > QUIC_MAX_NEGOTIATION_VERSIONS) {
+            QuicPacketLogDrop(Binding, RecvPacket, "Too many versions for VN response");
+            goto Exit;
+        }
+
+        const uint16_t PacketLength = (uint16_t)(
             sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +               // Header
             RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
             sizeof(uint32_t) +                                      // One random version
-            (uint16_t)(SupportedVersionsLength * sizeof(uint32_t)); // Our actual supported versions
+            SupportedVersionsLength * sizeof(uint32_t));           // Our actual supported versions
 
         SendDatagram =
             CxPlatSendDataAllocBuffer(SendData, PacketLength);
