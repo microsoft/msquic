@@ -87,7 +87,7 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         msquic_platform
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
-        ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
+        ${XDP_INCLUDE_DIR})
 else()
     target_include_directories(msquic_platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
