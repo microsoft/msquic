@@ -70,8 +70,38 @@ const MsQuicApi* MsQuic;
 static const char* Alpn = "fuzz";
 static uint32_t Version = QUIC_VERSION_1;
 const char* Sni = "localhost";
-const StrBuffer InitialSalt("38762cf7f55934b34d179ae6a4c80cadccbb7f0a");
-const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
+//
+// Version-specific Initial salts and HKDF labels. Values copied from
+// QuicSupportedVersionList in src/core/packet.c so this tool keeps its
+// existing independence from core-internal headers.
+//
+const StrBuffer InitialSaltV1("38762cf7f55934b34d179ae6a4c80cadccbb7f0a");
+const StrBuffer InitialSaltV2("0dede3def700a6db819381be6e269dcbf9bd2ed9");
+const QUIC_HKDF_LABELS HkdfLabelsV1 = { "quic key", "quic iv", "quic hp", "quic ku" };
+const QUIC_HKDF_LABELS HkdfLabelsV2 = { "quicv2 key", "quicv2 iv", "quicv2 hp", "quicv2 ku" };
+
+//
+// The fuzzer speaks one QUIC version for the whole run, chosen once from the
+// command line, so these are plain accessors over the global above.
+//
+inline const uint8_t* CurrentInitialSalt() {
+    return Version == QUIC_VERSION_2 ? InitialSaltV2.Data : InitialSaltV1.Data;
+}
+inline const QUIC_HKDF_LABELS* CurrentHkdfLabels() {
+    return Version == QUIC_VERSION_2 ? &HkdfLabelsV2 : &HkdfLabelsV1;
+}
+inline QUIC_LONG_HEADER_TYPE_V1 InitialPacketType() {
+    return Version == QUIC_VERSION_2 ?
+        (QUIC_LONG_HEADER_TYPE_V1)QUIC_INITIAL_V2 : QUIC_INITIAL_V1;
+}
+inline QUIC_LONG_HEADER_TYPE_V1 HandshakePacketType() {
+    return Version == QUIC_VERSION_2 ?
+        (QUIC_LONG_HEADER_TYPE_V1)QUIC_HANDSHAKE_V2 : QUIC_HANDSHAKE_V1;
+}
+inline QUIC_PACKET_KEY_TYPE PacketTypeToKeyType(uint8_t PacketType) {
+    return Version == QUIC_VERSION_2 ?
+        QuicPacketTypeToKeyTypeV2(PacketType) : QuicPacketTypeToKeyTypeV1(PacketType);
+}
 const uint64_t MagicCid = 0x989898989898989ull;
 const uint16_t MinInitialDatagramLength = 1200;
 uint64_t RunTimeMs = 60000;
@@ -358,7 +388,7 @@ struct TlsContext
         CXPLAT_TLS_CONFIG Config = {0};
         Config.IsServer = FALSE;
         Config.SecConfig = ClientSecConfig;
-        Config.HkdfLabels = &HkdfLabels;
+        Config.HkdfLabels = CurrentHkdfLabels();
         Config.AlpnBuffer = AlpnListBuffer;
         Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
         Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
@@ -989,15 +1019,15 @@ void FinalizeLongHeaderPacket(
     )
 {
     uint8_t* DestCid = Packet + sizeof(QUIC_LONG_HEADER_V1);
-    QUIC_PACKET_KEY_TYPE KeyType = QuicPacketTypeToKeyTypeV1((uint8_t)PacketParams->PacketType);
+    QUIC_PACKET_KEY_TYPE KeyType = PacketTypeToKeyType((uint8_t)PacketParams->PacketType);
 
     QUIC_PACKET_KEY* WriteKey = nullptr;
     if (PacketParams->Mode == 0) {
         MUST_SUCCEED(
             QuicPacketKeyCreateInitial(
                 FALSE,
-                &HkdfLabels,
-                InitialSalt.Data,
+                CurrentHkdfLabels(),
+                CurrentInitialSalt(),
                 PacketParams->DestCidLen,
                 (uint8_t*)DestCid,
                 nullptr,
@@ -1007,8 +1037,8 @@ void FinalizeLongHeaderPacket(
             MUST_SUCCEED(
                 QuicPacketKeyCreateInitial(
                     FALSE,
-                    &HkdfLabels,
-                    InitialSalt.Data,
+                    CurrentHkdfLabels(),
+                    CurrentInitialSalt(),
                     PacketParams->DestCidLen,
                     (uint8_t*)DestCid,
                     &ClientContext->State.ReadKeys[0],
@@ -1358,7 +1388,7 @@ void FuzzInitial(
         0,                   // PacketNumber
         1,                   // NumFrames
         100,                 // NumPackets
-        QUIC_INITIAL_V1,     // PacketType
+        InitialPacketType(), // PacketType
         0                    // Mode
     };
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
@@ -1407,7 +1437,7 @@ bool CompleteHandshake(
             continue; // Packet doesn't match our current connection
         }
 
-        if (Packet->LH->Type == QUIC_INITIAL_V1) {
+        if (Packet->LH->Type == InitialPacketType()) {
             PacketParams->DestCidLen = Packet->SourceCidLen;
             memcpy(PacketParams->DestCid, Packet->SourceCid, Packet->SourceCidLen);
         }
@@ -1461,13 +1491,13 @@ bool CompleteHandshake(
                 CXPLAT_FRE_ASSERT(!(Result & CXPLAT_TLS_RESULT_ERROR));
 
                 CryptoBufferOffset += RecvBufferLength;
-                if (Packet->LH->Type == QUIC_INITIAL_V1) {
+                if (Packet->LH->Type == InitialPacketType()) {
                     //
                     // Send the initial packet ACK.
                     //
                     PacketParams->NumFrames = 1;
                     PacketParams->FrameTypes[0] = QUIC_FRAME_ACK;
-                    PacketParams->PacketType = QUIC_INITIAL_V1;
+                    PacketParams->PacketType = InitialPacketType();
                     BuildAndSendLongHeaderPackets(Binding, Route, PacketParams, ClientContext, false);
                     CryptoBufferOffset = 0; // Reset to zero for handshake data
                 }
@@ -1493,7 +1523,7 @@ void FuzzHandshake(
         0,                   // PacketNumber
         1,                   // NumFrames
         0,                   // NumPackets
-        QUIC_INITIAL_V1,     // PacketType
+        InitialPacketType(), // PacketType
         1                    // Mode
     };
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
@@ -1511,7 +1541,7 @@ void FuzzHandshake(
     //
     // Send fuzzed handshake packets
     //
-    PacketParams.PacketType = QUIC_HANDSHAKE_V1;
+    PacketParams.PacketType = HandshakePacketType();
     PacketParams.NumFrames = 1;
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
     PacketParams.NumPackets = GetRandom<uint8_t>(10) + 1;
@@ -1531,7 +1561,7 @@ void Fuzz1Rtt(
         0,                   // PacketNumber
         1,                   // NumFrames
         0,                   // NumPackets
-        QUIC_INITIAL_V1,     // PacketType
+        InitialPacketType(), // PacketType
         2                    // Mode
     };
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
@@ -1551,7 +1581,7 @@ void Fuzz1Rtt(
     // This must be sent outside CompleteHandshake since we need to advance the
     // TLS state to obtain the 1-RTT write keys before we can proceed.
     //
-    PacketParams.PacketType = QUIC_HANDSHAKE_V1;
+    PacketParams.PacketType = HandshakePacketType();
     PacketParams.NumFrames = 1;
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
     PacketParams.NumPackets = 1;
@@ -1611,7 +1641,7 @@ void Fuzz1Rtt(
     // 5% chance: Send a late Handshake packet during 1-RTT phase
     //
     if (GetRandom<uint8_t>(20) == 0) {
-        PacketParams.PacketType = QUIC_HANDSHAKE_V1;
+        PacketParams.PacketType = HandshakePacketType();
         PacketParams.NumFrames = 1;
         PacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
         PacketParams.NumPackets = 1;
@@ -1767,6 +1797,16 @@ int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv) {
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
+    uint32_t VersionArg = 1;
+    if (TryGetValue(argc, argv, "version", &VersionArg)) {
+        if (VersionArg == 2) {
+            Version = QUIC_VERSION_2;
+        } else if (VersionArg != 1) {
+            printf("Unsupported QUIC version '%u'; use 1 or 2.\n", VersionArg);
+            return 1;
+        }
+    }
+    printf("Using QUIC version: %u\n", Version == QUIC_VERSION_2 ? 2u : 1u);
     uint32_t RngSeed = 0;
     if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
         GetRandomBytes(sizeof(RngSeed), &RngSeed);
