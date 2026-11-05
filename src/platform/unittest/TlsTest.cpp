@@ -1278,6 +1278,65 @@ TEST_F(TlsTest, HandshakeResumptionRejection)
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
 
+TEST_F(TlsTest, HandshakeResumptionEarlyDataStateServer)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+
+    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
+
+    TlsContext ServerContext2, ClientContext2;
+    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ReceivedSessionTicket);
+    ServerContext2.InitializeServer(ServerConfig);
+    if (ClientContext2.State.EarlyDataState == CXPLAT_TLS_EARLY_DATA_UNSUPPORTED) {
+        GTEST_SKIP() << "0-RTT is not supported by this TLS provider";
+    }
+    DoHandshake(ServerContext2, ClientContext2);
+
+    ASSERT_TRUE(ServerContext2.State.SessionResumed);
+    ASSERT_EQ(CXPLAT_TLS_EARLY_DATA_ACCEPTED, ClientContext2.State.EarlyDataState);
+    //
+    // The server reports the outcome too, like the client does.
+    //
+    ASSERT_EQ(CXPLAT_TLS_EARLY_DATA_ACCEPTED, ServerContext2.State.EarlyDataState);
+}
+
+TEST_F(TlsTest, HandshakeResumptionRejectionEarlyDataStateServer)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+
+    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
+
+    TlsContext ServerContext2, ClientContext2;
+    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ReceivedSessionTicket);
+    ServerContext2.InitializeServer(ServerConfig);
+    if (ClientContext2.State.EarlyDataState == CXPLAT_TLS_EARLY_DATA_UNSUPPORTED) {
+        GTEST_SKIP() << "0-RTT is not supported by this TLS provider";
+    }
+    ServerContext2.OnSessionTicketReceivedResult = FALSE;
+    DoHandshake(ServerContext2, ClientContext2);
+
+    ASSERT_FALSE(ServerContext2.State.SessionResumed);
+    ASSERT_EQ(CXPLAT_TLS_EARLY_DATA_REJECTED, ClientContext2.State.EarlyDataState);
+    //
+    // A server left in the UNKNOWN state keeps deferring 0-RTT packets it can
+    // never decrypt (QuicConnGetKeyOrDeferDatagram) instead of dropping them,
+    // and never discards the ones already deferred (QuicConnDiscardDeferred0Rtt).
+    //
+    ASSERT_EQ(CXPLAT_TLS_EARLY_DATA_REJECTED, ServerContext2.State.EarlyDataState);
+}
+
 TEST_F(TlsTest, HandshakeResumptionClientDisabled)
 {
     CxPlatClientSecConfig ClientConfig(
