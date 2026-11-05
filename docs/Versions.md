@@ -55,6 +55,10 @@ The `QUIC_VERSION_SETTINGS` can be set on a single `QUIC_CONNECTION`, as well as
 A server application may also want to restrict the QUIC versions it supports to ensure a specific feature is available, or to prevent older versions of QUIC from being used.
 Configuring the QUIC versions on a MsQuic server is similar to configuring them on a client, however, the setting for server **MUST** be set globally, and not on the `QUIC_CONFIGURATION` used for the `QUIC_LISTENER` or `QUIC_CONNECTION`.
 
+The offered versions list is limited to 10 entries. Oversized lists passed to
+`SetParam` are rejected with `QUIC_STATUS_INVALID_PARAMETER`; oversized lists in
+persistent storage are not loaded.
+
 If a server is not in a fleet, or the operator/application does not ever need to change QUIC versions, then all three lists in `QUIC_VERSION_SETTINGS` **MUST** be the same.
 
 If a server is deployed in a fleet, and the server operator wishes to change the supported QUIC versions, the [Version Negotiation specification](https://www.rfc-editor.org/rfc/rfc9368.html#section-5) details how that should be done, quoted here:
