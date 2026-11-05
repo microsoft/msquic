@@ -508,6 +508,7 @@ namespace Microsoft.Quic
     {
         CUBIC,
         BBR,
+        BBR_V3,
         MAX,
     }
 

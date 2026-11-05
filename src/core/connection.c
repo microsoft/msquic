@@ -129,6 +129,10 @@ QuicConnAlloc(
     QuicSendInitialize(&Connection->Send, &Connection->Settings);
     QuicPathSetInitialize(&Connection->Paths, Connection);
     QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
+    QuicPathGetActive(&Connection->Paths)->EcnValidationState =
+        Connection->Settings.EcnEnabled &&
+        Connection->CongestionControl.QuicCongestionControlOnEcn != NULL ?
+            ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
     QuicLossDetectionInitialize(&Connection->LossDetection);
     QuicDatagramInitialize(&Connection->Datagram);
 
@@ -7767,10 +7771,11 @@ QuicConnApplyNewSettings(
             QuicConnIndicateEvent(Connection, &Event);
         }
 
-        if (Connection->Settings.EcnEnabled) {
-            QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
-            Path->EcnValidationState = ECN_VALIDATION_TESTING;
-        }
+        QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
+        Path->EcnValidationState =
+            Connection->Settings.EcnEnabled &&
+            Connection->CongestionControl.QuicCongestionControlOnEcn != NULL ?
+                ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
     }
 
     if (Connection->State.Started &&
