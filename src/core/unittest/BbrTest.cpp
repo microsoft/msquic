@@ -1542,9 +1542,9 @@ TEST_F(BbrTest_DeepTest, OnDataInvalidated_Basic)
 
 //
 // Test: OnDataAcknowledged - Implicit ACK Path
-// Scenario: Sends 5000 bytes, then acknowledges 1200 with IsImplicit=TRUE. The
-// implicit path calls UpdateCongestionWindow (growing CW by BytesAcked) but does NOT
-// decrement BytesInFlight.
+// Scenario: Sends 5000 bytes, then acknowledges 1200 with IsImplicit=TRUE. Implicitly
+// acknowledged bytes have left the network too, so BytesInFlight is decremented, and
+// the implicit path calls UpdateCongestionWindow (growing CW by BytesAcked).
 //
 TEST_F(BbrTest_DeepTest, OnDataAcknowledged_Implicit)
 {
@@ -1558,8 +1558,8 @@ TEST_F(BbrTest_DeepTest, OnDataAcknowledged_Implicit)
 
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
 
-    // Implicit path calls UpdateCongestionWindow but does NOT decrement BytesInFlight
-    ASSERT_EQ(Bbr->BytesInFlight, 5000u);
+    // Implicitly acked bytes leave the network, so BytesInFlight is decremented
+    ASSERT_EQ(Bbr->BytesInFlight, 5000u - 1200u);
     ASSERT_EQ(Bbr->CongestionWindow, CwBefore + 1200u);
 }
 
@@ -1567,8 +1567,8 @@ TEST_F(BbrTest_DeepTest, OnDataAcknowledged_Implicit)
 // Test: OnDataAcknowledged - Implicit ACK With NetStats Enabled
 // Scenario: Initializes with NetStatsEventEnabled=TRUE and a dummy callback, sends
 // 5000 bytes, then acknowledges 1200 with IsImplicit=TRUE. The implicit path triggers
-// the NetStats callback with current congestion state. BytesInFlight stays at 5000
-// (implicit ACKs don't decrement it) and CongestionWindow grows by 1200.
+// the NetStats callback with current congestion state. BytesInFlight drops to 3800
+// (implicitly acked bytes leave the network) and CongestionWindow grows by 1200.
 //
 TEST_F(BbrTest_DeepTest, OnDataAcknowledged_ImplicitWithNetStats)
 {
@@ -1582,8 +1582,38 @@ TEST_F(BbrTest_DeepTest, OnDataAcknowledged_ImplicitWithNetStats)
     CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
 
     ASSERT_TRUE(NetStatsCallbackInvoked);
-    ASSERT_EQ(LastNetStats.BytesInFlight, 5000u);
+    ASSERT_EQ(LastNetStats.BytesInFlight, 5000u - 1200u);
     ASSERT_EQ(LastNetStats.CongestionWindow, CC->QuicCongestionControlGetCongestionWindow(CC));
+}
+
+//
+// Test: OnDataAcknowledged - Implicit Then Explicit ACK Drains BytesInFlight
+// Scenario: Sends 5000 bytes, then implicitly acknowledges 1200 the way loss detection
+// does when Initial/Handshake keys are discarded (no packets, no RTT sample). The
+// implicit ACK must not touch RTT or round trip state. The remaining 3800 bytes are
+// then explicitly acknowledged. Every sent byte has been acknowledged exactly once,
+// so BytesInFlight must return to 0.
+//
+TEST_F(BbrTest_DeepTest, OnDataAcknowledged_ImplicitThenExplicitDrainsInflight)
+{
+    InitializeWithDefaults();
+
+    CC->QuicCongestionControlOnDataSent(CC, 5000);
+    uint64_t RoundTripCounterBefore = Bbr->RoundTripCounter;
+
+    QUIC_ACK_EVENT ImplicitAck = MakeBbrAckEvent(1050000, 0, 10, 1200, 50000, 0, FALSE);
+    ImplicitAck.IsImplicit = TRUE;
+    ImplicitAck.NumTotalAckedRetransmittableBytes = 0;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &ImplicitAck);
+
+    ASSERT_EQ(Bbr->BytesInFlight, 5000u - 1200u);
+    ASSERT_EQ(Bbr->RoundTripCounter, RoundTripCounterBefore);
+    ASSERT_FALSE(Bbr->MinRttTimestampValid);
+
+    QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1100000, 10, 10, 5000u - 1200u);
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+
+    ASSERT_EQ(Bbr->BytesInFlight, 0u);
 }
 
 //
