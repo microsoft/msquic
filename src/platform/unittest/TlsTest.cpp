@@ -1253,6 +1253,68 @@ TEST_F(TlsTest, HandshakeResumption)
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
 
+//
+// A server that accepts 0-RTT gets its Handshake write key before its Handshake
+// read key. Its EncryptedExtensions and Finished must still be written at the
+// Handshake level (RFC 9001, Section 4.1.4): only the ServerHello may be sent
+// at the Initial level.
+//
+TEST_F(TlsTest, HandshakeResumptionEarlyDataWriteLevel)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+
+    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
+
+    TlsContext ServerContext2, ClientContext2;
+    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ReceivedSessionTicket);
+    ServerContext2.InitializeServer(ServerConfig);
+    if (ClientContext2.State.EarlyDataState == CXPLAT_TLS_EARLY_DATA_UNSUPPORTED) {
+        GTEST_SKIP() << "0-RTT is not supported by this TLS provider";
+    }
+
+    auto Result = ClientContext2.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_NE(nullptr, ClientContext2.State.WriteKeys[QUIC_PACKET_KEY_0_RTT]);
+
+    Result = ServerContext2.ProcessData(&ClientContext2.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_NE(nullptr, ServerContext2.State.ReadKeys[QUIC_PACKET_KEY_0_RTT]);
+
+    //
+    // The server's first flight: ServerHello at the Initial level, then
+    // EncryptedExtensions and Finished at the Handshake level.
+    //
+    const CXPLAT_TLS_PROCESS_STATE& ServerState = ServerContext2.State;
+    ASSERT_EQ(ServerState.BufferTotalLength, (uint32_t)ServerState.BufferLength);
+    ASSERT_GE(ServerState.BufferLength, 4);
+    ASSERT_EQ(0x02, ServerState.Buffer[0]); // ServerHello
+    const uint32_t ServerHelloLength =
+        4 + (((uint32_t)ServerState.Buffer[1] << 16) |
+             ((uint32_t)ServerState.Buffer[2] << 8) |
+             (uint32_t)ServerState.Buffer[3]);
+    ASSERT_EQ(ServerHelloLength, ServerState.BufferOffsetHandshake);
+    ASSERT_LT(ServerState.BufferOffsetHandshake, (uint32_t)ServerState.BufferLength);
+    ASSERT_EQ(0x08, ServerState.Buffer[ServerState.BufferOffsetHandshake]); // EncryptedExtensions
+
+    Result = ClientContext2.ProcessData(&ServerContext2.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+    ASSERT_TRUE(ClientContext2.State.HandshakeComplete);
+
+    Result = ServerContext2.ProcessData(&ClientContext2.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+    ASSERT_TRUE(ServerContext2.State.HandshakeComplete);
+
+    ASSERT_TRUE(ClientContext2.State.SessionResumed);
+    ASSERT_TRUE(ServerContext2.State.SessionResumed);
+    ASSERT_EQ(CXPLAT_TLS_EARLY_DATA_ACCEPTED, ClientContext2.State.EarlyDataState);
+}
+
 TEST_F(TlsTest, HandshakeResumptionRejection)
 {
     CxPlatClientSecConfig ClientConfig;
