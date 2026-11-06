@@ -26,10 +26,19 @@ QuicTestStreamOnAck(
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     );
 
+static constexpr QUIC_RANGE_MODE_MASK ArrayOnlyModes =
+    QUIC_RANGE_MODE_ARRAY;
+static constexpr QUIC_RANGE_MODE_MASK TieredModes =
+    QUIC_RANGE_MODE_ARRAY | QUIC_RANGE_MODE_TIERED;
+
 struct SmartRange {
     QUIC_RANGE range;
-    SmartRange(uint32_t MaxAllocSize = QUIC_MAX_RANGE_ALLOC_SIZE) {
-        QuicRangeInitialize(MaxAllocSize, &range);
+    SmartRange(
+        uint32_t MaxAllocSize = QUIC_MAX_RANGE_ALLOC_SIZE,
+        QUIC_RANGE_MODE_MASK AllowedModes = ArrayOnlyModes
+        ) {
+        // Tests pass the mode explicitly to exercise each storage policy.
+        QuicRangeInitialize(MaxAllocSize, AllowedModes, &range);
     }
     ~SmartRange() {
         QuicRangeUninitialize(&range);
@@ -90,6 +99,21 @@ struct SmartRange {
 #endif
     }
 };
+
+static void
+ValidateModePolicy(
+    const QUIC_RANGE& Range
+    )
+{
+    ASSERT_TRUE(
+        Range.Mode == QUIC_RANGE_MODE_ARRAY ||
+        Range.Mode == QUIC_RANGE_MODE_TIERED);
+    const QUIC_RANGE_MODE_MASK ActiveMode =
+        static_cast<QUIC_RANGE_MODE_MASK>(Range.Mode);
+    ASSERT_EQ(
+        Range.AllowedModes & ActiveMode,
+        ActiveMode);
+}
 
 TEST(RangeTest, AddSingle)
 {
@@ -479,18 +503,172 @@ ValidateRangesEqual(
 }
 
 //
-// Verifies the complete sequence used by the exact-capacity test.
+// Verifies a sequence of equally spaced singleton subranges.
 //
 static void
 ValidateSequentialSingletonRanges(
     const QUIC_RANGE& Range,
-    uint32_t ExpectedCount
+    uint32_t ExpectedCount,
+    uint64_t FirstLow = 2,
+    uint64_t Step = 2
     )
 {
     ASSERT_EQ(QuicRangeSize(&Range), ExpectedCount);
     for (uint32_t i = 0; i < ExpectedCount; ++i) {
         const QUIC_SUBRANGE* Sub = QuicRangeGet(&Range, i);
-        ASSERT_EQ(Sub->Low, 2ULL * (i + 1));
+        ASSERT_EQ(Sub->Low, FirstLow + Step * i);
+        ASSERT_EQ(Sub->Count, 1u);
+    }
+}
+
+TEST(RangeTest, InitializationPolicies)
+{
+    SmartRange ArrayOnly(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        ArrayOnlyModes);
+    ASSERT_EQ(ArrayOnly.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(ArrayOnly.range.AllowedModes, ArrayOnlyModes);
+    ValidateModePolicy(ArrayOnly.range);
+
+    SmartRange Tiered(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        TieredModes);
+    ASSERT_EQ(Tiered.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Tiered.range.AllowedModes, TieredModes);
+    ValidateModePolicy(Tiered.range);
+}
+
+TEST(RangeTest, ArrayOnlyLargeRangeRemainsArray)
+{
+    SmartRange Range(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        ArrayOnlyModes);
+    for (uint32_t i = 0;
+         i <= QUIC_RANGE_TIERED_PROMOTE_LENGTH;
+         ++i) {
+        Range.Add(2ULL * i);
+    }
+
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Range.range.AllowedModes, ArrayOnlyModes);
+    ASSERT_EQ(
+        Range.range.Array.AllocLength,
+        2 * QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+    ASSERT_EQ(
+        Range.ValidCount(),
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
+    ValidateModePolicy(Range.range);
+
+    Range.Reset();
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Range.range.AllowedModes, ArrayOnlyModes);
+    ASSERT_EQ(
+        Range.range.Array.AllocLength,
+        2 * QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+    Range.Add(1);
+    ValidateModePolicy(Range.range);
+}
+
+TEST(RangeTest, TieredOptInInsufficientBudgetUsesArray)
+{
+    const uint32_t MaxAllocSize =
+        2 * QUIC_RANGE_TIERED_BLOCK_BYTES;
+    ASSERT_FALSE(QuicRangeTieredCanPromote(MaxAllocSize));
+    SmartRange Range(
+        MaxAllocSize,
+        TieredModes);
+    for (uint32_t i = 0;
+         i <= QUIC_RANGE_TIERED_PROMOTE_LENGTH;
+         ++i) {
+        Range.Add(2ULL * i);
+    }
+
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+    ASSERT_EQ(
+        Range.range.Array.AllocLength,
+        2 * QUIC_RANGE_TIERED_PROMOTE_LENGTH);
+    ASSERT_EQ(
+        Range.ValidCount(),
+        QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
+    ValidateModePolicy(Range.range);
+}
+
+//
+// Verifies that a non-maximum-budget tiered range evicts its lowest subrange
+// when full, while insertion at the front still fails without modification.
+//
+TEST(RangeTest, TieredNonMaximumBudgetAgesOldest)
+{
+    const uint32_t MaxAllocSize =
+        3 * QUIC_RANGE_TIERED_BLOCK_BYTES;
+    const uint32_t ExpectedCapacity =
+        2 * QUIC_RANGE_TIERED_BLOCK_CAPACITY;
+    ASSERT_TRUE(QuicRangeTieredCanPromote(MaxAllocSize));
+    ASSERT_LT(MaxAllocSize, QUIC_MAX_RANGE_ALLOC_SIZE);
+
+    SmartRange Range(
+        MaxAllocSize,
+        TieredModes);
+    for (uint32_t i = 0; i < ExpectedCapacity; ++i) {
+        Range.Add(4ULL * i);
+    }
+
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+    ValidateModePolicy(Range.range);
+    ASSERT_EQ(
+        QuicRangeTieredGetCapacity(Range.range.Tiered),
+        ExpectedCapacity);
+    const uint32_t AllocatedBytes =
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered);
+
+    ASSERT_TRUE(Range.TryAdd(4ULL * ExpectedCapacity));
+    ASSERT_EQ(Range.ValidCount(), ExpectedCapacity);
+    ASSERT_EQ(
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered),
+        AllocatedBytes);
+    ValidateSequentialSingletonRanges(
+        Range.range,
+        ExpectedCapacity,
+        4,
+        4);
+
+    ASSERT_FALSE(Range.TryAdd(0));
+    ASSERT_EQ(Range.ValidCount(), ExpectedCapacity);
+    ASSERT_EQ(
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered),
+        AllocatedBytes);
+    ValidateSequentialSingletonRanges(
+        Range.range,
+        ExpectedCapacity,
+        4,
+        4);
+
+    // Insert at the first block's final slot. Aging removes the minimum, and
+    // insertion carries the displaced record across the block boundary.
+    const uint32_t MiddleIndex =
+        QUIC_RANGE_TIERED_BLOCK_CAPACITY - 1;
+    const uint64_t MiddleLow =
+        4ULL * QUIC_RANGE_TIERED_BLOCK_CAPACITY + 2;
+    ASSERT_TRUE(Range.TryAdd(MiddleLow));
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(Range.ValidCount(), ExpectedCapacity);
+    ASSERT_EQ(
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered),
+        AllocatedBytes);
+    for (uint32_t i = 0; i < ExpectedCapacity; ++i) {
+        const QUIC_SUBRANGE* Sub =
+            QuicRangeGet(&Range.range, i);
+        uint64_t ExpectedLow;
+        if (i < MiddleIndex) {
+            ExpectedLow = 4ULL * (i + 2);
+        } else if (i == MiddleIndex) {
+            ExpectedLow = MiddleLow;
+        } else {
+            ExpectedLow = 4ULL * (i + 1);
+        }
+        ASSERT_EQ(Sub->Low, ExpectedLow);
         ASSERT_EQ(Sub->Count, 1u);
     }
 }
@@ -500,7 +678,9 @@ ValidateSequentialSingletonRanges(
 //
 TEST(RangeTest, TieredPromotionPolicy)
 {
-    SmartRange Range;
+    SmartRange Range(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        TieredModes);
     for (uint32_t i = 0;
          i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
          ++i) {
@@ -508,11 +688,13 @@ TEST(RangeTest, TieredPromotionPolicy)
     }
 
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+    ValidateModePolicy(Range.range);
     ASSERT_EQ(
-        Range.range.AllocLength,
+        Range.range.Array.AllocLength,
         QUIC_RANGE_TIERED_PROMOTE_LENGTH);
     QUIC_SUBRANGE* const OriginalSubRanges =
-        Range.range.SubRanges;
+        Range.range.Array.SubRanges;
 
     Range.Add(0, 2);
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
@@ -523,6 +705,8 @@ TEST(RangeTest, TieredPromotionPolicy)
 
     Range.Add(4ULL * QUIC_RANGE_TIERED_PROMOTE_LENGTH);
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+    ValidateModePolicy(Range.range);
     ASSERT_EQ(
         Range.ValidCount(),
         QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
@@ -547,7 +731,9 @@ TEST(RangeTest, TieredLeavesSmallBudgetsAsArrays)
     };
 
     for (uint32_t Budget : Budgets) {
-        SmartRange Range(Budget);
+        SmartRange Range(
+            Budget,
+            TieredModes);
         const uint32_t Capacity =
             Budget / sizeof(QUIC_SUBRANGE);
         for (uint32_t i = 0; i < Capacity; ++i) {
@@ -555,7 +741,9 @@ TEST(RangeTest, TieredLeavesSmallBudgetsAsArrays)
         }
 
         ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
-        ASSERT_EQ(Range.range.AllocLength, Capacity);
+        ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+        ValidateModePolicy(Range.range);
+        ASSERT_EQ(Range.range.Array.AllocLength, Capacity);
         ASSERT_EQ(Range.ValidCount(), Capacity);
 
         Range.Add(2ULL * Capacity);
@@ -574,7 +762,9 @@ TEST(RangeTest, TieredAllocationFailuresAreAtomic)
 {
     const int32_t FailurePoints[] = {-1, -2};
     for (int32_t FailurePoint : FailurePoints) {
-        SmartRange Range;
+        SmartRange Range(
+            QUIC_MAX_RANGE_ALLOC_SIZE,
+            TieredModes);
         for (uint32_t i = 0;
              i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
              ++i) {
@@ -582,7 +772,7 @@ TEST(RangeTest, TieredAllocationFailuresAreAtomic)
         }
 
         QUIC_SUBRANGE* const OriginalSubRanges =
-            Range.range.SubRanges;
+            Range.range.Array.SubRanges;
         CxPlatSetAllocFailDenominator(FailurePoint);
         const bool Inserted =
             Range.TryAdd(
@@ -591,7 +781,9 @@ TEST(RangeTest, TieredAllocationFailuresAreAtomic)
 
         ASSERT_FALSE(Inserted);
         ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
-        ASSERT_EQ(Range.range.SubRanges, OriginalSubRanges);
+        ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+        ValidateModePolicy(Range.range);
+        ASSERT_EQ(Range.range.Array.SubRanges, OriginalSubRanges);
         ASSERT_EQ(
             Range.ValidCount(),
             QUIC_RANGE_TIERED_PROMOTE_LENGTH);
@@ -604,7 +796,9 @@ TEST(RangeTest, TieredAllocationFailuresAreAtomic)
         }
     }
 
-    SmartRange Range;
+    SmartRange Range(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        TieredModes);
     const uint32_t InitialCount =
         2 * QUIC_RANGE_TIERED_BLOCK_CAPACITY;
     for (uint32_t i = 0; i < InitialCount; ++i) {
@@ -617,7 +811,7 @@ TEST(RangeTest, TieredAllocationFailuresAreAtomic)
         OriginalRanges[i] = *QuicRangeGet(&Range.range, i);
     }
     const uint32_t OriginalAllocatedBytes =
-        QuicRangeTieredGetAllocatedBytes(&Range.range);
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered);
     const uint64_t InsertLow =
         4ULL * QUIC_RANGE_TIERED_BLOCK_CAPACITY - 2;
 
@@ -634,9 +828,11 @@ TEST(RangeTest, TieredAllocationFailuresAreAtomic)
     ASSERT_EQ(Result, nullptr);
     ASSERT_FALSE(RangeUpdated);
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+    ValidateModePolicy(Range.range);
     ASSERT_EQ(Range.ValidCount(), InitialCount);
     ASSERT_EQ(
-        QuicRangeTieredGetAllocatedBytes(&Range.range),
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered),
         OriginalAllocatedBytes);
     for (uint32_t i = 0; i < InitialCount; ++i) {
         const QUIC_SUBRANGE* Sub = QuicRangeGet(&Range.range, i);
@@ -662,7 +858,7 @@ TEST(RangeTest, TieredAllocationFailuresAreAtomic)
     ASSERT_EQ(Result->Low, InsertLow);
     ASSERT_EQ(Result->Count, 1u);
     ASSERT_EQ(
-        QuicRangeTieredGetAllocatedBytes(&Range.range),
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered),
         OriginalAllocatedBytes + QUIC_RANGE_TIERED_BLOCK_BYTES);
 }
 #endif
@@ -673,8 +869,12 @@ TEST(RangeTest, TieredAllocationFailuresAreAtomic)
 //
 TEST(RangeTest, TieredMatchesArrayAcrossMultipleBlocks)
 {
-    SmartRange Tiered;
-    SmartRange Array(QUIC_RANGE_NO_MAX_ALLOC_SIZE);
+    SmartRange Tiered(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        TieredModes);
+    SmartRange Array(
+        QUIC_RANGE_NO_MAX_ALLOC_SIZE,
+        ArrayOnlyModes);
 
     const uint32_t InitialCount =
         4 * QUIC_RANGE_TIERED_BLOCK_CAPACITY + 257;
@@ -879,7 +1079,9 @@ TEST(RangeTest, TieredMatchesArrayAcrossMultipleBlocks)
 //
 TEST(RangeTest, TieredReclaimsBlocksAndDemotes)
 {
-    SmartRange Range;
+    SmartRange Range(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        TieredModes);
     const uint32_t InitialCount =
         8 * QUIC_RANGE_TIERED_BLOCK_CAPACITY;
     for (uint32_t i = 0; i < InitialCount; ++i) {
@@ -888,7 +1090,7 @@ TEST(RangeTest, TieredReclaimsBlocksAndDemotes)
 
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
     const uint32_t PeakAllocatedBytes =
-        QuicRangeTieredGetAllocatedBytes(&Range.range);
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered);
 
     // Collapse to one active block and verify excess allocations are reclaimed.
     (void)QuicRangeRemoveSubranges(
@@ -898,7 +1100,7 @@ TEST(RangeTest, TieredReclaimsBlocksAndDemotes)
             QUIC_RANGE_TIERED_BLOCK_CAPACITY);
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
     ASSERT_LT(
-        QuicRangeTieredGetAllocatedBytes(&Range.range),
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered),
         PeakAllocatedBytes);
 
     // Remove one front record to advance the circular start before demotion.
@@ -922,7 +1124,11 @@ TEST(RangeTest, TieredReclaimsBlocksAndDemotes)
         QUIC_RANGE_INITIAL_SUB_COUNT,
         Range.ValidCount() - QUIC_RANGE_INITIAL_SUB_COUNT);
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
-    ASSERT_EQ(Range.range.SubRanges, Range.range.PreAllocSubRanges);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+    ValidateModePolicy(Range.range);
+    ASSERT_EQ(
+        Range.range.Array.SubRanges,
+        Range.range.Array.PreAllocSubRanges);
     ASSERT_EQ(
         Range.ValidCount(),
         QUIC_RANGE_INITIAL_SUB_COUNT);
@@ -951,10 +1157,33 @@ TEST(RangeTest, TieredReclaimsBlocksAndDemotes)
 
     ASSERT_TRUE(Range.TryAdd(NextLow));
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+    ValidateModePolicy(Range.range);
 
     Range.Reset();
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
     ASSERT_EQ(Range.ValidCount(), 0u);
+    ASSERT_EQ(
+        Range.range.Array.SubRanges,
+        Range.range.Array.PreAllocSubRanges);
+    ASSERT_EQ(
+        Range.range.Array.AllocLength,
+        QUIC_RANGE_INITIAL_SUB_COUNT);
+
+    // Public reset returns inline; a fresh sequence can promote normally.
+    for (uint32_t i = 0;
+         i < QUIC_RANGE_TIERED_PROMOTE_LENGTH;
+         ++i) {
+        Range.Add(2ULL * i);
+    }
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_ARRAY);
+    ASSERT_TRUE(
+        Range.TryAdd(
+            2ULL * QUIC_RANGE_TIERED_PROMOTE_LENGTH));
+    ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(Range.range.AllowedModes, TieredModes);
+    ValidateModePolicy(Range.range);
 }
 
 //
@@ -963,7 +1192,9 @@ TEST(RangeTest, TieredReclaimsBlocksAndDemotes)
 //
 TEST(RangeTest, TieredExactCapacity)
 {
-    SmartRange Range;
+    SmartRange Range(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        TieredModes);
     const uint32_t ExpectedCapacity =
         (QUIC_RANGE_TIERED_DIRECTORY_CAPACITY - 1) *
             QUIC_RANGE_TIERED_BLOCK_CAPACITY;
@@ -977,10 +1208,10 @@ TEST(RangeTest, TieredExactCapacity)
     ASSERT_EQ(Range.ValidCount(), ExpectedCapacity);
     ASSERT_EQ(Range.range.Mode, QUIC_RANGE_MODE_TIERED);
     ASSERT_EQ(
-        QuicRangeTieredGetCapacity(&Range.range),
+        QuicRangeTieredGetCapacity(Range.range.Tiered),
         ExpectedCapacity);
     ASSERT_LE(
-        QuicRangeTieredGetAllocatedBytes(&Range.range),
+        QuicRangeTieredGetAllocatedBytes(Range.range.Tiered),
         QUIC_MAX_RANGE_ALLOC_SIZE);
     ValidateSequentialSingletonRanges(
         Range.range,
@@ -1006,8 +1237,10 @@ TEST(RangeTest, TieredExactCapacity)
 TEST(RangeTest, TieredStreamAckPromotesAfterArrayThreshold)
 {
     QUIC_STREAM Stream = {};
+    // Tiered: this test exercises promotion at 257 subranges.
     QuicRangeInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
+        TieredModes,
         &Stream.SparseAckRanges);
     Stream.Flags.SendOpenAcked = TRUE;
     Stream.QueuedSendOffset =
@@ -1031,6 +1264,10 @@ TEST(RangeTest, TieredStreamAckPromotesAfterArrayThreshold)
     ASSERT_EQ(
         Stream.SparseAckRanges.Mode,
         QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(
+        Stream.SparseAckRanges.AllowedModes,
+        TieredModes);
+    ValidateModePolicy(Stream.SparseAckRanges);
 
     FrameMetadata.StreamOffset =
         2ULL * (QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);
@@ -1041,6 +1278,10 @@ TEST(RangeTest, TieredStreamAckPromotesAfterArrayThreshold)
     ASSERT_EQ(
         Stream.SparseAckRanges.Mode,
         QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(
+        Stream.SparseAckRanges.AllowedModes,
+        TieredModes);
+    ValidateModePolicy(Stream.SparseAckRanges);
     ASSERT_EQ(
         QuicRangeSize(&Stream.SparseAckRanges),
         QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);

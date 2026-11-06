@@ -38,8 +38,16 @@ TEST_P(AckFrameTest, AckFrameEncodeDecode)
 
     CxPlatZeroMemory(Buffer, sizeof(Buffer));
 
-    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
-    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckRange);
+    // Array-only: the encoded test range uses the 256-subrange ACK cap.
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_DECODE_ACKS,
+        QUIC_RANGE_MODE_ARRAY,
+        &AckRange);
+    // Array-only: the decoded test range uses the 256-subrange ACK cap.
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_DECODE_ACKS,
+        QUIC_RANGE_MODE_ARRAY,
+        &DecodedAckRange);
 
     ASSERT_TRUE(QuicRangeAddRange(&AckRange, MinPktNum, ContigPktCount, &Unused) != nullptr);
     ASSERT_TRUE(QuicRangeAddValue(&AckRange, MaxPktNum));
@@ -79,7 +87,11 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
     BOOLEAN InvalidFrame = FALSE;
     QUIC_RANGE DecodedAckBlocks;
     QUIC_VAR_INT AckDelay = 0;
-    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckBlocks);
+    // Array-only: decode failure cases use the 256-subrange ACK cap.
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_DECODE_ACKS,
+        QUIC_RANGE_MODE_ARRAY,
+        &DecodedAckBlocks);
     Buffer[0] = (uint8_t)GetParam();
 
     //
