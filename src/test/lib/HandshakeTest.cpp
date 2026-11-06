@@ -1772,6 +1772,245 @@ QuicTestCustomTicketValidationAfterShutdown(
         Server->SetCustomTicketValidationResult(AcceptTicket));
 }
 
+//
+// Shared state used by the listener, connection, and stream callbacks for the
+// deferred ticket-validation test.
+//
+struct DeferredTicketValidationContext : ServerAcceptContext {
+    CxPlatEvent ServerStreamShutdown;
+    uint64_t BytesReceived{};
+    bool AllDataReceived{};
+    bool UsedZeroRtt{};
+
+    //
+    // Configures the standard server accept path to leave ticket validation
+    // pending until the test supplies the final result.
+    //
+    DeferredTicketValidationContext(
+        UniquePtr<TestConnection>* ServerConnection
+        ) :
+        ServerAcceptContext(ServerConnection)
+    {
+        ExpectedCustomTicketValidationResult = QUIC_STATUS_PENDING;
+    }
+};
+
+//
+// Captures the completed server stream's receive results before deleting the
+// TestStream, then wakes the test thread.
+//
+_Function_class_(STREAM_SHUTDOWN_CALLBACK)
+static
+void
+QUIC_API
+DeferredTicketValidationServerStreamShutdown(
+    _In_ TestStream* Stream
+    )
+{
+    auto TestContext = (DeferredTicketValidationContext*)Stream->Context;
+    TestContext->BytesReceived = Stream->GetBytesReceived();
+    TestContext->AllDataReceived = Stream->GetAllDataReceived();
+    TestContext->UsedZeroRtt = Stream->GetUsedZeroRtt();
+    delete Stream;
+    TestContext->ServerStreamShutdown.Set();
+}
+
+//
+// Wraps the peer-created stream in TestStream and attaches the shared context.
+//
+_Function_class_(NEW_STREAM_CALLBACK)
+static
+void
+QUIC_API
+DeferredTicketValidationNewStream(
+    _In_ TestConnection* Connection,
+    _In_ HQUIC StreamHandle,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags
+    )
+{
+    auto Stream =
+        TestStream::FromStreamHandle(
+            StreamHandle,
+            DeferredTicketValidationServerStreamShutdown,
+            Flags);
+    if (Stream != nullptr) {
+        Stream->Context = Connection->Context;
+    }
+}
+
+//
+// Uses the standard server connection setup, then installs the test context
+// before any peer stream can be indicated.
+//
+_Function_class_(NEW_CONNECTION_CALLBACK)
+static
+bool
+QUIC_API
+DeferredTicketValidationAcceptConnection(
+    _In_ TestListener* Listener,
+    _In_ HQUIC ConnectionHandle
+    )
+{
+    auto TestContext = (DeferredTicketValidationContext*)Listener->Context;
+    if (!ListenerAcceptConnection(Listener, ConnectionHandle)) {
+        return false;
+    }
+    (*TestContext->NewConnection)->Context = TestContext;
+    return true;
+}
+
+//
+// Queues 0-RTT stream data while the server's ticket decision is pending.
+// The Accept case verifies delivery after resumption with the 0-RTT indication.
+// The Reject case verifies a full handshake and delivery without that indication.
+//
+void
+QuicTestDeferredTicketValidationData(
+    bool AcceptTicket
+    )
+{
+    constexpr uint64_t PayloadLength = 1000;
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
+    Settings.SetPeerUnidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(
+        Registration,
+        Alpn,
+        Settings,
+        ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(
+        QUIC_CREDENTIAL_FLAG_CLIENT |
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    MsQuicConfiguration ClientConfiguration(
+        Registration,
+        Alpn,
+        Settings,
+        ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    //
+    // Establish an initial connection and obtain the ticket used by the test
+    // connection.
+    //
+    QUIC_BUFFER* ResumptionTicket = nullptr;
+    QuicTestPrimeResumption(
+        QUIC_ADDRESS_FAMILY_INET,
+        Registration,
+        ServerConfiguration,
+        ClientConfiguration,
+        &ResumptionTicket);
+    if (ResumptionTicket == nullptr) {
+        return;
+    }
+
+    DeferredTicketValidationContext TestContext(nullptr);
+    UniquePtr<TestConnection> Server;
+    TestContext.NewConnection = &Server;
+    TestContext.NewStreamHandler = (void*)DeferredTicketValidationNewStream;
+    TestListener Listener(
+        Registration,
+        DeferredTicketValidationAcceptConnection,
+        ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    Listener.Context = &TestContext;
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    TestConnection Client(Registration);
+    TEST_TRUE(Client.IsValid());
+    TEST_QUIC_SUCCEEDED(Client.SetResumptionTicket(ResumptionTicket));
+    CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_INET,
+            QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+            ServerLocalAddr.GetPort()));
+
+    TEST_TRUE(
+        CxPlatEventWaitWithTimeout(
+            TestContext.NewConnectionReady,
+            TestWaitTimeout));
+    TEST_NOT_EQUAL(nullptr, Server.get());
+    if (!Server->WaitForResumed()) {
+        return;
+    }
+
+    //
+    // Capture the receive-byte baseline before queueing the stream so the
+    // stream's datagram cannot be included in the baseline.
+    //
+    const uint64_t ServerRecvBytes =
+        Server->GetStatistics().RecvTotalBytes;
+
+    //
+    // Queue stream data after the resumed event so packet admission sees the
+    // 0-RTT key installed while ticket validation remains pending.
+    //
+    UniquePtr<TestStream> ClientStream(
+        Client.NewStream(
+            NoOpStreamShutdownCallback,
+            QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+            NEW_STREAM_START_SYNC));
+    TEST_NOT_EQUAL(nullptr, ClientStream);
+    TEST_TRUE(ClientStream->StartPing(PayloadLength));
+
+    //
+    // Wait until the server receives a new datagram. RecvTotalBytes advances
+    // before packet admission, whether the stream packet is deferred or processed.
+    //
+    uint32_t Tries = 0;
+    while (Server->GetStatistics().RecvTotalBytes == ServerRecvBytes &&
+        ++Tries < 200) {
+        CxPlatSleep(10);
+    }
+    TEST_NOT_EQUAL(ServerRecvBytes, Server->GetStatistics().RecvTotalBytes);
+
+    const uint64_t ServerStreamBytesBeforeDecision =
+        Server->GetStatistics().RecvTotalStreamBytes;
+    TEST_QUIC_SUCCEEDED(
+        Server->SetCustomTicketValidationResult(AcceptTicket));
+    TEST_EQUAL(0, ServerStreamBytesBeforeDecision);
+
+    //
+    // Both ticket-validation outcomes allow the handshake to complete. If the
+    // application accepts the ticket, the connection completes a resumed handshake.
+    // If it rejects the ticket, the connection completes a full, non-resumed handshake.
+    //
+    TEST_TRUE(Client.WaitForConnectionComplete());
+    TEST_TRUE(Server->WaitForConnectionComplete());
+    TEST_TRUE(Client.GetIsConnected());
+    TEST_TRUE(Server->GetIsConnected());
+    TEST_EQUAL(AcceptTicket, Client.GetResumed());
+    TEST_EQUAL(AcceptTicket, Server->GetResumed());
+
+    //
+    // The complete payload is always delivered. Only the accepted case keeps
+    // the 0-RTT indication; rejected reliable data is delivered using 1-RTT.
+    //
+    TEST_TRUE(TestContext.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
+    TEST_EQUAL(PayloadLength, TestContext.BytesReceived);
+    TEST_TRUE(TestContext.AllDataReceived);
+    TEST_EQUAL(AcceptTicket, TestContext.UsedZeroRtt);
+
+    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, QUIC_TEST_NO_ERROR);
+    Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, QUIC_TEST_NO_ERROR);
+    TEST_TRUE(Client.WaitForShutdownComplete());
+    TEST_TRUE(Server->WaitForShutdownComplete());
+}
+
 void
 QuicTestShutdownDuringHandshake(
     const ShutdownDuringHandshakeArgs& Params

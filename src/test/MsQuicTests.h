@@ -373,6 +373,11 @@ QuicTestCustomTicketValidationAfterShutdown(
     bool AcceptTicket
     );
 
+void
+QuicTestDeferredTicketValidationData(
+    bool AcceptTicket
+    );
+
 struct ClientCertificateArgs {
     int Family;
     bool UseClientCertificate;
