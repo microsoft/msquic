@@ -14,6 +14,7 @@ set(SOURCES
     SettingsTest.cpp
     SlidingWindowExtremumTest.cpp
     SpinFrame.cpp
+    StreamAckTestShim.c
     TicketTest.cpp
     TransportParamTest.cpp
     VarIntTest.cpp
