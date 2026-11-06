@@ -78,6 +78,40 @@ static uint32_t PopCount(T Value) {
     return Count;
 }
 
+TEST(SettingsTest, OfferedVersionsLengthLimit)
+{
+    uint32_t Versions[QUIC_MAX_NEGOTIATION_VERSIONS + 1];
+    for (auto& Version : Versions) {
+        Version = CxPlatByteSwapUint32(QUIC_VERSION_1);
+    }
+
+    QUIC_VERSION_SETTINGS Settings = {};
+    Settings.AcceptableVersions = Versions;
+    Settings.AcceptableVersionsLength = 1;
+    Settings.OfferedVersions = Versions;
+    Settings.OfferedVersionsLength = (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS;
+    Settings.FullyDeployedVersions = Versions;
+    Settings.FullyDeployedVersionsLength = 1;
+    QUIC_SETTINGS_INTERNAL InternalSettings = {};
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicSettingsVersionSettingsToInternal(sizeof(Settings), &Settings, &InternalSettings));
+    ASSERT_NE(nullptr, InternalSettings.VersionSettings);
+    EXPECT_EQ(
+        Settings.OfferedVersionsLength,
+        InternalSettings.VersionSettings->OfferedVersionsLength);
+    EXPECT_EQ(
+        QUIC_VERSION_1,
+        InternalSettings.VersionSettings->OfferedVersions[Settings.OfferedVersionsLength - 1]);
+    QuicSettingsCleanup(&InternalSettings);
+
+    Settings.OfferedVersionsLength = (uint32_t)ARRAYSIZE(Versions);
+    EXPECT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicSettingsVersionSettingsToInternal(sizeof(Settings), &Settings, &InternalSettings));
+    QuicSettingsCleanup(&InternalSettings);
+}
+
 TEST(SettingsTest, TestAllSettingsFieldsSet)
 {
     QUIC_SETTINGS Settings;
@@ -423,6 +457,79 @@ private:
 
     CXPLAT_STORAGE* m_Storage = nullptr;
 };
+
+TEST(SettingsTest, QuicSettingsLoad_OfferedVersionsLengthLimit)
+{
+    CXPLAT_STORAGE* TestStorage = nullptr;
+    QUIC_STATUS Status =
+        CxPlatStorageOpen(
+            "Apps\\MsQuicUnitTestVersionStorage",
+            nullptr,
+            nullptr,
+            CXPLAT_STORAGE_OPEN_FLAG_CREATE,
+            &TestStorage);
+    if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+        GTEST_SKIP() << "Storage is not available. Status:" << Status;
+    }
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, Status);
+    CxPlatStorageClose(TestStorage);
+
+    auto StorageGuard =
+        QuicStorageSettingScopeGuard::Create("Apps\\MsQuicUnitTestVersionStorage");
+    ASSERT_NE(nullptr, (CXPLAT_STORAGE*)StorageGuard);
+
+    uint32_t Versions[QUIC_MAX_NEGOTIATION_VERSIONS + 1];
+    for (auto& Version : Versions) {
+        Version = CxPlatByteSwapUint32(QUIC_VERSION_1);
+    }
+    for (const char* Name : {
+            QUIC_SETTING_ACCEPTABLE_VERSIONS, QUIC_SETTING_FULLY_DEPLOYED_VERSIONS}) {
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            CxPlatStorageWriteValue(
+                StorageGuard, Name, CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(uint32_t), (uint8_t*)Versions));
+    }
+
+    QUIC_SETTINGS_INTERNAL Settings = {};
+
+    // Reject an oversized list before any version settings have been loaded.
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard, QUIC_SETTING_OFFERED_VERSIONS, CXPLAT_STORAGE_TYPE_BINARY,
+            sizeof(Versions), (uint8_t*)Versions));
+    QuicSettingsLoad(&Settings, StorageGuard);
+    EXPECT_EQ(nullptr, Settings.VersionSettings);
+
+    // Load a valid list at the limit.
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard, QUIC_SETTING_OFFERED_VERSIONS, CXPLAT_STORAGE_TYPE_BINARY,
+            QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t), (uint8_t*)Versions));
+    QuicSettingsLoad(&Settings, StorageGuard);
+    EXPECT_NE(nullptr, Settings.VersionSettings);
+    if (Settings.VersionSettings != nullptr) {
+        EXPECT_EQ(
+            (uint32_t)QUIC_MAX_NEGOTIATION_VERSIONS,
+            Settings.VersionSettings->OfferedVersionsLength);
+        EXPECT_EQ(
+            QUIC_VERSION_1,
+            Settings.VersionSettings->OfferedVersions[QUIC_MAX_NEGOTIATION_VERSIONS - 1]);
+    }
+
+    // Reject another oversized list without replacing the valid settings.
+    auto PreviousVersionSettings = Settings.VersionSettings;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard, QUIC_SETTING_OFFERED_VERSIONS, CXPLAT_STORAGE_TYPE_BINARY,
+            sizeof(Versions), (uint8_t*)Versions));
+    QuicSettingsLoad(&Settings, StorageGuard);
+    EXPECT_EQ(PreviousVersionSettings, Settings.VersionSettings);
+    QuicSettingsCleanup(&Settings);
+}
 
 // --- Test: QuicSettingsLoad sets fields from storage ---
 TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
