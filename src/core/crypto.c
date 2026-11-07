@@ -1292,6 +1292,21 @@ QuicCryptoProcessDataFrame(
         // has advanced beyond the packet key type, don't use the EncLevelOffset to ensure that
         // we write to the head of the buffer properly.
         if (KeyType < Crypto->TlsState.ReadKey) {
+            //
+            // Everything from an older encryption level was already consumed
+            // before the read key moved on, so a valid frame here is only a
+            // retransmission. Data past the end of that level would otherwise
+            // be written into the current level's offset space.
+            //
+            if (Frame->Offset + Frame->Length > Crypto->RecvEncryptLevelStartOffset) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Ignoring crypto data past the end of a previous encryption level");
+                Status = QUIC_STATUS_SUCCESS;
+                goto Error;
+            }
             EncLevelOffset = 0;
         } else {
             EncLevelOffset = Crypto->RecvEncryptLevelStartOffset;
