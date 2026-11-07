@@ -179,9 +179,19 @@ typedef struct AUX_DATA {
     size_t PeerTpLen;
 
     //
-    // @brief The current encryption level we are sending data for
+    // @brief The highest level with both read and write keys installed
     //
     uint32_t Level;
+
+    //
+    // @brief The highest non-0-RTT level we have a write key for. Handshake
+    // data is always written at this level: a server that accepts early data
+    // gets its handshake write secret before its handshake read secret, so
+    // Level (which needs both) still says Initial when EncryptedExtensions and
+    // Finished are produced. It is never below Level, because a level needs
+    // its write key before Level can reach it.
+    //
+    uint32_t WriteLevel;
 
     //
     // Tracks the caller-owned CRYPTO_DATA buffer borrowed by OpenSSL. The input
@@ -279,7 +289,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
     //
     // KeyTypes in msquic map directly to our protection levels
     //
-    QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)AData->Level;
+    QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)AData->WriteLevel;
 
     if (TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
         return 0;
@@ -290,7 +300,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
         (uint64_t)BufLen,
-        (uint32_t)AData->Level);
+        (uint32_t)KeyType);
 
     //
     // Cap the buffer at 0x8000, the largest power of two that fits a uint16_t,
@@ -508,6 +518,9 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
         TlsState->WriteKey = KeyType;
         AData->SecretSet[ProtLevel][DIR_WRITE].installed = 1;
+        if (KeyType != QUIC_PACKET_KEY_0_RTT && (uint32_t)ProtLevel > AData->WriteLevel) {
+            AData->WriteLevel = (uint32_t)ProtLevel;
+        }
     }
     if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL
         && TlsState->ReadKeys[KeyType] == NULL
