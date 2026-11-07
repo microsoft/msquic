@@ -1,0 +1,44 @@
+#
+# QUIC frame types
+#
+frame_padding="\x00"
+frame_ping="\x01"
+frame_ack="\x02"
+frame_reset_stream="\x04"
+frame_stop_sending="\x05"
+frame_crypto="\x06"
+frame_new_token="\x07"
+frame_stream="\x08"
+frame_max_data="\x10"
+frame_max_stream_data="\x11"
+frame_max_streams="\x12"
+frame_data_blocked="\x13"
+frame_streams_blocked="\x15"
+frame_new_connection_id="\x16"
+frame_retire_connection_id="\x17"
+frame_path_challenge="\x18"
+frame_path_response="\x19"
+frame_transport_close="\x1a"
+frame_connection_close="\x1c"
+#
+# TLS handshake / record markers for CRYPTO frame payloads
+#
+tls_clienthello="\x01\x00\x00"
+tls_handshake_record="\x16\x03\x03"
+tls_version_12="\x03\x03"
+tls_ext_key_share="\x00\x33"
+tls_ext_supported_versions="\x00\x2b"
+tls_ext_alpn="\x00\x10"
+tls_ext_server_name="\x00\x00"
+tls_ext_supported_groups="\x00\x0a"
+tls_ext_signature_algorithms="\x00\x0d"
+tls_x25519="\x00\x1d\x00\x20"
+tls_ciphersuite_aes128gcm="\x13\x01"
+tls_ciphersuite_aes256gcm="\x13\x02"
+tls_ciphersuite_chacha20="\x13\x03"
+#
+# Misc
+#
+alpn_fuzz="fuzz"
+varint_two_byte="\x40"
+dcid_prefix="\x01\x23\x45\x67"
