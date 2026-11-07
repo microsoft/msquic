@@ -470,9 +470,9 @@ tracepoint(CLOG_CRYPTO_C, ConnErrorStatus , arg2, arg3, arg4);\
                     ConnError,
                     "[conn][%p] ERROR, %s.",
                     Connection,
-                    "Tried to write beyond crypto flow control limit.");
+                    "Ignoring crypto data past the end of a previous encryption level");
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = "Tried to write beyond crypto flow control limit." = arg3
+// arg3 = arg3 = "Ignoring crypto data past the end of a previous encryption level" = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
