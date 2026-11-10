@@ -1472,6 +1472,23 @@ TEST_P(WithAcceptTicket, CustomTicketValidationAfterShutdown) {
     }
 }
 
+//
+// Accept verifies queued early data is delivered after the pending ticket
+// decision succeeds. Reject verifies the reliable payload is delivered after
+// a full handshake without the 0-RTT indication.
+//
+TEST_P(WithAcceptTicket, DeferredTicketValidationData) {
+    TestLogger Logger("QuicTestDeferredTicketValidationData");
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("The configured TLS provider does not support 0-RTT.");
+#endif
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestDeferredTicketValidationData), GetParam()));
+    } else {
+        QuicTestDeferredTicketValidationData(GetParam());
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithAcceptTicket,
