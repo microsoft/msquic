@@ -48,10 +48,14 @@ struct PingStats
     const bool FifoScheduling;
     const bool UnidirectionalStreams;
     const bool ServerInitiatedStreams;
-    const bool ZeroRtt;
+    const bool ValidateZeroRtt;
+    const bool ExpectedZeroRtt;
+    const bool ExpectedResumed;
     const bool AllowDataIncomplete;
     const bool ServerKeyUpdate;
     const QUIC_STATUS ExpectedCloseStatus;
+    const QUIC_SERVER_RESUMPTION_LEVEL ServerResumptionLevel;
+    const bool OverrideServerResumptionLevel;
 
     volatile long ConnectionsComplete;
     volatile long SecretsIndex;
@@ -69,10 +73,14 @@ struct PingStats
         bool _FifoScheduling,
         bool _UnidirectionalStreams,
         bool _ServerInitiatedStreams,
-        bool _ZeroRtt,
+        bool _ValidateZeroRtt,
+        bool _ExpectedZeroRtt,
+        bool _ExpectedResumed,
         bool _AllowDataIncomplete = false,
         QUIC_STATUS _ExpectedCloseStatus = QUIC_STATUS_SUCCESS,
-        bool _ServerKeyUpdate = false
+        bool _ServerKeyUpdate = false,
+        QUIC_SERVER_RESUMPTION_LEVEL _ServerResumptionLevel = QUIC_SERVER_NO_RESUME,
+        bool _OverrideServerResumptionLevel = false
         ) :
         PayloadLength(_PayloadLength),
         ConnectionCount(_ConnectionCount),
@@ -80,10 +88,14 @@ struct PingStats
         FifoScheduling(_FifoScheduling),
         UnidirectionalStreams(_UnidirectionalStreams),
         ServerInitiatedStreams(_ServerInitiatedStreams),
-        ZeroRtt(_ZeroRtt),
+        ValidateZeroRtt(_ValidateZeroRtt),
+        ExpectedZeroRtt(_ExpectedZeroRtt),
+        ExpectedResumed(_ExpectedResumed),
         AllowDataIncomplete(_AllowDataIncomplete),
         ServerKeyUpdate(_ServerKeyUpdate),
         ExpectedCloseStatus(_ExpectedCloseStatus),
+        ServerResumptionLevel(_ServerResumptionLevel),
+        OverrideServerResumptionLevel(_OverrideServerResumptionLevel),
         ConnectionsComplete(0),
         SecretsIndex(0)
     {
@@ -153,10 +165,13 @@ PingStreamShutdown(
 #if !QUIC_SEND_FAKE_LOSS
     if (!ConnState->GetPingStats()->ServerInitiatedStreams &&
         !ConnState->GetPingStats()->FifoScheduling &&
-        ConnState->GetPingStats()->ZeroRtt) {
-        if (Stream->GetBytesReceived() != 0 && // TODO - Support 0-RTT indication for Stream Open callback.
-            !Stream->GetUsedZeroRtt()) {
+        ConnState->GetPingStats()->ValidateZeroRtt &&
+        Stream->GetBytesReceived() != 0 && // TODO - Support 0-RTT indication for Stream Open callback.
+        Stream->GetUsedZeroRtt() != ConnState->GetPingStats()->ExpectedZeroRtt) {
+        if (ConnState->GetPingStats()->ExpectedZeroRtt) {
             TEST_FAILURE("0-RTT wasn't used for stream data.");
+        } else {
+            TEST_FAILURE("0-RTT was unexpectedly used for stream data.");
         }
     }
 #endif
@@ -225,6 +240,11 @@ PingConnectionShutdown(
     auto ConnState = (PingConnState*)Connection->Context;
     auto ExpectedSuccess =
         ConnState->GetPingStats()->ExpectedCloseStatus == QUIC_STATUS_SUCCESS;
+    if (ConnState->GetPingStats()->ValidateZeroRtt) {
+        TEST_EQUAL(
+            ConnState->GetPingStats()->ExpectedResumed,
+            Connection->GetResumed());
+    }
     delete ConnState;
 
     if (ExpectedSuccess) {
@@ -275,7 +295,15 @@ ListenerAcceptPingConnection(
     auto Stats = (PingStats*)Listener->Context;
     Connection->Context = new(std::nothrow) PingConnState(Stats, Connection);
     Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
-    Connection->SetExpectedResumed(Stats->ZeroRtt);
+    Connection->SetExpectedResumed(Stats->ExpectedResumed);
+    if (Stats->OverrideServerResumptionLevel) {
+        MsQuicSettings Settings;
+        Settings.SetServerResumptionLevel(Stats->ServerResumptionLevel);
+        if (QUIC_FAILED(Connection->SetSettings(Settings))) {
+            TEST_FAILURE("Failed to override the server resumption level.");
+            return false;
+        }
+    }
     if (Stats->ExpectedCloseStatus != QUIC_STATUS_SUCCESS) {
         Connection->SetExpectedTransportCloseStatus(Stats->ExpectedCloseStatus);
         if (Stats->ExpectedCloseStatus == QUIC_STATUS_CONNECTION_TIMEOUT) {
@@ -364,7 +392,7 @@ NewPingConnection(
 
     Connection->Context = new(std::nothrow) PingConnState(ClientStats, Connection);
     Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
-    Connection->SetExpectedResumed(ClientStats->ZeroRtt);
+    Connection->SetExpectedResumed(ClientStats->ExpectedResumed);
     if (ClientStats->ResumptionTicket) {
         Connection->SetResumptionTicket(ClientStats->ResumptionTicket);
     }
@@ -401,6 +429,7 @@ QuicTestConnectAndPing_Send0Rtt(
         false,  // ServerStatelessRetry
         false,  // ClientRebind
         true,   // ClientZeroRtt
+        QUIC_SERVER_RESUME_AND_ZERORTT,
         false,  // ServerRejectZeroRtt
         Params.UseSendBuffer,
         Params.UnidirectionalStreams,
@@ -424,7 +453,9 @@ QuicTestConnectAndPing_Reject0Rtt(
         false,  // ServerStatelessRetry
         false,  // ClientRebind
         true,   // ClientZeroRtt
-        true,   // ServerRejectZeroRtt
+        Params.NoResume ? QUIC_SERVER_NO_RESUME :
+            (Params.ResumeOnly ? QUIC_SERVER_RESUME_ONLY : QUIC_SERVER_RESUME_AND_ZERORTT),
+        !Params.ResumeOnly && !Params.NoResume, // ServerRejectZeroRtt
         false,  // UseSendBuffer
         false,  // UnidirectionalStreams
         false,  // ServerInitiatedStreams
@@ -447,6 +478,7 @@ QuicTestConnectAndPing_Send(
         false,  // ServerStatelessRetry
         false,  // ClientRebind
         false,  // ClientZeroRtt
+        QUIC_SERVER_NO_RESUME,
         false,  // ServerRejectZeroRtt
         Params.UseSendBuffer,
         Params.UnidirectionalStreams,
@@ -470,6 +502,7 @@ QuicTestConnectAndPing_SendLarge(
         false,  // ServerStatelessRetry
         false,  // ClientRebind
         Params.UseZeroRtt,
+        Params.UseZeroRtt ? QUIC_SERVER_RESUME_AND_ZERORTT : QUIC_SERVER_NO_RESUME,
         false,  // ServerRejectZeroRtt
         Params.UseSendBuffer,
         false,  // UnidirectionalStreams
@@ -493,6 +526,7 @@ QuicTestConnectAndPing_SendIntermittently(
         false,  // ServerStatelessRetry
         false,  // ClientRebind
         false,  // ClientZeroRtt
+        QUIC_SERVER_NO_RESUME,
         false,  // ServerRejectZeroRtt
         Params.UseSendBuffer,
         false,  // UnidirectionalStreams
@@ -512,6 +546,7 @@ QuicTestConnectAndPing(
     _In_ bool ServerStatelessRetry,
     _In_ bool /* ClientRebind */, // TODO - Use this
     _In_ bool ClientZeroRtt,
+    _In_ QUIC_SERVER_RESUMPTION_LEVEL ServerResumptionLevel,
     _In_ bool ServerRejectZeroRtt,
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
@@ -523,9 +558,45 @@ QuicTestConnectAndPing(
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    const bool ExpectedResumed =
+        ClientZeroRtt &&
+        !ServerRejectZeroRtt &&
+        ServerResumptionLevel != QUIC_SERVER_NO_RESUME;
+    const bool ExpectedZeroRtt =
+        ExpectedResumed &&
+        ServerResumptionLevel == QUIC_SERVER_RESUME_AND_ZERORTT;
+    const bool OverrideServerResumptionLevel =
+        ServerResumptionLevel == QUIC_SERVER_NO_RESUME;
+    const QUIC_SERVER_RESUMPTION_LEVEL ConfigurationResumptionLevel =
+        OverrideServerResumptionLevel ?
+            QUIC_SERVER_RESUME_AND_ZERORTT :
+            ServerResumptionLevel;
 
-    PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
-    PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
+    PingStats ServerStats(
+        Length,
+        ConnectionCount,
+        TotalStreamCount,
+        FifoScheduling,
+        UnidirectionalStreams,
+        ServerInitiatedStreams,
+        ClientZeroRtt,
+        ExpectedZeroRtt,
+        ExpectedResumed,
+        false,
+        QUIC_STATUS_SUCCESS,
+        false,
+        ServerResumptionLevel,
+        OverrideServerResumptionLevel);
+    PingStats ClientStats(
+        Length,
+        ConnectionCount,
+        TotalStreamCount,
+        FifoScheduling,
+        UnidirectionalStreams,
+        ServerInitiatedStreams,
+        ClientZeroRtt,
+        ExpectedZeroRtt,
+        ExpectedResumed);
 
 #if !defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (SendUdpToQtipListener) {
@@ -546,7 +617,7 @@ QuicTestConnectAndPing(
         //
     }
 
-    if (ClientZeroRtt && !ServerRejectZeroRtt) {
+    if (ExpectedZeroRtt) {
         ClientSecrets.reset(
                 new(std::nothrow) QUIC_TLS_SECRETS[ConnectionCount]);
         ServerSecrets.reset(
@@ -560,7 +631,7 @@ QuicTestConnectAndPing(
     MsQuicAlpn Alpn("MsQuicTest");
     MsQuicSettings Settings;
     if (ClientZeroRtt) {
-        Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
+        Settings.SetServerResumptionLevel(ConfigurationResumptionLevel);
     }
     if (!ServerInitiatedStreams) {
         Settings.SetPeerBidiStreamCount(TotalStreamCount);
@@ -579,7 +650,7 @@ QuicTestConnectAndPing(
     BadKey.MaterialLength = 64;
     BadKey.Material[0] = 0xFF;
 
-    if (ServerRejectZeroRtt) {
+    if (ClientZeroRtt) {
         TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&GoodKey));
     }
 
@@ -587,12 +658,30 @@ QuicTestConnectAndPing(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
     if (ClientZeroRtt) {
-        QuicTestPrimeResumption(
-            QuicAddrFamily,
-            Registration,
-            ServerConfiguration,
-            ClientConfiguration,
-            &ClientStats.ResumptionTicket);
+        if (ServerResumptionLevel == QUIC_SERVER_RESUME_ONLY) {
+            MsQuicSettings PrimeSettings = Settings;
+            PrimeSettings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
+            MsQuicConfiguration PrimeServerConfiguration(
+                Registration,
+                Alpn,
+                PrimeSettings,
+                ServerSelfSignedCredConfig);
+            TEST_TRUE(PrimeServerConfiguration.IsValid());
+            TEST_QUIC_SUCCEEDED(PrimeServerConfiguration.SetTicketKey(&GoodKey));
+            QuicTestPrimeResumption(
+                QuicAddrFamily,
+                Registration,
+                PrimeServerConfiguration,
+                ClientConfiguration,
+                &ClientStats.ResumptionTicket);
+        } else {
+            QuicTestPrimeResumption(
+                QuicAddrFamily,
+                Registration,
+                ServerConfiguration,
+                ClientConfiguration,
+                &ClientStats.ResumptionTicket);
+        }
         if (!ClientStats.ResumptionTicket) {
             return;
         }
@@ -758,8 +847,8 @@ QuicTestServerDisconnect(
     void
     )
 {
-    PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE);
+    PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, TRUE);
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -875,7 +964,7 @@ QuicTestClientDisconnect(
     // back to the client as it continues to receive the client's UDP packets.
     //
 
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
     CxPlatEvent EventClientDeleted(true);
@@ -974,7 +1063,7 @@ QuicTestStatelessResetKey(
     // in a timeout on the client instead of an abort.
     //
 
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
 
     CxPlatEvent EventClientDeleted(true);
 

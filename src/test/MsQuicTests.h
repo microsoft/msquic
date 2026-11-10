@@ -623,6 +623,7 @@ QuicTestConnectAndPing(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientRebind,
     _In_ bool ClientZeroRtt,
+    _In_ QUIC_SERVER_RESUMPTION_LEVEL ServerResumptionLevel,
     _In_ bool ServerRejectZeroRtt,
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
@@ -648,6 +649,8 @@ QuicTestConnectAndPing_Send0Rtt(
 struct Send0RttArgs2 {
     int Family;
     uint64_t Length;
+    bool ResumeOnly;
+    bool NoResume;
 };
 
 void
