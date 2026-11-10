@@ -536,6 +536,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    sizeof(INT32),                           // IOCTL_QUIC_RUN_PATH_VALIDATION_LAST_PATH_CLOSE
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1575,6 +1576,13 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_TINY_STREAM_RECV_WINDOW:
         QuicTestCtlRun(QuicTestTinyStreamRecvWindow());
+        break;
+
+    case IOCTL_QUIC_RUN_PATH_VALIDATION_LAST_PATH_CLOSE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestPathValidationLastPathClose(
+                Params->Family));
         break;
 
     default:
