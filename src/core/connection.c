@@ -4572,8 +4572,6 @@ QuicFrameAllowedIn0Rtt(
     case QUIC_FRAME_ACK_FREQUENCY:
     case QUIC_FRAME_IMMEDIATE_ACK:
     case QUIC_FRAME_TIMESTAMP:
-        return FALSE;
-
     default:
         return FALSE;
     }
