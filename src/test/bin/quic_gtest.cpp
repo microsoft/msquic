@@ -2983,6 +2983,15 @@ TEST(Misc, StreamTinyRecvWindow) {
     }
 }
 
+TEST(Misc, Reject0RttSmallerConnFlowControl) {
+    TestLogger Logger("Reject0RttSmallerConnFlowControl");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReject0RttSmallerConnFlowControl)));
+    } else {
+        QuicTestReject0RttSmallerConnFlowControl();
+    }
+}
+
 TEST(Basic, OperationPriority) {
     TestLogger Logger("OperationPriority");
     if (TestingKernelMode) {

@@ -190,6 +190,31 @@ QuicStreamSetLookupStream(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicStreamSetOnZeroRttRejected(
+    _Inout_ QUIC_STREAM_SET* StreamSet
+    )
+{
+    QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
+
+    if (StreamSet->StreamTable != NULL) {
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
+        CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+        while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+            QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+            QuicStreamOnZeroRttRejected(Stream);
+        }
+        CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
+    }
+
+    if (Connection->Send.OrderedStreamBytesSent < Connection->Send.PeerMaxData) {
+        QuicConnRemoveOutFlowBlockedReason(
+            Connection, QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicStreamSetShutdown(
     _Inout_ QUIC_STREAM_SET* StreamSet
     )

@@ -929,6 +929,17 @@ QuicStreamSendWrite(
     );
 
 //
+// Called on the client when the server rejects 0-RTT. None of the stream data
+// sent in 0-RTT reached the peer, so it no longer counts against connection
+// flow control.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamOnZeroRttRejected(
+    _In_ QUIC_STREAM* Stream
+    );
+
+//
 // Called when a stream frame is inferred to be lost. Returns TRUE if data is
 // queued to be sent.
 //
