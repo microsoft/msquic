@@ -5136,14 +5136,39 @@ QuicConnRecvFrames(
                 break; // Ignore frame if we are closed.
             }
 
-            BOOLEAN IsLastCid;
-            QUIC_CID_HASH_ENTRY* SourceCid =
-                QuicConnGetSourceCidFromSeq(
+            //
+            // RFC 9000 Section 19.16: Receipt of a RETIRE_CONNECTION_ID frame
+            // containing a sequence number greater than any sequence number
+            // previously sent to the peer MUST be treated as a connection error
+            // of type PROTOCOL_VIOLATION.
+            //
+            if (Frame.Sequence >= Connection->NextSourceCidSequenceNumber) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
                     Connection,
-                    Frame.Sequence,
-                    TRUE,
-                    &IsLastCid);
+                    "Retire CID sequence number exceeds highest issued sequence");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                QuicConnGetSourceCidFromSeq(Connection, Frame.Sequence);
+            if (SourceCid != NULL &&
+                Packet->DestCidLen == SourceCid->CID.Length &&
+                (Packet->DestCidLen == 0 ||
+                    memcmp(Packet->DestCid, SourceCid->CID.Data, Packet->DestCidLen) == 0)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Retire CID matches packet destination CID");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+
             if (SourceCid != NULL) {
+                BOOLEAN IsLastCid = QuicConnRemoveSourceCid(Connection, SourceCid);
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
                 if (CidAlreadyRetired) {
                     CXPLAT_DBG_ASSERT(Connection->RetiredSourceCidCount > 0);
