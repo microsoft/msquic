@@ -87,7 +87,7 @@ ReadMemoryValueFromFile(
         return FALSE;
     }
 
-    FILE* File = fopen(Filename, "r");
+    FILE* File = fopen(Filename, "re");
     if (File == NULL) {
         goto Done;
     }
@@ -174,7 +174,7 @@ FindHierarchyMount(
     char *MountPath = NULL;
     char *MountRoot = NULL;
 
-    FILE *MountInfoFile = fopen(PROC_MOUNTINFO_FILENAME, "r");
+    FILE *MountInfoFile = fopen(PROC_MOUNTINFO_FILENAME, "re");
     if (MountInfoFile == NULL) {
         goto Done;
     }
@@ -276,7 +276,7 @@ FindCGroupPathForSubsystem(
     char* CGroupPath = NULL;
     BOOLEAN Result = FALSE;
 
-    FILE *CGroupFile = fopen(PROC_CGROUP_FILENAME, "r");
+    FILE *CGroupFile = fopen(PROC_CGROUP_FILENAME, "re");
     if (CGroupFile == NULL) {
         goto Done;
     }
