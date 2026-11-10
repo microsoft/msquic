@@ -4510,6 +4510,67 @@ QuicConnRecvDecryptAndAuthenticate(
 }
 
 //
+// Returns TRUE if the given frame type is allowed in 0-RTT packets
+// per RFC 9000 §12.5 Table 3, with additional security restrictions.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicFrameAllowedIn0Rtt(
+    _In_ uint64_t FrameType
+    )
+{
+    switch (FrameType) {
+    //
+    // Frames allowed in 0-RTT.
+    //
+    case QUIC_FRAME_PADDING:
+    case QUIC_FRAME_PING:
+    case QUIC_FRAME_RESET_STREAM:
+    case QUIC_FRAME_STOP_SENDING:
+    case QUIC_FRAME_STREAM:
+    case QUIC_FRAME_STREAM_1:
+    case QUIC_FRAME_STREAM_2:
+    case QUIC_FRAME_STREAM_3:
+    case QUIC_FRAME_STREAM_4:
+    case QUIC_FRAME_STREAM_5:
+    case QUIC_FRAME_STREAM_6:
+    case QUIC_FRAME_STREAM_7:
+    case QUIC_FRAME_MAX_DATA:
+    case QUIC_FRAME_MAX_STREAM_DATA:
+    case QUIC_FRAME_MAX_STREAMS:
+    case QUIC_FRAME_MAX_STREAMS_1:
+    case QUIC_FRAME_DATA_BLOCKED:
+    case QUIC_FRAME_STREAM_DATA_BLOCKED:
+    case QUIC_FRAME_STREAMS_BLOCKED:
+    case QUIC_FRAME_STREAMS_BLOCKED_1:
+    case QUIC_FRAME_NEW_CONNECTION_ID:
+    case QUIC_FRAME_PATH_CHALLENGE:
+    case QUIC_FRAME_CONNECTION_CLOSE:
+    case QUIC_FRAME_CONNECTION_CLOSE_1:
+    case QUIC_FRAME_RELIABLE_RESET_STREAM:
+    case QUIC_FRAME_DATAGRAM:
+    case QUIC_FRAME_DATAGRAM_1:
+        return TRUE;
+
+    //
+    // Frames rejected in 0-RTT.
+    //
+    case QUIC_FRAME_ACK:
+    case QUIC_FRAME_ACK_1:
+    case QUIC_FRAME_CRYPTO:
+    case QUIC_FRAME_NEW_TOKEN:
+    case QUIC_FRAME_RETIRE_CONNECTION_ID:
+    case QUIC_FRAME_PATH_RESPONSE:
+    case QUIC_FRAME_HANDSHAKE_DONE:
+    case QUIC_FRAME_ACK_FREQUENCY:
+    case QUIC_FRAME_IMMEDIATE_ACK:
+    case QUIC_FRAME_TIMESTAMP:
+    default:
+        return FALSE;
+    }
+}
+
+//
 // Reads the frames in a packet, and if everything is successful marks the
 // packet for acknowledgement and returns TRUE.
 //
@@ -4609,26 +4670,15 @@ QuicConnRecvFrames(
             }
 
         } else if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
-            switch (FrameType) {
-            //
-            // The following frames are are disallowed in 0-RTT.
-            //
-            case QUIC_FRAME_ACK:
-            case QUIC_FRAME_ACK_1:
-            case QUIC_FRAME_HANDSHAKE_DONE:
+            if (!QuicFrameAllowedIn0Rtt(FrameType)) {
                 QuicTraceEvent(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",
                     Connection,
                     (uint32_t)FrameType,
-                    "Disallowed frame type");
-                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                    "Frame type not allowed in 0-RTT");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
                 return FALSE;
-            //
-            // All other frame types are allowed.
-            //
-            default:
-                break;
             }
         }
 
