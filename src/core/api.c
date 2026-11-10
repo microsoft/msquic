@@ -676,6 +676,15 @@ Error:
     return Status;
 }
 
+#pragma warning(push)
+#pragma warning(disable:6101) // Output is written by the worker thread via
+                               // ApiCtx.CONN_EXPORT_KEYING_MATERIAL.Output when the
+                               // queued operation completes; the analyzer can't see
+                               // across that indirection. C6101 is a function-level
+                               // postcondition warning reported at the definition
+                               // line, so it must be disabled for the whole
+                               // function rather than suppressed at the return.
+                               // (FALSE POSITIVE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -763,6 +772,7 @@ Error:
 
     return Status;
 }
+#pragma warning(pop)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
@@ -1797,6 +1807,15 @@ Error:
     return Status;
 }
 
+#pragma warning(push)
+#pragma warning(disable:6101) // Buffer is written by the worker thread via
+                               // ApiCtx.GET_PARAM.Buffer when the queued operation
+                               // completes; the analyzer can't see across that
+                               // indirection. C6101 is a function-level
+                               // postcondition warning reported at the definition
+                               // line, so it must be disabled for the whole
+                               // function rather than suppressed at the return.
+                               // (FALSE POSITIVE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -1922,6 +1941,7 @@ Error:
 
     return Status;
 }
+#pragma warning(pop)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
