@@ -1823,17 +1823,6 @@ CxPlatTlsSecConfigCreate(
 
     if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         if (!(TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
-            Ret = SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, 0xFFFFFFFF);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_set_max_early_data failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-
             Ret = SSL_CTX_set_session_ticket_cb(
                 SecurityConfig->SSLCtx,
                 NULL,
@@ -2123,10 +2112,8 @@ CxPlatTlsSecConfigCreate(
                 VerifyMode,
                 NULL);
         }
-
         SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, CxPlatTlsAlpnSelectCallback, NULL);
 
-        SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
         SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, CxPlatTlsClientHelloCallback, NULL);
     }
 
@@ -2550,7 +2537,33 @@ CxPlatTlsInitialize(
         SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
     }
 
-    if (!(Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
+    if (Config->IsServer) {
+        if (SSL_set_quic_tls_early_data_enabled(
+                TlsContext->Ssl,
+                Config->ServerEarlyDataEnabled ? 1 : 0) != 1) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "SSL_set_quic_tls_early_data_enabled failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        if (SSL_set_max_early_data(
+                TlsContext->Ssl,
+                Config->ServerEarlyDataEnabled ? UINT32_MAX : 0) != 1) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "SSL_set_max_early_data failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+    } else if (!(Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
 
         if (Config->ResumptionTicketLength != 0) {
             CXPLAT_DBG_ASSERT(Config->ResumptionTicketBuffer != NULL);
@@ -2595,7 +2608,7 @@ CxPlatTlsInitialize(
             }
         }
 
-        if (Config->IsServer || (Config->ResumptionTicketLength != 0)) {
+        if (Config->ResumptionTicketLength != 0) {
             SSL_set_quic_tls_early_data_enabled(TlsContext->Ssl, 1);
         }
     }

@@ -144,6 +144,7 @@ typedef struct CXPLAT_TLS_CALLBACKS {
 typedef struct CXPLAT_TLS_CONFIG {
 
     BOOLEAN IsServer;
+    BOOLEAN ServerEarlyDataEnabled;
 
     //
     // Connection context for completion callbacks.
