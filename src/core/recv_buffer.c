@@ -1154,4 +1154,14 @@ QuicRecvBufferResetRead(
             Link);
     Chunk->ExternalReference = FALSE;
     RecvBuffer->ReadPendingLength = 0;
+
+    //
+    // Free the retired chunk, the app no longer references it now that the read was cancelled.
+    //
+    if (RecvBuffer->RetiredChunk != NULL) {
+        QuicRecvChunkFree(RecvBuffer->RetiredChunk);
+        RecvBuffer->RetiredChunk = NULL;
+    }
+
+    QuicRecvBufferValidate(RecvBuffer);
 }
