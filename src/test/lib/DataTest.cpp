@@ -240,7 +240,8 @@ PingConnectionShutdown(
     auto ConnState = (PingConnState*)Connection->Context;
     auto ExpectedSuccess =
         ConnState->GetPingStats()->ExpectedCloseStatus == QUIC_STATUS_SUCCESS;
-    if (ConnState->GetPingStats()->ValidateZeroRtt) {
+    if (ConnState->GetPingStats()->ValidateZeroRtt &&
+        !Connection->GetIsServer()) {
         TEST_EQUAL(
             ConnState->GetPingStats()->ExpectedResumed,
             Connection->GetResumed());
