@@ -521,39 +521,33 @@ QuicPacketValidateInitialToken(
     _In_ const QUIC_RX_PACKET* const Packet,
     _In_range_(>, 0) uint16_t TokenLength,
     _In_reads_(TokenLength)
-        const uint8_t* TokenBuffer,
-    _Inout_ BOOLEAN* DropPacket
+        const uint8_t* TokenBuffer
     )
 {
     const BOOLEAN IsNewToken = TokenBuffer[0] & 0x1;
     if (IsNewToken) {
         QuicPacketLogDrop(Owner, Packet, "New Token not supported");
-        *DropPacket = TRUE;
         return FALSE; // TODO - Support NEW_TOKEN tokens.
     }
 
     if (TokenLength != sizeof(QUIC_TOKEN_CONTENTS)) {
         QuicPacketLogDrop(Owner, Packet, "Invalid Token Length");
-        *DropPacket = TRUE;
         return FALSE;
     }
 
     QUIC_TOKEN_CONTENTS Token;
     if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
         QuicPacketLogDrop(Owner, Packet, "Retry Token Decryption Failure");
-        *DropPacket = TRUE;
         return FALSE;
     }
 
     if (Token.Encrypted.OrigConnIdLength > sizeof(Token.Encrypted.OrigConnId)) {
         QuicPacketLogDrop(Owner, Packet, "Invalid Retry Token OrigConnId Length");
-        *DropPacket = TRUE;
         return FALSE;
     }
 
     if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Packet->Route->RemoteAddress)) {
         QuicPacketLogDrop(Owner, Packet, "Retry Token Addr Mismatch");
-        *DropPacket = TRUE;
         return FALSE;
     }
 
