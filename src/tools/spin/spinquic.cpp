@@ -94,7 +94,7 @@ public:
         return false;
     }
     template<typename T>
-    bool TryGetRandom(T UpperBound, T* Val, uint16_t ThreadId = 0) {
+    bool TryGetRandomBounded(T UpperBound, T* Val, uint16_t ThreadId = 0) {
         if (ThreadId == NumSpinThread) {
             // utility area access from Connection/Stream callbacks
             mux.lock();
@@ -105,6 +105,25 @@ public:
         }
         memcpy(Val, &data[Ptrs[ThreadId]] + EachSize[ThreadId] * ThreadId, type_size);
         *Val = (T)(*Val % UpperBound);
+        Ptrs[ThreadId] += type_size;
+        if (ThreadId == NumSpinThread) {
+            mux.unlock();
+        }
+        return true;
+    }
+    template<typename T>
+    bool TryGetRandom(T* Val, uint16_t ThreadId = 0) {
+        if (ThreadId == NumSpinThread) {
+            mux.lock();
+        }
+        int type_size = sizeof(T);
+        if (!CheckBoundary(ThreadId, type_size)) {
+            if (ThreadId == NumSpinThread) {
+                mux.unlock();
+            }
+            return false;
+        }
+        memcpy(Val, &data[Ptrs[ThreadId]] + EachSize[ThreadId] * ThreadId, type_size);
         Ptrs[ThreadId] += type_size;
         if (ThreadId == NumSpinThread) {
             mux.unlock();
@@ -126,15 +145,31 @@ T GetRandom(T UpperBound, uint16_t ThreadID = UINT16_MAX) {
     uint64_t out = 0;
 
     if ((uint64_t)UpperBound <= 0xff) {
-        (void)FuzzData->TryGetRandom((uint8_t)UpperBound, (uint8_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandomBounded((uint8_t)UpperBound, (uint8_t*)&out, ThreadID);
     } else if ((uint64_t)UpperBound <= 0xffff) {
-        (void)FuzzData->TryGetRandom((uint16_t)UpperBound, (uint16_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandomBounded((uint16_t)UpperBound, (uint16_t*)&out, ThreadID);
     } else if ((uint64_t)UpperBound <= 0xffffffff) {
-        (void)FuzzData->TryGetRandom((uint32_t)UpperBound, (uint32_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandomBounded((uint32_t)UpperBound, (uint32_t*)&out, ThreadID);
     } else {
-        (void)FuzzData->TryGetRandom((uint64_t)UpperBound, &out, ThreadID);
+        (void)FuzzData->TryGetRandomBounded((uint64_t)UpperBound, &out, ThreadID);
     }
     return (T)out;
+}
+
+template<typename T>
+T GetRandom(uint16_t ThreadID = UINT16_MAX) {
+    // Unbounded: fills the full width of T, so the type maximum (which a modulo
+    // bound can never produce) is reachable.
+    if (FuzzData && ThreadID != UINT16_MAX) {
+        T val = 0;
+        (void)FuzzData->TryGetRandom<T>(&val, ThreadID);
+        return val;
+    }
+    uint64_t acc = 0;
+    for (size_t i = 0; i < sizeof(T); ++i) {
+        acc = (acc << 8) | (uint64_t)(rand() & 0xff);
+    }
+    return (T)acc;
 }
 
 template<typename T>
@@ -665,117 +700,117 @@ struct SetParamHelper {
 
 void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
 {
-    switch (GetRandom(38, ThreadID)) {
+    switch (GetRandom(39, ThreadID)) {
     case 0:
-        //Settings.MaxBytesPerKey = GetRandom(UINT64_MAX);
-        //Settings.IsSet.MaxBytesPerKey = TRUE;
+        Settings.MaxBytesPerKey = GetRandom<uint64_t>(ThreadID);
+        Settings.IsSet.MaxBytesPerKey = TRUE;
         break;
     case 1:
-        //Settings.HandshakeIdleTimeoutMs = GetRandom(UINT64_MAX);
-        //Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
+        Settings.HandshakeIdleTimeoutMs = GetRandom<uint64_t>(ThreadID);
+        Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
         break;
     case 2:
-        //Settings.IdleTimeoutMs = GetRandom(UINT64_MAX);
-        //Settings.IsSet.IdleTimeoutMs = TRUE;
+        Settings.IdleTimeoutMs = GetRandom<uint64_t>(ThreadID);
+        Settings.IsSet.IdleTimeoutMs = TRUE;
         break;
     case 3:
-        //Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom(UINT64_MAX);
-        //Settings.IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
+        Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom<uint64_t>(ThreadID);
+        Settings.IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
         break;
     case 4:
-        //Settings.TlsClientMaxSendBuffer = GetRandom(UINT32_MAX);
-        //Settings.IsSet.TlsClientMaxSendBuffer = TRUE;
+        Settings.TlsClientMaxSendBuffer = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.TlsClientMaxSendBuffer = TRUE;
         break;
     case 5:
-        //Settings.TlsServerMaxSendBuffer = GetRandom(UINT32_MAX);
-        //Settings.IsSet.TlsServerMaxSendBuffer = TRUE;
+        Settings.TlsServerMaxSendBuffer = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.TlsServerMaxSendBuffer = TRUE;
         break;
     case 6:
-        //Settings.StreamRecvWindowDefault = GetRandom(UINT32_MAX);
-        //Settings.IsSet.StreamRecvWindowDefault = TRUE;
+        Settings.StreamRecvWindowDefault = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.StreamRecvWindowDefault = TRUE;
         break;
     case 7:
-        //Settings.StreamRecvBufferDefault = GetRandom(UINT32_MAX);
-        //Settings.IsSet.StreamRecvBufferDefault = TRUE;
+        Settings.StreamRecvBufferDefault = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.StreamRecvBufferDefault = TRUE;
         break;
     case 8:
-        //Settings.ConnFlowControlWindow = GetRandom(UINT32_MAX);
-        //Settings.IsSet.ConnFlowControlWindow = TRUE;
+        Settings.ConnFlowControlWindow = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.ConnFlowControlWindow = TRUE;
         break;
     case 9:
-        //Settings.MaxWorkerQueueDelayUs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.MaxWorkerQueueDelayUs = TRUE;
+        Settings.MaxWorkerQueueDelayUs = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.MaxWorkerQueueDelayUs = TRUE;
         break;
     case 10:
-        //Settings.MaxStatelessOperations = GetRandom(UINT32_MAX);
-        //Settings.IsSet.MaxStatelessOperations = TRUE;
+        Settings.MaxStatelessOperations = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.MaxStatelessOperations = TRUE;
         break;
     case 11:
-        //Settings.InitialWindowPackets = GetRandom(UINT32_MAX);
-        //Settings.IsSet.InitialWindowPackets = TRUE;
+        Settings.InitialWindowPackets = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.InitialWindowPackets = TRUE;
         break;
     case 12:
-        //Settings.SendIdleTimeoutMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.SendIdleTimeoutMs = TRUE;
+        Settings.SendIdleTimeoutMs = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.SendIdleTimeoutMs = TRUE;
         break;
     case 13:
-        //Settings.InitialRttMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.InitialRttMs = TRUE;
+        Settings.InitialRttMs = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.InitialRttMs = TRUE;
         break;
     case 14:
-        //Settings.MaxAckDelayMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.MaxAckDelayMs = TRUE;
+        Settings.MaxAckDelayMs = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.MaxAckDelayMs = TRUE;
         break;
     case 15:
-        //Settings.DisconnectTimeoutMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.DisconnectTimeoutMs = TRUE;
+        Settings.DisconnectTimeoutMs = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
         break;
     case 16:
-        //Settings.KeepAliveIntervalMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.KeepAliveIntervalMs = TRUE;
+        Settings.KeepAliveIntervalMs = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.KeepAliveIntervalMs = TRUE;
         break;
     case 17:
         Settings.CongestionControlAlgorithm = GetRandom((uint16_t)QUIC_CONGESTION_CONTROL_ALGORITHM_MAX, ThreadID);
         Settings.IsSet.CongestionControlAlgorithm = TRUE;
         break;
     case 18:
-        //Settings.PeerBidiStreamCount = GetRandom(UINT16_MAX);
-        //Settings.IsSet.PeerBidiStreamCount = TRUE;
+        Settings.PeerBidiStreamCount = GetRandom<uint16_t>(ThreadID);
+        Settings.IsSet.PeerBidiStreamCount = TRUE;
         break;
     case 19:
-        //Settings.PeerUnidiStreamCount = GetRandom(UINT16_MAX);
-        //Settings.IsSet.PeerUnidiStreamCount = TRUE;
+        Settings.PeerUnidiStreamCount = GetRandom<uint16_t>(ThreadID);
+        Settings.IsSet.PeerUnidiStreamCount = TRUE;
         break;
     case 20:
-        //Settings.MaxBindingStatelessOperations = GetRandom(UINT16_MAX);
-        //Settings.IsSet.MaxBindingStatelessOperations = TRUE;
+        Settings.MaxBindingStatelessOperations = GetRandom<uint16_t>(ThreadID);
+        Settings.IsSet.MaxBindingStatelessOperations = TRUE;
         break;
     case 21:
-        //Settings.StatelessOperationExpirationMs = GetRandom(UINT16_MAX);
-        //Settings.IsSet.StatelessOperationExpirationMs = TRUE;
+        Settings.StatelessOperationExpirationMs = GetRandom<uint16_t>(ThreadID);
+        Settings.IsSet.StatelessOperationExpirationMs = TRUE;
         break;
     case 22:
-        //Settings.MinimumMtu = GetRandom(UINT16_MAX);
-        //Settings.IsSet.MinimumMtu = TRUE;
+        Settings.MinimumMtu = GetRandom<uint16_t>(ThreadID);
+        Settings.IsSet.MinimumMtu = TRUE;
         break;
     case 23:
-        //Settings.MaximumMtu = GetRandom(UINT16_MAX);
-        //Settings.IsSet.MaximumMtu = TRUE;
+        Settings.MaximumMtu = GetRandom<uint16_t>(ThreadID);
+        Settings.IsSet.MaximumMtu = TRUE;
         break;
     case 24:
-        //Settings.SendBufferingEnabled = GetRandom((uint8_t)1);
-        //Settings.IsSet.SendBufferingEnabled = TRUE;
+        Settings.SendBufferingEnabled = GetRandom((uint8_t)2, ThreadID);
+        Settings.IsSet.SendBufferingEnabled = TRUE;
         break;
     case 25:
-        Settings.PacingEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.PacingEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.PacingEnabled = TRUE;
         break;
     case 26:
-        Settings.MigrationEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.MigrationEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.MigrationEnabled = TRUE;
         break;
     case 27:
-        Settings.DatagramReceiveEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.DatagramReceiveEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.DatagramReceiveEnabled = TRUE;
         break;
     case 28:
@@ -783,40 +818,46 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.ServerResumptionLevel = TRUE;
         break;
     case 29:
-        Settings.GreaseQuicBitEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.GreaseQuicBitEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.GreaseQuicBitEnabled = TRUE;
         break;
     case 30:
-        Settings.EcnEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.EcnEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.EcnEnabled = TRUE;
         break;
     case 31:
-        //Settings.MaxOperationsPerDrain = GetRandom(UINT8_MAX);
-        //Settings.IsSet.MaxOperationsPerDrain = TRUE;
+        Settings.MaxOperationsPerDrain = GetRandom<uint8_t>(ThreadID);
+        Settings.IsSet.MaxOperationsPerDrain = TRUE;
         break;
     case 32:
-        //Settings.MtuDiscoveryMissingProbeCount = GetRandom(UINT8_MAX);
-        //Settings.IsSet.MtuDiscoveryMissingProbeCount = TRUE;
+        Settings.MtuDiscoveryMissingProbeCount = GetRandom<uint8_t>(ThreadID);
+        Settings.IsSet.MtuDiscoveryMissingProbeCount = TRUE;
         break;
     case 33:
-        //Settings.DestCidUpdateIdleTimeoutMs = GetRandom(UINT32_MAX);
-        //Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
+        Settings.DestCidUpdateIdleTimeoutMs = GetRandom<uint32_t>(ThreadID);
+        Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
         break;
     case 34:
-        Settings.HyStartEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.HyStartEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.HyStartEnabled = TRUE;
         break;
     case 35:
+        // Pinned to 0: enabling this post-start trips a FRE_ASSERT in
+        // QuicConnApplyNewSettings (spin false positive, not a product bug).
         Settings.EncryptionOffloadAllowed = GetRandom((uint8_t)1, ThreadID);
         Settings.IsSet.EncryptionOffloadAllowed = TRUE;
         break;
     case 36:
-        Settings.ReliableResetEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.ReliableResetEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.ReliableResetEnabled = TRUE;
         break;
     case 37:
-        Settings.OneWayDelayEnabled = GetRandom((uint8_t)1, ThreadID);
+        Settings.OneWayDelayEnabled = GetRandom((uint8_t)2, ThreadID);
         Settings.IsSet.OneWayDelayEnabled = TRUE;
+        break;
+    case 38:
+        Settings.NetStatsEventEnabled = GetRandom((uint8_t)2, ThreadID);
+        Settings.IsSet.NetStatsEventEnabled = TRUE;
         break;
     default:
         break;
@@ -887,7 +928,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection, uint16_t ThreadID)
     case QUIC_PARAM_CONN_CIBIR_ID:                       // bytes[]
         if (FuzzData) {
             // assume 8 byte buffer for now
-            uint64_t Buffer = GetRandom(UINT64_MAX, ThreadID);
+            uint64_t Buffer = GetRandom<uint64_t>(ThreadID);
             memcpy(RandomBuffer, &Buffer, sizeof(RandomBuffer));
         } else {
             CxPlatRandom(sizeof(RandomBuffer), RandomBuffer);
@@ -920,12 +961,12 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID)
     case QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE:                  // QUIC_ADDR
         break; // Get Only
     case QUIC_PARAM_STREAM_PRIORITY:                                // uint16_t
-        Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, (uint16_t)GetRandom(UINT16_MAX, ThreadID));
+        Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, GetRandom<uint16_t>(ThreadID));
         break;
     case QUIC_PARAM_STREAM_STATISTICS:
         break; // Get Only
     case QUIC_PARAM_STREAM_RELIABLE_OFFSET:
-        Helper.SetUint64(QUIC_PARAM_STREAM_RELIABLE_OFFSET, (uint64_t)GetRandom(UINT64_MAX, ThreadID));
+        Helper.SetUint64(QUIC_PARAM_STREAM_RELIABLE_OFFSET, GetRandom<uint64_t>(ThreadID));
     default:
         break;
     }
