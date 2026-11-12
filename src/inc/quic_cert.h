@@ -30,7 +30,8 @@ typedef struct QUIC_PORTABLE_CERTIFICATE {
 QUIC_STATUS
 CxPlatCertCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ QUIC_CERTIFICATE** NewCertificate
+    _In_ uint32_t CredCount,
+    _Out_writes_(CredCount) QUIC_CERTIFICATE** NewCertificate
     );
 
 //
