@@ -470,6 +470,15 @@ QuicLossDetectionOnPacketSent(
 
     SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
 
+    //
+    // Give the congestion controller a chance to snapshot its state into the
+    // packet. The defaults cover controllers without per-packet state.
+    //
+    SentPacket->Flags.IsBbrProbe = FALSE;
+    SentPacket->InflightAtSend = 0;
+    SentPacket->TotalBytesLost = 0;
+    QuicCongestionControlOnPacketSent(&Connection->CongestionControl, SentPacket);
+
     LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
 
     SentPacket->TotalBytesSent = LossDetection->TotalBytesSent;
@@ -907,6 +916,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     uint32_t LostRetransmittableBytes = 0;
+    QUIC_SENT_PACKET_METADATA* NewlyLostPackets = NULL;
     QUIC_SENT_PACKET_METADATA* Packet;
 
     if (LossDetection->LostPackets != NULL) {
@@ -1026,6 +1036,9 @@ QuicLossDetectionDetectAndHandleLostPackets(
             }
 
             *LossDetection->LostPacketsTail = Packet;
+            if (NewlyLostPackets == NULL) {
+                NewlyLostPackets = Packet;
+            }
             LossDetection->LostPacketsTail = &Packet->Next;
             Packet = Packet->Next;
             *LossDetection->LostPacketsTail = NULL;
@@ -1043,6 +1056,8 @@ QuicLossDetectionDetectAndHandleLostPackets(
             }
 
             QUIC_LOSS_EVENT LossEvent = {
+                .TimeNow = TimeNow,
+                .LostPackets = NewlyLostPackets,
                 .LargestPacketNumberLost = LargestLostPacketNumber,
                 .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
                 .NumRetransmittableBytes = LostRetransmittableBytes,
