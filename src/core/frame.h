@@ -71,7 +71,7 @@ extern "C" {
 //
 // The application or application protocol caused the connection to be closed.
 //
-#define QUIC_ERROR_APPLICATION_ERROR            0xB
+#define QUIC_ERROR_APPLICATION_ERROR            0xC
 //
 // An endpoint has received more data in CRYPTO frames than it can buffer.
 //
