@@ -1250,6 +1250,17 @@ INSTANTIATE_TEST_SUITE_P(
             return "QUICClosed";
     });
 
+TEST(FrameTest, ConnectionCloseApplicationErrorEncode)
+{
+    QUIC_CONNECTION_CLOSE_EX Frame = {FALSE, QUIC_ERROR_APPLICATION_ERROR, 0, 0, nullptr};
+    uint8_t Buffer[4];
+    uint16_t Offset = 0;
+
+    ASSERT_TRUE(QuicConnCloseFrameEncode(&Frame, &Offset, (uint16_t)sizeof(Buffer), Buffer));
+    ASSERT_EQ(Buffer[0], QUIC_FRAME_CONNECTION_CLOSE);
+    ASSERT_EQ(Buffer[1], 0x0c); // APPLICATION_ERROR, RFC 9000 Section 20.1
+}
+
 struct ConnectionCloseFrameParams {
     uint8_t Buffer[5];
     uint16_t BufferLength;
