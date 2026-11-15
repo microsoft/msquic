@@ -538,6 +538,13 @@ typedef struct QUIC_CONNECTION {
     QUIC_CID* OrigDestCID;
 
     //
+    // The Source CID from the Retry packet the client accepted, if any. It is
+    // checked against the server's retry_source_connection_id transport
+    // parameter.
+    //
+    QUIC_CID* RetrySourceCID;
+
+    //
     // An app configured prefix for all connection IDs. The first byte indicates
     // the length of the ID, the second byte the offset of the ID in the CID and
     // the rest payload of the identifier.
