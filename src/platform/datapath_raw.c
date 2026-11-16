@@ -279,6 +279,12 @@ CxPlatDpRawRxEthernet(
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
+#pragma warning(push)
+#pragma warning(disable:6385) // Each Packets[i+1] below is only reached when the
+                               // preceding 'i == PacketCount - 1' check (same
+                               // short-circuited condition) is false, so i+1 is
+                               // always < PacketCount; the analyzer doesn't
+                               // correlate the OR-guard with the index. (FALSE POSITIVE)
                 while (i < PacketCount) {
                     QuicTraceEvent(
                         DatapathRecv,
@@ -298,6 +304,7 @@ CxPlatDpRawRxEthernet(
                     CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
                     i++;
                 }
+#pragma warning(pop)
                 Datapath->ParentDataPath->UdpHandlers.Receive(CxPlatRawToSocket(Socket), Socket->ClientContext, PacketChain);
             } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
                 CxPlatDpRawSocketAckSyn(Socket, PacketChain);
