@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathRawMapInsertFail
+// [  dp] XDP map mode: failed to insert XSK sockets into map, status:%d
+// QuicTraceLogVerbose(
+                DatapathRawMapInsertFail,
+                "[  dp] XDP map mode: failed to insert XSK sockets into map, status:%d",
+                Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRawMapInsertFail,
+    TP_ARGS(
+        int, arg2), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(

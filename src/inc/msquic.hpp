@@ -730,6 +730,7 @@ public:
     MsQuicSettings& SetDestCidUpdateIdleTimeoutMs(uint32_t Value) { DestCidUpdateIdleTimeoutMs = Value; IsSet.DestCidUpdateIdleTimeoutMs = TRUE; return *this; }
     MsQuicSettings& SetGreaseQuicBitEnabled(bool Value) { GreaseQuicBitEnabled = Value; IsSet.GreaseQuicBitEnabled = TRUE; return *this; }
     MsQuicSettings& SetEcnEnabled(bool Value) { EcnEnabled = Value; IsSet.EcnEnabled = TRUE; return *this; }
+    MsQuicSettings& SetHyStartEnabled(bool Value) { HyStartEnabled = Value; IsSet.HyStartEnabled = TRUE; return *this; }
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     MsQuicSettings& SetEncryptionOffloadAllowed(bool Value) { EncryptionOffloadAllowed = Value; IsSet.EncryptionOffloadAllowed = TRUE; return *this; }
     MsQuicSettings& SetReliableResetEnabled(bool value) { ReliableResetEnabled = value; IsSet.ReliableResetEnabled = TRUE; return *this; }
@@ -1286,6 +1287,17 @@ struct MsQuicConnection {
         ) noexcept {
         return MsQuic->ConnectionSendResumptionTicket(Handle, Flags, DataLength, ResumptionData);
     }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    ExportKeyingMaterial(
+        _In_ const QUIC_KEYING_MATERIAL_CONFIG* Config,
+        _Out_writes_bytes_(Config->OutputLength)
+            uint8_t* Output
+        ) noexcept {
+        return MsQuic->ConnectionExportKeyingMaterial(Handle, Config, Output);
+    }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
     QUIC_STATUS
     SetParam(

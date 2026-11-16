@@ -17,6 +17,7 @@ Abstract:
 extern "C" {
 void BbrCongestionControlInitialize(QUIC_CONGESTION_CONTROL* Cc, const QUIC_SETTINGS_INTERNAL* Settings);
 uint64_t BbrCongestionControlGetBandwidth(const QUIC_CONGESTION_CONTROL* Cc);
+uint32_t BbrCongestionControlGetTargetCwnd(QUIC_CONGESTION_CONTROL* Cc, uint32_t Gain);
 }
 
 //
@@ -44,15 +45,17 @@ static void InitBbrMockConnection(
     QUIC_CONNECTION& Connection,
     uint16_t Mtu)
 {
-    Connection.Paths[0].Mtu = Mtu;
-    Connection.Paths[0].IsActive = TRUE;
+    Connection.Paths.Count = 1;
+    Connection.Paths.NextPathId = 1;
+    Connection.Paths.Paths[0].Mtu = Mtu;
+    Connection.Paths.Paths[0].IsActive = TRUE;
     Connection.Send.NextPacketNumber = 0;
     Connection.Settings.PacingEnabled = FALSE;
     Connection.Settings.HyStartEnabled = FALSE;
     Connection.Settings.NetStatsEventEnabled = FALSE;
-    Connection.Paths[0].GotFirstRttSample = FALSE;
-    Connection.Paths[0].SmoothedRtt = 0;
-    Connection.Paths[0].OneWayDelay = 0;
+    Connection.Paths.Paths[0].GotFirstRttSample = FALSE;
+    Connection.Paths.Paths[0].SmoothedRtt = 0;
+    Connection.Paths.Paths[0].OneWayDelay = 0;
     Connection.Stats.Send.CongestionCount = 0;
     Connection.Stats.Send.PersistentCongestionCount = 0;
     Connection.Send.PeerMaxData = UINT64_MAX;
@@ -371,7 +374,7 @@ TEST_F(BbrTest_DeepTest, OnDataLost_PersistentCongestion)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
 
     CC->QuicCongestionControlOnDataSent(CC, 10000);
@@ -395,7 +398,7 @@ TEST_F(BbrTest_DeepTest, OnDataLost_NonPersistent)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
 
     CC->QuicCongestionControlOnDataSent(CC, 10000);
@@ -443,7 +446,7 @@ TEST_F(BbrTest_DeepTest, OnDataLost_AlreadyInRecovery)
     // Second loss: RW_local=7600 (already in recovery, no reset),
     // RW = (7600 > 600+MinCW) ? 7600-600 : MinCW = 7000.
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
     // First loss result
     uint32_t RW1 = (8800u > 1200u + MinCW) ? 8800u - 1200u : MinCW;
@@ -1033,7 +1036,7 @@ TEST_F(BbrTest_DeepTest, GetCongestionWindow_InRecovery)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
 
     EnterRecovery();
@@ -1052,7 +1055,7 @@ TEST_F(BbrTest_DeepTest, GetCongestionWindow_ProbeRtt)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     uint32_t MinCW = 4 * DatagramPayloadLength;
 
     DriveToProbeRtt();
@@ -1266,27 +1269,60 @@ TEST_F(BbrTest_DeepTest, OnDataInvalidated_BecomesUnblocked)
 //====================================================================
 
 //
-// Test: GetSendAllowance - MinRtt at UINT64_MAX With Pacing
-// Scenario: Initializes with PacingEnabled=TRUE. MinRtt starts at UINT64_MAX (no RTT
-// sample yet). The sentinel check in bbr.c compares MinRtt to UINT32_MAX, so
-// UINT64_MAX != UINT32_MAX causes pacing to fall through to the STARTUP formula:
-// max(BW*PacingGain*Time, CW*PacingGain/GAIN_UNIT - BIF). With BW=0, the first term
-// is 0; the second is large (12320*739/256 - 1000 = 34564). This is capped first to
-// CW-BIF=11320, then to CW>>2=3080.
+// Test: GetSendAllowance - no pacing before a valid MinRtt sample
+// Scenario: Initializes with PacingEnabled=TRUE. MinRtt starts at UINT64_MAX and
+// MinRttTimestampValid=FALSE. Without a valid RTT sample BBR should not use paced
+// send allowance calculations; it should fall back to the available congestion window.
 //
 TEST_F(BbrTest_DeepTest, GetSendAllowance_MinRttMax)
 {
     InitializeWithDefaults(10, 1280, true); // PacingEnabled = TRUE
     CC->QuicCongestionControlOnDataSent(CC, 1000);
 
-    // MinRtt is UINT64_MAX initially. The sentinel check compares to UINT32_MAX,
-    // so it falls through to pacing code.
-    // STARTUP formula: max(BW*PacingGain*Time/GAIN_UNIT, CW*PacingGain/GAIN_UNIT - BIF)
-    // With BW=0, first term=0. Second term is large but capped to CW>>2.
+    ASSERT_FALSE(Bbr->MinRttTimestampValid);
+    ASSERT_EQ(Bbr->MinRtt, UINT64_MAX);
+
     uint32_t Allowance = CC->QuicCongestionControlGetSendAllowance(CC, 50000, TRUE);
-    uint32_t CW = Bbr->CongestionWindow; // 10 * 1232 = 12320
-    uint32_t Expected = CW >> 2; // 3080
+    uint32_t Expected = Bbr->CongestionWindow - Bbr->BytesInFlight;
     ASSERT_EQ(Allowance, Expected);
+}
+
+//
+// Test: GetTargetCwnd - no MinRtt sample uses the initial congestion window
+// Scenario: Establishes a bandwidth sample while the ACK's RTT sample is marked invalid.
+// Even with a valid bandwidth estimate, target cwnd must use the InitialCongestionWindow until a valid minRTT is established.
+//
+TEST_F(BbrTest_DeepTest, GetTargetCwnd_NoMinRttSample)
+{
+    InitializeWithDefaults(10, 1280, true);
+
+    auto PacketBuf = MakeBbrPacket(
+        1200, TRUE, FALSE,
+        20000, 1000000,
+        10000, 984000,
+        5000, 1034000, 1034000);
+    auto& Packet = PacketBuf.Metadata;
+
+    CC->QuicCongestionControlOnDataSent(CC, 1200);
+
+    QUIC_ACK_EVENT Ack = MakeBbrAckEvent(1050000, 5, 10, 1200, 50000, 45000, FALSE);
+    Ack.AckedPackets = &Packet;
+    Ack.AdjustedAckTime = 1050000;
+    Ack.NumTotalAckedRetransmittableBytes = 15000;
+    CC->QuicCongestionControlOnDataAcknowledged(CC, &Ack);
+
+    ASSERT_GT(BbrCongestionControlGetBandwidth(CC), 0u);
+    ASSERT_FALSE(Bbr->MinRttTimestampValid);
+    ASSERT_EQ(Bbr->MinRtt, UINT64_MAX);
+    ASSERT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_STARTUP);
+
+    const uint32_t HighGain = 739; // kHighGain, mirrored from bbr.c.
+    const uint32_t GainUnit = 256;
+    const uint32_t ExpectedTargetCwnd =
+        (uint32_t)((uint64_t)HighGain * Bbr->InitialCongestionWindow / GainUnit);
+    ASSERT_EQ(
+        BbrCongestionControlGetTargetCwnd(CC, HighGain),
+        ExpectedTargetCwnd);
 }
 
 //
@@ -1392,7 +1428,7 @@ TEST_F(BbrTest_DeepTest, Initialize_DefaultState)
 {
     InitializeWithDefaults();
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+        QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
 
     ASSERT_STREQ(CC->Name, "BBR");
     EXPECT_EQ(Bbr->BbrState, (uint32_t)BBR_STATE_STARTUP);
@@ -1742,7 +1778,7 @@ TEST_F(BbrTest_DeepTest, SetSendQuantum_MediumPacingRate)
     // kLow*8=9,600,000 <= 14,433,593 < kHigh*8=192,000,000
     // → medium pacing rate path → SendQuantum = DatagramPayloadLength * 2
     //
-    const uint16_t DPL = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    const uint16_t DPL = QuicPathGetDatagramPayloadSize(&Connection.Paths.Paths[0]);
     ASSERT_EQ(Bbr->SendQuantum, (uint64_t)(DPL * 2));
 }
 

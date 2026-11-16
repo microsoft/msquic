@@ -573,20 +573,9 @@ typedef struct CXPLAT_SOCKET {
     uint8_t HasFixedRemoteAddress : 1;
 
     //
-    // Flag indicates the socket indicated a disconnect event.
-    //
-    uint8_t DisconnectIndicated : 1;
-
-    //
     // Flag indicates the binding is being used for PCP.
     //
     uint8_t PcpBinding : 1;
-
-    //
-    // Debug flags.
-    //
-    uint8_t Uninitialized : 1;
-    uint8_t Freed : 1;
 
     //
     // This flag determines whether or not we instantiate an auxiliary TCP
@@ -599,6 +588,17 @@ typedef struct CXPLAT_SOCKET {
     uint8_t RawSocketAvailable : 1;
 
     uint8_t SkipCreatingOsSockets : 1;
+
+    //
+    // Flag indicates the socket indicated a disconnect event.
+    //
+    LONG DisconnectIndicated;
+
+    //
+    // Debug flags.
+    //
+    uint8_t Uninitialized;
+    uint8_t Freed;
 
     //
     // Per-processor socket contexts.
@@ -887,25 +887,25 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN HasFixedRemoteAddress : 1;
 
     //
-    // Flag indicates the socket indicated a disconnect event.
-    //
-    uint8_t DisconnectIndicated : 1;
-
-    //
     // Flag indicates the binding is being used for PCP.
     //
     BOOLEAN PcpBinding : 1;
-
-#if DEBUG
-    uint8_t Uninitialized : 1;
-    uint8_t Freed : 1;
-#endif
 
     uint8_t ReserveAuxTcpSockForQtip : 1;                  // Quic over TCP
 
     uint8_t RawSocketAvailable : 1;
 
     uint8_t SkipCreatingOsSockets : 1;
+
+    //
+    // Flag indicates the socket indicated a disconnect event.
+    //
+    long DisconnectIndicated;
+
+#if DEBUG
+    uint8_t Uninitialized;
+    uint8_t Freed;
+#endif
 
     //
     // Set of socket contexts one per proc.
@@ -1203,6 +1203,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ const CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** DataPath
     );
 
@@ -1219,6 +1220,28 @@ RawDataPathUpdatePollingIdleTimeout(
     _In_ uint32_t PollingIdleTimeoutUs
     );
 
+//
+// Inserts each interface's RX XSK sockets into the matching XSKMAP from the
+// provided map configs. Uses an O(Interfaces * MapConfigCount) search to match
+// each config to its interface by IfIndex.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDpRawApplyMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath,
+    _In_reads_(MapConfigCount) const CXPLAT_XDP_MAP_CONFIG* MapConfigs,
+    _In_ uint32_t MapConfigCount
+    );
+
+//
+// Best-effort removal of XSK sockets from maps during cleanup.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawCleanupMapConfigs(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(
@@ -1229,6 +1252,24 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 RawDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+BOOLEAN
+CxPlatDpRawIsRawDatapathOnly(
+    _In_opt_ const CXPLAT_DATAPATH_RAW* RawDataPath
+    );
+
+void
+CxPlatDpRawEnableRawDatapathOnly(
+    _In_ CXPLAT_DATAPATH_RAW* RawDataPath
+    );
+
+//
+// Returns the total number of XDP rules plumbed across all interfaces.
+//
+uint32_t
+CxPlatDpRawGetTotalRuleCount(
+    _In_ const CXPLAT_DATAPATH_RAW* RawDataPath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1299,7 +1340,7 @@ RawResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
+    _In_ uint32_t PathId
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1307,7 +1348,7 @@ QUIC_STATUS
 RawResolveRoute(
     _In_ CXPLAT_SOCKET_RAW* Sock,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );

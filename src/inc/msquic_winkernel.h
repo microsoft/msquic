@@ -357,9 +357,36 @@ CxPlatIsIpLiteral(
 // Represents an IP address and (optionally) port number as a string.
 //
 typedef struct QUIC_ADDR_STR {
-    char Address[64];
+    char Address[65];
 } QUIC_ADDR_STR;
 
+//
+// Formats only the IP literal, excluding the port and IPv6 brackets. For
+// example, an IPv6 address with port 443 is formatted as "2001:db8::1".
+//
+QUIC_INLINE
+BOOLEAN
+QuicAddrIpToString(
+    _In_ const QUIC_ADDR* Addr,
+    _Out_ QUIC_ADDR_STR* AddrStr
+    )
+{
+    AddrStr->Address[0] = '\0';
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        RtlIpv4AddressToStringA(&Addr->Ipv4.sin_addr, AddrStr->Address);
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET6) {
+        RtlIpv6AddressToStringA(&Addr->Ipv6.sin6_addr, AddrStr->Address);
+    } else {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+//
+// Formats the complete endpoint, including a nonzero port and the brackets
+// required around IPv6 when a port is present. For example, an IPv6 address
+// with port 443 is formatted as "[2001:db8::1]:443".
+//
 QUIC_INLINE
 BOOLEAN
 QuicAddrToString(

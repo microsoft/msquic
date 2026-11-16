@@ -465,11 +465,14 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestGetPerfCounters);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestValidateEncryptDecryptPerfCounters);
+    RegisterTestFunction(QuicTestConnQueueDelayStatistics);
 #endif
     RegisterTestFunction(QuicTestValidateConfiguration);
     RegisterTestFunction(QuicTestValidateListener);
     RegisterTestFunction(QuicTestValidateConnection);
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    RegisterTestFunction(QuicTestConnectionExportKeyingMaterial);
+    RegisterTestFunction(QuicTestValidateConnectionExportKeyingMaterial);
     RegisterTestFunction(QuicTestValidateConnectionPoolCreate);
     RegisterTestFunction(QuicTestValidateExecutionContext);
     RegisterTestFunction(QuicTestValidatePartition);
@@ -651,6 +654,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamBlockUnblockConnFlowControl_Bidi);
     RegisterTestFunction(QuicTestStreamBlockUnblockConnFlowControl_Unidi);
     RegisterTestFunction(QuicTestStreamAbortConnFlowControl);
+    RegisterTestFunction(QuicTestTinyStreamRecvWindow);
     RegisterTestFunction(QuicTestOperationPriority);
     RegisterTestFunction(QuicTestConnectionPriority);
     RegisterTestFunction(QuicDrillTestVarIntEncoder);

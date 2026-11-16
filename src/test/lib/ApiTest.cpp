@@ -1110,6 +1110,64 @@ void QuicTestValidateConnection()
 #endif
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+//
+// Validates the parameter and state checks for ConnectionExportKeyingMaterial.
+// All of these are rejected before reaching the TLS provider, so the behavior
+// is identical in user and kernel mode. The functional export flow lives in
+// QuicTestConnectionExportKeyingMaterial (HandshakeTest.cpp) and the RFC 5705
+// keying-material properties are covered by TlsTest.ExportKeyingMaterial.
+//
+void QuicTestValidateConnectionExportKeyingMaterial()
+{
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    const uint32_t OutputLength = 32;
+    uint8_t Output[OutputLength];
+    QUIC_KEYING_MATERIAL_CONFIG Config;
+    Config.Label = "EXPORTER-MsQuicTest";
+    Config.Context = nullptr;
+    Config.ContextLength = 0;
+    Config.OutputLength = OutputLength;
+
+    //
+    // Not connected yet -> INVALID_STATE (arguments are otherwise valid).
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_STATE,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, Output));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, nullptr, Output));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, nullptr));
+
+    Config.Label = nullptr;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, Output));
+    Config.Label = "EXPORTER-MsQuicTest";
+
+    Config.OutputLength = 0;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, Output));
+    Config.OutputLength = OutputLength;
+
+    Config.ContextLength = 4; // Non-zero length with NULL context.
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionExportKeyingMaterial(Connection.Handle, &Config, Output));
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 _Function_class_(STREAM_SHUTDOWN_CALLBACK)
 static
 void
@@ -2009,7 +2067,8 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuEcnChanges = t
 
     {
         struct TestSpec Spec[] = {{0, QUIC_STATUS_INVALID_PARAMETER},
-                                  {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE,  QUIC_STATUS_SUCCESS}};
+                                  {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_STATUS_SUCCESS},
+                                  {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE + 1, QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
         Settings.IsSet.StreamRecvBufferDefault = TRUE;
         for (auto &Data: Spec) {
@@ -2898,7 +2957,10 @@ void QuicTestGlobalParam()
             QUIC_STATISTICS_V2_SIZE_1,
             QUIC_STATISTICS_V2_SIZE_2,
             QUIC_STATISTICS_V2_SIZE_3,
-            QUIC_STATISTICS_V2_SIZE_4
+            QUIC_STATISTICS_V2_SIZE_4,
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            QUIC_STATISTICS_V2_SIZE_5,
+#endif
         };
 
         //
@@ -3175,6 +3237,14 @@ void QuicTestXdpMapConfigParam()
                     &OutConfig));
             TEST_EQUAL(OutLength, (uint32_t)sizeof(QUIC_XDP_MAP_CONFIG));
             TEST_EQUAL(OutConfig.InterfaceIndex, FakeIfIndex1);
+
+            // Clear configs so lazy init does not try to use them.
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+                    0,
+                    nullptr));
         }
 
         //
@@ -6080,10 +6150,10 @@ QuicTestValidateEncryptDecryptPerfCounters()
     UniquePtr<TestConnection> Server;
     TestListener Listener(Registration, ListenerAcceptCallback, ServerConfiguration);
     TEST_TRUE(Listener.IsValid());
+    Listener.Context = &Server;
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length()));
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-    Listener.Context = &Server;
 
     {
         TestConnection Client(Registration);
@@ -6116,6 +6186,88 @@ QuicTestValidateEncryptDecryptPerfCounters()
 
     TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_ENCRYPT_DURATION_US]);
     TEST_TRUE(CountersAfter[QUIC_PERF_COUNTER_DECRYPT_DURATION_US] > CountersBefore[QUIC_PERF_COUNTER_DECRYPT_DURATION_US]);
+}
+
+void
+QuicTestConnQueueDelayStatistics()
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+    Settings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    UniquePtr<TestConnection> Server;
+    TestListener Listener(Registration, ListenerAcceptCallback, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    Listener.Context = &Server;
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length()));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    {
+        TestConnection Client(Registration);
+        TEST_TRUE(Client.IsValid());
+
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                ClientConfiguration,
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                QUIC_TEST_LOOPBACK_FOR_AF(
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                ServerLocalAddr.GetPort()));
+
+        TEST_TRUE(Client.WaitForConnectionComplete());
+        TEST_TRUE(Client.GetIsConnected());
+
+        TEST_NOT_EQUAL(nullptr, Server);
+        TEST_TRUE(Server->WaitForConnectionComplete());
+        TEST_TRUE(Server->GetIsConnected());
+
+        //
+        // Send and receive some data.
+        //
+        UniquePtr<TestStream> Stream(
+            Client.NewStream(
+                nullptr,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                NEW_STREAM_START_SYNC));
+        TEST_NOT_EQUAL(nullptr, Stream.get());
+        TEST_TRUE(Stream->IsValid());
+        TEST_TRUE(Stream->StartPing(100 * 1024));
+        TEST_TRUE(Stream->WaitForSendShutdownComplete());
+
+        //
+        // Read the full V2 statistics and verify the new per-connection queue
+        // delay fields are reported (i.e. the returned buffer covers them).
+        //
+        QUIC_STATISTICS_V2 Stats = {};
+        uint32_t BufferLength = sizeof(Stats);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                Client.GetConnection(),
+                QUIC_PARAM_CONN_STATISTICS_V2,
+                &BufferLength,
+                &Stats));
+        TEST_TRUE(BufferLength >= QUIC_STATISTICS_V2_SIZE_5);
+
+        //
+        // The sliding average can never exceed the observed maximum for any of
+        // the queue delay metrics. This invariant holds regardless of timing.
+        //
+        TEST_TRUE(Stats.ConnectionQueueDelayAvgUs <= Stats.ConnectionQueueDelayMaxUs);
+        TEST_TRUE(Stats.SendQueueDelayAvgUs <= Stats.SendQueueDelayMaxUs);
+        TEST_TRUE(Stats.ReceiveQueueDelayAvgUs <= Stats.ReceiveQueueDelayMaxUs);
+    }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
@@ -7003,6 +7155,22 @@ struct TestEventQ {
     TestEventQ& operator=(const TestEventQ&) = delete;
     TestEventQ(TestEventQ&&) = delete;
     TestEventQ& operator=(TestEventQ&&) = delete;
+    BOOLEAN Initialize() {
+        Initialized = CxPlatEventQInitialize(&QuicEventQ);
+#if CXPLAT_USE_IO_URING
+        // io_uring based event queues rapid deletions/creations have been causing runner resource exhaustion.
+        // Allow some retry to let the system recover resources.
+        for (uint32_t DelayMs = 1; !Initialized && DelayMs <= 128; DelayMs *= 2) {
+            CxPlatLockUninitialize(&QuicEventQ.Lock);
+            CxPlatSleep(DelayMs);
+            Initialized = CxPlatEventQInitialize(&QuicEventQ);
+        }
+        if (!Initialized) {
+            CxPlatLockUninitialize(&QuicEventQ.Lock);
+        }
+#endif
+        return Initialized;
+    }
     ~TestEventQ() {
         if (Initialized) {
             CxPlatEventQCleanup(&QuicEventQ);
@@ -7062,22 +7230,23 @@ void
 QuicTestValidateExecutionContext(const uint32_t EcCount)
 {
     const uint32_t PollCount = 10;
-    UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
-    UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
-
-    TEST_NOT_EQUAL(nullptr, Ecs);
-    TEST_NOT_EQUAL(nullptr, EventQs);
-
-    for (uint32_t i = 0; i < EcCount; i++) {
-        auto &Ec = Ecs[i];
-        TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
-        EventQs[i] = &Ec.QuicEventQ;
-    }
 
     //
     // Verify an EC can be created and deleted without any other actions.
     //
     {
+        UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+        UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+
+        TEST_NOT_EQUAL(nullptr, Ecs);
+        TEST_NOT_EQUAL(nullptr, EventQs);
+
+        for (uint32_t i = 0; i < EcCount; i++) {
+            auto &Ec = Ecs[i];
+            TEST_TRUE(Ec.Initialize());
+            EventQs[i] = &Ec.QuicEventQ;
+        }
+
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
     }
@@ -7086,6 +7255,18 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     // Verify an EC can be polled.
     //
     {
+        UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+        UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+
+        TEST_NOT_EQUAL(nullptr, Ecs);
+        TEST_NOT_EQUAL(nullptr, EventQs);
+
+        for (uint32_t i = 0; i < EcCount; i++) {
+            auto &Ec = Ecs[i];
+            TEST_TRUE(Ec.Initialize());
+            EventQs[i] = &Ec.QuicEventQ;
+        }
+
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
 
@@ -7102,6 +7283,18 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     // closed while running in EC mode.
     //
     {
+        UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+        UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+
+        TEST_NOT_EQUAL(nullptr, Ecs);
+        TEST_NOT_EQUAL(nullptr, EventQs);
+
+        for (uint32_t i = 0; i < EcCount; i++) {
+            auto &Ec = Ecs[i];
+            TEST_TRUE(Ec.Initialize());
+            EventQs[i] = &Ec.QuicEventQ;
+        }
+
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
 

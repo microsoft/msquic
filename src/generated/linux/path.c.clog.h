@@ -14,9 +14,17 @@
 #include "path.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogConnWarning
+#define _clog_MACRO_QuicTraceLogConnWarning  1
+#define QuicTraceLogConnWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogConnInfo
 #define _clog_MACRO_QuicTraceLogConnInfo  1
 #define QuicTraceLogConnInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
+#ifndef _clog_MACRO_QuicTraceLogConnVerbose
+#define _clog_MACRO_QuicTraceLogConnVerbose  1
+#define QuicTraceLogConnVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
@@ -26,17 +34,55 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for ActivePathCidAssignmentFailed
+// [conn][%p] Failed to assign a destination CID to Path[%u], it will not become active
+// QuicTraceLogConnWarning(
+            ActivePathCidAssignmentFailed,
+            Connection,
+            "Failed to assign a destination CID to Path[%u], it will not become active",
+            NextActivePath->ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = NextActivePath->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ActivePathCidAssignmentFailed
+#define _clog_4_ARGS_TRACE_ActivePathCidAssignmentFailed(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_PATH_C, ActivePathCidAssignmentFailed , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for NonActivePathCidRetired
+// [conn][%p] Non-active path has no replacement for retired CID.
+// QuicTraceLogConnWarning(
+            NonActivePathCidRetired,
+            Connection,
+            "Non-active path has no replacement for retired CID.");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NonActivePathCidRetired
+#define _clog_3_ARGS_TRACE_NonActivePathCidRetired(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_PATH_C, NonActivePathCidRetired , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PathActiveFallback
-// [conn][%p] Path[%hhu] removed; falling back to Path[%hhu]
+// [conn][%p] Path[%u] removed; falling back to Path[%u]
 // QuicTraceLogConnInfo(
             PathActiveFallback,
             Connection,
-            "Path[%hhu] removed; falling back to Path[%hhu]",
+            "Path[%u] removed; falling back to Path[%u]",
             Path->ID,
-            Connection->Paths[FallbackIndex].ID);
+            PathSet->Paths[FallbackIndex].ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
-// arg4 = arg4 = Connection->Paths[FallbackIndex].ID = arg4
+// arg4 = arg4 = PathSet->Paths[FallbackIndex].ID = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_PathActiveFallback
 #define _clog_5_ARGS_TRACE_PathActiveFallback(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
@@ -49,11 +95,11 @@ tracepoint(CLOG_PATH_C, PathActiveFallback , arg1, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathQeoEnabled
-// [conn][%p] Path[%hhu] QEO enabled
+// [conn][%p] Path[%u] QEO enabled
 // QuicTraceLogConnInfo(
                 PathQeoEnabled,
                 Connection,
-                "Path[%hhu] QEO enabled",
+                "Path[%u] QEO enabled",
                 Path->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
@@ -69,11 +115,11 @@ tracepoint(CLOG_PATH_C, PathQeoEnabled , arg1, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathQeoDisabled
-// [conn][%p] Path[%hhu] QEO disabled
+// [conn][%p] Path[%u] QEO disabled
 // QuicTraceLogConnInfo(
             PathQeoDisabled,
             Connection,
-            "Path[%hhu] QEO disabled",
+            "Path[%u] QEO disabled",
             Path->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
@@ -88,11 +134,29 @@ tracepoint(CLOG_PATH_C, PathQeoDisabled , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePeerAddrChanged
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED
+// QuicTraceLogConnVerbose(
+        IndicatePeerAddrChanged,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePeerAddrChanged
+#define _clog_3_ARGS_TRACE_IndicatePeerAddrChanged(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_PATH_C, IndicatePeerAddrChanged , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPathInitialized
-// [conn][%p] Path[%hhu] Initialized
+// [conn][%p] Path[%u] Initialized
 // QuicTraceEvent(
         ConnPathInitialized,
-        "[conn][%p] Path[%hhu] Initialized",
+        "[conn][%p] Path[%u] Initialized",
         Connection,
         Path->ID);
 // arg2 = arg2 = Connection = arg2
@@ -108,11 +172,35 @@ tracepoint(CLOG_PATH_C, ConnPathInitialized , arg2, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnRemoteAddrAdded
+// [conn][%p] New Remote IP: %!ADDR!
+// QuicTraceEvent(
+        ConnRemoteAddrAdded,
+        "[conn][%p] New Remote IP: %!ADDR!",
+        Connection,
+        CASTED_CLOG_BYTEARRAY(
+            sizeof(ActivePath->Route.RemoteAddress),
+            &ActivePath->Route.RemoteAddress));
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(
+            sizeof(ActivePath->Route.RemoteAddress),
+            &ActivePath->Route.RemoteAddress) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnRemoteAddrAdded
+#define _clog_5_ARGS_TRACE_ConnRemoteAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
+tracepoint(CLOG_PATH_C, ConnRemoteAddrAdded , arg2, arg3_len, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPathRemoved
-// [conn][%p] Path[%hhu] Removed
+// [conn][%p] Path[%u] Removed
 // QuicTraceEvent(
         ConnPathRemoved,
-        "[conn][%p] Path[%hhu] Removed",
+        "[conn][%p] Path[%u] Removed",
         Connection,
         Path->ID);
 // arg2 = arg2 = Connection = arg2
@@ -128,11 +216,31 @@ tracepoint(CLOG_PATH_C, ConnPathRemoved , arg2, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnError
+// [conn][%p] ERROR, %s.
+// QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Active path has no replacement for retired CID");
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Active path has no replacement for retired CID" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
+#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PATH_C, ConnError , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPathValidated
-// [conn][%p] Path[%hhu] Validated (%hhu)
+// [conn][%p] Path[%u] Validated (%hhu)
 // QuicTraceEvent(
         ConnPathValidated,
-        "[conn][%p] Path[%hhu] Validated (%hhu)",
+        "[conn][%p] Path[%u] Validated (%hhu)",
         Connection,
         Path->ID,
         Reason);
@@ -151,15 +259,15 @@ tracepoint(CLOG_PATH_C, ConnPathValidated , arg2, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnPathActive
-// [conn][%p] Path[%hhu] Set active (rebind=%hhu)
+// [conn][%p] Path[%u] Set active (rebind=%hhu)
 // QuicTraceEvent(
         ConnPathActive,
-        "[conn][%p] Path[%hhu] Set active (rebind=%hhu)",
+        "[conn][%p] Path[%u] Set active (rebind=%hhu)",
         Connection,
-        Connection->Paths[0].ID,
+        ActivePath->ID,
         UdpPortChangeOnly);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
+// arg3 = arg3 = ActivePath->ID = arg3
 // arg4 = arg4 = UdpPortChangeOnly = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ConnPathActive

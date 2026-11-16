@@ -783,7 +783,9 @@ QuicStreamOnBytesDelivered(
     )
 {
     const uint64_t RecvBufferDrainThreshold =
-        Stream->RecvBuffer.VirtualBufferLength / QUIC_RECV_BUFFER_DRAIN_RATIO;
+        CXPLAT_MAX(
+            Stream->RecvBuffer.VirtualBufferLength / QUIC_RECV_BUFFER_DRAIN_RATIO,
+            1U);
 
     Stream->RecvWindowBytesDelivered += BytesDelivered;
     Stream->Connection->Send.MaxData += BytesDelivered;
@@ -807,7 +809,9 @@ QuicStreamOnBytesDelivered(
         if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
             Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
             uint64_t TimeThreshold =
-                ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
+                ((Stream->RecvWindowBytesDelivered *
+                  QuicPathGetActive(&Stream->Connection->Paths)->SmoothedRtt) /
+                 RecvBufferDrainThreshold);
             if (CxPlatTimeDiff64(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
@@ -830,20 +834,20 @@ QuicStreamOnBytesDelivered(
                 //
 
                 uint64_t NewLength = (uint64_t)Stream->RecvBuffer.VirtualBufferLength * 2;
-                NewLength = CXPLAT_MIN(NewLength, UINT32_MAX);
+                if (NewLength <= UINT32_MAX) {
+                    QuicRecvBufferIncreaseVirtualBufferLength(
+                        &Stream->RecvBuffer,
+                        (uint32_t)NewLength);
 
-                QuicRecvBufferIncreaseVirtualBufferLength(
-                    &Stream->RecvBuffer,
-                    (uint32_t)NewLength);
-
-                QuicTraceLogStreamVerbose(
-                    IncreaseRxBuffer,
-                    Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
-                    (uint32_t)NewLength,
-                    Stream->Connection->Paths[0].MinRtt,
-                    TimeNow,
-                    Stream->RecvWindowLastUpdate);
+                    QuicTraceLogStreamVerbose(
+                        IncreaseRxBuffer,
+                        Stream,
+                        "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
+                        (uint32_t)NewLength,
+                        QuicPathGetActive(&Stream->Connection->Paths)->MinRtt,
+                        TimeNow,
+                        Stream->RecvWindowLastUpdate);
+                }
             }
         }
 

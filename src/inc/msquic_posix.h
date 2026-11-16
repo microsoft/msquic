@@ -448,28 +448,50 @@ QuicAddr6FromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
+    char TmpAddrStr[64];
     if (AddrStr[0] == '[') {
         const char* BracketEnd = strchr(AddrStr, ']');
         if (BracketEnd == NULL || *(BracketEnd+1) != ':') {
             return FALSE;
         }
 
-        char TmpAddrStr[64];
-        size_t AddrLength = BracketEnd - AddrStr - 1;
+        const size_t AddrLength = BracketEnd - AddrStr - 1;
         if (AddrLength >= sizeof(TmpAddrStr)) {
             return FALSE;
         }
         memcpy(TmpAddrStr, AddrStr + 1, AddrLength);
         TmpAddrStr[AddrLength] = '\0';
-
-        if (inet_pton(AF_INET6, TmpAddrStr, &Addr->Ipv6.sin6_addr) != 1) {
-            return FALSE;
-        }
         Addr->Ipv6.sin6_port = htons(atoi(BracketEnd+2));
     } else {
-        if (inet_pton(AF_INET6, AddrStr, &Addr->Ipv6.sin6_addr) != 1) {
+        const size_t AddrLength = strlen(AddrStr);
+        if (AddrLength >= sizeof(TmpAddrStr)) {
             return FALSE;
         }
+        //
+        // Copy the string including the null terminator.
+        //
+        memcpy(TmpAddrStr, AddrStr, AddrLength + 1);
+    }
+
+    Addr->Ipv6.sin6_scope_id = 0;
+    char* ScopeStart = strchr(TmpAddrStr, '%');
+    if (ScopeStart != NULL) {
+        *ScopeStart++ = '\0';
+        if (*ScopeStart == '\0') {
+            return FALSE;
+        }
+        do {
+            if (*ScopeStart < '0' || *ScopeStart > '9' ||
+                Addr->Ipv6.sin6_scope_id > (UINT32_MAX - (*ScopeStart - '0')) / 10) {
+                return FALSE;
+            }
+            Addr->Ipv6.sin6_scope_id =
+                Addr->Ipv6.sin6_scope_id * 10 + (uint32_t)(*ScopeStart++ - '0');
+        } while (*ScopeStart != '\0');
+    }
+
+    if (inet_pton(AF_INET6, TmpAddrStr, &Addr->Ipv6.sin6_addr) != 1) {
+        return FALSE;
     }
     Addr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     return TRUE;
@@ -508,9 +530,42 @@ CxPlatIsIpLiteral(
 // Represents an IP address and (optionally) port number as a string.
 //
 typedef struct QUIC_ADDR_STR {
-    char Address[64];
+    char Address[65];
 } QUIC_ADDR_STR;
 
+//
+// Formats only the IP literal, excluding the port and IPv6 brackets. For
+// example, an IPv6 address with port 443 is formatted as "2001:db8::1".
+//
+QUIC_INLINE
+BOOLEAN
+QuicAddrIpToString(
+    _In_ const QUIC_ADDR* Addr,
+    _Out_ QUIC_ADDR_STR* AddrStr
+    )
+{
+    const void* IpAddress;
+    AddrStr->Address[0] = '\0';
+    if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
+        IpAddress = &Addr->Ipv4.sin_addr;
+    } else if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6) {
+        IpAddress = &Addr->Ipv6.sin6_addr;
+    } else {
+        return FALSE;
+    }
+    return
+        inet_ntop(
+            Addr->Ip.sa_family,
+            IpAddress,
+            AddrStr->Address,
+            sizeof(AddrStr->Address)) != NULL;
+}
+
+//
+// Formats the complete endpoint, including a nonzero port and the brackets
+// required around IPv6 when a port is present. For example, an IPv6 address
+// with port 443 is formatted as "[2001:db8::1]:443".
+//
 QUIC_INLINE
 BOOLEAN
 QuicAddrToString(

@@ -471,6 +471,10 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
+typedef struct CXPLAT_XDP_MAP_CONFIG {
+    uint32_t InterfaceIndex;
+    QUIC_XDP_MAP_HANDLE MapHandle;
+} CXPLAT_XDP_MAP_CONFIG;
 
 typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     //
@@ -479,6 +483,10 @@ typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
     // the Windows fast path causing a large performance regression.
     //
     BOOLEAN EnableDscpOnRecv;
+
+    _Field_size_(XdpMapConfigCount)
+    const CXPLAT_XDP_MAP_CONFIG* XdpMapConfigs;
+    uint32_t XdpMapConfigCount;
 } CXPLAT_DATAPATH_INIT_CONFIG;
 
 //
@@ -501,6 +509,15 @@ CxPlatDataPathInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUninitialize(
+    _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+//
+// Returns the total number of XDP rules plumbed across all interfaces.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+CxPlatDataPathGetXdpRuleCount(
     _In_ CXPLAT_DATAPATH* Datapath
     );
 
@@ -579,6 +596,17 @@ CxPlatDataPathGetLocalAddresses(
     _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
         CXPLAT_ADAPTER_ADDRESS** Addresses,
     _Out_ uint32_t* AddressesCount
+    );
+
+//
+// Get a local address that would be used to reach a given remote address.
+// Currently only used by the connection pool.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathGetLocalAddressForRemote(
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _Out_ QUIC_ADDR* LocalAddress
     );
 
 //
@@ -895,7 +923,7 @@ void
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ BOOLEAN Succeeded
     );
 
@@ -910,7 +938,7 @@ CxPlatResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
+    _In_ uint32_t PathId
     );
 
 //
@@ -921,7 +949,7 @@ QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );

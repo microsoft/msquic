@@ -59,7 +59,7 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(QUIC_MAJOR_VERSION 2)
-set(QUIC_FULL_VERSION 2.6.0)
+set(QUIC_FULL_VERSION 2.7.0)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
@@ -117,6 +117,18 @@ set(QUIC_OPENSSL_INCLUDE_DIR "" CACHE PATH "Path to OpenSSL include directory")
 set(QUIC_OPENSSL_LIB_DIR "" CACHE PATH "Path to OpenSSL library directory")
 set(QUIC_OPENSSL_SYMBOL_PREFIX "" CACHE STRING "If non-empty, namespace-prefix every symbol in the bundled OpenSSL static archives (Linux only) so the resulting binary can coexist in the same process with another OpenSSL copy. See docs/OpenSSLSymbolPrefix.md")
 set(QUIC_OPENSSL_ROOT_DIR "" CACHE PATH "Path to OpenSSL root directory")
+
+# QUIC_USE_EXTERNAL_OPENSSL skips the submodule build
+# entirely and dynamically links both libssl and libcrypto from the system, so
+# QUIC_USE_SYSTEM_LIBCRYPTO would be silently ignored. Reject the combination
+# loudly instead of letting it appear to take effect.
+if(QUIC_USE_EXTERNAL_OPENSSL AND QUIC_USE_SYSTEM_LIBCRYPTO)
+    message(FATAL_ERROR
+        "QUIC_USE_SYSTEM_LIBCRYPTO is incompatible with QUIC_USE_EXTERNAL_OPENSSL. "
+        "External OpenSSL already dynamically links both libssl and libcrypto from "
+        "the system; QUIC_USE_SYSTEM_LIBCRYPTO only applies to the bundled submodule "
+        "build. Set only one of them.")
+endif()
 
 # Outer-most validation for QUIC_OPENSSL_SYMBOL_PREFIX so a value combined with
 # a non-quictls/openssl TLS_LIB (e.g. schannel) errors loudly instead of being
@@ -259,6 +271,10 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 include(GNUInstallDirs)
 
 if (WIN32)
+    if (QUIC_USE_SYSTEM_LIBCRYPTO)
+        message(FATAL_ERROR "-UseSystemOpenSSLCrypto is currently not supported on Windows platforms.")
+    endif()
+
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS /utf-8)
 
@@ -908,6 +924,7 @@ if(QUIC_CODE_CHECK)
             -cert-err33-c
             -clang-analyzer-optin.core.EnumCastOutOfRange
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+            -clang-analyzer-unix.Stream
             -clang-diagnostic-invalid-unevaluated-string
             -clang-diagnostic-microsoft-anon-tag
             -concurrency-mt-unsafe
@@ -938,6 +955,8 @@ if(QUIC_CODE_CHECK)
             -readability-magic-numbers
             -readability-non-const-parameter
             -readability-redundant-casting
+            -readability-math-missing-parentheses
+            -readability-use-concise-preprocessor-directives
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
         set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}

@@ -712,6 +712,18 @@ QuicSettingApply(
         Destination->IsSet.ReliableResetEnabled = TRUE;
     }
 
+    //
+    // If XDP map mode is active (XdpMapConfigCount > 0), XDP is implicitly
+    // enabled for all sockets. Reject an explicit XdpEnabled = FALSE since
+    // it contradicts map mode - there is no OS datapath to fall back to.
+    //
+    if (Source->IsSet.XdpEnabled && !Source->XdpEnabled && MsQuicLib.XdpMapConfigCount > 0) {
+        QuicTraceLogError(
+            SettingXdpDisabledInMapMode,
+            "[ lib] Error: Xdp must be enabled when an XDP map was configured.");
+        return FALSE;
+    }
+
     if (Source->IsSet.XdpEnabled && (!Destination->IsSet.XdpEnabled || OverWrite)) {
         Destination->XdpEnabled = Source->XdpEnabled;
         Destination->IsSet.XdpEnabled = TRUE;
@@ -1122,6 +1134,13 @@ QuicSettingsLoad(
                 AcceptableVersionsSize +
                 OfferedVersionsSize +
                 FullyDeployedVersionsSize;
+            if (OfferedVersionsSize >
+                QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t)) {
+                QuicTraceLogError(
+                    SettingsOfferedVersionsTooLong,
+                    "Too many offered versions");
+                goto VersionSettingsFail;
+            }
             VersionSettings =
                 CXPLAT_ALLOC_NONPAGED(
                     AllocSize,
@@ -1728,6 +1747,13 @@ QuicSettingsVersionSettingsToInternal(
     }
 
     InternalSettings->IsSetFlags = 0;
+
+    if (Settings->OfferedVersionsLength > QUIC_MAX_NEGOTIATION_VERSIONS) {
+        QuicTraceLogError(
+            SettingsOfferedVersionsTooLong,
+            "Too many offered versions");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     //
     // Validate the external list only contains versions which MsQuic supports.

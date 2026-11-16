@@ -16,7 +16,7 @@ own `xdp-setup.ps1`:
 
 ```powershell
 # Install the official (production-signed) XDP release.
-./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-v1.1
+./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-v1.4
 
 # Install a test-signed prerelease XDP package (requires test signing enabled).
 ./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-prerelease
@@ -149,4 +149,69 @@ BIND --> CONN2
 BIND --> CONN3
 BIND --> LIST1
 BIND --> LIST2
+```
+
+## Using XDP maps
+
+The XDP maps feature is introduced in XDP v1.4 to de-couple AF_XDP socket
+users from privileged XDP rule setters.
+
+Typically, MsQuic both creates AF_XDP sockets and configures XDP rules. The process running MsQuic must have the permission to do both.
+
+Starting version v2.6, MsQuic can use XDP maps instead of configuring XDP rules.
+
+This allows applications wishing to harden their security posture to configure XDP rules in a trusted, more privileged process while the less trusted process running MsQuic only needs the permission to use AF_XDP sockets. 
+
+### API
+
+Using XDP maps is configured via a global `SetParam` call using the
+`QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG` parameter.
+It must be set before the first first registration is opened.
+Find it in the [Global Parameters](./Settings.md#global-parameters) table.
+
+
+### Usage example
+
+The code below is a TL;DR outline of XDP map usage in MsQuic.
+For a detailed comprehensive example, see [this sample.](../src/tools/xdpmap)
+
+```c
+//
+// Rule and map producer (in a trusted process)
+//
+
+HANDLE XskMap;
+if (FAILED(XdpMapCreate(&XskMap, XDP_MAP_TYPE_XSKMAP))) { exit(-1) };
+XDP_RULE Rule = {
+    .Match = XDP_MATCH_UDP_DST,
+    .Pattern.Port = htons(ServerPort),
+    .Action = XDP_PROGRAM_ACTION_REDIRECT,
+    .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSKMAP_BY_QUEUEID,
+    .Redirect.Target = XskMap,
+};
+XdpCreateProgram(IfIndex, &RxHook, QueueId, 0, &Rule, 1, &Program);
+
+DuplicateHandleAndShareWithConsumer(XskMap);
+// MsQuic AF_XDP socket consumer
+//
+
+QUIC_XDP_MAP_HANDLE XskMap = GetMapHandleFromSomewhere();
+
+MsQuicOpenVersion(QUIC_API_VERSION, &MsQuic);
+QUIC_XDP_MAP_CONFIG MapConfig = {
+    .InterfaceIndex = IfIndex,
+    .MapHandle = XskMap,
+};
+MsQuic->SetParam(
+    NULL,
+    QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG,
+    sizeof(MapConfig),
+    &MapConfig);
+
+//
+// Now open registrations / listeners / connections as normal.
+// MsQuic will not set rules, and instead associate XSKs with the given map
+// handles and expect RX traffic to arrive via the maps.
+//
+MsQuic->RegistrationOpen(&RegConfig, &Registration);
 ```

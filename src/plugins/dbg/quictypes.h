@@ -100,12 +100,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
 
         //
-        // Indicates whether packet number encryption is enabled or not for the
-        // connection.
-        //
-        BOOLEAN HeaderProtectionEnabled : 1; // TODO - Remove since it's not used
-
-        //
         // Indicates that 1-RTT encryption has been configured/negotiated to be
         // disabled.
         //
@@ -421,7 +415,9 @@ inline char QuicHalfByteToStr(UCHAR b)
 }
 
 struct CidStr {
-    char Data[256];
+    // 2 hex chars per byte + NUL, sized for any uint8_t Length so the
+    // constructor can never write OOB.
+    char Data[2 * UINT8_MAX + 1];
 
     CidStr(ULONG64 Addr, UCHAR Length) {
         if (Length == 0) {

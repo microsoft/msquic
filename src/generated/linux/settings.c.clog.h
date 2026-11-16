@@ -873,6 +873,38 @@ tracepoint(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingXdpDisabledInMapMode
+// [ lib] Error: Xdp must be enabled when an XDP map was configured.
+// QuicTraceLogError(
+            SettingXdpDisabledInMapMode,
+            "[ lib] Error: Xdp must be enabled when an XDP map was configured.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_SettingXdpDisabledInMapMode
+#define _clog_2_ARGS_TRACE_SettingXdpDisabledInMapMode(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_SETTINGS_C, SettingXdpDisabledInMapMode );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingsOfferedVersionsTooLong
+// Too many offered versions
+// QuicTraceLogError(
+                    SettingsOfferedVersionsTooLong,
+                    "Too many offered versions");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_SettingsOfferedVersionsTooLong
+#define _clog_2_ARGS_TRACE_SettingsOfferedVersionsTooLong(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_SETTINGS_C, SettingsOfferedVersionsTooLong );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(

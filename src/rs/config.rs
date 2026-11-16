@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::ffi::{QUIC_CREDENTIAL_CONFIG, QUIC_REGISTRATION_CONFIG};
-use std::ffi::CString;
+use std::ffi::{c_char, CString};
 
 /// Specifies the configuration for a new registration.
 #[derive(Debug, Default)]
@@ -225,9 +225,9 @@ impl CertificateHashStore {
         let c_str = CString::new(store_name).unwrap();
         let c_slice = c_str.as_bytes_with_nul();
         let c_slice2 =
-            unsafe { std::slice::from_raw_parts(c_slice.as_ptr() as *const i8, c_slice.len()) };
+            unsafe { std::slice::from_raw_parts(c_slice.as_ptr() as *const c_char, c_slice.len()) };
         // copy with nul terminator
-        let mut name_buff = [0_i8; 128];
+        let mut name_buff = [0 as c_char; 128];
         let chunk = &mut name_buff[..c_slice2.len()];
         chunk.copy_from_slice(c_slice2);
         Self(crate::ffi::QUIC_CERTIFICATE_HASH_STORE {

@@ -220,7 +220,8 @@ BbrCongestionControlGetCongestionWindow(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: embedded Cc is valid.
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     uint32_t MinCongestionWindow = kMinCwndInMss * DatagramPayloadLength;
 
@@ -308,7 +309,7 @@ BbrCongestionControlGetNetworkStatistics(
     )
 {
     const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-    const QUIC_PATH* Path = &Connection->Paths[0];
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
 
     NetworkStatistics->BytesInFlight = Bbr->BytesInFlight;
     NetworkStatistics->PostedBytes = Connection->SendBuffer.PostedBytes;
@@ -359,7 +360,7 @@ BbrCongestionControlLogOutFlowStatus(
     )
 {
     const QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    const QUIC_PATH* Path = &Connection->Paths[0];
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
     const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     QuicTraceEvent(
@@ -487,7 +488,7 @@ BbrCongestionControlUpdateRecoveryWindow(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     CXPLAT_DBG_ASSERT(Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY);
 
@@ -519,7 +520,7 @@ BbrCongestionControlHandleAckInProbeRtt(
     Bbr->BandwidthFilter.AppLimitedExitTarget = LargestSentPacketNumber;
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     if (!Bbr->ProbeRttEndTimeValid &&
         Bbr->BytesInFlight < BbrCongestionControlGetCongestionWindow(Cc) + DatagramPayloadLength) {
@@ -604,7 +605,7 @@ BbrCongestionControlGetTargetCwnd(
 
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
 
-    if (!BandwidthEst || Bbr->MinRtt == UINT32_MAX) {
+    if (!BandwidthEst || !Bbr->MinRttTimestampValid) {
         return (uint64_t)(Gain) * Bbr->InitialCongestionWindow / GAIN_UNIT;
     }
 
@@ -638,7 +639,7 @@ BbrCongestionControlGetSendAllowance(
     } else if (
         !TimeSinceLastSendValid ||
         !Connection->Settings.PacingEnabled ||
-        Bbr->MinRtt == UINT32_MAX ||
+        !Bbr->MinRttTimestampValid ||
         Bbr->MinRtt < QUIC_SEND_PACING_INTERVAL) {
         //
         // We're not in the necessary state to pace.
@@ -713,7 +714,7 @@ BbrCongestionControlSetSendQuantum(
     uint64_t PacingRate = Bandwidth * Bbr->PacingGain / GAIN_UNIT;
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     if (PacingRate < kLowPacingRateThresholdBytesPerSecond * BW_UNIT) {
         Bbr->SendQuantum = (uint64_t)DatagramPayloadLength;
@@ -740,7 +741,7 @@ BbrCongestionControlUpdateCongestionWindow(
     }
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     BbrCongestionControlSetSendQuantum(Cc);
 
@@ -881,6 +882,7 @@ BbrCongestionControlOnDataAcknowledged(
 
     if (Bbr->BbrState != BBR_STATE_PROBE_RTT &&
         !Bbr->ExitingQuiescence &&
+        Bbr->MinRttTimestampValid &&
         Bbr->RttSampleExpired) {
         BbrCongestionControlTransitToProbeRtt(Cc, AckEvent->LargestSentPacketNumber);
     }
@@ -913,7 +915,7 @@ BbrCongestionControlOnDataLost(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     QuicTraceEvent(
         ConnCongestionV2,
@@ -1005,7 +1007,7 @@ BbrCongestionControlReset(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     Bbr->CongestionWindow = Bbr->InitialCongestionWindowPackets * DatagramPayloadLength;
     Bbr->InitialCongestionWindow = Bbr->InitialCongestionWindowPackets * DatagramPayloadLength;
@@ -1098,7 +1100,7 @@ BbrCongestionControlInitialize(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(QuicPathGetActive(&Connection->Paths));
 
     Bbr->InitialCongestionWindowPackets = Settings->InitialWindowPackets;
 

@@ -90,13 +90,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout msquic Repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: microsoft/msquic
           ref: ${{ inputs.package_version && format('v{0}', inputs.package_version) || '' }}
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           dotnet-version: 10.0.x
 
@@ -109,7 +109,7 @@ jobs:
           dotnet publish QuicHello.net9.0.csproj -c Release -o ../../../dotnet-artifacts/arm -r linux-arm --self-contained true
 
       - name: Upload .NET Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dotnet-test-artifacts
           path: dotnet-artifacts/
@@ -256,6 +256,24 @@ jobs:
             pkg_arch: aarch64
             prod_url: "https://packages.microsoft.com/azurelinux/3.0/prod/ms-oss/aarch64/Packages/l"
             testing_url: "https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/aarch64/Packages/l"
+
+          # Azure Linux 4.0 (RPM) - No arm32 support, has separate arch URLs
+          - friendlyName: "Azure Linux 4.0 x64"
+            arch: x64
+            platform: "linux/amd64"
+            image: "mcr.microsoft.com/azurelinux/core:4"
+            type: rpm
+            pkg_arch: x86_64
+            prod_url: "https://packages.microsoft.com/azurelinux/4/prod/microsoft/x86_64/Packages/l"
+            testing_url: "https://packages.microsoft.com/azurelinux/4/preview/microsoft/x86_64/Packages/l"
+          - friendlyName: "Azure Linux 4.0 arm64"
+            arch: arm64
+            platform: "linux/arm64"
+            image: "mcr.microsoft.com/azurelinux/core:4"
+            type: rpm
+            pkg_arch: aarch64
+            prod_url: "https://packages.microsoft.com/azurelinux/4/prod/microsoft/aarch64/Packages/l"
+            testing_url: "https://packages.microsoft.com/azurelinux/4/preview/microsoft/aarch64/Packages/l"
 
           # CentOS Stream 9 (RPM) - No arm32 support
           - friendlyName: "CentOS Stream 9 x64"
@@ -475,14 +493,14 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up QEMU
         if: matrix.arch != 'x64'
-        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - name: Download Test Artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           # TLS mapping: for 2.4.x, quictls -> openssl3
           name: ${{ inputs.config }}-linux-ubuntu-22.04-${{ matrix.arch }}-${{ startsWith(inputs.package_version, '2.4') && (inputs.tls == 'quictls' && 'openssl3' || inputs.tls) || inputs.tls }}-Test
@@ -490,7 +508,7 @@ jobs:
 
       - name: Download .NET Artifacts
         if: ${{ !inputs.skip_dotnet_tests }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dotnet-test-artifacts
           path: dotnet-artifacts
@@ -683,7 +701,7 @@ jobs:
 
       - name: Upload Logs on Failure
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: logs-${{ matrix.friendlyName }}
           path: |
@@ -708,6 +726,6 @@ jobs:
           echo "Check the individual job results above for detailed status of each distro/arch combination." >> $GITHUB_STEP_SUMMARY
 
       - name: Check Status
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}

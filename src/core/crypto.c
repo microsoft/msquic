@@ -250,6 +250,13 @@ QuicCryptoUninitialize(
         }
         Crypto->TlsState.NegotiatedAlpn = NULL;
     }
+    if (Crypto->TlsState.ClientAlpnList != NULL) {
+        if (Crypto->TlsState.ClientAlpnList != Crypto->TlsState.SmallAlpnBuffer) {
+            CXPLAT_FREE(Crypto->TlsState.ClientAlpnList, QUIC_POOL_ALPN);
+        }
+        Crypto->TlsState.ClientAlpnList = NULL;
+        Crypto->TlsState.ClientAlpnListLength = 0;
+    }
     if (Crypto->Initialized) {
         QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         QuicRangeUninitialize(&Crypto->SparseAckRanges);
@@ -486,10 +493,11 @@ QuicCryptoHandshakeConfirmed(
     )
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: embedded Crypto is valid.
     Connection->State.HandshakeConfirmed = TRUE;
 
     if (SignalBinding) {
-        QUIC_PATH* Path = &Connection->Paths[0];
+        QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
         CXPLAT_DBG_ASSERT(Path->Binding != NULL);
         QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
     }
@@ -758,10 +766,18 @@ QuicCryptoWriteCryptoFrames(
             //
             Sack = NULL;
         } else {
-            uint32_t i = 0;
-            while ((Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i++)) != NULL &&
-                Sack->Low < (uint64_t)Left) {
+            //
+            // Start at the covering subrange or its successor; all earlier
+            // SACKs end before Left and cannot constrain this frame.
+            //
+            uint32_t i =
+                QuicRangeFindContainingOrNext(
+                    &Crypto->SparseAckRanges,
+                    (uint64_t)Left);
+            Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i);
+            if (Sack != NULL && Sack->Low < (uint64_t)Left) {
                 CXPLAT_DBG_ASSERT(Sack->Low + Sack->Count <= (uint64_t)Left);
+                Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i + 1);
             }
         }
 
@@ -990,7 +1006,14 @@ QuicCryptoOnLoss(
     }
 
     QUIC_SUBRANGE* Sack;
-    uint32_t i = 0;
+    //
+    // Skip SACKs that end before Start; only the covering subrange or a later
+    // one can overlap the lost range.
+    //
+    uint32_t i =
+        QuicRangeFindContainingOrNext(
+            &Crypto->SparseAckRanges,
+            Start);
     while ((Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i++)) != NULL &&
         Sack->Low < End) {
         if (Start < Sack->Low + Sack->Count) {
@@ -1602,28 +1625,36 @@ QuicCryptoProcessTlsCompletion(
             QuicCryptoHandshakeConfirmed(&Connection->Crypto, FALSE);
 
             //
-            // Take this opportinuty to clean up the client chosen initial CID.
-            // It will be the second one in the list.
+            // Clean up the client-chosen initial source CID.
             //
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
-            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next->Next == NULL);
-            QUIC_CID_HASH_ENTRY* InitialSourceCid =
-                CXPLAT_CONTAINING_RECORD(
-                    Connection->SourceCids.Next->Next,
-                    QUIC_CID_HASH_ENTRY,
-                    Link);
-            CXPLAT_DBG_ASSERT(InitialSourceCid->CID.IsInitial);
-            Connection->SourceCids.Next->Next = Connection->SourceCids.Next->Next->Next;
-            CXPLAT_DBG_ASSERT(!InitialSourceCid->CID.IsInLookupTable);
-            QuicTraceEvent(
-                ConnSourceCidRemoved,
-                "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                Connection,
-                InitialSourceCid->CID.SequenceNumber,
-                CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
-            CXPLAT_FREE(InitialSourceCid, QUIC_POOL_CIDHASH);
+            CXPLAT_SLIST_ENTRY** PrevLink = &Connection->SourceCids.Next;
+            BOOLEAN Found = FALSE;
+            while (*PrevLink != NULL) {
+                QUIC_CID_HASH_ENTRY* CidEntry =
+                    CXPLAT_CONTAINING_RECORD(
+                        *PrevLink,
+                        QUIC_CID_HASH_ENTRY,
+                        Link);
+                //
+                // The client-provided initial CID is the only one that is
+                // both marked IsInitial and not registered in the lookup table.
+                //
+                if (CidEntry->CID.IsInitial && !CidEntry->CID.IsInLookupTable) {
+                    *PrevLink = (*PrevLink)->Next;
+                    QuicTraceEvent(
+                        ConnSourceCidRemoved,
+                        "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+                        Connection,
+                        CidEntry->CID.SequenceNumber,
+                        CASTED_CLOG_BYTEARRAY(CidEntry->CID.Length, CidEntry->CID.Data));
+                    CXPLAT_FREE(CidEntry, QUIC_POOL_CIDHASH);
+                    Found = TRUE;
+                    break;
+                }
+                PrevLink = &(*PrevLink)->Next;
+            }
+            CXPLAT_DBG_ASSERT(Found);
+            UNREFERENCED_PARAMETER(Found);
         }
 
         //
@@ -1668,8 +1699,8 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
-        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
-        QUIC_PATH* Path = &Connection->Paths[0];
+        CXPLAT_DBG_ASSERT(Connection->Paths.Count == 1);
+        QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
         CXPLAT_DBG_ASSERT(Path->IsActive);
 
         if (Connection->Settings.EncryptionOffloadAllowed) {
@@ -1754,7 +1785,9 @@ QuicCryptoCustomCertValidationComplete(
             "Custom cert validation succeeded");
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
-        if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+        // The handshake completion above can uninitialize the crypto state.
+        if (Crypto->Initialized &&
+            QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
             //
             // More data was received while waiting for user to perform the validation.
             //
@@ -1809,6 +1842,11 @@ QuicCryptoCustomTicketValidationComplete(
         //
         Crypto->TicketValidationPending = FALSE;
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
+
+        // Ticket validation pauses ClientHello processing. The client cannot send its Finished
+        // until after receiving the server flight, so the QuicCryptoProcessDataComplete call above
+        // cannot finish the handshake and uninitialize the crypto state.
+        CXPLAT_DBG_ASSERT(Crypto->Initialized);
 
         if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
             //
@@ -1932,13 +1970,14 @@ QuicCryptoProcessData(
             QuicCryptoValidate(Crypto);
 
             Info.QuicVersion = Connection->Stats.QuicVersion;
-            Info.LocalAddress = &Connection->Paths[0].Route.LocalAddress;
-            Info.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
+            QUIC_PATH* ActivePath = QuicPathGetActive(&Connection->Paths);
+            Info.LocalAddress = &ActivePath->Route.LocalAddress;
+            Info.RemoteAddress = &ActivePath->Route.RemoteAddress;
             Info.CryptoBufferLength = Buffer.Length;
             Info.CryptoBuffer = Buffer.Buffer;
 
             QuicBindingAcceptConnection(
-                Connection->Paths[0].Binding,
+                ActivePath->Binding,
                 Connection,
                 &Info);
 
@@ -3115,19 +3154,15 @@ QuicCryptoReNegotiateAlpn(
     CXPLAT_DBG_ASSERT(AlpnList != NULL);
     CXPLAT_DBG_ASSERT(AlpnListLength > 0);
 
-    const uint8_t* PrevNegotiatedAlpn = Connection->Crypto.TlsState.NegotiatedAlpn;
-    if (AlpnList[0] == PrevNegotiatedAlpn[0]) {
-        if (memcmp(AlpnList + 1, PrevNegotiatedAlpn + 1, AlpnList[0]) == 0) {
-            return QUIC_STATUS_SUCCESS;
-        }
-    }
-
     const uint8_t* NewNegotiatedAlpn = NULL;
+    const uint8_t* ClientAlpnList = Connection->Crypto.TlsState.ClientAlpnList;
+    uint16_t ClientAlpnListLength = Connection->Crypto.TlsState.ClientAlpnListLength;
+
     while (AlpnListLength != 0) {
         const uint8_t* Result =
             CxPlatTlsAlpnFindInList(
-                Connection->Crypto.TlsState.ClientAlpnListLength,
-                Connection->Crypto.TlsState.ClientAlpnList,
+                ClientAlpnListLength,
+                ClientAlpnList,
                 AlpnList[0],
                 AlpnList + 1);
         if (Result != NULL) {
@@ -3136,6 +3171,17 @@ QuicCryptoReNegotiateAlpn(
         }
         AlpnListLength -= AlpnList[0] + 1;
         AlpnList += AlpnList[0] + 1;
+    }
+    
+    //
+    // Checks against SmallAlpnBuffer before freeing.
+    //
+    if (Connection->Crypto.TlsState.ClientAlpnList != NULL) {
+        if (Connection->Crypto.TlsState.ClientAlpnList != Connection->Crypto.TlsState.SmallAlpnBuffer) {
+            CXPLAT_FREE(Connection->Crypto.TlsState.ClientAlpnList, QUIC_POOL_ALPN);
+        }
+        Connection->Crypto.TlsState.ClientAlpnList = NULL;
+        Connection->Crypto.TlsState.ClientAlpnListLength = 0;
     }
 
     if (NewNegotiatedAlpn == NULL) {
@@ -3150,13 +3196,7 @@ QuicCryptoReNegotiateAlpn(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    //
-    // Free current ALPN buffer if it's allocated on heap.
-    //
-    if (Connection->Crypto.TlsState.NegotiatedAlpn != Connection->Crypto.TlsState.SmallAlpnBuffer) {
-        CXPLAT_FREE(Connection->Crypto.TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
-        Connection->Crypto.TlsState.NegotiatedAlpn = NULL;
-    }
+    CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.NegotiatedAlpn == NULL);
 
     uint8_t* NegotiatedAlpn = NULL;
     uint8_t NegotiatedAlpnLength = NewNegotiatedAlpn[0];

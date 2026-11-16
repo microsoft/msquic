@@ -29,39 +29,128 @@ CxPlatEventQDequeueAndReturn(
     return Result;
 }
 
-struct PlatformTest : public ::testing::TestWithParam<int32_t>
-{
-};
-
 TEST(PlatformTest, QuicAddrParsing)
 {
     struct TestEntry {
         const char* Input;
+        uint16_t DefaultPort;
         int Family;
-        unsigned short Port;
+        uint16_t ExpectedPort;
+        uint32_t ExpectedScope;
+        uint8_t ExpectedAddress[16];
     };
 
-    TestEntry TestData[] = {
-        { "::", QUIC_ADDRESS_FAMILY_INET6, 0 },
-        { "fe80::9c3a:b64d:6249:1de8", QUIC_ADDRESS_FAMILY_INET6, 0 },
-        { "[::1]:80", QUIC_ADDRESS_FAMILY_INET6, 80 },
-        { "127.0.0.1", QUIC_ADDRESS_FAMILY_INET, 0 },
-        { "127.0.0.1:90", QUIC_ADDRESS_FAMILY_INET, 90 }
+    const TestEntry TestData[] = {
+        { "0.0.0.0", 0, QUIC_ADDRESS_FAMILY_INET, 0, 0, { 0, 0, 0, 0 } },
+        { "127.0.0.1", 443, QUIC_ADDRESS_FAMILY_INET, 443, 0, { 127, 0, 0, 1 } },
+        { "127.0.0.1:90", 443, QUIC_ADDRESS_FAMILY_INET, 90, 0, { 127, 0, 0, 1 } },
+        { "255.255.255.255:65535", 0, QUIC_ADDRESS_FAMILY_INET, 65535, 0, { 255, 255, 255, 255 } },
+        { "::", 0, QUIC_ADDRESS_FAMILY_INET6, 0, 0, {} },
+        { "::1", 443, QUIC_ADDRESS_FAMILY_INET6, 443, 0,
+          { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 } },
+        { "[::1]:80", 443, QUIC_ADDRESS_FAMILY_INET6, 80, 0,
+          { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 } },
+        { "::ffff:192.0.2.128", 0, QUIC_ADDRESS_FAMILY_INET6, 0, 0,
+          { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 192, 0, 2, 128 } },
+        { "fe80::9c3a:b64d:6249:1de8%3", 0, QUIC_ADDRESS_FAMILY_INET6, 0, 3,
+          { 254, 128, 0, 0, 0, 0, 0, 0, 156, 58, 182, 77, 98, 73, 29, 232 } },
+        { "[fe80::9c3a:b64d:6249:1de8%3]:443", 0, QUIC_ADDRESS_FAMILY_INET6, 443, 3,
+          { 254, 128, 0, 0, 0, 0, 0, 0, 156, 58, 182, 77, 98, 73, 29, 232 } },
+        { "[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff%4294967295]:65535", 0,
+          QUIC_ADDRESS_FAMILY_INET6, 65535, UINT32_MAX,
+          { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 } }
     };
 
-    QUIC_ADDR Addr;
-    QUIC_ADDR_STR AddrStr = { 0 };
-
-    for (int i = 0; i < (int)(sizeof(TestData) / sizeof(struct TestEntry)); i++) {
-        CxPlatZeroMemory(&Addr, sizeof(QUIC_ADDR));
-        TestEntry* entry = &TestData[i];
-
-        ASSERT_TRUE(QuicAddrFromString(entry->Input, entry->Port, &Addr));
-        ASSERT_EQ(entry->Port, QuicAddrGetPort(&Addr));
-        ASSERT_EQ(entry->Family, QuicAddrGetFamily(&Addr));
-        ASSERT_TRUE(QuicAddrToString(&Addr, &AddrStr));
-        ASSERT_EQ(0, strcmp(entry->Input, AddrStr.Address));
+    for (const auto& Entry : TestData) {
+        QUIC_ADDR Addr{};
+        ASSERT_TRUE(QuicAddrFromString(Entry.Input, Entry.DefaultPort, &Addr)) << Entry.Input;
+        ASSERT_EQ(Entry.ExpectedPort, QuicAddrGetPort(&Addr)) << Entry.Input;
+        ASSERT_EQ(Entry.Family, QuicAddrGetFamily(&Addr)) << Entry.Input;
+        if (Entry.Family == QUIC_ADDRESS_FAMILY_INET6) {
+            ASSERT_EQ(Entry.ExpectedScope, Addr.Ipv6.sin6_scope_id) << Entry.Input;
+        }
+        const void* ActualAddress =
+            Entry.Family == QUIC_ADDRESS_FAMILY_INET ?
+                (void*)&Addr.Ipv4.sin_addr :
+                (void*)&Addr.Ipv6.sin6_addr;
+        ASSERT_EQ(
+            0,
+            memcmp(
+                Entry.ExpectedAddress,
+                ActualAddress,
+                Entry.Family == QUIC_ADDRESS_FAMILY_INET ? 4 : 16)) << Entry.Input;
     }
+
+    QUIC_ADDR Addr{};
+    ASSERT_FALSE(QuicAddrFromString("fe80::1%", 0, &Addr));
+    ASSERT_FALSE(QuicAddrFromString("fe80::1%abc", 0, &Addr));
+    ASSERT_FALSE(QuicAddrFromString("fe80::1%4294967296", 0, &Addr));
+}
+
+TEST(PlatformTest, QuicAddrToString)
+{
+    struct TestEntry {
+        const char* Input;
+        const char* Expected;
+    };
+
+    const TestEntry TestData[] = {
+        { "0.0.0.0", "0.0.0.0" },
+        { "127.0.0.1:443", "127.0.0.1:443" },
+        { "127.0.0.1:90", "127.0.0.1:90" },
+        { "255.255.255.255:65535", "255.255.255.255:65535" },
+        { "::", "::" },
+        { "[::1]:443", "[::1]:443" },
+        { "[::1]:80", "[::1]:80" },
+        { "::ffff:192.0.2.128", "::ffff:192.0.2.128" },
+        { "fe80::9c3a:b64d:6249:1de8%3", "fe80::9c3a:b64d:6249:1de8" },
+        { "[fe80::9c3a:b64d:6249:1de8%3]:443", "[fe80::9c3a:b64d:6249:1de8]:443" },
+        // Maximum scope, port and uncompressed IPv6 literal.
+        { "[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff%4294967295]:65535",
+          "[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535" }
+    };
+
+    static_assert(sizeof(((QUIC_ADDR_STR*)nullptr)->Address) == 65);
+    for (const auto& Entry : TestData) {
+        QUIC_ADDR Addr{};
+        QUIC_ADDR_STR AddrStr{};
+        ASSERT_TRUE(QuicAddrFromString(Entry.Input, 0, &Addr)) << Entry.Input;
+        ASSERT_TRUE(QuicAddrToString(&Addr, &AddrStr));
+        ASSERT_STREQ(Entry.Expected, AddrStr.Address) << Entry.Input;
+    }
+}
+
+TEST(PlatformTest, QuicAddrIpToString)
+{
+    struct TestEntry {
+        const char* Input;
+        const char* Expected;
+    };
+
+    const TestEntry TestData[] = {
+        { "0.0.0.0", "0.0.0.0" },
+        { "127.0.0.1:443", "127.0.0.1" },
+        { "255.255.255.255:65535", "255.255.255.255" },
+        { "[::]:65535", "::" },
+        { "[::1]:443", "::1" },
+        { "[::ffff:192.0.2.128]:443", "::ffff:192.0.2.128" },
+        { "[fe80::9c3a:b64d:6249:1de8%3]:443", "fe80::9c3a:b64d:6249:1de8" },
+        // Maximum scope, port and uncompressed IPv6 literal.
+        { "[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff%4294967295]:65535",
+          "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" }
+    };
+
+    for (const auto& Entry : TestData) {
+        QUIC_ADDR Addr{};
+        QUIC_ADDR_STR AddrStr{};
+        ASSERT_TRUE(QuicAddrFromString(Entry.Input, 0, &Addr)) << Entry.Input;
+        ASSERT_TRUE(QuicAddrIpToString(&Addr, &AddrStr));
+        ASSERT_STREQ(Entry.Expected, AddrStr.Address) << Entry.Input;
+    }
+
+    QUIC_ADDR InvalidAddr{};
+    QUIC_ADDR_STR AddrStr{};
+    ASSERT_FALSE(QuicAddrIpToString(&InvalidAddr, &AddrStr));
 }
 
 TEST(PlatformTest, CxPlatIsIpLiteral)

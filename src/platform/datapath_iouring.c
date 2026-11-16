@@ -1173,7 +1173,8 @@ CxPlatSocketContextUninitialize(
             //
             // For TCP sockets, we should shutdown the socket before closing it.
             //
-            SocketContext->Binding->DisconnectIndicated = TRUE;
+            (void)InterlockedCompareExchange(
+                &SocketContext->Binding->DisconnectIndicated, TRUE, FALSE);
             if (shutdown(SocketContext->SocketFd, SHUT_RDWR) != 0) {
                 int Errno = errno;
                 if (Errno != ENOTCONN) {
@@ -1480,8 +1481,8 @@ CxPlatSocketHandleErrors(
                     }
                 }
             } else {
-                if (!SocketContext->Binding->DisconnectIndicated) {
-                    SocketContext->Binding->DisconnectIndicated = TRUE;
+                if (InterlockedCompareExchange(
+                        &SocketContext->Binding->DisconnectIndicated, TRUE, FALSE) == FALSE) {
                     SocketContext->Binding->Datapath->TcpHandlers.Connect(
                         SocketContext->Binding,
                         SocketContext->Binding->ClientContext,
@@ -1492,6 +1493,27 @@ CxPlatSocketHandleErrors(
             CxPlatRundownRelease(&SocketContext->UpcallRundown);
         }
     }
+}
+
+//
+// Returns an IoBlock's buffer to the io_uring registered buffer ring so it can
+// be reused for future receives.
+//
+void
+CxPlatIoUringReturnIoBlock(
+    _In_ DATAPATH_RX_IO_BLOCK* IoBlock
+    )
+{
+    CXPLAT_DATAPATH_PARTITION* DatapathPartition = IoBlock->DatapathPartition;
+    CxPlatLockAcquire(&DatapathPartition->RecvRegisteredBufferPool.Lock);
+    io_uring_buf_ring_add(
+        DatapathPartition->RecvRegisteredBufferPool.Ring,
+        (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset,
+        CxPlatGetBufferPoolBufferSize(&DatapathPartition->RecvRegisteredBufferPool) -
+            DatapathPartition->Datapath->RecvBlockBufferOffset,
+        IoBlock->BufferIndex, io_uring_buf_ring_mask(RecvBufCount), 0);
+    io_uring_buf_ring_advance(DatapathPartition->RecvRegisteredBufferPool.Ring, 1);
+    CxPlatLockRelease(&DatapathPartition->RecvRegisteredBufferPool.Lock);
 }
 
 void
@@ -1627,6 +1649,14 @@ CxPlatSocketContextRecvComplete(
             Datagram = (DATAPATH_RX_PACKET*)
                 ((char*)Datagram + SocketContext->DatapathPartition->Datapath->RecvBlockStride);
         }
+
+        if (IoBlock->RefCount == 0) {
+            //
+            // Nothing referenced the block (e.g. a zero-length datagram).
+            // Return its buffer to the ring here to avoid depleting it.
+            //
+            CxPlatIoUringReturnIoBlock(IoBlock);
+        }
     }
 
     if (BytesTransferred == 0 || DatagramHead == NULL) {
@@ -1741,20 +1771,11 @@ RecvDataReturn(
         DATAPATH_RX_IO_BLOCK* IoBlock =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data)->IoBlock;
         if (InterlockedDecrement(&IoBlock->RefCount) == 0) {
-            CXPLAT_DATAPATH_PARTITION* DatapathPartition = IoBlock->DatapathPartition;
             //
             // Review: this is amenable to batching, but the added complexity
             // may not be worth it.
             //
-            CxPlatLockAcquire(&DatapathPartition->RecvRegisteredBufferPool.Lock);
-            io_uring_buf_ring_add(
-                DatapathPartition->RecvRegisteredBufferPool.Ring,
-                (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset,
-                CxPlatGetBufferPoolBufferSize(&DatapathPartition->RecvRegisteredBufferPool) -
-                    DatapathPartition->Datapath->RecvBlockBufferOffset,
-                IoBlock->BufferIndex, io_uring_buf_ring_mask(RecvBufCount), 0);
-            io_uring_buf_ring_advance(DatapathPartition->RecvRegisteredBufferPool.Ring, 1);
-            CxPlatLockRelease(&DatapathPartition->RecvRegisteredBufferPool.Lock);
+            CxPlatIoUringReturnIoBlock(IoBlock);
         }
     }
 }

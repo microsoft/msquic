@@ -184,7 +184,7 @@ CxPlatWorkerPoolInitWorker(
     Worker->IdealProcessor = IdealProcessor;
     Worker->State.WaitTime = UINT32_MAX;
     Worker->State.ThreadID = UINT32_MAX;
-    Worker->CleanupEvent = &WorkerPool->CleanupEvent;
+    Worker->CleanupEvent = WorkerPool->External ? &WorkerPool->CleanupEvent : NULL;
 
     if (EventQ != NULL) {
         Worker->EventQ = *EventQ;
@@ -380,6 +380,12 @@ Error:
     return NULL;
 }
 
+//
+// External workers are normally driven by the application. This cleanup thread
+// waits until ExecutionDelete takes ownership of the event queue, then runs the
+// normal worker loop on this thread to finish outstanding asynchronous cleanup.
+// Initialization failure also releases the wait so the thread can shut down.
+//
 CXPLAT_THREAD_CALLBACK(CxPlatExecutionCleanupThread, Context)
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context;
@@ -455,6 +461,8 @@ CxPlatWorkerPoolCreateExternal(
     return WorkerPool;
 
 Error:
+
+    CxPlatEventSet(WorkerPool->CleanupEvent);
 
     //
     // On failure, clean up all the workers that did get started.

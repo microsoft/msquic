@@ -15,7 +15,9 @@ These are the steps to silence the warnings:
 
 ### Regeneration from Scratch
 
-To regenerate the `openssl.gdnsuppress` completely, create a temporary mscodehub PR that removes the `suppression:` `suppressionFile:` from `OneBranch.PullRequest.yml`.
-Then follow the instructions above to get the new suppression file, but completely copy over the existing one instead.
+To regenerate `openssl.gdnsuppress` completely, create a temporary ES pipeline
+change that removes `globalSdl.suppression.suppressionFile` from
+`.azure/repos/msquic-hotpatch.yml`. Then run the hotpatch pipeline and replace
+the existing suppression file with the generated one.
 
 > **TODO** - Perhaps we should automate the regeneration in a pipeline.

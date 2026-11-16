@@ -163,6 +163,7 @@ QUIC_STATUS Status = MsQuic->ExecutionCreate(QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_N
 
 The above code createa a new IOCP (for Windows), sets up an execution config, indicating an ideal processor of 0 and the pointer to the IOCP, and then calls MsQuic to create 1 execution context.
 An application may expand this code to create multiple execution contexts, depending on their needs.
+Each execution context must use a distinct underlying event queue; two execution contexts must not share the same IOCP, epoll, or kqueue.
 
 To drive this execution context, the app will need to to periodically call `ExecutionPoll` and use the platform specific function to drain completion events from the event queue.
 
@@ -187,6 +188,21 @@ Above, you can see a simple loop that properly drives a single execution context
 
 In a real application, these completion events may come both from MsQuic and the application itself, therefore, this means **the application must use the same base format for its own submission entries**.
 This is necessary to be able to share the same event queue object.
+
+### Shutting Down Custom Execution
+
+Continue polling execution contexts and dispatching event queue completions while closing all application handles and registrations.
+The final `RegistrationClose` must return, or the final `RegistrationClose2` completion callback must be delivered, before stopping execution.
+Run synchronous registration closure on a separate thread so polling can continue.
+
+Then stop and synchronize with the application's polling and completion-dispatch threads and call [ExecutionDelete](api/ExecutionDelete.md).
+The `AllDone` condition in the example above is controlled by the application; `ExecutionPoll` returns a timer wait duration, not a shutdown-complete indication.
+Registration closure may leave internal cleanup, such as canceled socket I/O completions, outstanding.
+There is no separate fully-drained notification: `ExecutionDelete` blocks while MsQuic cleanup threads process that remaining work.
+
+Keep the event queues and completion-handler state alive until `ExecutionDelete` returns.
+Application-owned completions on those queues may also be dispatched by the cleanup threads.
+After deletion returns, the execution contexts must no longer be used and the application may close its event queues.
 
 # See Also
 
