@@ -835,6 +835,11 @@ QuicTestAckSendDelay(
     );
 
 void
+QuicTestAckFrequencyMaxAckDelay(
+    const FamilyArgs& Params
+    );
+
+void
 QuicTestAbortReceive_Paused(
     );
 
