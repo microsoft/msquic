@@ -3773,14 +3773,21 @@ QuicConnGetKeyOrDeferDatagram(
     _In_ QUIC_RX_PACKET* Packet
     )
 {
-    if (Packet->KeyType > Connection->Crypto.TlsState.ReadKey) {
+    const BOOLEAN DeferForTicketValidation =
+        Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
+        Connection->Crypto.TicketValidationPending &&
+        Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_0_RTT] != NULL;
+
+    if (Packet->KeyType > Connection->Crypto.TlsState.ReadKey ||
+        DeferForTicketValidation) {
 
         //
-        // We don't have the necessary key yet so try to defer the packet until
-        // we get the key.
+        // We can't process the packet yet, so try to defer it until the
+        // necessary key or validation result is available.
         //
 
-        if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
+        if (!DeferForTicketValidation &&
+            Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
             Connection->Crypto.TlsState.EarlyDataState != CXPLAT_TLS_EARLY_DATA_UNKNOWN) {
             //
             // We don't have the 0-RTT key, but we aren't in an unknown
