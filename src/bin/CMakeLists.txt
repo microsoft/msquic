@@ -37,6 +37,9 @@ else()
     set(EXCLUDE_LIST "inc")
     if (CX_PLATFORM STREQUAL "darwin")
         list(APPEND EXCLUDE_LIST "-framework CoreFoundation" "-framework Security")
+    elseif (WIN32)
+        # The platform's import libraries stay the application's to link.
+        list(APPEND EXCLUDE_LIST wbemuuid winmm secur32 onecore)
     endif()
     set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "${EXCLUDE_LIST}")
     set_property(GLOBAL PROPERTY QUIC_STATIC_LIBS "")
@@ -173,11 +176,14 @@ else()
             CONTENT "/OUT:\"${QUIC_STATIC_LIBRARY}\" ${DEPS_STRING} ${NODEFAULTS}"
         )
 
+        # LLVM's archiver takes lib.exe's options as llvm-lib.
+        string(REGEX REPLACE "llvm-ar([^/]*)$" "llvm-lib\\1" QUIC_LIB_TOOL "${CMAKE_AR}")
+
         # Run archiver tool (lib.exe) on our generated linker args
         add_custom_command(
             OUTPUT ${QUIC_STATIC_LIBRARY}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-            COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
+            COMMAND ${QUIC_LIB_TOOL} @${QUIC_DEPS_FILE}
             COMMAND ${CMAKE_COMMAND} -E copy "${QUIC_STATIC_LIBRARY}" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core

@@ -275,30 +275,48 @@ if (WIN32)
         message(FATAL_ERROR "-UseSystemOpenSSLCrypto is currently not supported on Windows platforms.")
     endif()
 
-    set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
-    set(QUIC_COMMON_FLAGS /utf-8)
+    # clang's GNU driver (clang, not clang-cl) takes GCC-style options.
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND
+       CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
+        set(QUIC_CLANG_GNU_DRIVER ON)
+    endif()
 
     include(CheckCCompilerFlag)
 
-    if(NOT QUIC_SANITIZER_ACTIVE)
-        check_c_compiler_flag(/Qspectre HAS_SPECTRE)
-    endif()
-    if(HAS_SPECTRE)
-        list(APPEND QUIC_COMMON_FLAGS /Qspectre)
-    endif()
+    if(QUIC_CLANG_GNU_DRIVER)
+        # The Windows sources rely on conversions and language extensions that
+        # MSVC accepts. Keep the warnings but do not promote the two classes
+        # that are expected under this driver to errors.
+        set(QUIC_WARNING_FLAGS
+            -Wall -Wno-unknown-pragmas -Wno-missing-field-initializers
+            -Wno-unused-value -Wno-microsoft-anon-tag
+            -Wno-error=incompatible-pointer-types -Wno-error=int-conversion
+            CACHE INTERNAL "")
+        set(QUIC_COMMON_FLAGS "")
+    else()
+        set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
+        set(QUIC_COMMON_FLAGS /utf-8)
 
-    check_c_compiler_flag(/guard:cf HAS_GUARDCF)
-    if(HAS_GUARDCF)
-        list(APPEND QUIC_COMMON_FLAGS /guard:cf)
-    endif()
-
-    # Require /Qspectre and /guard:cf in CI builds
-    if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
-        if(NOT HAS_GUARDCF)
-            message(FATAL_ERROR "/guard:cf must exist for CI builds")
+        if(NOT QUIC_SANITIZER_ACTIVE)
+            check_c_compiler_flag(/Qspectre HAS_SPECTRE)
         endif()
-        if(NOT HAS_SPECTRE AND NOT QUIC_SANITIZER_ACTIVE AND NOT QUIC_UWP_BUILD)
-            message(FATAL_ERROR "/Qspectre must exist for CI builds")
+        if(HAS_SPECTRE)
+            list(APPEND QUIC_COMMON_FLAGS /Qspectre)
+        endif()
+
+        check_c_compiler_flag(/guard:cf HAS_GUARDCF)
+        if(HAS_GUARDCF)
+            list(APPEND QUIC_COMMON_FLAGS /guard:cf)
+        endif()
+
+        # Require /Qspectre and /guard:cf in CI builds
+        if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
+            if(NOT HAS_GUARDCF)
+                message(FATAL_ERROR "/guard:cf must exist for CI builds")
+            endif()
+            if(NOT HAS_SPECTRE AND NOT QUIC_SANITIZER_ACTIVE AND NOT QUIC_UWP_BUILD)
+                message(FATAL_ERROR "/Qspectre must exist for CI builds")
+            endif()
         endif()
     endif()
 
@@ -309,7 +327,11 @@ if (WIN32)
     else()
         # Configure linker to only load from the system directory.
         message(STATUS "Configuring linker to only load from the system directory")
-        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x800")
+        if (QUIC_CLANG_GNU_DRIVER)
+            set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,/DEPENDENTLOADFLAG:0x800")
+        else()
+            set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x800")
+        endif()
     endif()
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -655,13 +677,17 @@ if(WIN32)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
-    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /EHsc /permissive-)
+    if(QUIC_CLANG_GNU_DRIVER)
+        set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS})
+    else()
+        set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /EHsc /permissive-)
 
-    # These cannot be updated until CMake 3.13
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
+        # These cannot be updated until CMake 3.13
+        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
+    endif()
 
     # Find the right PGO file.
     if(NOT EXISTS "${QUIC_PGO_FILE}")
@@ -696,7 +722,10 @@ if(WIN32)
         endif()
     endif()
 
-    if(QUIC_STATIC_LINK_CRT)
+    # A toolchain's choice of CRT stands.
+    if(DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
+        message(STATUS "Configuring for the toolchain's CRT: ${CMAKE_MSVC_RUNTIME_LIBRARY}")
+    elseif(QUIC_STATIC_LINK_CRT)
         message(STATUS "Configuring for statically-linked CRT")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
@@ -706,7 +735,7 @@ if(WIN32)
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib")
     endif()
 
-    if (NOT QUIC_STATIC_LINK_CRT AND NOT QUIC_STATIC_LINK_PARTIAL_CRT)
+    if (NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY AND NOT QUIC_STATIC_LINK_CRT AND NOT QUIC_STATIC_LINK_PARTIAL_CRT)
         # We are using dynamic linking. Ensure that only the release version of CRT is used.
         message(STATUS "Configuring for release version of dynamically linked CRT")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
