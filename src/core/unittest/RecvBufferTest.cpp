@@ -2264,6 +2264,50 @@ TEST(RecvBufferResetReadTest, ResetClearsPendingAndExternalReference_SingleMode)
     EXPECT_EQ(16ull, RecvBuf.RecvBuf.ReadPendingLength);
 }
 
+TEST(RecvBufferResetReadTest, ResetFreesRetiredChunk_SingleMode)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Initialize(
+            QUIC_RECV_BUF_MODE_SINGLE, false, DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
+
+    uint64_t FlowControl = LARGE_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 32, &FlowControl, &NewDataReady));
+
+    // Read to reference the first chunk.
+    uint64_t ReadOffset = 0;
+    QUIC_BUFFER Buffers[3] = {};
+    uint32_t BufferCount = ARRAYSIZE(Buffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, Buffers);
+    ASSERT_EQ(32ull, RecvBuf.RecvBuf.ReadPendingLength);
+
+    // Write past the end of the chunk while the read is pending: the referenced chunk is retired.
+    FlowControl = LARGE_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(32, 64, &FlowControl, &NewDataReady));
+    ASSERT_NE(nullptr, RecvBuf.RecvBuf.RetiredChunk);
+
+    // Cancelling the read must free the retired chunk.
+    QuicRecvBufferResetRead(&RecvBuf.RecvBuf);
+    EXPECT_EQ(0ull, RecvBuf.RecvBuf.ReadPendingLength);
+    EXPECT_EQ(nullptr, RecvBuf.RecvBuf.RetiredChunk);
+
+    // Read again and grow the buffer a second time: this must retire the new chunk
+    // without finding a stale retired chunk.
+    ReadOffset = 0;
+    BufferCount = ARRAYSIZE(Buffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, Buffers);
+    ASSERT_EQ(96ull, RecvBuf.RecvBuf.ReadPendingLength);
+    FlowControl = LARGE_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(96, 256, &FlowControl, &NewDataReady));
+    ASSERT_NE(nullptr, RecvBuf.RecvBuf.RetiredChunk);
+
+    // Draining completes the read and frees the retired chunk.
+    RecvBuf.Drain(96);
+    EXPECT_EQ(nullptr, RecvBuf.RecvBuf.RetiredChunk);
+}
+
 // Tests for overlapping write behavior - verifies that overlapping writes
 // do not corrupt previously received data.
 //
