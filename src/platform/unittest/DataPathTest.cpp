@@ -852,6 +852,36 @@ TEST_P(DataPathTest, UdpData)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
 
+#if defined(_WIN32) || defined(__APPLE__)
+//
+// Deleting a socket must release its port before CxPlatSocketDelete returns,
+// so the same port can be bound again right away. The epoll datapath still
+// closes the socket later on its event queue, so Linux is not covered here.
+//
+TEST_P(DataPathTest, UdpRebindSamePortAfterDelete)
+{
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
+    auto unspecAddress = GetNewUnspecAddr();
+    {
+        CxPlatSocket Socket(Datapath, &unspecAddress.SockAddr);
+        while (Socket.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+            unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+            Socket.CreateUdp(Datapath, &unspecAddress.SockAddr);
+        }
+        VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
+    }
+
+    for (uint32_t i = 0; i < 100; ++i) {
+        CxPlatSocket Socket(Datapath, &unspecAddress.SockAddr);
+        VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
+        ASSERT_NE(nullptr, Socket.Socket);
+    }
+}
+#endif
+
 #ifdef _WIN32
 TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
     UdpRecvContext RecvContext;
