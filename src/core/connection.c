@@ -409,6 +409,9 @@ QuicConnFree(
     if (Connection->OrigDestCID != NULL) {
         CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
     }
+    if (Connection->RetrySourceCID != NULL) {
+        CXPLAT_FREE(Connection->RetrySourceCID, QUIC_POOL_CID);
+    }
     if (Connection->HandshakeTP != NULL) {
         QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
         CxPlatPoolFree(Connection->HandshakeTP);
@@ -2694,7 +2697,16 @@ QuicConnValidateTransportParameterCIDs(
                     "Server didn't provide the retry source CID in TP");
                 return FALSE;
             }
-            // TODO - Validate
+            CXPLAT_DBG_ASSERT(Connection->RetrySourceCID);
+            if (Connection->RetrySourceCID->Length != Connection->PeerTransportParams.RetrySourceConnectionIDLength ||
+                memcmp(Connection->RetrySourceCID->Data, Connection->PeerTransportParams.RetrySourceConnectionID, Connection->RetrySourceCID->Length) != 0) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Retry source CID from TP doesn't match");
+                return FALSE;
+            }
         } else {
             if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
                 QuicTraceEvent(
@@ -3639,6 +3651,12 @@ QuicConnRecvRetry(
         return;
     }
 
+    if (Packet->DestCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1 ||
+        Packet->SourceCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
+        QuicPacketLogDrop(Connection, Packet, "Greater than allowed max CID length");
+        return;
+    }
+
     if (!QuicVersionNegotiationExtIsVersionClientSupported(Connection, Packet->LH->Version)) {
         QuicPacketLogDrop(Connection, Packet, "Retry Version not supported by client");
         return;
@@ -3695,6 +3713,29 @@ QuicConnRecvRetry(
     }
 
     //
+    // Save the Retry Source CID for later validation in the TP.
+    //
+    CXPLAT_DBG_ASSERT(Connection->RetrySourceCID == NULL);
+    Connection->RetrySourceCID =
+        CXPLAT_ALLOC_NONPAGED(
+            sizeof(QUIC_CID) + Packet->SourceCidLen,
+            QUIC_POOL_CID);
+    if (Connection->RetrySourceCID == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "RetrySourceCID",
+            sizeof(QUIC_CID) + Packet->SourceCidLen);
+        QuicPacketLogDrop(Connection, Packet, "RetrySourceCID alloc failed");
+        return;
+    }
+    Connection->RetrySourceCID->Length = Packet->SourceCidLen;
+    CxPlatCopyMemory(
+        Connection->RetrySourceCID->Data,
+        Packet->SourceCid,
+        Packet->SourceCidLen);
+
+    //
     // Cache the Retry token.
     //
 
@@ -3705,6 +3746,8 @@ QuicConnRecvRetry(
             "Allocation of '%s' failed. (%llu bytes)",
             "InitialToken",
             TokenLength);
+        CXPLAT_FREE(Connection->RetrySourceCID, QUIC_POOL_CID);
+        Connection->RetrySourceCID = NULL;
         QuicPacketLogDrop(Connection, Packet, "InitialToken alloc failed");
         return;
     }
