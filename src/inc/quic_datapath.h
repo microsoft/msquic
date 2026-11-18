@@ -92,9 +92,11 @@ typedef enum CXPLAT_DSCP_TYPE {
 #define CXPLAT_MAX_DSCP 63
 
 //
-// The maximum IP MTU this implementation supports for QUIC.
+// The maximum IP MTU this implementation supports for QUIC. Matches Azure's
+// Mellanox VF limit; DPLPMTUD still starts at 1500 and only probes higher when
+// MaximumMtu is configured above it.
 //
-#define CXPLAT_MAX_MTU 1500
+#define CXPLAT_MAX_MTU 3900
 
 //
 // The buffer size that must be allocated to fit the maximum UDP payload we
