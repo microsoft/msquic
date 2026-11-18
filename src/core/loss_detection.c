@@ -583,13 +583,10 @@ QuicLossDetectionOnPacketAcknowledged(
             break;
 
         case QUIC_FRAME_NEW_CONNECTION_ID: {
-            BOOLEAN IsLastCid;
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QuicConnGetSourceCidFromSeq(
                     Connection,
-                    Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
-                    FALSE,
-                    &IsLastCid);
+                    Packet->Frames[i].NEW_CONNECTION_ID.Sequence);
             if (SourceCid != NULL) {
                 SourceCid->CID.Acknowledged = TRUE;
             }
@@ -786,13 +783,10 @@ QuicLossDetectionRetransmitFrames(
             break;
 
         case QUIC_FRAME_NEW_CONNECTION_ID: {
-            BOOLEAN IsLastCid;
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QuicConnGetSourceCidFromSeq(
                     Connection,
-                    Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
-                    FALSE,
-                    &IsLastCid);
+                    Packet->Frames[i].NEW_CONNECTION_ID.Sequence);
             if (SourceCid != NULL &&
                 !SourceCid->CID.Acknowledged) {
                 SourceCid->CID.NeedsToSend = TRUE;
