@@ -130,7 +130,7 @@ PrintHelp(
         "  -exec:<profile>          Execution profile to use.\n"
         "                            - {lowlat, maxtput, scavenger, realtime}.\n"
         "  -cc:<algo>               Congestion control algorithm to use.\n"
-        "                            - {cubic, bbr}.\n"
+        "                            - {cubic, bbr, bbrv3}.\n"
         "  -hystart:<0/1>           Disables/enables HyStart++ when using CUBIC. (def:0)\n"
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
@@ -285,6 +285,8 @@ QuicMainStart(
             PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
         } else if (IsValue(CcName, "bbr")) {
             PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+        } else if (IsValue(CcName, "bbrv3")) {
+            PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR_V3;
         } else {
             WriteOutput("Failed to parse congestion control algorithm[%s], use cubic as default\n", CcName);
         }
