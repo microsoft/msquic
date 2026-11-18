@@ -55,7 +55,11 @@ TEST(SpinFrame, SpinFrame1000000)
         QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT16_MAX,
         "Tests below assumes frames fit in 16-bits");
 
-    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);
+    // Array-only: fuzzed ACK decoding is capped at 256 subranges.
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_DECODE_ACKS,
+        QUIC_RANGE_MODE_ARRAY,
+        &AckBlocks);
 
     //
     // This test generates random "frames" of data to be decoded by the framing

@@ -384,6 +384,9 @@ TEST(RecvBufferTest, WrittenRangesPromoteAfterArrayThreshold)
     ASSERT_EQ(
         RecvBuf.RecvBuf.WrittenRanges.Mode,
         QUIC_RANGE_MODE_ARRAY);
+    ASSERT_EQ(
+        RecvBuf.RecvBuf.WrittenRanges.AllowedModes,
+        QUIC_RANGE_MODE_ARRAY | QUIC_RANGE_MODE_TIERED);
 
     uint64_t WriteQuota = UINT64_MAX;
     BOOLEAN NewDataReady;
@@ -397,6 +400,9 @@ TEST(RecvBufferTest, WrittenRangesPromoteAfterArrayThreshold)
     ASSERT_EQ(
         RecvBuf.RecvBuf.WrittenRanges.Mode,
         QUIC_RANGE_MODE_TIERED);
+    ASSERT_EQ(
+        RecvBuf.RecvBuf.WrittenRanges.AllowedModes,
+        QUIC_RANGE_MODE_ARRAY | QUIC_RANGE_MODE_TIERED);
     ASSERT_EQ(
         QuicRangeSize(&RecvBuf.RecvBuf.WrittenRanges),
         QUIC_RANGE_TIERED_PROMOTE_LENGTH + 1);

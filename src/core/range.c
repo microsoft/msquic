@@ -5,31 +5,61 @@
 
 Abstract:
 
-    A set of unique 64-bit values, stored as an array of subranges ordered from
-    smallest to largest.
+    A set of unique 64-bit values, stored as ordered subranges.
 
 --*/
 
 #include "precomp.h"
-#include "range_tiered.h"
-#ifdef QUIC_CLOG
-#include "range.c.clog.h"
-#endif
+
+//
+// Copies a small tiered range back into embedded array storage.
+//
+static
+void
+QuicRangeDemote(
+    _Inout_ QUIC_RANGE* Range
+    )
+{
+    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_TIERED);
+    CXPLAT_DBG_ASSERT(
+        (Range->AllowedModes & QUIC_RANGE_MODE_ARRAY) != 0);
+    QUIC_RANGE_TIERED* Tiered = Range->Tiered;
+    const uint32_t UsedLength = QuicRangeTieredSize(Tiered);
+    CXPLAT_DBG_ASSERT(
+        UsedLength <=
+            QUIC_RANGE_INITIAL_SUB_COUNT);
+
+    //
+    // Copy in logical order before replacing the active union member.
+    //
+    for (uint32_t i = 0; i < UsedLength; ++i) {
+        Range->Array.PreAllocSubRanges[i] =
+            *QuicRangeTieredGet(Tiered, i);
+    }
+
+    QuicRangeTieredUninitialize(Tiered);
+    QuicRangeArrayInitialize(&Range->Array);
+    Range->Array.UsedLength = UsedLength;
+    Range->Mode = QUIC_RANGE_MODE_ARRAY;
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeInitialize(
     _In_ uint32_t MaxAllocSize,
+    _In_ QUIC_RANGE_MODE_MASK AllowedModes,
     _Out_ QUIC_RANGE* Range
     )
 {
-    Range->UsedLength = 0;
-    Range->AllocLength = QUIC_RANGE_INITIAL_SUB_COUNT;
+    CXPLAT_DBG_ASSERT(
+        AllowedModes == QUIC_RANGE_MODE_ARRAY ||
+        AllowedModes ==
+            (QUIC_RANGE_MODE_ARRAY | QUIC_RANGE_MODE_TIERED));
+    QuicRangeArrayInitialize(&Range->Array);
     Range->MaxAllocSize = MaxAllocSize;
     CXPLAT_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * QUIC_RANGE_INITIAL_SUB_COUNT < MaxAllocSize);
-    Range->SubRanges = Range->PreAllocSubRanges;
-    // Invariant: New ranges begin with the array union member active.
     Range->Mode = QUIC_RANGE_MODE_ARRAY;
+    Range->AllowedModes = AllowedModes;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -40,12 +70,10 @@ QuicRangeUninitialize(
 {
     // Dispatch before interpreting the backing-storage union as an array pointer.
     if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
-        QuicRangeTieredUninitialize(Range);
+        QuicRangeTieredUninitialize(Range->Tiered);
         return;
     }
-    if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
-        CXPLAT_FREE(Range->SubRanges, QUIC_POOL_RANGE);
-    }
+    QuicRangeArrayUninitialize(&Range->Array);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -54,158 +82,93 @@ QuicRangeReset(
     _Inout_ QUIC_RANGE* Range
     )
 {
-    // Tiered reset also releases the directory and blocks before returning inline.
     if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
-        QuicRangeTieredReset(Range);
+        QuicRangeTieredUninitialize(Range->Tiered);
+        QuicRangeArrayInitialize(&Range->Array);
+        Range->Mode = QUIC_RANGE_MODE_ARRAY;
         return;
     }
-    Range->UsedLength = 0;
+    QuicRangeArrayReset(&Range->Array);
 }
 
 //
 // Returns TRUE when the next array growth should instead promote to tiered
-// storage. Only maximum-budget ranges promote; smaller capped ranges preserve
-// their existing aging behavior.
+// storage. The range must opt in and have enough budget for the initial tiered
+// directory and two data blocks.
 //
 static BOOLEAN
 QuicRangeShouldPromote(
     _In_ const QUIC_RANGE* Range
     )
 {
-    return
-        Range->Mode == QUIC_RANGE_MODE_ARRAY &&
-        Range->MaxAllocSize == QUIC_MAX_RANGE_ALLOC_SIZE &&
-        Range->UsedLength == QUIC_RANGE_TIERED_PROMOTE_LENGTH &&
-        Range->AllocLength == QUIC_RANGE_TIERED_PROMOTE_LENGTH;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != FALSE)
-BOOLEAN
-QuicRangeGrow(
-    _Inout_ QUIC_RANGE* Range,
-    _In_ uint32_t NextIndex   // The next index to write to after the grow.
-    )
-{
-    // Invariant: Tiered storage handles its own block growth.
-    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_ARRAY);
-    if (Range->AllocLength == QUIC_MAX_RANGE_ALLOC_SIZE) {
-        return FALSE; // Can't grow any more.
-    }
-
-    uint32_t NewAllocLength = Range->AllocLength << 1; // Grow by a factor of 2.
-    uint32_t NewAllocSize = NewAllocLength * sizeof(QUIC_SUBRANGE);
-    CXPLAT_FRE_ASSERTMSG(NewAllocSize > sizeof(QUIC_SUBRANGE), "Range alloc arithmetic underflow.");
-    if (NewAllocSize > Range->MaxAllocSize) {
-        //
-        // Don't log anything as this will be the common case after we hit the
-        // cap. For instance, after receiving lots of packets.
-        //
+    if (Range->Mode != QUIC_RANGE_MODE_ARRAY ||
+        (Range->AllowedModes & QUIC_RANGE_MODE_TIERED) == 0) {
         return FALSE;
     }
 
-    QUIC_SUBRANGE* NewSubRanges = CXPLAT_ALLOC_NONPAGED(NewAllocSize, QUIC_POOL_RANGE);
-    if (NewSubRanges == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "range (realloc)",
-            NewAllocLength);
+    if (Range->Array.UsedLength != QUIC_RANGE_TIERED_PROMOTE_LENGTH ||
+        Range->Array.AllocLength != QUIC_RANGE_TIERED_PROMOTE_LENGTH) {
         return FALSE;
     }
 
-    //
-    // Move the items to the new array and make room for the next index to write.
-    //
-
-    CXPLAT_DBG_ASSERT(Range->SubRanges != 0);
-    if (NextIndex == 0) {
-        memcpy(
-            NewSubRanges + 1,
-            Range->SubRanges,
-            Range->UsedLength * sizeof(QUIC_SUBRANGE));
-    } else if (NextIndex == Range->UsedLength) {
-        memcpy(
-            NewSubRanges,
-            Range->SubRanges,
-            Range->UsedLength * sizeof(QUIC_SUBRANGE));
-    } else {
-        memcpy(
-            NewSubRanges,
-            Range->SubRanges,
-            NextIndex * sizeof(QUIC_SUBRANGE));
-        memcpy(
-            NewSubRanges + NextIndex + 1,
-            Range->SubRanges + NextIndex,
-            (Range->UsedLength - NextIndex) * sizeof(QUIC_SUBRANGE));
-    }
-
-    if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
-        CXPLAT_FREE(Range->SubRanges, QUIC_POOL_RANGE);
-    }
-    Range->SubRanges = NewSubRanges;
-    Range->AllocLength = NewAllocLength;
-    Range->UsedLength++; // For the next write index.
-
-    return TRUE;
+    return QuicRangeTieredCanPromote(Range->MaxAllocSize);
 }
 
 //
-// Reads the array for inserting a new subrange at the given index.
+// Dispatches insertion to the active storage backend and promotes an eligible
+// full array before publishing the tiered representation.
 //
+static
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SUBRANGE*
-QuicRangeMakeSpace(
+QuicRangeInsertSubrange(
     _Inout_ QUIC_RANGE* Range,
-    _Inout_ uint32_t* Index
+    _In_ uint32_t Index,
+    _In_ uint64_t Low,
+    _In_ uint64_t Count
     )
 {
-    // Invariant: Tiered insertion bypasses the flat-array space helper.
-    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_ARRAY);
-    CXPLAT_DBG_ASSERT(*Index <= Range->UsedLength);
-
-    if (Range->UsedLength == Range->AllocLength) {
-        if (!QuicRangeGrow(Range, *Index)) {
-            //
-            // We either can't or aren't allowed to grow any more. If we weren't
-            // trying to append to the front, age out the smallest values to
-            // make room for a new larger one.
-            //
-            if (Range->MaxAllocSize == QUIC_MAX_RANGE_ALLOC_SIZE ||
-                *Index == 0) {
-                return NULL;
-            }
-
-            if (*Index > 1) {
-                memmove(
-                    Range->SubRanges,
-                    Range->SubRanges + 1,
-                    (*Index - 1) * sizeof(QUIC_SUBRANGE));
-            }
-            (*Index)--; // Actually going to be inserting 1 before where requested.
-        }
-    } else {
-        CXPLAT_DBG_ASSERT(Range->SubRanges != 0);
-        if (*Index == 0) {
-            memmove(
-                Range->SubRanges + 1,
-                Range->SubRanges,
-                Range->UsedLength * sizeof(QUIC_SUBRANGE));
-        } else if (*Index == Range->UsedLength) {
-            //
-            // No need to copy. Appending to the end.
-            //
-        } else {
-            memmove(
-                Range->SubRanges + *Index + 1,
-                Range->SubRanges + *Index,
-                (Range->UsedLength - *Index) * sizeof(QUIC_SUBRANGE));
-        }
-        Range->UsedLength++; // For the new write.
+    if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
+        return
+            QuicRangeTieredInsert(
+                Range->Tiered,
+                Range->MaxAllocSize,
+                Index,
+                Low,
+                Count);
     }
 
-    return Range->SubRanges + *Index;
+    if (!QuicRangeShouldPromote(Range)) {
+        return
+            QuicRangeArrayInsert(
+                &Range->Array,
+                Range->MaxAllocSize,
+                Index,
+                Low,
+                Count);
+    }
+
+    CXPLAT_DBG_ASSERT(
+        Range->Array.SubRanges !=
+            Range->Array.PreAllocSubRanges);
+    QUIC_RANGE_TIERED* Tiered;
+    QUIC_SUBRANGE* Sub =
+        QuicRangeTieredConvertAndInsert(
+            Range->Array.SubRanges,
+            Range->Array.UsedLength,
+            Range->MaxAllocSize,
+            Index,
+            Low,
+            Count,
+            &Tiered);
+    if (Sub != NULL) {
+        CXPLAT_DBG_ASSERT(
+            (Range->AllowedModes & QUIC_RANGE_MODE_TIERED) != 0);
+        Range->Tiered = Tiered;
+        Range->Mode = QUIC_RANGE_MODE_TIERED;
+    }
+    return Sub;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -217,52 +180,26 @@ QuicRangeRemoveSubranges(
     )
 {
     CXPLAT_DBG_ASSERT(Count > 0);
-    CXPLAT_DBG_ASSERT(Index + Count <= Range->UsedLength);
+    CXPLAT_DBG_ASSERT(Index + Count <= QuicRangeSize(Range));
 
     if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
         //
         // Tiered removal reports pointer invalidation because records may move
         // physically even when no allocation is released.
         //
-        return QuicRangeTieredRemove(Range, Index, Count);
-    }
-
-    if (Index + Count < Range->UsedLength) {
-        memmove(
-            Range->SubRanges + Index,
-            Range->SubRanges + Index + Count,
-            (Range->UsedLength - Index - Count) * sizeof(QUIC_SUBRANGE));
-    }
-
-    Range->UsedLength -= Count;
-
-    if (Range->AllocLength >= QUIC_RANGE_INITIAL_SUB_COUNT * 2 &&
-        Range->UsedLength < Range->AllocLength / 4) {
-        //
-        // Shrink
-        //
-        uint32_t NewAllocLength = Range->AllocLength / 2;
-        QUIC_SUBRANGE* NewSubRanges;
-        if (NewAllocLength == QUIC_RANGE_INITIAL_SUB_COUNT) {
-            NewSubRanges = Range->PreAllocSubRanges;
-        } else {
-            NewSubRanges =
-                CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength, QUIC_POOL_RANGE);
-            if (NewSubRanges == NULL) {
-                return FALSE;
-            }
+        QuicRangeTieredRemove(Range->Tiered, Index, Count);
+        if (QuicRangeTieredSize(Range->Tiered) <=
+            QUIC_RANGE_INITIAL_SUB_COUNT) {
+            QuicRangeDemote(Range);
         }
-        memcpy(
-            NewSubRanges,
-            Range->SubRanges,
-            Range->UsedLength * sizeof(QUIC_SUBRANGE));
-        CXPLAT_FREE(Range->SubRanges, QUIC_POOL_RANGE);
-        Range->SubRanges = NewSubRanges;
-        Range->AllocLength = NewAllocLength;
         return TRUE;
     }
 
-    return FALSE;
+    return
+        QuicRangeArrayRemoveSubranges(
+            &Range->Array,
+            Index,
+            Count);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -283,7 +220,7 @@ QuicRangeGetRange(
 
     QUIC_SUBRANGE* Sub = QuicRangeGet(Range, i);
     *Count = Sub->Count - (Low - Sub->Low);
-    *IsLastRange = (uint32_t)(i + 1) == Range->UsedLength;
+    *IsLastRange = (uint32_t)(i + 1) == QuicRangeSize(Range);
     return TRUE;
 }
 
@@ -304,7 +241,7 @@ QuicRangeAddRange(
     *RangeUpdated = FALSE;
 
 #if QUIC_RANGE_USE_BINARY_SEARCH
-    if ((Sub = QuicRangeGetSafe(Range, Range->UsedLength - 1)) != NULL &&
+    if ((Sub = QuicRangeGetSafe(Range, QuicRangeSize(Range) - 1)) != NULL &&
         Sub->Low + Sub->Count > Low) {
 #endif
         //
@@ -348,12 +285,12 @@ QuicRangeAddRange(
         //
         // New value is adjacent to the current last subrange.
         //
-        i = Range->UsedLength - 1;
+        i = QuicRangeSize(Range) - 1;
     } else {
         //
         // New value is after the current last subrange.
         //
-        i = Range->UsedLength;
+        i = QuicRangeSize(Range);
         Sub = NULL;
     }
 #endif
@@ -362,55 +299,12 @@ QuicRangeAddRange(
         //
         // Insert before the current subrange (or at the beginning).
         //
-        if (Range->Mode == QUIC_RANGE_MODE_TIERED) {
-            //
-            // Tiered insertion may physically move records before Index, so
-            // all previously returned QUIC_SUBRANGE pointers are invalidated.
-            //
-            Sub =
-                QuicRangeTieredInsert(
-                    Range,
-                    i,
-                    Low,
-                    Count);
-            if (Sub == NULL &&
-                Range->UsedLength <
-                    QuicRangeTieredGetCapacity(Range)) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "tiered range block",
-                    QUIC_RANGE_TIERED_BLOCK_BYTES);
-            }
-        } else if (QuicRangeShouldPromote(Range)) {
-            //
-            // Transfer the full array only after the directory and second block
-            // are ready, so failure preserves the complete array representation.
-            //
-            Sub =
-                QuicRangeTieredConvertAndInsert(
-                    Range,
-                    i,
-                    Low,
-                    Count);
-            if (Sub == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "tiered range conversion",
-                    0);
-            }
-        } else {
-            //
-            // Array mode reserves the slot first, then initializes the new record.
-            // Tiered insertion already writes the record during its mutation.
-            //
-            Sub = QuicRangeMakeSpace(Range, &i);
-            if (Sub != NULL) {
-                Sub->Low = Low;
-                Sub->Count = Count;
-            }
-        }
+        Sub =
+            QuicRangeInsertSubrange(
+                Range,
+                i,
+                Low,
+                Count);
         if (Sub == NULL) {
             return NULL;
         }
@@ -521,7 +415,7 @@ QuicRangeGetMinSafe(
     _Out_ uint64_t* Value
     )
 {
-    if (Range->UsedLength > 0) {
+    if (QuicRangeSize(Range) > 0) {
         *Value = QuicRangeGetMin(Range);
         return TRUE;
     }
@@ -534,7 +428,11 @@ QuicRangeGetMax(
     _In_ QUIC_RANGE* Range
     )
 {
-    return QuicRangeGetHigh(QuicRangeGet(Range, Range->UsedLength - 1));
+    return
+        QuicRangeGetHigh(
+            QuicRangeGet(
+                Range,
+                QuicRangeSize(Range) - 1));
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -545,7 +443,7 @@ QuicRangeGetMaxSafe(
     _Out_ uint64_t* Value
     )
 {
-    if (Range->UsedLength > 0) {
+    if (QuicRangeSize(Range) > 0) {
         *Value = QuicRangeGetMax(Range);
         return TRUE;
     }

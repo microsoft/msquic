@@ -44,6 +44,7 @@
     <ClCompile Include="packet_builder.c" />
     <ClCompile Include="packet_space.c" />
     <ClCompile Include="path.c" />
+    <ClCompile Include="range_array.c" />
     <ClCompile Include="range.c" />
     <ClCompile Include="range_tiered.c" />
     <ClCompile Include="recv_buffer.c" />
@@ -87,7 +88,9 @@
     <ClInclude Include="path.h" />
     <ClInclude Include="precomp.h" />
     <ClInclude Include="quicdef.h" />
+    <ClInclude Include="range_array.h" />
     <ClInclude Include="range.h" />
+    <ClInclude Include="range_subrange.h" />
     <ClInclude Include="range_tiered.h" />
     <ClInclude Include="recv_buffer.h" />
     <ClInclude Include="registration.h" />
