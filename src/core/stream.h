@@ -9,6 +9,10 @@
 #include "stream.h.clog.h"
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
 //
@@ -1077,3 +1081,7 @@ QuicStreamNotifyReceiveBufferNeeded(
     _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLengthNeeded
     );
+
+#if defined(__cplusplus)
+}
+#endif
