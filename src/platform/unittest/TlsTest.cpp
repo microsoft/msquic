@@ -16,6 +16,7 @@
 #pragma warning(pop)
 #endif
 #include <fcntl.h>
+#include <string>
 
 #ifdef QUIC_CLOG
 #include "TlsTest.cpp.clog.h"
@@ -32,6 +33,49 @@ const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku
 
 bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
 bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
+
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
+static int
+SetTestEnvironmentVariable(
+    _In_z_ const char* Name,
+    _In_opt_z_ const char* Value
+    )
+{
+#ifdef _WIN32
+    return _putenv_s(Name, Value == nullptr ? "" : Value);
+#else
+    return Value == nullptr ? unsetenv(Name) : setenv(Name, Value, 1);
+#endif
+}
+
+struct ScopedEnvironmentVariable {
+    const char* Name;
+    std::string OriginalValue;
+    bool HadOriginalValue;
+    bool IsSet;
+
+    ScopedEnvironmentVariable(
+        _In_z_ const char* Name,
+        _In_z_ const char* Value
+        ) :
+        Name(Name),
+        HadOriginalValue(getenv(Name) != nullptr),
+        IsSet(false)
+    {
+        if (HadOriginalValue) {
+            OriginalValue = getenv(Name);
+        }
+        IsSet = SetTestEnvironmentVariable(Name, Value) == 0;
+    }
+
+    ~ScopedEnvironmentVariable()
+    {
+        SetTestEnvironmentVariable(
+            Name,
+            HadOriginalValue ? OriginalValue.c_str() : nullptr);
+    }
+};
+#endif
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -2060,6 +2104,32 @@ TEST_F(TlsTest, ClientCertificateDeferValidationCa)
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
+}
+
+TEST_F(TlsTest, ClientCertificateDefaultStoreRejectedWithCaFile)
+{
+    ScopedEnvironmentVariable DefaultCaFile(
+        "SSL_CERT_FILE",
+        ClientCaCertificateFile);
+    ASSERT_TRUE(DefaultCaFile.IsSet);
+
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(CaClientCertParams);
+
+    QUIC_CREDENTIAL_CONFIG ServerCredConfig = *CaSelfSignedCertParams;
+    ServerCredConfig.Flags =
+        CaSelfSignedCertParamsFlags |
+        QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE |
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+    ServerCredConfig.CaCertificateFile = ServerCaCertificateFile;
+
+    CxPlatSecConfig ServerConfig;
+    ServerConfig.Load(&ServerCredConfig);
+
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, false, true);
 }
 #endif
 
