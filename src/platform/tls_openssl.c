@@ -501,10 +501,6 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             return 0;
         }
 
-        if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_0_RTT) {
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
-            TlsContext->State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
-        }
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
         TlsState->WriteKey = KeyType;
         AData->SecretSet[ProtLevel][DIR_WRITE].installed = 1;
@@ -524,6 +520,15 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         if (QUIC_FAILED(Status)) {
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return 0;
+        }
+
+        //
+        // A server only ever reads 0-RTT, and OpenSSL hands it the 0-RTT read
+        // secret only once it has accepted the early data.
+        //
+        if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_0_RTT) {
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
+            TlsContext->State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
         }
 
         if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
@@ -2848,16 +2853,21 @@ CxPlatTlsProcessCryptoData(
                     "TLS Handshake resumed");
                 State->SessionResumed = TRUE;
             }
-            if (!TlsContext->IsServer) {
-                int EarlyDataStatus = SSL_get_early_data_status(TlsContext->Ssl);
-                if (EarlyDataStatus == SSL_EARLY_DATA_ACCEPTED) {
-                    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
-                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
+            //
+            // The client learns the outcome here. The server already reported an
+            // acceptance when it installed its 0-RTT read key, so here it only
+            // reports a rejection, which lets the connection drop and discard
+            // 0-RTT packets instead of deferring them.
+            //
+            int EarlyDataStatus = SSL_get_early_data_status(TlsContext->Ssl);
+            if (!TlsContext->IsServer && EarlyDataStatus == SSL_EARLY_DATA_ACCEPTED) {
+                State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
 
-                } else if (EarlyDataStatus == SSL_EARLY_DATA_REJECTED) {
-                    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_REJECTED;
-                    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
-                }
+            } else if (EarlyDataStatus == SSL_EARLY_DATA_REJECTED &&
+                       State->EarlyDataState != CXPLAT_TLS_EARLY_DATA_ACCEPTED) {
+                State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_REJECTED;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
             }
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
 
