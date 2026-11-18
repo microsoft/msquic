@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define CXPLAT_VERSION_SALT_LENGTH 20
 #define QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH 32
 
@@ -638,3 +642,7 @@ QuicPacketLogDropWithValue(
     _In_z_ const char* Reason,
     _In_ uint64_t Value
     );
+
+#if defined(__cplusplus)
+}
+#endif
