@@ -670,6 +670,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestVersionStorage);
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestRetryConfigSetting);
+    RegisterTestFunction(QuicTestConnectValidServerCertificateAlgorithms);
 
     // Fail if no function matched
     char Buffer[256];
