@@ -206,6 +206,8 @@ A set of flags indicating which cipher suites are available to negotiate. Must b
 
 Optional pointer to CA certificate file that will be used when
 validating the peer certificate. This allows the use of a private CA.
+When configured, the certificates in this file replace the platform
+default trust anchors for this credential.
 Must be used with `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE`.
 
 # Remarks
