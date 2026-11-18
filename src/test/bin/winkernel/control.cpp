@@ -618,6 +618,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestAbortReceive_Pending);
     RegisterTestFunction(QuicTestAbortReceive_Incomplete);
     RegisterTestFunction(QuicTestSlowReceive);
+    RegisterTestFunction(QuicTestStreamZeroLengthSend);
 #ifndef QUIC_DISABLE_0RTT_TESTS
     RegisterTestFunction(QuicTestConnectAndPing_Send0Rtt);
     RegisterTestFunction(QuicTestConnectAndPing_Reject0Rtt);
