@@ -2124,14 +2124,14 @@ SendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     CxPlatSendDataFinalizeSendBuffer(SendData);
     CXPLAT_DBG_ASSERT(SendData->SegmentSize == 0 || SendData->SegmentSize >= MaxBufferLength);
-    CXPLAT_DBG_ASSERT(SendData->TotalSize + MaxBufferLength <= sizeof(SendData->Buffer));
+    if (SendData->ClientBuffer.Buffer == NULL ||
+        SendData->TotalSize + MaxBufferLength > sizeof(SendData->Buffer)) {
+        SendData->ClientBuffer.Buffer = NULL;
+        return NULL;
+    }
     CXPLAT_DBG_ASSERT(
         SendData->SegmentationSupported ||
         SendData->BufferCount < SendData->SocketContext->DatapathPartition->Datapath->SendIoVecCount);
-    UNREFERENCED_PARAMETER(MaxBufferLength);
-    if (SendData->ClientBuffer.Buffer == NULL) {
-        return NULL;
-    }
     SendData->ClientBuffer.Length = MaxBufferLength;
     return &SendData->ClientBuffer;
 }
