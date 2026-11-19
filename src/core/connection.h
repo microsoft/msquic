@@ -568,6 +568,8 @@ typedef struct QUIC_CONNECTION {
     uint32_t ReceiveQueueByteCount;
     QUIC_RX_PACKET* ReceiveQueue;
     QUIC_RX_PACKET** ReceiveQueueTail;
+    QUIC_BINDING* ReceiveBinding;
+    uint64_t ReceiveBindingGeneration;
     CXPLAT_DISPATCH_LOCK ReceiveQueueLock;
 
     //
@@ -1704,6 +1706,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvPackets(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_RX_PACKET* Packets,
     _In_ uint32_t PacketChainLength,
     _In_ uint32_t PacketChainByteLength
