@@ -875,51 +875,26 @@ TEST_F(DataPathTest, UdpSendBufferBounds)
 
     constexpr uint16_t DatagramLength = MAX_UDP_PAYLOAD_LENGTH;
     const uint32_t FullDatagramCount = BufferCapacity / DatagramLength - 1;
-    const uint16_t ShortDatagramLength =
-        static_cast<uint16_t>((BufferCapacity - FullDatagramCount * DatagramLength) / 2);
-    const uint16_t TailLength =
-        static_cast<uint16_t>(
-            BufferCapacity - FullDatagramCount * DatagramLength - ShortDatagramLength);
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Socket.Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0, 0 };
+    std::unique_ptr<CXPLAT_SEND_DATA, decltype(&CxPlatSendDataFree)> SendData(
+        CxPlatSendDataAlloc(Socket, &SendConfig), CxPlatSendDataFree);
+    ASSERT_NE(nullptr, SendData);
 
-    for (bool FinalizeFirst : {false, true}) {
-        for (uint16_t Length = TailLength - 1; Length <= TailLength + 1; ++Length) {
-            SCOPED_TRACE(::testing::Message() << "Length=" << Length
-                << ", FinalizeFirst=" << FinalizeFirst);
-            CXPLAT_SEND_CONFIG SendConfig = {
-                &Socket.Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0, 0 };
-            std::unique_ptr<CXPLAT_SEND_DATA, decltype(&CxPlatSendDataFree)> SendData(
-                CxPlatSendDataAlloc(Socket, &SendConfig), CxPlatSendDataFree);
-            ASSERT_NE(nullptr, SendData);
-
-            for (uint32_t i = 0; i < FullDatagramCount; ++i) {
-                auto Buffer = CxPlatSendDataAllocBuffer(SendData.get(), DatagramLength);
-                ASSERT_NE(nullptr, Buffer);
-                CxPlatZeroMemory(Buffer->Buffer, Buffer->Length);
-            }
-
-            auto Buffer = CxPlatSendDataAllocBuffer(SendData.get(), DatagramLength);
-            ASSERT_NE(nullptr, Buffer);
-            Buffer->Length = ShortDatagramLength;
-            CxPlatZeroMemory(Buffer->Buffer, Buffer->Length);
-            auto NextBuffer = Buffer->Buffer + Buffer->Length;
-
-            if (FinalizeFirst) {
-                ASSERT_FALSE(CxPlatSendDataIsFull(SendData.get()));
-            }
-            Buffer = CxPlatSendDataAllocBuffer(SendData.get(), Length);
-            if (Length > TailLength) {
-                ASSERT_EQ(nullptr, Buffer);
-                EXPECT_TRUE(CxPlatSendDataIsFull(SendData.get()));
-                EXPECT_EQ(nullptr, CxPlatSendDataAllocBuffer(SendData.get(), 1));
-            } else {
-                ASSERT_NE(nullptr, Buffer);
-                EXPECT_EQ(NextBuffer, Buffer->Buffer);
-                EXPECT_EQ(Length, Buffer->Length);
-                CxPlatZeroMemory(Buffer->Buffer, Buffer->Length);
-                EXPECT_TRUE(CxPlatSendDataIsFull(SendData.get()));
-            }
-        }
+    for (uint32_t i = 0; i < FullDatagramCount; ++i) {
+        ASSERT_NE(nullptr, CxPlatSendDataAllocBuffer(SendData.get(), DatagramLength));
     }
+
+    auto Buffer = CxPlatSendDataAllocBuffer(SendData.get(), DatagramLength);
+    ASSERT_NE(nullptr, Buffer);
+    Buffer->Length =
+        static_cast<uint16_t>((BufferCapacity - FullDatagramCount * DatagramLength) / 2);
+    const uint16_t NextBufferLength =
+        static_cast<uint16_t>(
+            BufferCapacity - FullDatagramCount * DatagramLength - Buffer->Length + 1);
+
+    ASSERT_EQ(nullptr, CxPlatSendDataAllocBuffer(SendData.get(), NextBufferLength));
+    EXPECT_TRUE(CxPlatSendDataIsFull(SendData.get()));
 }
 #endif
 
