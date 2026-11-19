@@ -16,6 +16,11 @@ if(QUIC_TLS_LIB STREQUAL "openssl")
     list(APPEND SOURCES TlsOpenSslTest.cpp)
 endif()
 
+if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD"
+   AND NOT QUIC_LINUX_IOURING_ENABLED)
+    list(APPEND SOURCES DataPathEpollTest.c)
+endif()
+
 add_executable(msquicplatformtest ${SOURCES})
 
 target_include_directories(msquicplatformtest PRIVATE ${PROJECT_SOURCE_DIR}/src/core)

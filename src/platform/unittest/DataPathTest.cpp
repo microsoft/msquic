@@ -14,6 +14,16 @@ Abstract:
 #include "main.h"
 #include "quic_datapath.h"
 
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
+#include <memory>
+
+extern "C"
+uint32_t
+CxPlatTestDataPathDisableSegmentation(
+    CXPLAT_DATAPATH* Datapath
+    );
+#endif
+
 #include "msquic.h"
 #ifdef QUIC_CLOG
 #include "DataPathTest.cpp.clog.h"
@@ -851,6 +861,42 @@ TEST_P(DataPathTest, UdpData)
     Client.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
+
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING)
+TEST_F(DataPathTest, UdpSendBufferBounds)
+{
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    const uint32_t BufferCapacity = CxPlatTestDataPathDisableSegmentation(Datapath);
+
+    auto LocalAddress = GetNewLocalIPv4(false);
+    CxPlatSocket Socket(Datapath, &LocalAddress.SockAddr);
+    VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
+
+    constexpr uint16_t DatagramLength = MAX_UDP_PAYLOAD_LENGTH;
+    const uint32_t FullDatagramCount = BufferCapacity / DatagramLength - 1;
+    CXPLAT_SEND_CONFIG SendConfig = {
+        &Socket.Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0, 0 };
+    std::unique_ptr<CXPLAT_SEND_DATA, decltype(&CxPlatSendDataFree)> SendData(
+        CxPlatSendDataAlloc(Socket, &SendConfig), CxPlatSendDataFree);
+    ASSERT_NE(nullptr, SendData);
+
+    for (uint32_t i = 0; i < FullDatagramCount; ++i) {
+        ASSERT_NE(nullptr, CxPlatSendDataAllocBuffer(SendData.get(), DatagramLength));
+    }
+
+    auto Buffer = CxPlatSendDataAllocBuffer(SendData.get(), DatagramLength);
+    ASSERT_NE(nullptr, Buffer);
+    Buffer->Length =
+        static_cast<uint16_t>((BufferCapacity - FullDatagramCount * DatagramLength) / 2);
+    const uint16_t NextBufferLength =
+        static_cast<uint16_t>(
+            BufferCapacity - FullDatagramCount * DatagramLength - Buffer->Length + 1);
+
+    ASSERT_EQ(nullptr, CxPlatSendDataAllocBuffer(SendData.get(), NextBufferLength));
+    EXPECT_TRUE(CxPlatSendDataIsFull(SendData.get()));
+}
+#endif
 
 #ifdef _WIN32
 TEST_P(DataPathTest, UdpDataShareCibirUdpPort) {
