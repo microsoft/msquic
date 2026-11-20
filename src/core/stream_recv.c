@@ -23,10 +23,16 @@ QuicStreamReceiveComplete(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicStreamProcessResetFrame(
+static BOOLEAN
+QuicStreamSetResetFinalSize(
     _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t FinalSize,
+    _In_ uint64_t FinalSize
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static void
+QuicStreamCompleteRecvReset(
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_VAR_INT ErrorCode
     );
 
@@ -80,11 +86,9 @@ QuicStreamRecvShutdown(
         // The peer already sent its final size. Discard any remaining reads
         // as if it had acknowledged the receive shutdown with a reset.
         //
-        QuicStreamProcessResetFrame(
-            Stream,
-            Stream->RecvMaxLength,
-            Stream->Flags.RemoteCloseResetReliable ? Stream->RecvShutdownErrorCode : 0);
-        Silent = TRUE; // To indicate we try to shutdown complete.
+        if (QuicStreamSetResetFinalSize(Stream, Stream->RecvMaxLength)) {
+            QuicStreamCompleteRecvReset(Stream, 0);
+        }
         goto Exit;
     }
 
@@ -273,14 +277,26 @@ QuicStreamCompleteRecvReset(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 static BOOLEAN
-QuicStreamValidateResetErrorCode(
+QuicStreamRecordRecvReset(
     _In_ QUIC_STREAM* Stream,
-    _In_ QUIC_VAR_INT ErrorCode
+    _In_ uint64_t FinalSize,
+    _In_ QUIC_VAR_INT ErrorCode,
+    _In_ BOOLEAN Reliable
     )
 {
-    if (Stream->Flags.RemoteCloseResetReliable && ErrorCode != Stream->RecvShutdownErrorCode) {
+    if (Stream->Flags.RemoteResetFrameReceived &&
+        (Reliable || Stream->Flags.RemoteCloseResetReliable) &&
+        ErrorCode != Stream->RecvShutdownErrorCode) {
         QuicConnTransportError(Stream->Connection, QUIC_ERROR_STREAM_STATE_ERROR);
         return FALSE;
+    }
+    if (!QuicStreamSetResetFinalSize(Stream, FinalSize)) {
+        return FALSE;
+    }
+
+    if (!Stream->Flags.RemoteResetFrameReceived) {
+        Stream->Flags.RemoteResetFrameReceived = TRUE;
+        Stream->RecvShutdownErrorCode = ErrorCode;
     }
     return TRUE;
 }
@@ -292,24 +308,22 @@ QuicStreamProcessReliableResetFrame(
     _In_ const QUIC_RELIABLE_RESET_STREAM_EX* Frame
     )
 {
-    if (!Stream->Connection->State.ReliableResetStreamNegotiated) {
+    if (!Stream->Connection->State.ReliableResetAdvertised) {
         QuicTraceLogStreamWarning(
             ReliableResetNotNegotiatedError,
             Stream,
             "Received ReliableReset without negotiation.");
-        QuicConnTransportError(Stream->Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+        QuicConnTransportError(Stream->Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
         return;
     }
 
-    if (!QuicStreamValidateResetErrorCode(Stream, Frame->ErrorCode) ||
-        !QuicStreamSetResetFinalSize(Stream, Frame->FinalSize) ||
+    if (!QuicStreamRecordRecvReset(Stream, Frame->FinalSize, Frame->ErrorCode, TRUE) ||
         Stream->Flags.RemoteCloseAcked) {
         return;
     }
 
     if (!Stream->Flags.RemoteCloseResetReliable || Frame->ReliableSize < Stream->ReliableOffsetRecv) {
         Stream->ReliableOffsetRecv = Frame->ReliableSize;
-        Stream->RecvShutdownErrorCode = Frame->ErrorCode;
         Stream->Flags.RemoteCloseResetReliable = TRUE;
 
         QuicTraceLogStreamInfo(
@@ -332,8 +346,7 @@ QuicStreamProcessResetFrame(
     _In_ QUIC_VAR_INT ErrorCode
     )
 {
-    if (QuicStreamValidateResetErrorCode(Stream, ErrorCode) &&
-        QuicStreamSetResetFinalSize(Stream, FinalSize)) {
+    if (QuicStreamRecordRecvReset(Stream, FinalSize, ErrorCode, FALSE)) {
         QuicStreamCompleteRecvReset(Stream, ErrorCode);
     }
 }
@@ -433,7 +446,9 @@ QuicStreamProcessStreamFrame(
                 TreatFinAsReset,
                 Stream,
                 "Treating FIN after receive abort as reset");
-            QuicStreamProcessResetFrame(Stream, Frame->Offset + Frame->Length, 0);
+            if (QuicStreamSetResetFinalSize(Stream, EndOffset)) {
+                QuicStreamCompleteRecvReset(Stream, 0);
+            }
 
         } else {
             QuicTraceLogStreamVerbose(

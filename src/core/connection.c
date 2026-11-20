@@ -2192,7 +2192,8 @@ QuicConnRecvResumptionTicket(
             ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Settings.StreamRecvWindowBidiRemoteDefault ||
             ResumedTP.InitialMaxStreamDataUni > Connection->Settings.StreamRecvWindowUnidiDefault ||
             ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
-            ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
+            ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount ||
+            ((ResumedTP.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) && !Connection->Settings.ReliableResetEnabled)) {
             //
             // Server settings have changed since the resumption ticket was
             // encoded, so reject resumption.
@@ -2414,7 +2415,8 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
     }
 
-    if (Connection->Settings.ReliableResetEnabled) {
+    Connection->State.ReliableResetAdvertised = Connection->Settings.ReliableResetEnabled;
+    if (Connection->State.ReliableResetAdvertised) {
         LocalTP->Flags |= QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
     }
 

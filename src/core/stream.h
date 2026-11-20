@@ -159,6 +159,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN InWaitingList           : 1;    // The stream is currently in the waiting list for stream id FC.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
+        BOOLEAN RemoteResetFrameReceived : 1;   // The peer's reset application error code is known.
     };
 } QUIC_STREAM_FLAGS;
 
@@ -456,7 +457,7 @@ typedef struct QUIC_STREAM {
     volatile uint64_t RecvCompletionLength;
 
     //
-    // The error code for why the receive path was shutdown.
+    // The error code for a queued STOP_SENDING or a received reset.
     //
     QUIC_VAR_INT RecvShutdownErrorCode;
 

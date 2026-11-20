@@ -264,9 +264,35 @@ TEST(TransportParamTest, GreaseQuicBit)
 
 TEST(TransportParamTest, ReliableResetEnabled)
 {
-    QUIC_TRANSPORT_PARAMETERS OriginalTP;
-    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    const uint8_t Expected[] = {0x1d, 0};
+    QUIC_TRANSPORT_PARAMETERS OriginalTP{};
     OriginalTP.Flags = QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
-    EncodeDecodeAndCompare(&OriginalTP);
-    EncodeDecodeAndCompare(&OriginalTP, true);
+
+    for (const bool IsServer : {false, true}) {
+        uint32_t BufferLength;
+        const uint8_t* Buffer =
+            QuicCryptoTlsEncodeTransportParameters(
+                &JunkConnection, IsServer, &OriginalTP, nullptr, &BufferLength);
+        ASSERT_NE(nullptr, Buffer);
+        EXPECT_EQ(CxPlatTlsTPHeaderSize + sizeof(Expected), BufferLength);
+        if (BufferLength == CxPlatTlsTPHeaderSize + sizeof(Expected)) {
+            EXPECT_EQ(0, memcmp(Expected, Buffer + CxPlatTlsTPHeaderSize, sizeof(Expected)));
+        }
+        CXPLAT_FREE(Buffer, QUIC_POOL_TLS_TRANSPARAMS);
+
+        QUIC_TRANSPORT_PARAMETERS Decoded{};
+        TransportParametersScope Scope(&Decoded);
+        ASSERT_TRUE(QuicCryptoTlsDecodeTransportParameters(
+            &JunkConnection, IsServer, Expected, sizeof(Expected), &Decoded));
+        CompareTransportParams(&OriginalTP, &Decoded, IsServer);
+    }
+}
+
+TEST(TransportParamTest, ReliableResetRejectsNonEmptyParameter)
+{
+    const uint8_t Parameter[] = {0x1d, 1, 0};
+    QUIC_TRANSPORT_PARAMETERS Decoded{};
+    TransportParametersScope Scope(&Decoded);
+    EXPECT_FALSE(QuicCryptoTlsDecodeTransportParameters(
+        &JunkConnection, false, Parameter, sizeof(Parameter), &Decoded));
 }
