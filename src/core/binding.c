@@ -1348,6 +1348,7 @@ QuicBindingCreateConnection(
 
     BindingRefAdded = TRUE;
     QuicPathGetActive(&NewConnection->Paths)->Binding = Binding;
+    NewConnection->ReceiveBinding = Binding;
 
     if (!QuicLookupAddRemoteHash(
             &Binding->Lookup,
@@ -1623,7 +1624,7 @@ QuicBindingDeliverPackets(
     }
 
     QuicConnQueueRecvPackets(
-        Connection, Packets, PacketChainLength, PacketChainByteLength);
+        Connection, Binding, Packets, PacketChainLength, PacketChainByteLength);
     QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_RESULT);
 
     return TRUE;
