@@ -965,7 +965,7 @@ QuicStreamParamGet(
             break;
         }
 
-        *(uint64_t*)Buffer = Stream->RecvMaxLength;
+        *(uint64_t*)Buffer = Stream->ReliableOffsetRecv;
         Status = QUIC_STATUS_SUCCESS;
         break;
 

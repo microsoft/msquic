@@ -4425,8 +4425,12 @@ struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ServerStreamShutdownComplete;
+    CxPlatEvent ServerReceivePending;
+    MsQuicStream* ServerStream{nullptr};
+    bool HoldServerReceive{false};
+    bool ServerConnectionShutdown{false};
     uint64_t ReceivedBufferSize;
-    uint64_t SequenceNum;
+    uint64_t SequenceNum{0};
     QUIC_UINT62 ShutdownErrorCode;
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
@@ -4442,15 +4446,21 @@ struct StreamReliableReset {
         return QUIC_STATUS_SUCCESS;
     }
 
-    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ServerContext;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
+            if (TestContext->HoldServerReceive) {
+                TestContext->ServerStream = Stream;
+                TestContext->ServerReceivePending.Set();
+                return QUIC_STATUS_PENDING;
+            }
         }
         if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_ABORTED) {
             TestContext->ShutdownErrorCode = Event->PEER_SEND_ABORTED.ErrorCode;
         }
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerConnectionShutdown = !!Event->SHUTDOWN_COMPLETE.ConnectionShutdown;
             TestContext->ServerStreamShutdownComplete.Set();
         }
         return QUIC_STATUS_SUCCESS;
@@ -4475,6 +4485,7 @@ QuicTestStreamReliableReset(
     MsQuicSettings TestSettings;
     TestSettings.SetReliableResetEnabled(true);
     TestSettings.SetPeerBidiStreamCount(1);
+    TestSettings.SetPeerUnidiStreamCount(1);
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", TestSettings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
@@ -4537,6 +4548,36 @@ QuicTestStreamReliableReset(
         // Test that the error code we got was for the SEND shutdown.
         TEST_TRUE(Context.ShutdownErrorCode == AbortSendShutdownErrorCode);
     }
+
+    //
+    // Abort a receive after the peer reliably resets with a prefix shorter than
+    // the data already indicated to the application.
+    //
+    Context.HoldServerReceive = true;
+    Context.ReceivedBufferSize = 0;
+    MsQuicStream Stream(
+        Connection,
+        QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+        CleanUpManual,
+        StreamReliableReset::ClientStreamCallback,
+        &Context);
+    TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream.Start());
+    SendContext Send = {FALSE, 0};
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_NONE, &Send));
+    TEST_TRUE(Context.ServerReceivePending.WaitTimeout(TestWaitTimeout));
+    const uint64_t ReliableOffset = 1;
+    TEST_TRUE(Context.ReceivedBufferSize > ReliableOffset);
+    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(ReliableOffset));
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(42, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+    TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+
+    uint64_t ReceivedReliableOffset = 0;
+    TEST_QUIC_SUCCEEDED(Context.ServerStream->GetReliableOffsetRecv(&ReceivedReliableOffset));
+    TEST_EQUAL(ReliableOffset, ReceivedReliableOffset);
+    TEST_QUIC_SUCCEEDED(Context.ServerStream->Shutdown(43, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE));
+    TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+    TEST_FALSE(Context.ServerConnectionShutdown);
 }
 
 void

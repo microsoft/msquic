@@ -109,6 +109,49 @@ QuicStreamIndicateSendShutdownComplete(
     }
 }
 
+static
+uint64_t
+QuicStreamGetSendLimit(
+    _In_ const QUIC_STREAM* Stream
+    )
+{
+    return Stream->Flags.LocalCloseResetReliable ?
+        Stream->ReliableOffsetSend : Stream->QueuedSendOffset;
+}
+
+static
+BOOLEAN
+QuicStreamHasPendingRecovery(
+    _In_ const QUIC_STREAM* Stream
+    )
+{
+    return RECOV_WINDOW_OPEN(Stream) &&
+        Stream->RecoveryNextOffset < QuicStreamGetSendLimit(Stream);
+}
+
+static
+BOOLEAN
+QuicStreamHasPendingStreamData(
+    _In_ const QUIC_STREAM* Stream
+    )
+{
+    return QuicStreamHasPendingRecovery(Stream) ||
+        Stream->NextSendOffset < QuicStreamGetSendLimit(Stream);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static void
+QuicStreamQueueReliableReset(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    QuicSendSetStreamSendFlag(
+        &Stream->Connection->Send,
+        Stream,
+        QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT,
+        FALSE);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamSendShutdown(
@@ -140,7 +183,8 @@ QuicStreamSendShutdown(
 
     if (Graceful) {
         CXPLAT_DBG_ASSERT(!Silent);
-        if (Stream->Flags.LocalCloseFin || Stream->Flags.LocalCloseReset) {
+        if (Stream->Flags.LocalCloseFin || Stream->Flags.LocalCloseReset ||
+            Stream->Flags.LocalCloseResetReliable) {
             //
             // We have already closed the stream (graceful or abortive) so we
             // can't gracefully close it.
@@ -169,7 +213,8 @@ QuicStreamSendShutdown(
             QUIC_STREAM_SEND_FLAG_FIN,
             DelaySend);
 
-    } else if (Stream->ReliableOffsetSend == 0 || Stream->Flags.LocalCloseResetReliable) {
+    } else if (Silent || Stream->ReliableOffsetSend == 0 ||
+        Stream->Flags.ReceivedStopSending || Stream->Flags.LocalCloseResetReliable) {
         //
         // Enter abortive branch if we are not aborting reliably or we have done it already.
         // Essentially, Reset trumps Reliable Reset, so if we have to call shutdown again, we reset.
@@ -220,7 +265,9 @@ QuicStreamSendShutdown(
         }
 
         Stream->Flags.LocalCloseReset = TRUE;
-        Stream->SendShutdownErrorCode = ErrorCode;
+        if (!Stream->Flags.LocalCloseResetReliable) {
+            Stream->SendShutdownErrorCode = ErrorCode;
+        }
 
         if (!Silent) {
             //
@@ -270,14 +317,19 @@ QuicStreamSendShutdown(
         }
 
         //
-        // Queue up a RESET RELIABLE STREAM frame to be sent. We will clear up any flags later.
+        // Only advertise a final size that has already consumed stream and
+        // connection flow-control credit. If the reliable prefix has not yet
+        // been sent, the data writer queues the reset when it reaches it.
         //
-        QuicSendSetStreamSendFlag(
+        QuicSendClearStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT,
-            FALSE);
-}
+            QUIC_STREAM_SEND_FLAG_FIN |
+                (!QuicStreamHasPendingStreamData(Stream) ? QUIC_STREAM_SEND_FLAG_DATA : 0));
+        if (Stream->MaxSentLength >= Stream->ReliableOffsetSend) {
+            QuicStreamQueueReliableReset(Stream);
+        }
+    }
 
     QuicStreamSendDumpState(Stream);
 
@@ -307,19 +359,6 @@ QuicStreamAllowedByPeer(
 }
 
 //
-// Returns TRUE if the stream has any data queued to be sent.
-//
-BOOLEAN
-QuicStreamHasPendingStreamData(
-    _In_ const QUIC_STREAM* Stream
-    )
-{
-    return
-        RECOV_WINDOW_OPEN(Stream) ||
-        (Stream->NextSendOffset < Stream->QueuedSendOffset);
-}
-
-//
 // Returns TRUE if the Stream has any data that is allowed to be sent in 0-RTT
 // still in the queue.
 //
@@ -329,7 +368,8 @@ QuicStreamHasPending0RttData(
     )
 {
     return
-        Stream->Queued0Rtt > Stream->NextSendOffset ||
+        (Stream->Queued0Rtt > Stream->NextSendOffset &&
+         Stream->NextSendOffset < QuicStreamGetSendLimit(Stream)) ||
         (Stream->NextSendOffset == Stream->QueuedSendOffset &&
          (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_FIN));
 }
@@ -353,7 +393,7 @@ QuicStreamSendCanWriteDataFrames(
         return TRUE;
     }
 
-    if (RECOV_WINDOW_OPEN(Stream)) {
+    if (QuicStreamHasPendingRecovery(Stream)) {
         //
         // We have some bytes to recover. Since these bytes are being
         // retransmitted, we can ignore flow control.
@@ -361,7 +401,7 @@ QuicStreamSendCanWriteDataFrames(
         return TRUE;
     }
 
-    if (Stream->NextSendOffset == Stream->QueuedSendOffset) {
+    if (Stream->NextSendOffset >= QuicStreamGetSendLimit(Stream)) {
         //
         // No unsent data. Can send only if a FIN is needed.
         //
@@ -899,6 +939,7 @@ QuicStreamWriteStreamFrames(
 {
     QUIC_SEND* Send = &Stream->Connection->Send;
     uint16_t BytesWritten = 0;
+    const uint64_t SendLimit = QuicStreamGetSendLimit(Stream);
 
     //
     // FUTURE: implicit data length when possible.
@@ -921,7 +962,7 @@ QuicStreamWriteStreamFrames(
         uint64_t Right;
 
         BOOLEAN Recovery;
-        if (RECOV_WINDOW_OPEN(Stream)) {
+        if (QuicStreamHasPendingRecovery(Stream)) {
             Left = Stream->RecoveryNextOffset;
             Recovery = TRUE;
         } else {
@@ -961,15 +1002,10 @@ QuicStreamWriteStreamFrames(
             }
         }
 
-        if (Sack != NULL) {
-            if (Right > Sack->Low) {
-                Right = Sack->Low;
-            }
-        } else {
-            if (Right > Stream->QueuedSendOffset) {
-                Right = Stream->QueuedSendOffset;
-            }
+        if (Sack != NULL && Right > Sack->Low) {
+            Right = Sack->Low;
         }
+        Right = CXPLAT_MIN(Right, CXPLAT_MAX(Left, SendLimit));
 
         //
         // Stream flow control
@@ -1023,7 +1059,7 @@ QuicStreamWriteStreamFrames(
         Right = Left + FramePayloadBytes;
 
         CXPLAT_DBG_ASSERT(Right <= Stream->QueuedSendOffset);
-        if (Right == Stream->QueuedSendOffset) {
+        if (Right >= SendLimit) {
             if (Stream->Flags.SendEnabled) {
                 QuicStreamAddOutFlowBlockedReason(Stream, QUIC_FLOW_BLOCKED_APP);
             }
@@ -1078,6 +1114,9 @@ QuicStreamWriteStreamFrames(
             Send->OrderedStreamBytesSent += Right - Stream->MaxSentLength;
             CXPLAT_DBG_ASSERT(Send->OrderedStreamBytesSent <= Send->PeerMaxData);
             Stream->MaxSentLength = Right;
+            if (Stream->Flags.LocalCloseResetReliable && Right == Stream->ReliableOffsetSend) {
+                QuicStreamQueueReliableReset(Stream);
+            }
         }
 
         QuicStreamValidateRecoveryState(Stream);
@@ -1293,7 +1332,7 @@ QuicStreamOnLoss(
     }
 
     if ((FrameMetadata->Flags & QUIC_SENT_FRAME_FLAG_STREAM_FIN) &&
-        !Stream->Flags.FinAcked) {
+        !Stream->Flags.FinAcked && !Stream->Flags.LocalCloseResetReliable) {
         AddSendFlags |= QUIC_STREAM_SEND_FLAG_FIN;
         QuicTraceLogStreamVerbose(
             RecoverFin,
@@ -1306,7 +1345,8 @@ QuicStreamOnLoss(
     // different packet.
     //
 
-    if (End <= Stream->UnAckedOffset) {
+    End = CXPLAT_MIN(End, QuicStreamGetSendLimit(Stream));
+    if (End <= Stream->UnAckedOffset || End <= Start) {
         goto Done;
     } else if (Start < Stream->UnAckedOffset) {
         //
@@ -1692,6 +1732,9 @@ QuicStreamOnResetReliableAck(
     )
 {
     CXPLAT_DBG_ASSERT(Stream->Flags.LocalCloseResetReliable);
+    if (Stream->Flags.LocalCloseReset) {
+        return;
+    }
     if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && !Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseResetReliableAcked = TRUE;
         QuicTraceEvent(

@@ -707,14 +707,19 @@ QuicLossDetectionRetransmitFrames(
                     FALSE);
             break;
 
-        case QUIC_FRAME_RELIABLE_RESET_STREAM:
-            NewDataQueued |=
-                QuicSendSetStreamSendFlag(
-                    &Connection->Send,
-                    Packet->Frames[i].RELIABLE_RESET_STREAM.Stream,
-                    QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT,
-                    FALSE);
+        case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+            QUIC_STREAM* Stream = Packet->Frames[i].RELIABLE_RESET_STREAM.Stream;
+            if (!Stream->Flags.LocalCloseAcked && !Stream->Flags.LocalCloseReset &&
+                !Stream->Flags.LocalCloseResetReliableAcked) {
+                NewDataQueued |=
+                    QuicSendSetStreamSendFlag(
+                        &Connection->Send,
+                        Stream,
+                        QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT,
+                        FALSE);
+            }
             break;
+        }
 
         case QUIC_FRAME_STOP_SENDING:
             NewDataQueued |=
