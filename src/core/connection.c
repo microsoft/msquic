@@ -1835,8 +1835,6 @@ QuicConnStart(
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
-        Connection->ReceiveBinding = Path->Binding;
-
         Connection->State.RemoteAddressSet = TRUE;
     }
 
@@ -1922,6 +1920,7 @@ QuicConnStart(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
+    Connection->ReceiveBinding = Path->Binding;
 
     //
     // Clients only need to generate a non-zero length source CID if it
