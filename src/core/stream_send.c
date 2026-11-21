@@ -328,6 +328,16 @@ QuicStreamSendShutdown(
                 (!QuicStreamHasPendingStreamData(Stream) ? QUIC_STREAM_SEND_FLAG_DATA : 0));
         if (Stream->MaxSentLength >= Stream->ReliableOffsetSend) {
             QuicStreamQueueReliableReset(Stream);
+        } else {
+            //
+            // No more data will be queued, so stop delaying the rest of the
+            // prefix.
+            //
+            QuicSendSetStreamSendFlag(
+                &Stream->Connection->Send,
+                Stream,
+                QUIC_STREAM_SEND_FLAG_DATA,
+                FALSE);
         }
     }
 

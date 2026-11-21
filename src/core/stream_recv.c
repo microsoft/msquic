@@ -287,6 +287,10 @@ QuicStreamRecordRecvReset(
     if (Stream->Flags.RemoteResetFrameReceived &&
         (Reliable || Stream->Flags.RemoteCloseResetReliable) &&
         ErrorCode != Stream->RecvShutdownErrorCode) {
+        QuicTraceLogStreamWarning(
+            ResetErrorCodeChanged,
+            Stream,
+            "Tried to reset with a different error code!");
         QuicConnTransportError(Stream->Connection, QUIC_ERROR_STREAM_STATE_ERROR);
         return FALSE;
     }

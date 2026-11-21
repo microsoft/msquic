@@ -9448,6 +9448,18 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "ResetErrorCodeChanged": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Tried to reset with a different error code!",
+      "UniqueId": "ResetErrorCodeChanged",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamWarning"
+    },
     "ResetTooBig": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Tried to reset with too big final size!",
@@ -16026,6 +16038,11 @@
         "UniquenessHash": "1f2558ac-412e-da8c-33d7-7c45995dbcf9",
         "TraceID": "ResetEarly",
         "EncodingString": "[strm][%p] Tried to reset at earlier final size!"
+      },
+      {
+        "UniquenessHash": "5640f90d-4b63-c24c-6a94-be3d978ec807",
+        "TraceID": "ResetErrorCodeChanged",
+        "EncodingString": "[strm][%p] Tried to reset with a different error code!"
       },
       {
         "UniquenessHash": "a3253f53-3e9c-4e45-d114-c4e99cd3cdc6",
