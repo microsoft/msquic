@@ -655,6 +655,17 @@ CxPlatRefInitializeMultiple(
 
 #define CxPlatRefUninitialize(RefCount)
 
+//
+// The return after __fastfail below is unreachable, and newer MSVC (19.52+)
+// reports it as C4702, which warnings-as-errors builds fail on. The warning is
+// raised after the function body is compiled, so a statement-level
+// '#pragma warning(suppress: 4702)' has no effect; it must be disabled around
+// the functions instead. The return is kept for compilers and analyzers that
+// require every path of a value-returning function to return.
+//
+#pragma warning(push)
+#pragma warning(disable: 4702) // unreachable code
+
 QUIC_INLINE
 void
 CxPlatRefIncrement(
@@ -733,6 +744,8 @@ CxPlatRefDecrement(
     __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     return FALSE;
 }
+
+#pragma warning(pop)
 
 //
 // Event Interfaces
