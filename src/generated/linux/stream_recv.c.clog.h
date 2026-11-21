@@ -34,30 +34,12 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for ReliableResetNotNegotiatedError
-// [strm][%p] Received ReliableReset without negotiation.
-// QuicTraceLogStreamWarning(
-            ReliableResetNotNegotiatedError,
-            Stream,
-            "Received ReliableReset without negotiation.");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ReliableResetNotNegotiatedError
-#define _clog_3_ARGS_TRACE_ReliableResetNotNegotiatedError(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ResetEarly
 // [strm][%p] Tried to reset at earlier final size!
 // QuicTraceLogStreamWarning(
-                ResetEarly,
-                Stream,
-                "Tried to reset at earlier final size!");
+            ResetEarly,
+            Stream,
+            "Tried to reset at earlier final size!");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ResetEarly
@@ -73,14 +55,50 @@ tracepoint(CLOG_STREAM_RECV_C, ResetEarly , arg1);\
 // Decoder Ring for ResetTooBig
 // [strm][%p] Tried to reset with too big final size!
 // QuicTraceLogStreamWarning(
-                    ResetTooBig,
-                    Stream,
-                    "Tried to reset with too big final size!");
+            ResetTooBig,
+            Stream,
+            "Tried to reset with too big final size!");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ResetTooBig
 #define _clog_3_ARGS_TRACE_ResetTooBig(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, ResetTooBig , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ResetErrorCodeChanged
+// [strm][%p] Tried to reset with a different error code!
+// QuicTraceLogStreamWarning(
+            ResetErrorCodeChanged,
+            Stream,
+            "Tried to reset with a different error code!");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ResetErrorCodeChanged
+#define _clog_3_ARGS_TRACE_ResetErrorCodeChanged(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, ResetErrorCodeChanged , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ReliableResetNotNegotiatedError
+// [strm][%p] Received ReliableReset without negotiation.
+// QuicTraceLogStreamWarning(
+            ReliableResetNotNegotiatedError,
+            Stream,
+            "Received ReliableReset without negotiation.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ReliableResetNotNegotiatedError
+#define _clog_3_ARGS_TRACE_ReliableResetNotNegotiatedError(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError , arg1);\
 
 #endif
 
@@ -148,9 +166,9 @@ tracepoint(CLOG_STREAM_RECV_C, RemoteCloseReset , arg1);\
             ReliableRecvOffsetSet,
             Stream,
             "Reliable recv offset set to %llu",
-            ReliableOffset);
+            Stream->ReliableOffsetRecv);
 // arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = ReliableOffset = arg3
+// arg3 = arg3 = Stream->ReliableOffsetRecv = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ReliableRecvOffsetSet
 #define _clog_4_ARGS_TRACE_ReliableRecvOffsetSet(uniqueId, arg1, encoded_arg_string, arg3)\

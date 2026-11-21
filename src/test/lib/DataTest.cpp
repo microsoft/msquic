@@ -4425,8 +4425,12 @@ struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ServerStreamShutdownComplete;
+    CxPlatEvent ServerReceivePending;
+    MsQuicStream* ServerStream{nullptr};
+    bool HoldServerReceive{false};
+    bool ServerConnectionShutdown{false};
     uint64_t ReceivedBufferSize;
-    uint64_t SequenceNum;
+    uint64_t SequenceNum{0};
     QUIC_UINT62 ShutdownErrorCode;
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
@@ -4442,15 +4446,21 @@ struct StreamReliableReset {
         return QUIC_STATUS_SUCCESS;
     }
 
-    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ServerContext;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
+            if (TestContext->HoldServerReceive) {
+                TestContext->ServerStream = Stream;
+                TestContext->ServerReceivePending.Set();
+                return QUIC_STATUS_PENDING;
+            }
         }
         if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_ABORTED) {
             TestContext->ShutdownErrorCode = Event->PEER_SEND_ABORTED.ErrorCode;
         }
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerConnectionShutdown = !!Event->SHUTDOWN_COMPLETE.ConnectionShutdown;
             TestContext->ServerStreamShutdownComplete.Set();
         }
         return QUIC_STATUS_SUCCESS;
@@ -4475,6 +4485,7 @@ QuicTestStreamReliableReset(
     MsQuicSettings TestSettings;
     TestSettings.SetReliableResetEnabled(true);
     TestSettings.SetPeerBidiStreamCount(1);
+    TestSettings.SetPeerUnidiStreamCount(1);
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", TestSettings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
@@ -4537,6 +4548,36 @@ QuicTestStreamReliableReset(
         // Test that the error code we got was for the SEND shutdown.
         TEST_TRUE(Context.ShutdownErrorCode == AbortSendShutdownErrorCode);
     }
+
+    //
+    // Abort a receive after the peer reliably resets with a prefix shorter than
+    // the data already indicated to the application.
+    //
+    Context.HoldServerReceive = true;
+    Context.ReceivedBufferSize = 0;
+    MsQuicStream Stream(
+        Connection,
+        QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+        CleanUpManual,
+        StreamReliableReset::ClientStreamCallback,
+        &Context);
+    TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream.Start());
+    SendContext Send = {FALSE, 0};
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_NONE, &Send));
+    TEST_TRUE(Context.ServerReceivePending.WaitTimeout(TestWaitTimeout));
+    const uint64_t ReliableOffset = 1;
+    TEST_TRUE(Context.ReceivedBufferSize > ReliableOffset);
+    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(ReliableOffset));
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(42, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+    TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+
+    uint64_t ReceivedReliableOffset = 0;
+    TEST_QUIC_SUCCEEDED(Context.ServerStream->GetReliableOffsetRecv(&ReceivedReliableOffset));
+    TEST_EQUAL(ReliableOffset, ReceivedReliableOffset);
+    TEST_QUIC_SUCCEEDED(Context.ServerStream->Shutdown(43, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE));
+    TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+    TEST_FALSE(Context.ServerConnectionShutdown);
 }
 
 void
@@ -4620,6 +4661,162 @@ QuicTestStreamReliableResetMultipleSends(
 
     // Test Error code matches what we sent.
     TEST_TRUE(Context.ShutdownErrorCode == AbortShutdownErrorCode);
+}
+
+void
+QuicTestStreamReliableResetFlowControl(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    //
+    // Small receive windows keep the sender from delivering the reliable
+    // prefix until the receiver drains.
+    //
+    const uint32_t StreamWindow = 8192;
+    const uint64_t BlockedReliableOffset = 2 * StreamWindow + 1;
+    MsQuicSettings TestSettings;
+    TestSettings.SetReliableResetEnabled(true);
+    TestSettings.SetPeerUnidiStreamCount(16);
+    TestSettings.SetStreamRecvWindowDefault(StreamWindow);
+    TestSettings.SetConnFlowControlWindow(2 * StreamWindow);
+    //
+    // Without path MTU probes, nothing but the stream itself flushes a delayed
+    // send.
+    //
+    TestSettings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", TestSettings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", TestSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    StreamReliableReset Context;
+    UniquePtrArray<uint8_t> SendDataBuffer = UniquePtrArray<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE]);
+
+    QUIC_BUFFER SendBuffer { BUFFER_SIZE, SendDataBuffer.get() };
+    Context.ReceivedBufferSize = 0;
+    Context.ShutdownErrorCode = 0;
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+    TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+    CxPlatSleep(100); // Wait for things to idle out
+
+    const QUIC_UINT62 AbortSendErrorCode = 0x696969696969;
+    const QUIC_UINT62 SecondAbortSendErrorCode = 0x969696969696;
+    const QUIC_UINT62 AbortRecvErrorCode = 0x420420420420;
+
+    //
+    // A delayed send still goes out once the stream is reliably reset.
+    //
+    {
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+        SendContext Send = {FALSE, 0};
+        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Send));
+        TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortSendErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+        TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
+        TEST_EQUAL(AbortSendErrorCode, Context.ShutdownErrorCode);
+    }
+
+    //
+    // The reset is not sent before the peer's flow control admits the whole
+    // reliable prefix.
+    //
+    {
+        Context.HoldServerReceive = true;
+        Context.ReceivedBufferSize = 0;
+        Context.ShutdownErrorCode = 0;
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+        SendContext Send = {FALSE, 0};
+        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_NONE, &Send));
+        TEST_TRUE(Context.ServerReceivePending.WaitTimeout(TestWaitTimeout));
+        TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(BlockedReliableOffset));
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortSendErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+        CxPlatSleep(100); // Give a premature reset time to arrive.
+        uint64_t ReceivedReliableOffset = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            Context.ServerStream->GetReliableOffsetRecv(&ReceivedReliableOffset));
+
+        Context.HoldServerReceive = false;
+        Context.ServerStream->ReceiveComplete(Context.ReceivedBufferSize);
+        TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ReceivedBufferSize >= BlockedReliableOffset);
+        TEST_EQUAL(AbortSendErrorCode, Context.ShutdownErrorCode);
+        TEST_FALSE(Context.ServerConnectionShutdown);
+    }
+
+    //
+    // While the reset is held back, a second abort or the peer's STOP_SENDING
+    // resets the stream, keeping the first error code.
+    //
+    for (uint32_t PeerAborts = 0; PeerAborts < 2; ++PeerAborts) {
+        Context.HoldServerReceive = true;
+        Context.ReceivedBufferSize = 0;
+        Context.ShutdownErrorCode = 0;
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+        SendContext Send = {FALSE, 0};
+        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_NONE, &Send));
+        TEST_TRUE(Context.ServerReceivePending.WaitTimeout(TestWaitTimeout));
+        TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(BlockedReliableOffset));
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortSendErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+        if (PeerAborts) {
+            TEST_QUIC_SUCCEEDED(Context.ServerStream->Shutdown(AbortRecvErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE));
+        } else {
+            TEST_QUIC_SUCCEEDED(Stream.Shutdown(SecondAbortSendErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+        }
+        TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_FALSE(Context.ServerConnectionShutdown);
+        if (!PeerAborts) {
+            TEST_EQUAL(AbortSendErrorCode, Context.ShutdownErrorCode);
+        }
+    }
+
+    //
+    // Unread data of reset streams returns its connection flow control credit,
+    // or later streams could not send.
+    //
+    for (uint32_t i = 0; i < 8; ++i) {
+        Context.HoldServerReceive = true;
+        Context.ReceivedBufferSize = 0;
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+        SendContext Send = {FALSE, 0};
+        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_NONE, &Send));
+        TEST_TRUE(Context.ServerReceivePending.WaitTimeout(TestWaitTimeout));
+        TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(1));
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortSendErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+        TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_QUIC_SUCCEEDED(Context.ServerStream->Shutdown(AbortRecvErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE));
+        TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_FALSE(Context.ServerConnectionShutdown);
+    }
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 

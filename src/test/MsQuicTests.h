@@ -891,6 +891,10 @@ QuicTestStreamReliableResetMultipleSends(
     );
 
 void
+QuicTestStreamReliableResetFlowControl(
+    );
+
+void
 QuicTestStreamMultiReceive(
     );
 

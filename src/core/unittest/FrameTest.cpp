@@ -243,6 +243,18 @@ TEST(FrameTest, ReliableResetStreamFrameEncodeDecode)
     ASSERT_EQ(Frame.ReliableSize, DecodedFrame.ReliableSize);
 }
 
+TEST(FrameTest, ReliableResetStreamFrameRejectsReliableSizeBeyondFinalSize)
+{
+    const uint8_t AtFinalSize[] = {QUIC_FRAME_RELIABLE_RESET_STREAM, 0, 0, 2, 2};
+    const uint8_t BeyondFinalSize[] = {QUIC_FRAME_RELIABLE_RESET_STREAM, 0, 0, 1, 2};
+    QUIC_RELIABLE_RESET_STREAM_EX Frame{};
+    uint16_t Offset = 1;
+    ASSERT_TRUE(QuicReliableResetFrameDecode(sizeof(AtFinalSize), AtFinalSize, &Offset, &Frame));
+    ASSERT_EQ(Frame.FinalSize, Frame.ReliableSize);
+    Offset = 1;
+    ASSERT_FALSE(QuicReliableResetFrameDecode(sizeof(BeyondFinalSize), BeyondFinalSize, &Offset, &Frame));
+}
+
 // 
 // Tests if the reordering threshold has been hit. This function initializes a
 // QUIC_ACK_TRACKER and populates it with the provided packet numbers. It then 
