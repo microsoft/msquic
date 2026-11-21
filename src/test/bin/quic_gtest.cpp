@@ -1380,6 +1380,20 @@ TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation) {
     }
 }
 
+#ifndef QUIC_DISABLE_RESUMPTION
+TEST(Handshake, ReliableResetResumption) {
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
+    TestLogger Logger("QuicTestReliableResetResumption");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestReliableResetResumption)));
+    } else {
+        QuicTestReliableResetResumption();
+    }
+}
+#endif // QUIC_DISABLE_RESUMPTION
+
 TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation) {
     TestLoggerT<ParamType> Logger("OneWayDelayNegotiation", GetParam());
     if (TestingKernelMode) {

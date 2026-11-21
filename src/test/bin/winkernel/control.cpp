@@ -526,6 +526,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnect_ResumeRejection);
     RegisterTestFunction(QuicTestConnect_ResumeRejectionByServerApp);
     RegisterTestFunction(QuicTestConnect_ResumeRejectionByServerAppAsync);
+    RegisterTestFunction(QuicTestReliableResetResumption);
 #endif // QUIC_DISABLE_RESUMPTION
 #ifndef QUIC_DISABLE_SHARED_PORT_TESTS
     RegisterTestFunction(QuicTestClientSharedLocalPort);

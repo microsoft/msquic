@@ -342,6 +342,10 @@ QuicTestReliableResetNegotiation(
 );
 
 void
+QuicTestReliableResetResumption(
+    );
+
+void
 QuicTestOneWayDelayNegotiation(
     const FeatureSupportArgs& Params
     );

@@ -296,3 +296,12 @@ TEST(TransportParamTest, ReliableResetRejectsNonEmptyParameter)
     EXPECT_FALSE(QuicCryptoTlsDecodeTransportParameters(
         &JunkConnection, false, Parameter, sizeof(Parameter), &Decoded));
 }
+
+TEST(TransportParamTest, ReliableResetRejectsDuplicateParameter)
+{
+    const uint8_t Parameters[] = {0x1d, 0, 0x1d, 0};
+    QUIC_TRANSPORT_PARAMETERS Decoded{};
+    TransportParametersScope Scope(&Decoded);
+    EXPECT_FALSE(QuicCryptoTlsDecodeTransportParameters(
+        &JunkConnection, false, Parameters, sizeof(Parameters), &Decoded));
+}

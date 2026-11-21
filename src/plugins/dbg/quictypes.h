@@ -85,7 +85,7 @@ typedef union QUIC_STREAM_FLAGS {
 } QUIC_STREAM_FLAGS;
 
 typedef union QUIC_CONNECTION_STATE {
-    uint32_t Flags;
+    uint64_t Flags;
     struct {
         BOOLEAN Allocated       : 1;    // Allocated. Used for Debugging.
         BOOLEAN Initialized     : 1;    // Initialized successfully. Used for Debugging.
@@ -93,6 +93,7 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN Connected       : 1;    // Handshake completed.
         BOOLEAN ClosedLocally   : 1;    // Locally closed.
         BOOLEAN ClosedRemotely  : 1;    // Remotely closed.
+        BOOLEAN ClosedSilently  : 1;    // Closed with the QUIC_CLOSE_SILENT flag.
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
         BOOLEAN ShutdownComplete : 1;   // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
@@ -199,12 +200,6 @@ typedef union QUIC_CONNECTION_STATE {
         // resumption tickets.
         //
         BOOLEAN ResumptionEnabled : 1;
-
-        //
-        // When true,acknowledgment that reordering shouldn't elict an
-        // immediate acknowledgement.
-        //
-        BOOLEAN IgnoreReordering : 1;
 
         //
         // When true, this indicates that the connection is currently executing
@@ -1234,7 +1229,7 @@ struct Connection : Struct {
 
     QUIC_CONNECTION_STATE State() {
         QUIC_CONNECTION_STATE State;
-        State.Flags = ReadType<ULONG>("State");
+        State.Flags = ReadType<ULONG64>("State");
         return State;
     }
 

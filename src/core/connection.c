@@ -2154,7 +2154,6 @@ QuicConnRecvResumptionTicket(
             Connection->Crypto.TicketValidationPending = FALSE;
             goto Error;
         }
-        Connection->Crypto.TicketValidationPending = TRUE;
 
         if (TicketLength > UINT16_MAX) {
             QuicTraceEvent(
@@ -2205,6 +2204,12 @@ QuicConnRecvResumptionTicket(
                 "Resumption Ticket transport params greater than current server settings");
             goto Error;
         }
+
+        //
+        // Only the app's answer can stay pending. A ticket rejected above
+        // falls back to a full handshake right away.
+        //
+        Connection->Crypto.TicketValidationPending = TRUE;
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_RESUMED;
