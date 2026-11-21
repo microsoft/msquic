@@ -2,31 +2,12 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ReliableResetNotNegotiatedError
-// [strm][%p] Received ReliableReset without negotiation.
-// QuicTraceLogStreamWarning(
-            ReliableResetNotNegotiatedError,
-            Stream,
-            "Received ReliableReset without negotiation.");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ResetEarly
 // [strm][%p] Tried to reset at earlier final size!
 // QuicTraceLogStreamWarning(
-                ResetEarly,
-                Stream,
-                "Tried to reset at earlier final size!");
+            ResetEarly,
+            Stream,
+            "Tried to reset at earlier final size!");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ResetEarly,
@@ -43,12 +24,50 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ResetEarly,
 // Decoder Ring for ResetTooBig
 // [strm][%p] Tried to reset with too big final size!
 // QuicTraceLogStreamWarning(
-                    ResetTooBig,
-                    Stream,
-                    "Tried to reset with too big final size!");
+            ResetTooBig,
+            Stream,
+            "Tried to reset with too big final size!");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ResetTooBig,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ResetErrorCodeChanged
+// [strm][%p] Tried to reset with a different error code!
+// QuicTraceLogStreamWarning(
+            ResetErrorCodeChanged,
+            Stream,
+            "Tried to reset with a different error code!");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ResetErrorCodeChanged,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ReliableResetNotNegotiatedError
+// [strm][%p] Received ReliableReset without negotiation.
+// QuicTraceLogStreamWarning(
+            ReliableResetNotNegotiatedError,
+            Stream,
+            "Received ReliableReset without negotiation.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -122,9 +141,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteCloseReset,
             ReliableRecvOffsetSet,
             Stream,
             "Reliable recv offset set to %llu",
-            ReliableOffset);
+            Stream->ReliableOffsetRecv);
 // arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = ReliableOffset = arg3
+// arg3 = arg3 = Stream->ReliableOffsetRecv = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableRecvOffsetSet,
     TP_ARGS(
