@@ -2859,6 +2859,111 @@ QuicTestReliableResetNegotiation(
 }
 
 void
+QuicTestReliableResetResumption(
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+    Settings.SetReliableResetEnabled(true);
+    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    //
+    // A ticket from a connection that advertised reset_stream_at only resumes
+    // while the server still advertises it.
+    //
+    const struct {
+        bool TicketEnabled;
+        bool ResumeEnabled;
+    } Cases[] = {
+        { true, true },
+        { false, true },
+        { true, false }
+    };
+
+    for (uint32_t i = 0; i < ARRAYSIZE(Cases); ++i) {
+        const bool ExpectResumed = !Cases[i].TicketEnabled || Cases[i].ResumeEnabled;
+        MsQuicSettings ServerSettings;
+
+        ServerSettings.SetReliableResetEnabled(Cases[i].TicketEnabled);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.SetSettings(ServerSettings));
+
+        QUIC_BUFFER* ResumptionTicket = nullptr;
+        QuicTestPrimeResumption(
+            QUIC_ADDRESS_FAMILY_INET,
+            Registration,
+            ServerConfiguration,
+            ClientConfiguration,
+            &ResumptionTicket);
+        if (ResumptionTicket == nullptr) {
+            return;
+        }
+
+        ServerSettings.SetReliableResetEnabled(Cases[i].ResumeEnabled);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.SetSettings(ServerSettings));
+
+        UniquePtr<TestConnection> Server;
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        ServerAcceptContext ServerAcceptCtx(&Server);
+        Listener.Context = &ServerAcceptCtx;
+
+        TestConnection Client(Registration);
+        TEST_TRUE(Client.IsValid());
+
+        TEST_QUIC_SUCCEEDED(
+            Client.SetResumptionTicket(ResumptionTicket));
+        CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
+        Client.SetExpectedResumed(ExpectResumed);
+
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET,
+                QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+                ServerLocalAddr.GetPort()));
+
+        if (!Client.WaitForConnectionComplete()) {
+            return;
+        }
+        TEST_TRUE(Client.GetIsConnected());
+
+        TEST_NOT_EQUAL(nullptr, Server);
+        if (!Server->WaitForConnectionComplete()) {
+            return;
+        }
+        TEST_TRUE(Server->GetIsConnected());
+
+        TEST_EQUAL(ExpectResumed, Client.GetResumed());
+        TEST_EQUAL(ExpectResumed, Server->GetResumed());
+
+        Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+        if (!Client.WaitForShutdownComplete()) {
+            return;
+        }
+        if (!Server->WaitForShutdownComplete()) {
+            return;
+        }
+    }
+}
+
+void
 QuicTestOneWayDelayNegotiation(
     const FeatureSupportArgs& Params
     )

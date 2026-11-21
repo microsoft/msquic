@@ -46,7 +46,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN LocalCloseReset         : 1;    // Locally closed (locally aborted).
         BOOLEAN LocalCloseResetReliable : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
         BOOLEAN LocalCloseResetReliableAcked : 1; // Indicates the peer has acknowledged we will stop sending once we sent/ACK'd ReliableOffsetSend bytes.
-        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiated a reliable reset. Keep Recv path available for RecvMaxLength bytes.
+        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiated a reliable reset up to ReliableOffsetRecv.
         BOOLEAN ReceivedStopSending     : 1;    // Peer sent STOP_SENDING frame.
         BOOLEAN LocalCloseAcked         : 1;    // Any close acknowledged.
         BOOLEAN FinAcked                : 1;    // Our FIN was acknowledged.
@@ -80,11 +80,12 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN InWaitingList           : 1;    // The stream is currently in the waiting list for stream id FC.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
+        BOOLEAN RemoteResetFrameReceived : 1;   // The peer's reset application error code is known.
     };
 } QUIC_STREAM_FLAGS;
 
 typedef union QUIC_CONNECTION_STATE {
-    uint32_t Flags;
+    uint64_t Flags;
     struct {
         BOOLEAN Allocated       : 1;    // Allocated. Used for Debugging.
         BOOLEAN Initialized     : 1;    // Initialized successfully. Used for Debugging.
@@ -92,6 +93,7 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN Connected       : 1;    // Handshake completed.
         BOOLEAN ClosedLocally   : 1;    // Locally closed.
         BOOLEAN ClosedRemotely  : 1;    // Remotely closed.
+        BOOLEAN ClosedSilently  : 1;    // Closed with the QUIC_CLOSE_SILENT flag.
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
         BOOLEAN ShutdownComplete : 1;   // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
@@ -200,12 +202,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // When true,acknowledgment that reordering shouldn't elict an
-        // immediate acknowledgement.
-        //
-        BOOLEAN IgnoreReordering : 1;
-
-        //
         // When true, this indicates that the connection is currently executing
         // an API call inline (from a reentrant call on a callback).
         //
@@ -232,12 +228,23 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN FixedBit : 1;
 
+        BOOLEAN ReliableResetStreamNegotiated : 1;
+        BOOLEAN TimestampSendNegotiated : 1;
+        BOOLEAN TimestampRecvNegotiated : 1;
+        BOOLEAN DelayedApplicationError : 1;
+        BOOLEAN GotAuthenticatedPacket : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
         //
         BOOLEAN IsVerifying : 1;
 #endif
+
+#if QUIC_TEST_DISABLE_VNE_TP_GENERATION
+        BOOLEAN DisableVneTp : 1;
+#endif
+        BOOLEAN ReliableResetAdvertised : 1;
     };
 } QUIC_CONNECTION_STATE;
 
@@ -1222,7 +1229,7 @@ struct Connection : Struct {
 
     QUIC_CONNECTION_STATE State() {
         QUIC_CONNECTION_STATE State;
-        State.Flags = ReadType<ULONG>("State");
+        State.Flags = ReadType<ULONG64>("State");
         return State;
     }
 

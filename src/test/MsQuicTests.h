@@ -342,6 +342,10 @@ QuicTestReliableResetNegotiation(
 );
 
 void
+QuicTestReliableResetResumption(
+    );
+
+void
 QuicTestOneWayDelayNegotiation(
     const FeatureSupportArgs& Params
     );
@@ -888,6 +892,10 @@ QuicTestStreamReliableReset(
 
 void
 QuicTestStreamReliableResetMultipleSends(
+    );
+
+void
+QuicTestStreamReliableResetFlowControl(
     );
 
 void

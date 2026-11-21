@@ -213,6 +213,11 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN DisableVneTp : 1;
 #endif
+
+        //
+        // We advertised reset_stream_at and can receive RESET_STREAM_AT frames.
+        //
+        BOOLEAN ReliableResetAdvertised : 1;
     };
 } QUIC_CONNECTION_STATE;
 

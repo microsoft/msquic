@@ -526,6 +526,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnect_ResumeRejection);
     RegisterTestFunction(QuicTestConnect_ResumeRejectionByServerApp);
     RegisterTestFunction(QuicTestConnect_ResumeRejectionByServerAppAsync);
+    RegisterTestFunction(QuicTestReliableResetResumption);
 #endif // QUIC_DISABLE_RESUMPTION
 #ifndef QUIC_DISABLE_SHARED_PORT_TESTS
     RegisterTestFunction(QuicTestClientSharedLocalPort);
@@ -641,6 +642,7 @@ ExecuteTestRequest(
 #ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
     RegisterTestFunction(QuicTestStreamReliableReset);
     RegisterTestFunction(QuicTestStreamReliableResetMultipleSends);
+    RegisterTestFunction(QuicTestStreamReliableResetFlowControl);
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     RegisterTestFunction(QuicTestStreamMultiReceive);

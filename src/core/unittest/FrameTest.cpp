@@ -228,12 +228,21 @@ TEST(FrameTest, ReliableResetStreamFrameEncodeDecode)
 {
     QUIC_RELIABLE_RESET_STREAM_EX Frame = {127, 4294967297, 65536, 35000};
     QUIC_RELIABLE_RESET_STREAM_EX DecodedFrame = {0, 0, 0, 0};
-    uint8_t Buffer[20];
+    const uint8_t Expected[] = {
+        0x24,                                                 // RESET_STREAM_AT
+        0x40, 0x7f,                                           // Stream ID
+        0xc0, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,       // Error code
+        0x80, 0x01, 0x00, 0x00,                               // Final size
+        0x80, 0x00, 0x88, 0xb8                                // Reliable size
+    };
+    uint8_t Buffer[sizeof(Expected)];
     uint16_t BufferLength = (uint16_t) sizeof(Buffer);
     uint16_t Offset = 0;
 
     CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicReliableResetFrameEncode(&Frame, &Offset, BufferLength, Buffer));
+    ASSERT_EQ(sizeof(Expected), Offset);
+    EXPECT_EQ(0, memcmp(Expected, Buffer, sizeof(Expected)));
     Offset = 1;
     ASSERT_TRUE(QuicReliableResetFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
 
@@ -241,6 +250,18 @@ TEST(FrameTest, ReliableResetStreamFrameEncodeDecode)
     ASSERT_EQ(Frame.ErrorCode, DecodedFrame.ErrorCode);
     ASSERT_EQ(Frame.FinalSize, DecodedFrame.FinalSize);
     ASSERT_EQ(Frame.ReliableSize, DecodedFrame.ReliableSize);
+}
+
+TEST(FrameTest, ReliableResetStreamFrameRejectsReliableSizeBeyondFinalSize)
+{
+    const uint8_t AtFinalSize[] = {QUIC_FRAME_RELIABLE_RESET_STREAM, 0, 0, 2, 2};
+    const uint8_t BeyondFinalSize[] = {QUIC_FRAME_RELIABLE_RESET_STREAM, 0, 0, 1, 2};
+    QUIC_RELIABLE_RESET_STREAM_EX Frame{};
+    uint16_t Offset = 1;
+    ASSERT_TRUE(QuicReliableResetFrameDecode(sizeof(AtFinalSize), AtFinalSize, &Offset, &Frame));
+    ASSERT_EQ(Frame.FinalSize, Frame.ReliableSize);
+    Offset = 1;
+    ASSERT_FALSE(QuicReliableResetFrameDecode(sizeof(BeyondFinalSize), BeyondFinalSize, &Offset, &Frame));
 }
 
 // 

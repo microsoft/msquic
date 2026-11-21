@@ -488,6 +488,7 @@ QuicReliableResetFrameEncode(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
+    CXPLAT_DBG_ASSERT(Frame->ReliableSize <= Frame->FinalSize);
     uint16_t RequiredLength =
         sizeof(uint8_t) +     // Type
         QuicVarIntSize(Frame->ErrorCode) +
@@ -523,7 +524,8 @@ QuicReliableResetFrameDecode(
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ErrorCode) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->FinalSize) ||
-        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReliableSize)) {
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReliableSize) ||
+        Frame->ReliableSize > Frame->FinalSize) {
         return FALSE;
     }
     return TRUE;

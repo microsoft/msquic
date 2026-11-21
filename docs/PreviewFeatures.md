@@ -25,7 +25,15 @@ Any application wanting to use the preview features must declare this macro (and
 
 ### Reliable Reset Negotiated
 
-TODO
+Enable `QUIC_SETTINGS.ReliableResetEnabled` to advertise support for receiving
+partial-delivery stream resets. `QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED`
+reports whether the peer also advertised support. After negotiation, set
+`QUIC_PARAM_STREAM_RELIABLE_OFFSET` to retain a prefix of queued data when
+aborting the send side.
+
+This preview uses the `reset_stream_at` transport parameter (`0x1d`) and
+`RESET_STREAM_AT` frame (`0x24`). Both endpoints must use compatible wire
+identifiers for negotiation. [QUIC Stream Resets with Partial Delivery](https://datatracker.ietf.org/doc/html/draft-ietf-quic-reliable-stream-reset-11)
 
 ### Oneway Delay Negotiated
 
