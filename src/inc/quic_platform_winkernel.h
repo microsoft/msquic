@@ -476,7 +476,6 @@ CxPlatRefIncrementNonZero(
 
         } else {
             __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
-            return FALSE;
         }
     }
 }
@@ -510,7 +509,7 @@ CxPlatRefDecrement(
     }
 
     __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
-    return FALSE;
+    __assume(0);
 }
 
 //
