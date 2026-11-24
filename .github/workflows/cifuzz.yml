@@ -8,13 +8,13 @@ jobs:
     steps:
     - name: Build Fuzzers
       id: build
-      uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@5024e8764dc450cd709662afaf569315a4c557e2
+      uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@df2aededd890f617dbbde34205193a3b376ee08a
       with:
         oss-fuzz-project-name: 'msquic'
         dry-run: false
         language: c
     - name: Run Fuzzers
-      uses: google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@5024e8764dc450cd709662afaf569315a4c557e2
+      uses: google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@df2aededd890f617dbbde34205193a3b376ee08a
       with:
         oss-fuzz-project-name: 'msquic'
         fuzz-seconds: 300
