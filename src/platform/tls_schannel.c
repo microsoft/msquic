@@ -682,6 +682,11 @@ CxPlatTlsUtf8ToUnicodeString(
         goto Error;
     }
 
+    if (RequiredSize > MAXUSHORT) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
     UnicodeString = CXPLAT_ALLOC_NONPAGED(RequiredSize, Tag);
     if (UnicodeString == NULL) {
         QuicTraceEvent(

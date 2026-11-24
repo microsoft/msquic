@@ -18,6 +18,28 @@ Abstract:
 
 #if defined(_KERNEL_MODE)
 static bool UseQTIP = false;
+
+extern "C"
+QUIC_STATUS
+CxPlatTlsUtf8ToUnicodeString(
+    _In_z_ const char* Input,
+    _Inout_ PUNICODE_STRING Output,
+    _In_ uint32_t Tag
+    );
+
+struct TlsUtf8ToUnicodeStringTestContext {
+    UNICODE_STRING UnicodeString = { 0 };
+    char* Input = nullptr;
+
+    ~TlsUtf8ToUnicodeStringTestContext() {
+        if (UnicodeString.Buffer != nullptr) {
+            CXPLAT_FREE(UnicodeString.Buffer, QUIC_POOL_TEST);
+        }
+        if (Input != nullptr) {
+            CXPLAT_FREE(Input, QUIC_POOL_TEST);
+        }
+    }
+};
 #elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
@@ -5616,6 +5638,96 @@ TestTlsHandshakeInfoListenerCallback(
         (*Context->Server)->SetConfiguration(*Context->ServerConfiguration);
     }
     return QUIC_STATUS_SUCCESS;
+}
+
+void QuicTestTlsUtf8ToUnicodeStringEmpty()
+{
+#ifdef _KERNEL_MODE
+    TlsUtf8ToUnicodeStringTestContext Context;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatTlsUtf8ToUnicodeString(
+            "",
+            &Context.UnicodeString,
+            QUIC_POOL_TEST));
+    TEST_TRUE(Context.UnicodeString.Buffer != nullptr);
+    TEST_EQUAL((USHORT)sizeof(WCHAR), Context.UnicodeString.MaximumLength);
+    TEST_EQUAL((USHORT)0, Context.UnicodeString.Length);
+    TEST_EQUAL((WCHAR)0, Context.UnicodeString.Buffer[0]);
+#endif
+}
+
+void QuicTestTlsUtf8ToUnicodeStringMultibyte()
+{
+#ifdef _KERNEL_MODE
+    TlsUtf8ToUnicodeStringTestContext Context;
+
+    TEST_QUIC_SUCCEEDED(
+        CxPlatTlsUtf8ToUnicodeString(
+            "\xC3\xA9",
+            &Context.UnicodeString,
+            QUIC_POOL_TEST));
+    TEST_TRUE(Context.UnicodeString.Buffer != nullptr);
+    TEST_EQUAL((USHORT)(2 * sizeof(WCHAR)), Context.UnicodeString.MaximumLength);
+    TEST_EQUAL((USHORT)sizeof(WCHAR), Context.UnicodeString.Length);
+    TEST_EQUAL(L'\x00E9', Context.UnicodeString.Buffer[0]);
+    TEST_EQUAL((WCHAR)0, Context.UnicodeString.Buffer[1]);
+#endif
+}
+
+void QuicTestTlsUtf8ToUnicodeStringMaximumLength()
+{
+#ifdef _KERNEL_MODE
+    TlsUtf8ToUnicodeStringTestContext Context;
+
+    const size_t MaxAsciiLength = (MAXUSHORT / sizeof(WCHAR)) - 1;
+    Context.Input =
+        (char*)CXPLAT_ALLOC_NONPAGED(MaxAsciiLength + 2, QUIC_POOL_TEST);
+    TEST_TRUE(Context.Input != nullptr);
+
+    memset(Context.Input, 'a', MaxAsciiLength);
+    Context.Input[MaxAsciiLength] = '\0';
+    TEST_QUIC_SUCCEEDED(
+        CxPlatTlsUtf8ToUnicodeString(
+            Context.Input,
+            &Context.UnicodeString,
+            QUIC_POOL_TEST));
+    TEST_TRUE(Context.UnicodeString.Buffer != nullptr);
+    TEST_EQUAL((USHORT)(MAXUSHORT - 1), Context.UnicodeString.MaximumLength);
+    TEST_EQUAL(
+        (USHORT)(MAXUSHORT - 1 - sizeof(WCHAR)),
+        Context.UnicodeString.Length);
+    TEST_EQUAL(L'a', Context.UnicodeString.Buffer[0]);
+    TEST_EQUAL(L'a', Context.UnicodeString.Buffer[MaxAsciiLength - 1]);
+    TEST_EQUAL(
+        (WCHAR)0,
+        Context.UnicodeString.Buffer[
+            Context.UnicodeString.Length / sizeof(WCHAR)]);
+#endif
+}
+
+void QuicTestTlsUtf8ToUnicodeStringOversized()
+{
+#ifdef _KERNEL_MODE
+    TlsUtf8ToUnicodeStringTestContext Context;
+
+    const size_t MaxAsciiLength = (MAXUSHORT / sizeof(WCHAR)) - 1;
+    Context.Input =
+        (char*)CXPLAT_ALLOC_NONPAGED(MaxAsciiLength + 2, QUIC_POOL_TEST);
+    TEST_TRUE(Context.Input != nullptr);
+
+    memset(Context.Input, 'a', MaxAsciiLength + 1);
+    Context.Input[MaxAsciiLength + 1] = '\0';
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        CxPlatTlsUtf8ToUnicodeString(
+            Context.Input,
+            &Context.UnicodeString,
+            QUIC_POOL_TEST));
+    TEST_EQUAL(nullptr, Context.UnicodeString.Buffer);
+    TEST_EQUAL((USHORT)0, Context.UnicodeString.MaximumLength);
+    TEST_EQUAL((USHORT)0, Context.UnicodeString.Length);
+#endif
 }
 
 void
