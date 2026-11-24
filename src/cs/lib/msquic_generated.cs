@@ -14,6 +14,9 @@ using MemoryMarshal = Microsoft.Quic.Polyfill.MemoryMarshal;
 using MemoryMarshal = System.Runtime.InteropServices.MemoryMarshal;
 #endif
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
@@ -221,7 +224,7 @@ namespace Microsoft.Quic
         AFFINITIZE = 0x0020,
     }
 
-    internal unsafe partial struct QUIC_GLOBAL_EXECUTION_CONFIG
+    internal partial struct QUIC_GLOBAL_EXECUTION_CONFIG
     {
         internal QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags;
 
@@ -231,8 +234,25 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint ProcessorCount;
 
-        [NativeTypeName("uint16_t [1]")]
-        internal fixed ushort ProcessorList[1];
+        [NativeTypeName("uint16_t[1]")]
+        internal _ProcessorList_e__FixedBuffer ProcessorList;
+
+        internal partial struct _ProcessorList_e__FixedBuffer
+        {
+            internal ushort e0;
+
+            [UnscopedRef]
+            internal ref ushort this[int index]
+            {
+                get
+                {
+                    return ref Unsafe.Add(ref e0, index);
+                }
+            }
+
+            [UnscopedRef]
+            internal Span<ushort> AsSpan(int length) => MemoryMarshal.CreateSpan(ref e0, length);
+        }
     }
 
     internal unsafe partial struct QUIC_EXECUTION_CONFIG
@@ -248,6 +268,15 @@ namespace Microsoft.Quic
     {
     }
 
+    internal unsafe partial struct QUIC_XDP_MAP_CONFIG
+    {
+        [NativeTypeName("uint32_t")]
+        internal uint InterfaceIndex;
+
+        [NativeTypeName("QUIC_XDP_MAP_HANDLE")]
+        internal void* MapHandle;
+    }
+
     internal unsafe partial struct QUIC_REGISTRATION_CONFIG
     {
         [NativeTypeName("const char *")]
@@ -256,21 +285,39 @@ namespace Microsoft.Quic
         internal QUIC_EXECUTION_PROFILE ExecutionProfile;
     }
 
-    internal unsafe partial struct QUIC_CERTIFICATE_HASH
+    internal partial struct QUIC_CERTIFICATE_HASH
     {
-        [NativeTypeName("uint8_t [20]")]
-        internal fixed byte ShaHash[20];
+        [NativeTypeName("uint8_t[20]")]
+        internal _ShaHash_e__FixedBuffer ShaHash;
+
+        [InlineArray(20)]
+        internal partial struct _ShaHash_e__FixedBuffer
+        {
+            internal byte e0;
+        }
     }
 
-    internal unsafe partial struct QUIC_CERTIFICATE_HASH_STORE
+    internal partial struct QUIC_CERTIFICATE_HASH_STORE
     {
         internal QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags;
 
-        [NativeTypeName("uint8_t [20]")]
-        internal fixed byte ShaHash[20];
+        [NativeTypeName("uint8_t[20]")]
+        internal _ShaHash_e__FixedBuffer ShaHash;
 
-        [NativeTypeName("char [128]")]
-        internal fixed sbyte StoreName[128];
+        [NativeTypeName("char[128]")]
+        internal _StoreName_e__FixedBuffer StoreName;
+
+        [InlineArray(20)]
+        internal partial struct _ShaHash_e__FixedBuffer
+        {
+            internal byte e0;
+        }
+
+        [InlineArray(128)]
+        internal partial struct _StoreName_e__FixedBuffer
+        {
+            internal sbyte e0;
+        }
     }
 
     internal unsafe partial struct QUIC_CERTIFICATE_FILE
@@ -312,7 +359,7 @@ namespace Microsoft.Quic
 
         internal QUIC_CREDENTIAL_FLAGS Flags;
 
-        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L423_C5")]
         internal _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("const char *")]
@@ -328,51 +375,57 @@ namespace Microsoft.Quic
         [NativeTypeName("const char *")]
         internal sbyte* CaCertificateFile;
 
+        [UnscopedRef]
         internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateHash;
+                return ref Anonymous.CertificateHash;
             }
         }
 
+        [UnscopedRef]
         internal ref QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateHashStore;
+                return ref Anonymous.CertificateHashStore;
             }
         }
 
+        [UnscopedRef]
         internal ref void* CertificateContext
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateContext;
+                return ref Anonymous.CertificateContext;
             }
         }
 
+        [UnscopedRef]
         internal ref QUIC_CERTIFICATE_FILE* CertificateFile
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateFile;
+                return ref Anonymous.CertificateFile;
             }
         }
 
+        [UnscopedRef]
         internal ref QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateFileProtected;
+                return ref Anonymous.CertificateFileProtected;
             }
         }
 
+        [UnscopedRef]
         internal ref QUIC_CERTIFICATE_PKCS12* CertificatePkcs12
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificatePkcs12;
+                return ref Anonymous.CertificatePkcs12;
             }
         }
 
@@ -400,16 +453,28 @@ namespace Microsoft.Quic
         }
     }
 
-    internal unsafe partial struct QUIC_TICKET_KEY_CONFIG
+    internal partial struct QUIC_TICKET_KEY_CONFIG
     {
-        [NativeTypeName("uint8_t [16]")]
-        internal fixed byte Id[16];
+        [NativeTypeName("uint8_t[16]")]
+        internal _Id_e__FixedBuffer Id;
 
-        [NativeTypeName("uint8_t [64]")]
-        internal fixed byte Material[64];
+        [NativeTypeName("uint8_t[64]")]
+        internal _Material_e__FixedBuffer Material;
 
         [NativeTypeName("uint8_t")]
         internal byte MaterialLength;
+
+        [InlineArray(16)]
+        internal partial struct _Id_e__FixedBuffer
+        {
+            internal byte e0;
+        }
+
+        [InlineArray(64)]
+        internal partial struct _Material_e__FixedBuffer
+        {
+            internal byte e0;
+        }
     }
 
     internal unsafe partial struct QUIC_BUFFER
@@ -545,7 +610,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint VersionNegotiation
         {
-            get
+            readonly get
             {
                 return _bitfield & 0x1u;
             }
@@ -559,7 +624,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint StatelessRetry
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 1) & 0x1u;
             }
@@ -573,7 +638,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint ResumptionAttempted
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 2) & 0x1u;
             }
@@ -587,7 +652,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint ResumptionSucceeded
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 3) & 0x1u;
             }
@@ -607,19 +672,19 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint MaxRtt;
 
-        [NativeTypeName("struct (anonymous struct)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L562_C5")]
         internal _Timing_e__Struct Timing;
 
-        [NativeTypeName("struct (anonymous struct)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L567_C5")]
         internal _Handshake_e__Struct Handshake;
 
-        [NativeTypeName("struct (anonymous struct)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L572_C5")]
         internal _Send_e__Struct Send;
 
-        [NativeTypeName("struct (anonymous struct)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L583_C5")]
         internal _Recv_e__Struct Recv;
 
-        [NativeTypeName("struct (anonymous struct)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L593_C5")]
         internal _Misc_e__Struct Misc;
 
         internal partial struct _Timing_e__Struct
@@ -720,7 +785,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint VersionNegotiation
         {
-            get
+            readonly get
             {
                 return _bitfield & 0x1u;
             }
@@ -734,7 +799,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint StatelessRetry
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 1) & 0x1u;
             }
@@ -748,7 +813,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint ResumptionAttempted
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 2) & 0x1u;
             }
@@ -762,7 +827,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint ResumptionSucceeded
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 3) & 0x1u;
             }
@@ -776,7 +841,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint GreaseBitNegotiated
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 4) & 0x1u;
             }
@@ -790,7 +855,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint EcnCapable
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 5) & 0x1u;
             }
@@ -804,7 +869,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 1")]
         internal uint EncryptionOffloaded
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 6) & 0x1u;
             }
@@ -818,7 +883,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t : 25")]
         internal uint RESERVED
         {
-            get
+            readonly get
             {
                 return (_bitfield >> 7) & 0x1FFFFFFu;
             }
@@ -1012,6 +1077,8 @@ namespace Microsoft.Quic
         SEND_STATELESS_RETRY,
         CONN_LOAD_REJECT,
         LISTEN_QUEUE_DEPTH,
+        ENCRYPT_DURATION_US,
+        DECRYPT_DURATION_US,
         MAX,
     }
 
@@ -1038,7 +1105,7 @@ namespace Microsoft.Quic
 
     internal partial struct QUIC_GLOBAL_SETTINGS
     {
-        [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L756_C5")]
         internal _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint16_t")]
@@ -1050,19 +1117,21 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint FixedServerID;
 
+        [UnscopedRef]
         internal ref ulong IsSetFlags
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSetFlags, 1));
+                return ref Anonymous.IsSetFlags;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._IsSet_e__Struct IsSet
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSet, 1));
+                return ref Anonymous.IsSet;
             }
         }
 
@@ -1074,7 +1143,7 @@ namespace Microsoft.Quic
             internal ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L758_C9")]
             internal _IsSet_e__Struct IsSet;
 
             internal partial struct _IsSet_e__Struct
@@ -1084,7 +1153,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong RetryMemoryLimit
                 {
-                    get
+                    readonly get
                     {
                         return _bitfield & 0x1UL;
                     }
@@ -1098,7 +1167,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong LoadBalancingMode
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 1) & 0x1UL;
                     }
@@ -1112,7 +1181,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong FixedServerID
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 2) & 0x1UL;
                     }
@@ -1126,7 +1195,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 61")]
                 internal ulong RESERVED
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 3) & 0x1FFFFFFFUL;
                     }
@@ -1142,7 +1211,7 @@ namespace Microsoft.Quic
 
     internal partial struct QUIC_SETTINGS
     {
-        [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L772_C5")]
         internal _Anonymous1_e__Union Anonymous1;
 
         [NativeTypeName("uint64_t")]
@@ -1222,7 +1291,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t : 1")]
         internal byte SendBufferingEnabled
         {
-            get
+            readonly get
             {
                 return (byte)(_bitfield & 0x1u);
             }
@@ -1236,7 +1305,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t : 1")]
         internal byte PacingEnabled
         {
-            get
+            readonly get
             {
                 return (byte)((_bitfield >> 1) & 0x1u);
             }
@@ -1250,7 +1319,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t : 1")]
         internal byte MigrationEnabled
         {
-            get
+            readonly get
             {
                 return (byte)((_bitfield >> 2) & 0x1u);
             }
@@ -1264,7 +1333,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t : 1")]
         internal byte DatagramReceiveEnabled
         {
-            get
+            readonly get
             {
                 return (byte)((_bitfield >> 3) & 0x1u);
             }
@@ -1278,7 +1347,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t : 2")]
         internal byte ServerResumptionLevel
         {
-            get
+            readonly get
             {
                 return (byte)((_bitfield >> 4) & 0x3u);
             }
@@ -1292,7 +1361,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t : 1")]
         internal byte GreaseQuicBitEnabled
         {
-            get
+            readonly get
             {
                 return (byte)((_bitfield >> 6) & 0x1u);
             }
@@ -1306,7 +1375,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t : 1")]
         internal byte EcnEnabled
         {
-            get
+            readonly get
             {
                 return (byte)((_bitfield >> 7) & 0x1u);
             }
@@ -1326,7 +1395,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateIdleTimeoutMs;
 
-        [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L863_C5")]
         internal _Anonymous2_e__Union Anonymous2;
 
         [NativeTypeName("uint32_t")]
@@ -1338,33 +1407,36 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint StreamRecvWindowUnidiDefault;
 
+        [UnscopedRef]
         internal ref ulong IsSetFlags
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous1.IsSetFlags, 1));
+                return ref Anonymous1.IsSetFlags;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous1_e__Union._IsSet_e__Struct IsSet
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous1.IsSet, 1));
+                return ref Anonymous1.IsSet;
             }
         }
 
+        [UnscopedRef]
         internal ref ulong Flags
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous2.Flags, 1));
+                return ref Anonymous2.Flags;
             }
         }
 
         internal ulong HyStartEnabled
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.HyStartEnabled;
             }
@@ -1377,7 +1449,7 @@ namespace Microsoft.Quic
 
         internal ulong EncryptionOffloadAllowed
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.EncryptionOffloadAllowed;
             }
@@ -1390,7 +1462,7 @@ namespace Microsoft.Quic
 
         internal ulong ReliableResetEnabled
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.ReliableResetEnabled;
             }
@@ -1403,7 +1475,7 @@ namespace Microsoft.Quic
 
         internal ulong OneWayDelayEnabled
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.OneWayDelayEnabled;
             }
@@ -1416,7 +1488,7 @@ namespace Microsoft.Quic
 
         internal ulong NetStatsEventEnabled
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.NetStatsEventEnabled;
             }
@@ -1429,7 +1501,7 @@ namespace Microsoft.Quic
 
         internal ulong StreamMultiReceiveEnabled
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.StreamMultiReceiveEnabled;
             }
@@ -1442,7 +1514,7 @@ namespace Microsoft.Quic
 
         internal ulong XdpEnabled
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.XdpEnabled;
             }
@@ -1455,7 +1527,7 @@ namespace Microsoft.Quic
 
         internal ulong QTIPEnabled
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.QTIPEnabled;
             }
@@ -1468,7 +1540,7 @@ namespace Microsoft.Quic
 
         internal ulong ReservedRioEnabled
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.ReservedRioEnabled;
             }
@@ -1481,7 +1553,7 @@ namespace Microsoft.Quic
 
         internal ulong ReservedFlags
         {
-            get
+            readonly get
             {
                 return Anonymous2.Anonymous.ReservedFlags;
             }
@@ -1500,7 +1572,7 @@ namespace Microsoft.Quic
             internal ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L774_C9")]
             internal _IsSet_e__Struct IsSet;
 
             internal partial struct _IsSet_e__Struct
@@ -1510,7 +1582,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MaxBytesPerKey
                 {
-                    get
+                    readonly get
                     {
                         return _bitfield & 0x1UL;
                     }
@@ -1524,7 +1596,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong HandshakeIdleTimeoutMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 1) & 0x1UL;
                     }
@@ -1538,7 +1610,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong IdleTimeoutMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 2) & 0x1UL;
                     }
@@ -1552,7 +1624,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MtuDiscoverySearchCompleteTimeoutUs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 3) & 0x1UL;
                     }
@@ -1566,7 +1638,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong TlsClientMaxSendBuffer
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 4) & 0x1UL;
                     }
@@ -1580,7 +1652,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong TlsServerMaxSendBuffer
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 5) & 0x1UL;
                     }
@@ -1594,7 +1666,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong StreamRecvWindowDefault
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 6) & 0x1UL;
                     }
@@ -1608,7 +1680,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong StreamRecvBufferDefault
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 7) & 0x1UL;
                     }
@@ -1622,7 +1694,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong ConnFlowControlWindow
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 8) & 0x1UL;
                     }
@@ -1636,7 +1708,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MaxWorkerQueueDelayUs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 9) & 0x1UL;
                     }
@@ -1650,7 +1722,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MaxStatelessOperations
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 10) & 0x1UL;
                     }
@@ -1664,7 +1736,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong InitialWindowPackets
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 11) & 0x1UL;
                     }
@@ -1678,7 +1750,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong SendIdleTimeoutMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 12) & 0x1UL;
                     }
@@ -1692,7 +1764,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong InitialRttMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 13) & 0x1UL;
                     }
@@ -1706,7 +1778,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MaxAckDelayMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 14) & 0x1UL;
                     }
@@ -1720,7 +1792,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong DisconnectTimeoutMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 15) & 0x1UL;
                     }
@@ -1734,7 +1806,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong KeepAliveIntervalMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 16) & 0x1UL;
                     }
@@ -1748,7 +1820,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong CongestionControlAlgorithm
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 17) & 0x1UL;
                     }
@@ -1762,7 +1834,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong PeerBidiStreamCount
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 18) & 0x1UL;
                     }
@@ -1776,7 +1848,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong PeerUnidiStreamCount
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 19) & 0x1UL;
                     }
@@ -1790,7 +1862,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MaxBindingStatelessOperations
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 20) & 0x1UL;
                     }
@@ -1804,7 +1876,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong StatelessOperationExpirationMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 21) & 0x1UL;
                     }
@@ -1818,7 +1890,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MinimumMtu
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 22) & 0x1UL;
                     }
@@ -1832,7 +1904,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MaximumMtu
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 23) & 0x1UL;
                     }
@@ -1846,7 +1918,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong SendBufferingEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 24) & 0x1UL;
                     }
@@ -1860,7 +1932,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong PacingEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 25) & 0x1UL;
                     }
@@ -1874,7 +1946,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MigrationEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 26) & 0x1UL;
                     }
@@ -1888,7 +1960,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong DatagramReceiveEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 27) & 0x1UL;
                     }
@@ -1902,7 +1974,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong ServerResumptionLevel
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 28) & 0x1UL;
                     }
@@ -1916,7 +1988,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MaxOperationsPerDrain
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 29) & 0x1UL;
                     }
@@ -1930,7 +2002,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong MtuDiscoveryMissingProbeCount
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 30) & 0x1UL;
                     }
@@ -1944,7 +2016,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong DestCidUpdateIdleTimeoutMs
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 31) & 0x1UL;
                     }
@@ -1958,7 +2030,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong GreaseQuicBitEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 32) & 0x1UL;
                     }
@@ -1972,7 +2044,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong EcnEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 33) & 0x1UL;
                     }
@@ -1986,7 +2058,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong HyStartEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 34) & 0x1UL;
                     }
@@ -2000,7 +2072,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong StreamRecvWindowBidiLocalDefault
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 35) & 0x1UL;
                     }
@@ -2014,7 +2086,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong StreamRecvWindowBidiRemoteDefault
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 36) & 0x1UL;
                     }
@@ -2028,7 +2100,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong StreamRecvWindowUnidiDefault
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 37) & 0x1UL;
                     }
@@ -2042,7 +2114,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong EncryptionOffloadAllowed
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 38) & 0x1UL;
                     }
@@ -2056,7 +2128,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong ReliableResetEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 39) & 0x1UL;
                     }
@@ -2070,7 +2142,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong OneWayDelayEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 40) & 0x1UL;
                     }
@@ -2084,7 +2156,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong NetStatsEventEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 41) & 0x1UL;
                     }
@@ -2098,7 +2170,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong StreamMultiReceiveEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 42) & 0x1UL;
                     }
@@ -2112,7 +2184,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong XdpEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 43) & 0x1UL;
                     }
@@ -2126,7 +2198,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong QTIPEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 44) & 0x1UL;
                     }
@@ -2140,7 +2212,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong ReservedRioEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 45) & 0x1UL;
                     }
@@ -2154,7 +2226,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 18")]
                 internal ulong RESERVED
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 46) & 0x3FFFFUL;
                     }
@@ -2175,7 +2247,7 @@ namespace Microsoft.Quic
             internal ulong Flags;
 
             [FieldOffset(0)]
-            [NativeTypeName("QUIC_SETTINGS::(anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L865_C9")]
             internal _Anonymous_e__Struct Anonymous;
 
             internal partial struct _Anonymous_e__Struct
@@ -2185,7 +2257,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong HyStartEnabled
                 {
-                    get
+                    readonly get
                     {
                         return _bitfield & 0x1UL;
                     }
@@ -2199,7 +2271,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong EncryptionOffloadAllowed
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 1) & 0x1UL;
                     }
@@ -2213,7 +2285,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong ReliableResetEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 2) & 0x1UL;
                     }
@@ -2227,7 +2299,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong OneWayDelayEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 3) & 0x1UL;
                     }
@@ -2241,7 +2313,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong NetStatsEventEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 4) & 0x1UL;
                     }
@@ -2255,7 +2327,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong StreamMultiReceiveEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 5) & 0x1UL;
                     }
@@ -2269,7 +2341,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong XdpEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 6) & 0x1UL;
                     }
@@ -2283,7 +2355,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong QTIPEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 7) & 0x1UL;
                     }
@@ -2297,7 +2369,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong ReservedRioEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 8) & 0x1UL;
                     }
@@ -2311,7 +2383,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint64_t : 55")]
                 internal ulong ReservedFlags
                 {
-                    get
+                    readonly get
                     {
                         return (_bitfield >> 9) & 0x7FFFFFUL;
                     }
@@ -2325,31 +2397,31 @@ namespace Microsoft.Quic
         }
     }
 
-    internal unsafe partial struct QUIC_TLS_SECRETS
+    internal partial struct QUIC_TLS_SECRETS
     {
         [NativeTypeName("uint8_t")]
         internal byte SecretLength;
 
-        [NativeTypeName("struct (anonymous struct)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L896_C5")]
         internal _IsSet_e__Struct IsSet;
 
-        [NativeTypeName("uint8_t [32]")]
-        internal fixed byte ClientRandom[32];
+        [NativeTypeName("uint8_t[32]")]
+        internal _ClientRandom_e__FixedBuffer ClientRandom;
 
-        [NativeTypeName("uint8_t [64]")]
-        internal fixed byte ClientEarlyTrafficSecret[64];
+        [NativeTypeName("uint8_t[64]")]
+        internal _ClientEarlyTrafficSecret_e__FixedBuffer ClientEarlyTrafficSecret;
 
-        [NativeTypeName("uint8_t [64]")]
-        internal fixed byte ClientHandshakeTrafficSecret[64];
+        [NativeTypeName("uint8_t[64]")]
+        internal _ClientHandshakeTrafficSecret_e__FixedBuffer ClientHandshakeTrafficSecret;
 
-        [NativeTypeName("uint8_t [64]")]
-        internal fixed byte ServerHandshakeTrafficSecret[64];
+        [NativeTypeName("uint8_t[64]")]
+        internal _ServerHandshakeTrafficSecret_e__FixedBuffer ServerHandshakeTrafficSecret;
 
-        [NativeTypeName("uint8_t [64]")]
-        internal fixed byte ClientTrafficSecret0[64];
+        [NativeTypeName("uint8_t[64]")]
+        internal _ClientTrafficSecret0_e__FixedBuffer ClientTrafficSecret0;
 
-        [NativeTypeName("uint8_t [64]")]
-        internal fixed byte ServerTrafficSecret0[64];
+        [NativeTypeName("uint8_t[64]")]
+        internal _ServerTrafficSecret0_e__FixedBuffer ServerTrafficSecret0;
 
         internal partial struct _IsSet_e__Struct
         {
@@ -2358,7 +2430,7 @@ namespace Microsoft.Quic
             [NativeTypeName("uint8_t : 1")]
             internal byte ClientRandom
             {
-                get
+                readonly get
                 {
                     return (byte)(_bitfield & 0x1u);
                 }
@@ -2372,7 +2444,7 @@ namespace Microsoft.Quic
             [NativeTypeName("uint8_t : 1")]
             internal byte ClientEarlyTrafficSecret
             {
-                get
+                readonly get
                 {
                     return (byte)((_bitfield >> 1) & 0x1u);
                 }
@@ -2386,7 +2458,7 @@ namespace Microsoft.Quic
             [NativeTypeName("uint8_t : 1")]
             internal byte ClientHandshakeTrafficSecret
             {
-                get
+                readonly get
                 {
                     return (byte)((_bitfield >> 2) & 0x1u);
                 }
@@ -2400,7 +2472,7 @@ namespace Microsoft.Quic
             [NativeTypeName("uint8_t : 1")]
             internal byte ServerHandshakeTrafficSecret
             {
-                get
+                readonly get
                 {
                     return (byte)((_bitfield >> 3) & 0x1u);
                 }
@@ -2414,7 +2486,7 @@ namespace Microsoft.Quic
             [NativeTypeName("uint8_t : 1")]
             internal byte ClientTrafficSecret0
             {
-                get
+                readonly get
                 {
                     return (byte)((_bitfield >> 4) & 0x1u);
                 }
@@ -2428,7 +2500,7 @@ namespace Microsoft.Quic
             [NativeTypeName("uint8_t : 1")]
             internal byte ServerTrafficSecret0
             {
-                get
+                readonly get
                 {
                     return (byte)((_bitfield >> 5) & 0x1u);
                 }
@@ -2438,6 +2510,42 @@ namespace Microsoft.Quic
                     _bitfield = (byte)((_bitfield & ~(0x1u << 5)) | ((value & 0x1u) << 5));
                 }
             }
+        }
+
+        [InlineArray(32)]
+        internal partial struct _ClientRandom_e__FixedBuffer
+        {
+            internal byte e0;
+        }
+
+        [InlineArray(64)]
+        internal partial struct _ClientEarlyTrafficSecret_e__FixedBuffer
+        {
+            internal byte e0;
+        }
+
+        [InlineArray(64)]
+        internal partial struct _ClientHandshakeTrafficSecret_e__FixedBuffer
+        {
+            internal byte e0;
+        }
+
+        [InlineArray(64)]
+        internal partial struct _ServerHandshakeTrafficSecret_e__FixedBuffer
+        {
+            internal byte e0;
+        }
+
+        [InlineArray(64)]
+        internal partial struct _ClientTrafficSecret0_e__FixedBuffer
+        {
+            internal byte e0;
+        }
+
+        [InlineArray(64)]
+        internal partial struct _ServerTrafficSecret0_e__FixedBuffer
+        {
+            internal byte e0;
         }
     }
 
@@ -2529,30 +2637,33 @@ namespace Microsoft.Quic
     {
         internal QUIC_LISTENER_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L1269_C5")]
         internal _Anonymous_e__Union Anonymous;
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.NEW_CONNECTION, 1));
+                return ref Anonymous.NEW_CONNECTION;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._STOP_COMPLETE_e__Struct STOP_COMPLETE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.STOP_COMPLETE, 1));
+                return ref Anonymous.STOP_COMPLETE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._DOS_MODE_CHANGED_e__Struct DOS_MODE_CHANGED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DOS_MODE_CHANGED, 1));
+                return ref Anonymous.DOS_MODE_CHANGED;
             }
         }
 
@@ -2560,15 +2671,15 @@ namespace Microsoft.Quic
         internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1270_C9")]
             internal _NEW_CONNECTION_e__Struct NEW_CONNECTION;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1274_C9")]
             internal _STOP_COMPLETE_e__Struct STOP_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1278_C9")]
             internal _DOS_MODE_CHANGED_e__Struct DOS_MODE_CHANGED;
 
             internal unsafe partial struct _NEW_CONNECTION_e__Struct
@@ -2587,7 +2698,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte AppCloseInProgress
                 {
-                    get
+                    readonly get
                     {
                         return (byte)(_bitfield & 0x1u);
                     }
@@ -2601,7 +2712,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 7")]
                 internal byte RESERVED
                 {
-                    get
+                    readonly get
                     {
                         return (byte)((_bitfield >> 1) & 0x7Fu);
                     }
@@ -2620,7 +2731,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte DosModeEnabled
                 {
-                    get
+                    readonly get
                     {
                         return (byte)(_bitfield & 0x1u);
                     }
@@ -2634,7 +2745,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 7")]
                 internal byte RESERVED
                 {
-                    get
+                    readonly get
                     {
                         return (byte)((_bitfield >> 1) & 0x7Fu);
                     }
@@ -2675,158 +2786,177 @@ namespace Microsoft.Quic
     {
         internal QUIC_CONNECTION_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L1381_C5")]
         internal _Anonymous_e__Union Anonymous;
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.CONNECTED, 1));
+                return ref Anonymous.CONNECTED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_INITIATED_BY_TRANSPORT, 1));
+                return ref Anonymous.SHUTDOWN_INITIATED_BY_TRANSPORT;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_INITIATED_BY_PEER, 1));
+                return ref Anonymous.SHUTDOWN_INITIATED_BY_PEER;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_COMPLETE, 1));
+                return ref Anonymous.SHUTDOWN_COMPLETE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.LOCAL_ADDRESS_CHANGED, 1));
+                return ref Anonymous.LOCAL_ADDRESS_CHANGED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_ADDRESS_CHANGED, 1));
+                return ref Anonymous.PEER_ADDRESS_CHANGED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_STREAM_STARTED, 1));
+                return ref Anonymous.PEER_STREAM_STARTED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.STREAMS_AVAILABLE, 1));
+                return ref Anonymous.STREAMS_AVAILABLE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._PEER_NEEDS_STREAMS_e__Struct PEER_NEEDS_STREAMS
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_NEEDS_STREAMS, 1));
+                return ref Anonymous.PEER_NEEDS_STREAMS;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IDEAL_PROCESSOR_CHANGED, 1));
+                return ref Anonymous.IDEAL_PROCESSOR_CHANGED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_STATE_CHANGED, 1));
+                return ref Anonymous.DATAGRAM_STATE_CHANGED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_RECEIVED, 1));
+                return ref Anonymous.DATAGRAM_RECEIVED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_SEND_STATE_CHANGED, 1));
+                return ref Anonymous.DATAGRAM_SEND_STATE_CHANGED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._RESUMED_e__Struct RESUMED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RESUMED, 1));
+                return ref Anonymous.RESUMED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RESUMPTION_TICKET_RECEIVED, 1));
+                return ref Anonymous.RESUMPTION_TICKET_RECEIVED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_CERTIFICATE_RECEIVED, 1));
+                return ref Anonymous.PEER_CERTIFICATE_RECEIVED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._RELIABLE_RESET_NEGOTIATED_e__Struct RELIABLE_RESET_NEGOTIATED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RELIABLE_RESET_NEGOTIATED, 1));
+                return ref Anonymous.RELIABLE_RESET_NEGOTIATED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.ONE_WAY_DELAY_NEGOTIATED, 1));
+                return ref Anonymous.ONE_WAY_DELAY_NEGOTIATED;
             }
         }
 
+        [UnscopedRef]
         internal ref QUIC_NETWORK_STATISTICS NETWORK_STATISTICS
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.NETWORK_STATISTICS, 1));
+                return ref Anonymous.NETWORK_STATISTICS;
             }
         }
 
@@ -2834,75 +2964,75 @@ namespace Microsoft.Quic
         internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1382_C9")]
             internal _CONNECTED_e__Struct CONNECTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1389_C9")]
             internal _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1393_C9")]
             internal _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1396_C9")]
             internal _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1401_C9")]
             internal _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1404_C9")]
             internal _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1407_C9")]
             internal _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1411_C9")]
             internal _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1415_C9")]
             internal _PEER_NEEDS_STREAMS_e__Struct PEER_NEEDS_STREAMS;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1418_C9")]
             internal _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1422_C9")]
             internal _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1426_C9")]
             internal _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1430_C9")]
             internal _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1434_C9")]
             internal _RESUMED_e__Struct RESUMED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1438_C9")]
             internal _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1444_C9")]
             internal _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1451_C9")]
             internal _RELIABLE_RESET_NEGOTIATED_e__Struct RELIABLE_RESET_NEGOTIATED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1454_C9")]
             internal _ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED;
 
             [FieldOffset(0)]
@@ -2942,7 +3072,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte HandshakeCompleted
                 {
-                    get
+                    readonly get
                     {
                         return (byte)(_bitfield & 0x1u);
                     }
@@ -2956,7 +3086,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte PeerAcknowledgedShutdown
                 {
-                    get
+                    readonly get
                     {
                         return (byte)((_bitfield >> 1) & 0x1u);
                     }
@@ -2970,7 +3100,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte AppCloseInProgress
                 {
-                    get
+                    readonly get
                     {
                         return (byte)((_bitfield >> 2) & 0x1u);
                     }
@@ -3100,6 +3230,21 @@ namespace Microsoft.Quic
         }
     }
 
+    internal unsafe partial struct QUIC_KEYING_MATERIAL_CONFIG
+    {
+        [NativeTypeName("const char *")]
+        internal sbyte* Label;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ContextLength;
+
+        [NativeTypeName("const uint8_t *")]
+        internal byte* Context;
+
+        [NativeTypeName("uint32_t")]
+        internal uint OutputLength;
+    }
+
     internal enum QUIC_STREAM_EVENT_TYPE
     {
         START_COMPLETE = 0,
@@ -3120,86 +3265,96 @@ namespace Microsoft.Quic
     {
         internal QUIC_STREAM_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union)")]
+        [NativeTypeName("__AnonymousRecord_msquic_L1644_C5")]
         internal _Anonymous_e__Union Anonymous;
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.START_COMPLETE, 1));
+                return ref Anonymous.START_COMPLETE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._RECEIVE_e__Struct RECEIVE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RECEIVE, 1));
+                return ref Anonymous.RECEIVE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._SEND_COMPLETE_e__Struct SEND_COMPLETE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SEND_COMPLETE, 1));
+                return ref Anonymous.SEND_COMPLETE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_SEND_ABORTED, 1));
+                return ref Anonymous.PEER_SEND_ABORTED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_RECEIVE_ABORTED, 1));
+                return ref Anonymous.PEER_RECEIVE_ABORTED;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SEND_SHUTDOWN_COMPLETE, 1));
+                return ref Anonymous.SEND_SHUTDOWN_COMPLETE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_COMPLETE, 1));
+                return ref Anonymous.SHUTDOWN_COMPLETE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IDEAL_SEND_BUFFER_SIZE, 1));
+                return ref Anonymous.IDEAL_SEND_BUFFER_SIZE;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._CANCEL_ON_LOSS_e__Struct CANCEL_ON_LOSS
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.CANCEL_ON_LOSS, 1));
+                return ref Anonymous.CANCEL_ON_LOSS;
             }
         }
 
+        [UnscopedRef]
         internal ref _Anonymous_e__Union._RECEIVE_BUFFER_NEEDED_e__Struct RECEIVE_BUFFER_NEEDED
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RECEIVE_BUFFER_NEEDED, 1));
+                return ref Anonymous.RECEIVE_BUFFER_NEEDED;
             }
         }
 
@@ -3207,43 +3362,43 @@ namespace Microsoft.Quic
         internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1645_C9")]
             internal _START_COMPLETE_e__Struct START_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1651_C9")]
             internal _RECEIVE_e__Struct RECEIVE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1660_C9")]
             internal _SEND_COMPLETE_e__Struct SEND_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1664_C9")]
             internal _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1667_C9")]
             internal _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1670_C9")]
             internal _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1673_C9")]
             internal _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1682_C9")]
             internal _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1685_C9")]
             internal _CANCEL_ON_LOSS_e__Struct CANCEL_ON_LOSS;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("__AnonymousRecord_msquic_L1689_C9")]
             internal _RECEIVE_BUFFER_NEEDED_e__Struct RECEIVE_BUFFER_NEEDED;
 
             internal partial struct _START_COMPLETE_e__Struct
@@ -3259,7 +3414,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte PeerAccepted
                 {
-                    get
+                    readonly get
                     {
                         return (byte)(_bitfield & 0x1u);
                     }
@@ -3273,7 +3428,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 7")]
                 internal byte RESERVED
                 {
-                    get
+                    readonly get
                     {
                         return (byte)((_bitfield >> 1) & 0x7Fu);
                     }
@@ -3338,7 +3493,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte AppCloseInProgress
                 {
-                    get
+                    readonly get
                     {
                         return (byte)(_bitfield & 0x1u);
                     }
@@ -3352,7 +3507,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte ConnectionShutdownByApp
                 {
-                    get
+                    readonly get
                     {
                         return (byte)((_bitfield >> 1) & 0x1u);
                     }
@@ -3366,7 +3521,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte ConnectionClosedRemotely
                 {
-                    get
+                    readonly get
                     {
                         return (byte)((_bitfield >> 2) & 0x1u);
                     }
@@ -3380,7 +3535,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN : 5")]
                 internal byte RESERVED
                 {
-                    get
+                    readonly get
                     {
                         return (byte)((_bitfield >> 3) & 0x1Fu);
                     }
@@ -3577,6 +3732,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_REGISTRATION_CLOSE2_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<void*, void>, void*, void> RegistrationClose2;
+
+        [NativeTypeName("QUIC_CONNECTION_EXPORT_KEYING_MATERIAL_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_KEYING_MATERIAL_CONFIG*, byte*, int> ConnectionExportKeyingMaterial;
     }
 
     internal static unsafe partial class MsQuic
@@ -3677,6 +3835,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG 0x0100000D")]
         internal const uint QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG = 0x0100000D;
+
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG 0x0100000E")]
+        internal const uint QUIC_PARAM_GLOBAL_XDP_MAP_CONFIG = 0x0100000E;
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
         internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
