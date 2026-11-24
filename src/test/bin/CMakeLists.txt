@@ -15,7 +15,7 @@ add_executable(msquictest ${SOURCES})
 target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
 if (WIN32)
-    target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
+    target_include_directories(msquictest PRIVATE ${XDP_INCLUDE_DIR})
 endif()
 
 set_property(TARGET msquictest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
