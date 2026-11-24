@@ -3000,6 +3000,116 @@ QuicTestSlowReceive(
     TEST_TRUE(Context.ServerStreamHasShutdown);
 }
 
+struct ZeroLengthSendTestContext {
+    CxPlatEvent ClientFirstRecvPended;
+    CxPlatEvent ClientReindicated;
+    CxPlatEvent ServerGotSecond;
+    MsQuicStream* ClientStream {nullptr};
+    bool PendNextReceive {true};
+
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (ZeroLengthSendTestContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            uint64_t Length = Event->RECEIVE.TotalBufferLength;
+            if (Length == 11) {
+                TestContext->ServerGotSecond.Set();
+            } else if (Length == 15) {
+                //
+                // Echo the first payload back so the client can pend it.
+                //
+                static uint8_t EchoBuffer[15];
+                static QUIC_BUFFER Echo { 15, EchoBuffer };
+                Stream->Send(&Echo, 1, QUIC_SEND_FLAG_NONE);
+            }
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (ZeroLengthSendTestContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            if (TestContext->PendNextReceive) {
+                TestContext->PendNextReceive = false;
+                TestContext->ClientFirstRecvPended.Set();
+                return QUIC_STATUS_PENDING;
+            }
+            TestContext->ClientReindicated.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, ServerStreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestStreamZeroLengthSend(
+    void
+    )
+{
+    //
+    // A zero-length send with no FIN must not prevent subsequent sends on the
+    // stream from being transmitted. Regression test for #6243.
+    //
+    MsQuicRegistration Registration;
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerBidiStreamCount(1), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    ZeroLengthSendTestContext Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ZeroLengthSendTestContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+
+    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, ZeroLengthSendTestContext::ClientStreamCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+    uint8_t RawBuffer[100];
+
+    //
+    // Send data and wait for the echo to be pended by the client.
+    //
+    QUIC_BUFFER FirstBuffer { 15, RawBuffer };
+    TEST_QUIC_SUCCEEDED(Stream.Send(&FirstBuffer, 1, QUIC_SEND_FLAG_NONE));
+    TEST_TRUE(Context.ClientFirstRecvPended.WaitTimeout(TestWaitTimeout));
+
+    //
+    // Complete the pended receive with zero bytes consumed, then issue a
+    // zero-length send and let the connection go quiescent.
+    //
+    TEST_QUIC_SUCCEEDED(Stream.ReceiveSetEnabled(TRUE));
+    Stream.ReceiveComplete(0);
+
+    QUIC_BUFFER EmptyBuffer { 0, RawBuffer };
+    TEST_QUIC_SUCCEEDED(Stream.Send(&EmptyBuffer, 1, QUIC_SEND_FLAG_NONE));
+
+    TEST_TRUE(Context.ClientReindicated.WaitTimeout(TestWaitTimeout));
+    CxPlatSleep(1000);
+
+    //
+    // Subsequent data must still reach the peer.
+    //
+    QUIC_BUFFER SecondBuffer { 11, RawBuffer };
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SecondBuffer, 1, QUIC_SEND_FLAG_NONE));
+    TEST_TRUE(Context.ServerGotSecond.WaitTimeout(TestWaitTimeout));
+}
+
 struct NthAllocFailTestContext {
     CxPlatEvent ServerStreamRecv;
     CxPlatEvent ServerStreamShutdown;
