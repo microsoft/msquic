@@ -1,5 +1,5 @@
 # Stage 1: Base image
-FROM ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b AS base
+FROM ubuntu:26.04@sha256:d66b366dac61b575bee2aef07e9c26e8070096fbe84a3d4d3eb0da069b5d76db AS base
 
 LABEL org.opencontainers.image.source=https://github.com/microsoft/msquic
 
