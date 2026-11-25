@@ -42,6 +42,11 @@ typedef struct QUIC_RX_PACKET {
     uint64_t PacketId;
 
     //
+    // Identifies the connection binding generation that received the packet.
+    //
+    uint64_t ReceiveBindingGeneration;
+
+    //
     // The bytes that represent the fully decoded packet number.
     //
     uint64_t PacketNumber;

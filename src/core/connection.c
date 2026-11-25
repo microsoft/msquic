@@ -1835,7 +1835,6 @@ QuicConnStart(
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
-
         Connection->State.RemoteAddressSet = TRUE;
     }
 
@@ -1921,6 +1920,7 @@ QuicConnStart(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
+    Connection->ReceiveBinding = Path->Binding;
 
     //
     // Clients only need to generate a non-zero length source CID if it
@@ -1953,6 +1953,7 @@ QuicConnStart(
     CxPlatListPushEntry(&Connection->SourceCids, &SourceCid->Link);
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
+        Connection->ReceiveBinding = NULL;
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -3249,6 +3250,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvPackets(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_RX_PACKET* Packets,
     _In_ uint32_t PacketChainLength,
     _In_ uint32_t PacketChainByteLength
@@ -3278,12 +3280,21 @@ QuicConnQueueRecvPackets(
         PacketChainLength);
 
     BOOLEAN QueueOperation;
+    const char* DropReason = "Max queue limit reached";
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
-    if (Connection->ReceiveQueueCount >= QueueLimit) {
+    if (Binding != Connection->ReceiveBinding) {
+        QueueOperation = FALSE;
+        DropReason = "Binding no longer active";
+    } else if (Connection->ReceiveQueueCount >= QueueLimit) {
         QueueOperation = FALSE;
     } else {
         *Connection->ReceiveQueueTail = Packets;
         Connection->ReceiveQueueTail = PacketsTail;
+        QUIC_RX_PACKET* Packet = Packets;
+        do {
+            Packet->ReceiveBindingGeneration =
+                Connection->ReceiveBindingGeneration;
+        } while ((Packet = (QUIC_RX_PACKET*)Packet->Next) != NULL);
         Packets = NULL;
         QueueOperation = (Connection->ReceiveQueueCount == 0);
         Connection->ReceiveQueueCount += PacketChainLength;
@@ -3295,7 +3306,7 @@ QuicConnQueueRecvPackets(
         QUIC_RX_PACKET* Packet = Packets;
         do {
             Packet->QueuedOnConnection = FALSE;
-            QuicPacketLogDrop(Connection, Packet, "Max queue limit reached");
+            QuicPacketLogDrop(Connection, Packet, DropReason);
         } while ((Packet = (QUIC_RX_PACKET*)Packet->Next) != NULL);
         CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)Packets);
         return;
@@ -5701,6 +5712,11 @@ QuicConnRecvDatagramBatch(
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Packets[i]->TypeOfService);
         Packet = Packets[i];
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
+        if (Packet->ReceiveBindingGeneration !=
+                Connection->ReceiveBindingGeneration) {
+            QuicPacketLogDrop(Connection, Packet, "Binding no longer active");
+            continue;
+        }
         if (!QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) ||
             !QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet)) {
@@ -5799,6 +5815,12 @@ QuicConnRecvDatagrams(
 
         CXPLAT_DBG_ASSERT(Packet->ReleaseDeferred == IsDeferred);
         Packet->ReleaseDeferred = FALSE;
+
+        if (Packet->ReceiveBindingGeneration !=
+                Connection->ReceiveBindingGeneration) {
+            QuicPacketLogDrop(Connection, Packet, "Binding no longer active");
+            goto Drop;
+        }
 
         if (CurrentPath == NULL) {
             CurrentPath = QuicConnGetPathForPacket(Connection, Packet);
@@ -6091,6 +6113,47 @@ QuicConnFlushRecv(
         Connection, ReceiveQueue, ReceiveQueueCount, ReceiveQueueByteCount, FALSE);
 
     return FlushedAll;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+void
+QuicConnDiscardQueuedRecvPacketsForLocalAddress(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_ADDR* LocalAddress
+    )
+{
+    QUIC_RX_PACKET* ReleaseChain = NULL;
+    QUIC_RX_PACKET** ReleaseChainTail = &ReleaseChain;
+    QUIC_RX_PACKET** PacketLink = &Connection->ReceiveQueue;
+
+    CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
+    while (*PacketLink != NULL) {
+        QUIC_RX_PACKET* Packet = *PacketLink;
+        if (QuicAddrCompare(&Packet->Route->LocalAddress, LocalAddress)) {
+            *PacketLink = (QUIC_RX_PACKET*)Packet->Next;
+            CXPLAT_DBG_ASSERT(Connection->ReceiveQueueCount != 0);
+            CXPLAT_DBG_ASSERT(Connection->ReceiveQueueByteCount >= Packet->BufferLength);
+            Connection->ReceiveQueueCount--;
+            Connection->ReceiveQueueByteCount -= Packet->BufferLength;
+            Packet->Next = NULL;
+            Packet->QueuedOnConnection = FALSE;
+            *ReleaseChainTail = Packet;
+            ReleaseChainTail = (QUIC_RX_PACKET**)&Packet->Next;
+        } else {
+            PacketLink = (QUIC_RX_PACKET**)&Packet->Next;
+        }
+    }
+    Connection->ReceiveQueueTail = PacketLink;
+    CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
+
+    if (ReleaseChain != NULL) {
+        QUIC_RX_PACKET* Packet = ReleaseChain;
+        do {
+            QuicPacketLogDrop(Connection, Packet, "Local address removed");
+        } while ((Packet = (QUIC_RX_PACKET*)Packet->Next) != NULL);
+        CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)ReleaseChain);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -6498,19 +6561,6 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->State.LocalAddressSet = TRUE;
-        CxPlatCopyMemory(
-            &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress,
-            Buffer,
-            sizeof(QUIC_ADDR));
-        QuicTraceEvent(
-            ConnLocalAddrAdded,
-            "[conn][%p] New Local IP: %!ADDR!",
-            Connection,
-            CASTED_CLOG_BYTEARRAY(
-                sizeof(QuicPathGetActive(&Connection->Paths)->Route.LocalAddress),
-                &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress));
-
         if (Connection->State.Started) {
 
             CXPLAT_DBG_ASSERT(QuicPathGetActive(&Connection->Paths)->Binding);
@@ -6519,6 +6569,8 @@ QuicConnParamSet(
 
             QUIC_BINDING* OldBinding =
                 QuicPathGetActive(&Connection->Paths)->Binding;
+            QUIC_ADDR OldLocalAddress;
+            QuicBindingGetLocalAddress(OldBinding, &OldLocalAddress);
 
             CXPLAT_UDP_CONFIG UdpConfig = {0};
             UdpConfig.LocalAddress = LocalAddress;
@@ -6541,38 +6593,45 @@ QuicConnParamSet(
             if (Connection->Settings.QTIPEnabled) {
                 UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
             }
-            Status =
-                QuicLibraryGetBinding(
-                    &UdpConfig,
-                    &QuicPathGetActive(&Connection->Paths)->Binding);
+            QUIC_BINDING* NewBinding;
+            Status = QuicLibraryGetBinding(&UdpConfig, &NewBinding);
             if (QUIC_FAILED(Status)) {
-                QuicPathGetActive(&Connection->Paths)->Binding = OldBinding;
                 break;
             }
-            QuicPathGetActive(&Connection->Paths)->Route.State = RouteUnresolved;
-            QuicPathGetActive(&Connection->Paths)->Route.Queue = NULL;
 
-            //
-            // TODO - Need to free any queued recv packets from old binding.
-            //
+            QUIC_ADDR NewLocalAddress;
+            QuicBindingGetLocalAddress(NewBinding, &NewLocalAddress);
+
+            CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
+            for (uint8_t i = 0; i < Connection->Paths.Count; ++i) {
+                QUIC_PATH* Path = &Connection->Paths.Paths[i];
+                if (Path->Binding == OldBinding) {
+                    Path->Binding = NewBinding;
+                    Path->Route.State = RouteUnresolved;
+                    Path->Route.Queue = NULL;
+                    Path->Route.LocalAddress = NewLocalAddress;
+                }
+            }
+            Connection->ReceiveBindingGeneration++;
+            Connection->ReceiveBinding = NewBinding;
+            CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
             QuicBindingMoveSourceConnectionIDs(
                 OldBinding,
-                QuicPathGetActive(&Connection->Paths)->Binding,
+                NewBinding,
                 Connection);
             QuicLibraryReleaseBinding(OldBinding);
+            QuicConnDiscardQueuedRecvPacketsForLocalAddress(
+                Connection,
+                &OldLocalAddress);
 
             QuicTraceEvent(
                 ConnLocalAddrRemoved,
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
                 CASTED_CLOG_BYTEARRAY(
-                    sizeof(QuicPathGetActive(&Connection->Paths)->Route.LocalAddress),
-                    &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress));
-
-            QuicBindingGetLocalAddress(
-                QuicPathGetActive(&Connection->Paths)->Binding,
-                &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress);
+                    sizeof(OldLocalAddress),
+                    &OldLocalAddress));
 
             QuicTraceEvent(
                 ConnLocalAddrAdded,
@@ -6583,8 +6642,22 @@ QuicConnParamSet(
                     &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress));
 
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PING);
+
+        } else {
+            CxPlatCopyMemory(
+                &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress,
+                Buffer,
+                sizeof(QUIC_ADDR));
+            QuicTraceEvent(
+                ConnLocalAddrAdded,
+                "[conn][%p] New Local IP: %!ADDR!",
+                Connection,
+                CASTED_CLOG_BYTEARRAY(
+                    sizeof(QuicPathGetActive(&Connection->Paths)->Route.LocalAddress),
+                    &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress));
         }
 
+        Connection->State.LocalAddressSet = TRUE;
         Status = QUIC_STATUS_SUCCESS;
         break;
     }

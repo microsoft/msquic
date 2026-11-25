@@ -2494,12 +2494,12 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPathValidationTimeout,
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
                 CASTED_CLOG_BYTEARRAY(
-                    sizeof(QuicPathGetActive(&Connection->Paths)->Route.LocalAddress),
-                    &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress));
+                    sizeof(OldLocalAddress),
+                    &OldLocalAddress));
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(
-                    sizeof(QuicPathGetActive(&Connection->Paths)->Route.LocalAddress),
-                    &QuicPathGetActive(&Connection->Paths)->Route.LocalAddress) = arg3
+                    sizeof(OldLocalAddress),
+                    &OldLocalAddress) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrRemoved,
     TP_ARGS(
