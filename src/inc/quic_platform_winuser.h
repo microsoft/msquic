@@ -697,11 +697,12 @@ CxPlatRefIncrementNonZero(
 
         } else {
             __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
-            return FALSE;
         }
     }
 }
 
+#pragma warning(push)
+#pragma warning(disable: 4702) // MSVC < 19.52 needs the unreachable return after __fastfail.
 QUIC_INLINE
 BOOLEAN
 CxPlatRefDecrement(
@@ -733,6 +734,7 @@ CxPlatRefDecrement(
     __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
     return FALSE;
 }
+#pragma warning(pop)
 
 //
 // Event Interfaces
