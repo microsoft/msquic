@@ -117,6 +117,7 @@
 ../src/core/unittest/main.cpp
 ../src/core/unittest/VersionNegExtTest.cpp
 ../src/core/unittest/PartitionTest.cpp
+../src/core/unittest/CryptoTest.cpp
 ../src/platform/unittest/TlsTest.cpp
 ../src/platform/unittest/PlatformTest.cpp
 ../src/platform/unittest/CryptTest.cpp
