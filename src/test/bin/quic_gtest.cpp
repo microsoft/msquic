@@ -2742,6 +2742,15 @@ TEST_P(WithFamilyArgs, AckSendDelay) {
     }
 }
 
+TEST_P(WithFamilyArgs, AckFrequencyMaxAckDelay) {
+    TestLogger Logger("QuicTestAckFrequencyMaxAckDelay");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestAckFrequencyMaxAckDelay), GetParam()));
+    } else {
+        QuicTestAckFrequencyMaxAckDelay(GetParam());
+    }
+}
+
 TEST(Misc, AbortPausedReceive) {
     TestLogger Logger("AbortPausedReceive");
     if (TestingKernelMode) {
