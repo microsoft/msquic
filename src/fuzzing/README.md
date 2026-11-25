@@ -74,7 +74,7 @@ You might need to change `Dockerfile` and/or `build.sh` for installing libraries
 [OSS-Fuzz official document]: https://google.github.io/oss-fuzz
 [msquic project directory]: https://github.com/google/oss-fuzz/tree/master/projects/msquic
 [OSS-Fuzz issues]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=msquic
-[LibFuzzer]: https://llvm.org/LibFuzzer
+[LibFuzzer]: https://llvm.org/docs/LibFuzzer.html
 [Reproduce]: https://google.github.io/oss-fuzz/advanced-topics/reproducing/
 [Debug]: https://google.github.io/oss-fuzz/advanced-topics/debugging/
 [project.yaml]: https://github.com/google/oss-fuzz/blob/master/projects/msquic/project.yaml
