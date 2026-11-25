@@ -231,17 +231,21 @@ function Install-Xdp-Driver {
     # Remove any previous XDP installation to avoid netcfg "already exists" errors.
     Uninstall-Xdp
 
-    # The installer URL is architecture-agnostic; substitute the moniker for the
-    # current OS architecture (e.g. x64, arm64). The XDP version to install is
-    # selected by $UseXdp (e.g. "xdp-v1.1", "xdp-prerelease"); a single
-    # version-keyed xdp.json maps each version to its runtime package.
+    # The XDP version to install is selected by $UseXdp (e.g. "xdp-v1.4",
+    # "xdp-prerelease"); xdp.json maps each version and architecture to its
+    # runtime package.
     $XdpVersion = $UseXdp
     $XdpJson = Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json
     $XdpEntry = $XdpJson.$XdpVersion
     if ($null -eq $XdpEntry) {
         Write-Error "Unknown XDP version '$XdpVersion'. Available versions: $($XdpJson.PSObject.Properties.Name -join ', ')"
     }
-    $InstallerUrl = $XdpEntry.installer.Replace("{arch}", (Get-XdpArch))
+    $XdpArch = Get-XdpArch
+    $XdpInstaller = $XdpEntry.PSObject.Properties[$XdpArch]
+    if ($null -eq $XdpInstaller) {
+        Write-Error "XDP version '$XdpVersion' is not available for architecture '$XdpArch'."
+    }
+    $InstallerUrl = $XdpInstaller.Value
 
     $NupkgPath = Join-Path $ArtifactsPath "xdp.nupkg"
     Write-Host "Downloading XDP runtime package from $InstallerUrl"

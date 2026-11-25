@@ -1,8 +1,9 @@
 {
-    "xdp-v1.1": {
-        "installer": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.1.0/XDP-for-Windows-Runtime.{arch}.1.1.0.nupkg"
+    "xdp-v1.4": {
+        "x64": "https://api.nuget.org/v3-flatcontainer/microsoft.xdp-for-windows.runtime.x64/1.4.0/microsoft.xdp-for-windows.runtime.x64.1.4.0.nupkg"
     },
     "xdp-prerelease": {
-        "installer": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.4.0-prerelease-testsigned-32d14f58/Microsoft.XDP-for-Windows.Runtime.{arch}.1.4.0-prerelease-testsigned-32d14f58.nupkg"
+        "x64": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.4.0-prerelease-testsigned-32d14f58/Microsoft.XDP-for-Windows.Runtime.x64.1.4.0-prerelease-testsigned-32d14f58.nupkg",
+        "arm64": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.4.0-prerelease-testsigned-32d14f58/Microsoft.XDP-for-Windows.Runtime.arm64.1.4.0-prerelease-testsigned-32d14f58.nupkg"
     }
 }

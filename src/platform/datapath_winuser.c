@@ -972,6 +972,40 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathGetLocalAddressForRemote(
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _Out_ QUIC_ADDR* LocalAddress
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    SOCKET Socket = socket(RemoteAddress->si_family, SOCK_DGRAM, IPPROTO_UDP);
+    if (Socket == INVALID_SOCKET) {
+        return HRESULT_FROM_WIN32(WSAGetLastError());
+    }
+
+    const int RemoteAddressLength =
+        RemoteAddress->si_family == AF_INET ?
+            sizeof(RemoteAddress->Ipv4) :
+            sizeof(RemoteAddress->Ipv6);
+    if (connect(Socket, (PSOCKADDR)RemoteAddress, RemoteAddressLength) == SOCKET_ERROR) {
+        Status = HRESULT_FROM_WIN32(WSAGetLastError());
+        goto Error;
+    }
+
+    CxPlatZeroMemory(LocalAddress, sizeof(*LocalAddress));
+    int LocalAddressLength = sizeof(*LocalAddress);
+    if (getsockname(Socket, (PSOCKADDR)LocalAddress, &LocalAddressLength) == SOCKET_ERROR) {
+        Status = HRESULT_FROM_WIN32(WSAGetLastError());
+        goto Error;
+    }
+
+Error:
+    closesocket(Socket);
+    return Status;
+}
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(QUIC_SUCCEEDED(return))
@@ -2567,7 +2601,7 @@ CxPlatSocketContextUninitialize(
         //
         // For TCP sockets, we should shutdown the socket before closing it.
         //
-        SocketProc->Parent->DisconnectIndicated = TRUE;
+        InterlockedExchange(&SocketProc->Parent->DisconnectIndicated, TRUE);
         if (shutdown(SocketProc->Socket, SD_BOTH) == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
             if (WsaError != WSAENOTCONN) {
@@ -3377,8 +3411,8 @@ CxPlatDataPathTcpRecvComplete(
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
         //
-        if (!SocketProc->Parent->DisconnectIndicated) {
-            SocketProc->Parent->DisconnectIndicated = TRUE;
+        if (InterlockedCompareExchange(
+                &SocketProc->Parent->DisconnectIndicated, TRUE, FALSE) == FALSE) {
             SocketProc->Parent->Datapath->TcpHandlers.Connect(
                 SocketProc->Parent,
                 SocketProc->Parent->ClientContext,
@@ -3391,8 +3425,8 @@ CxPlatDataPathTcpRecvComplete(
     } else if (IoResult == QUIC_STATUS_SUCCESS) {
 
         if (NumberOfBytesTransferred == 0) {
-            if (!SocketProc->Parent->DisconnectIndicated) {
-                SocketProc->Parent->DisconnectIndicated = TRUE;
+            if (InterlockedCompareExchange(
+                    &SocketProc->Parent->DisconnectIndicated, TRUE, FALSE) == FALSE) {
                 SocketProc->Parent->Datapath->TcpHandlers.Connect(
                     SocketProc->Parent,
                     SocketProc->Parent->ClientContext,
@@ -3545,9 +3579,10 @@ CxPlatDataPathSocketProcessReceive(
     if (!CxPlatRundownAcquire(&SocketProc->RundownRef)) {
         //
         // Even though we can't process the completion (because the socket is
-        // cleaning up) we still need to release the reference it has on the
-        // context.
+        // cleaning up) we still need to free the receive block and release the
+        // reference it has on the context.
         //
+        CxPlatSocketFreeRxIoBlock(IoBlock);
         CxPlatSocketContextRelease(SocketProc);
         return;
     }

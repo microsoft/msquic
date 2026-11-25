@@ -42,6 +42,43 @@ typedef _In_range_(0, QUIC_VAR_INT_MAX) uint64_t QUIC_VAR_INT;
     ((QUIC_VAR_INT)Value < 0x40 ? sizeof(uint8_t) : ((QUIC_VAR_INT)Value < 0x4000 ? sizeof(uint16_t) : ((QUIC_VAR_INT)Value < 0x40000000 ? sizeof(uint32_t) : sizeof(uint64_t))))
 
 //
+// Writes a variable length integer into 1 byte. Assumes the value will fit.
+//
+QUIC_INLINE
+_Post_equal_to_(Buffer + sizeof(uint8_t))
+uint8_t*
+QuicVarIntEncode1Bytes(
+    _In_range_(0, 0x3F) QUIC_VAR_INT Value,
+    _Out_writes_bytes_(sizeof(uint8_t))
+        uint8_t* Buffer
+    )
+{
+    CXPLAT_DBG_ASSERT(Value < 0x40);
+
+    Buffer[0] = (uint8_t)Value;
+    return Buffer + sizeof(uint8_t);
+}
+
+//
+// Writes a variable length integer into 2 bytes. Assumes the value will fit.
+//
+QUIC_INLINE
+_Post_equal_to_(Buffer + sizeof(uint16_t))
+uint8_t*
+QuicVarIntEncode2Bytes(
+    _In_range_(0, 0x3FFF) QUIC_VAR_INT Value,
+    _Out_writes_bytes_(sizeof(uint16_t))
+        uint8_t* Buffer
+    )
+{
+    CXPLAT_DBG_ASSERT(Value < 0x4000);
+
+    const uint16_t tmp = CxPlatByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+    memcpy(Buffer, &tmp, sizeof(tmp));
+    return Buffer + sizeof(uint16_t);
+}
+
+//
 // Helper to encode a variable-length integer.
 //
 QUIC_INLINE
@@ -62,12 +99,9 @@ QuicVarIntEncode(
     CXPLAT_DBG_ASSERT(Value <= QUIC_VAR_INT_MAX);
 
     if (Value < 0x40) {
-        Buffer[0] = (uint8_t)Value;
-        return Buffer + sizeof(uint8_t);
+        return QuicVarIntEncode1Bytes(Value, Buffer);
     } else if (Value < 0x4000) {
-        const uint16_t tmp = CxPlatByteSwapUint16((0x40 << 8) | (uint16_t)Value);
-        memcpy(Buffer, &tmp, sizeof(tmp));
-        return Buffer + sizeof(uint16_t);
+        return QuicVarIntEncode2Bytes(Value, Buffer);
     } else if (Value < 0x40000000) {
         const uint32_t tmp = CxPlatByteSwapUint32((0x80UL << 24) | (uint32_t)Value);
         memcpy(Buffer, &tmp, sizeof(tmp));
@@ -77,25 +111,6 @@ QuicVarIntEncode(
         memcpy(Buffer, &tmp, sizeof(tmp));
         return Buffer + sizeof(uint64_t);
     }
-}
-
-//
-// Writes a variable length integer into 2 bytes. Assumes the value will fit.
-//
-QUIC_INLINE
-_Post_equal_to_(Buffer + sizeof(uint16_t))
-uint8_t*
-QuicVarIntEncode2Bytes(
-    _In_range_(0, 0x3FFF) QUIC_VAR_INT Value,
-    _Out_writes_bytes_(sizeof(uint16_t))
-        uint8_t* Buffer
-    )
-{
-    CXPLAT_DBG_ASSERT(Value < 0x4000);
-
-    const uint16_t tmp = CxPlatByteSwapUint16((0x40 << 8) | (uint16_t)Value);
-    memcpy(Buffer, &tmp, sizeof(tmp));
-    return Buffer + sizeof(uint16_t);
 }
 
 //

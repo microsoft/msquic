@@ -14,6 +14,7 @@
 
 #include <array>
 #include <vector>
+#include <algorithm>
 
 #if defined(_WIN32) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 #define XDP_API_VERSION 3
@@ -2979,6 +2980,15 @@ TEST(Misc, StreamAbortConnFlowControl) {
         ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestStreamAbortConnFlowControl)));
     } else {
         QuicTestStreamAbortConnFlowControl();
+    }
+}
+
+TEST(Misc, StreamTinyRecvWindow) {
+    TestLogger Logger("StreamTinyRecvWindow");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(InvokeKernelTest(FUNC(QuicTestTinyStreamRecvWindow)));
+    } else {
+        QuicTestTinyStreamRecvWindow();
     }
 }
 

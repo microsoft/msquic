@@ -547,6 +547,21 @@ TEST_P(WithMode, WriteTooMuch2)
     ASSERT_FALSE(RecvBuf.HasUnreadData());
 }
 
+TEST(RecvBufferGrowthTest, WriteGrowthCappedAtVirtualLength)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 63, 64));
+
+    uint64_t InOutWriteLength = 64;
+    BOOLEAN NewDataReady = FALSE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(0, 64, &InOutWriteLength, &NewDataReady));
+    ASSERT_EQ(64u, RecvBuf.RecvBuf.Capacity);
+}
+
 TEST_P(WithMode, WriteWhilePendingRead)
 {
     RecvBuffer RecvBuf;
@@ -1209,6 +1224,18 @@ TEST_P(WithMode, IncreaseVirtualLength)
         ASSERT_EQ(QUIC_STATUS_SUCCESS, Status);
         ASSERT_EQ(BufferSizeNeeded, 0);
     }
+}
+
+TEST(RecvBufferTest, NonPowerOfTwoAllocLengthCanGrow)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 63, 512));
+
+    uint64_t InOutWriteLength = 512;
+    BOOLEAN NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 200, &InOutWriteLength, &NewDataReady));
 }
 
 // Validate the gap can span the edge of a chunk

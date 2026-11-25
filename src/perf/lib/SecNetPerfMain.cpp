@@ -25,6 +25,7 @@ uint32_t MaxRuntime = 0;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
 TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+uint8_t PerfDefaultHyStartEnabled = false;
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
 uint8_t PerfDefaultHighPriority = false;
@@ -130,6 +131,7 @@ PrintHelp(
         "                            - {lowlat, maxtput, scavenger, realtime}.\n"
         "  -cc:<algo>               Congestion control algorithm to use.\n"
         "                            - {cubic, bbr}.\n"
+        "  -hystart:<0/1>           Disables/enables HyStart++ when using CUBIC. (def:0)\n"
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
@@ -289,6 +291,7 @@ QuicMainStart(
     }
 
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
+    TryGetValue(argc, argv, "hystart", &PerfDefaultHyStartEnabled);
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
     TryGetValue(argc, argv, "dscp", &PerfDefaultDscpValue);
     if (PerfDefaultDscpValue > CXPLAT_MAX_DSCP) {

@@ -12,6 +12,10 @@ set(SOURCES
     TlsTest.cpp
 )
 
+if(QUIC_TLS_LIB STREQUAL "openssl")
+    list(APPEND SOURCES TlsOpenSslTest.cpp)
+endif()
+
 add_executable(msquicplatformtest ${SOURCES})
 
 target_include_directories(msquicplatformtest PRIVATE ${PROJECT_SOURCE_DIR}/src/core)

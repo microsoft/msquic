@@ -596,6 +596,17 @@ CxPlatDataPathGetLocalAddresses(
     );
 
 //
+// Get a local address that would be used to reach a given remote address.
+// Currently only used by the connection pool.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathGetLocalAddressForRemote(
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _Out_ QUIC_ADDR* LocalAddress
+    );
+
+//
 // Gets the list of Gateway server addresses.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -909,7 +920,7 @@ void
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ BOOLEAN Succeeded
     );
 
@@ -924,7 +935,7 @@ CxPlatResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
+    _In_ uint32_t PathId
     );
 
 //
@@ -935,7 +946,7 @@ QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );

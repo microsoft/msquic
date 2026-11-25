@@ -356,16 +356,16 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteBlocked,
 // Decoder Ring for IncreaseRxBuffer
 // [strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)
 // QuicTraceLogStreamVerbose(
-                    IncreaseRxBuffer,
-                    Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
-                    (uint32_t)NewLength,
-                    Stream->Connection->Paths[0].MinRtt,
-                    TimeNow,
-                    Stream->RecvWindowLastUpdate);
+                        IncreaseRxBuffer,
+                        Stream,
+                        "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
+                        (uint32_t)NewLength,
+                        QuicPathGetActive(&Stream->Connection->Paths)->MinRtt,
+                        TimeNow,
+                        Stream->RecvWindowLastUpdate);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = (uint32_t)NewLength = arg3
-// arg4 = arg4 = Stream->Connection->Paths[0].MinRtt = arg4
+// arg4 = arg4 = QuicPathGetActive(&Stream->Connection->Paths)->MinRtt = arg4
 // arg5 = arg5 = TimeNow = arg5
 // arg6 = arg6 = Stream->RecvWindowLastUpdate = arg6
 ----------------------------------------------------------*/

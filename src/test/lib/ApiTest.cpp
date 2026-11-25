@@ -2067,7 +2067,8 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuEcnChanges = t
 
     {
         struct TestSpec Spec[] = {{0, QUIC_STATUS_INVALID_PARAMETER},
-                                  {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE,  QUIC_STATUS_SUCCESS}};
+                                  {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_STATUS_SUCCESS},
+                                  {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE + 1, QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
         Settings.IsSet.StreamRecvBufferDefault = TRUE;
         for (auto &Data: Spec) {
@@ -7154,6 +7155,22 @@ struct TestEventQ {
     TestEventQ& operator=(const TestEventQ&) = delete;
     TestEventQ(TestEventQ&&) = delete;
     TestEventQ& operator=(TestEventQ&&) = delete;
+    BOOLEAN Initialize() {
+        Initialized = CxPlatEventQInitialize(&QuicEventQ);
+#if CXPLAT_USE_IO_URING
+        // io_uring based event queues rapid deletions/creations have been causing runner resource exhaustion.
+        // Allow some retry to let the system recover resources.
+        for (uint32_t DelayMs = 1; !Initialized && DelayMs <= 128; DelayMs *= 2) {
+            CxPlatLockUninitialize(&QuicEventQ.Lock);
+            CxPlatSleep(DelayMs);
+            Initialized = CxPlatEventQInitialize(&QuicEventQ);
+        }
+        if (!Initialized) {
+            CxPlatLockUninitialize(&QuicEventQ.Lock);
+        }
+#endif
+        return Initialized;
+    }
     ~TestEventQ() {
         if (Initialized) {
             CxPlatEventQCleanup(&QuicEventQ);
@@ -7213,22 +7230,23 @@ void
 QuicTestValidateExecutionContext(const uint32_t EcCount)
 {
     const uint32_t PollCount = 10;
-    UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
-    UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
-
-    TEST_NOT_EQUAL(nullptr, Ecs);
-    TEST_NOT_EQUAL(nullptr, EventQs);
-
-    for (uint32_t i = 0; i < EcCount; i++) {
-        auto &Ec = Ecs[i];
-        TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
-        EventQs[i] = &Ec.QuicEventQ;
-    }
 
     //
     // Verify an EC can be created and deleted without any other actions.
     //
     {
+        UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+        UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+
+        TEST_NOT_EQUAL(nullptr, Ecs);
+        TEST_NOT_EQUAL(nullptr, EventQs);
+
+        for (uint32_t i = 0; i < EcCount; i++) {
+            auto &Ec = Ecs[i];
+            TEST_TRUE(Ec.Initialize());
+            EventQs[i] = &Ec.QuicEventQ;
+        }
+
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
     }
@@ -7237,6 +7255,18 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     // Verify an EC can be polled.
     //
     {
+        UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+        UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+
+        TEST_NOT_EQUAL(nullptr, Ecs);
+        TEST_NOT_EQUAL(nullptr, EventQs);
+
+        for (uint32_t i = 0; i < EcCount; i++) {
+            auto &Ec = Ecs[i];
+            TEST_TRUE(Ec.Initialize());
+            EventQs[i] = &Ec.QuicEventQ;
+        }
+
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
 
@@ -7253,6 +7283,18 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     // closed while running in EC mode.
     //
     {
+        UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+        UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+
+        TEST_NOT_EQUAL(nullptr, Ecs);
+        TEST_NOT_EQUAL(nullptr, EventQs);
+
+        for (uint32_t i = 0; i < EcCount; i++) {
+            auto &Ec = Ecs[i];
+            TEST_TRUE(Ec.Initialize());
+            EventQs[i] = &Ec.QuicEventQ;
+        }
+
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
 

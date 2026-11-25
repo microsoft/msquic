@@ -655,6 +655,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestStreamBlockUnblockConnFlowControl_Bidi);
     RegisterTestFunction(QuicTestStreamBlockUnblockConnFlowControl_Unidi);
     RegisterTestFunction(QuicTestStreamAbortConnFlowControl);
+    RegisterTestFunction(QuicTestTinyStreamRecvWindow);
     RegisterTestFunction(QuicTestOperationPriority);
     RegisterTestFunction(QuicTestConnectionPriority);
     RegisterTestFunction(QuicDrillTestVarIntEncoder);

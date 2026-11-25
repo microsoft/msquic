@@ -32,12 +32,12 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
 // Decoder Ring for OpenSslHandshakeErrorStr
 // [conn][%p] TLS handshake error: %s, file:%s:%d
 // QuicTraceLogConnError(
-                    OpenSslHandshakeErrorStr,
-                    TlsContext->Connection,
-                    "TLS handshake error: %s, file:%s:%d",
-                    buf,
-                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
-                    line);
+                        OpenSslHandshakeErrorStr,
+                        TlsContext->Connection,
+                        "TLS handshake error: %s, file:%s:%d",
+                        buf,
+                        (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                        line);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = buf = arg3
 // arg4 = arg4 = (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file) = arg4
@@ -63,10 +63,10 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr,
 // Decoder Ring for OpenSslHandshakeError
 // [conn][%p] TLS handshake error: %d
 // QuicTraceLogConnError(
-                    OpenSslHandshakeError,
-                    TlsContext->Connection,
-                    "TLS handshake error: %d",
-                    Err);
+                        OpenSslHandshakeError,
+                        TlsContext->Connection,
+                        "TLS handshake error: %d",
+                        Err);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
@@ -130,6 +130,25 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for OpenSslMissingTransportParameters
+// [conn][%p] No transport parameters received
+// QuicTraceLogConnError(
+                        OpenSslMissingTransportParameters,
+                        TlsContext->Connection,
+                        "No transport parameters received");
+// arg1 = arg1 = TlsContext->Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -407,12 +426,12 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp,
 // Decoder Ring for OpenSslSendTicketData
 // [conn][%p] Sending ticket data, %u bytes
 // QuicTraceLogConnVerbose(
-            OpenSslSendTicketData,
-            TlsContext->Connection,
-            "Sending ticket data, %u bytes",
-            *BufferLength);
+        OpenSslSendTicketData,
+        TlsContext->Connection,
+        "Sending ticket data, %u bytes",
+        BufferLength);
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = *BufferLength = arg3
+// arg3 = arg3 = BufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
     TP_ARGS(

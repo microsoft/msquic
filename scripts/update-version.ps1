@@ -25,7 +25,6 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Relevant file paths used by this script.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
-$CreateVPackFilePath = Join-Path $RootDir ".azure" "OneBranch.Package.yml"
 $NugetPackageFile = Join-Path $RootDir "scripts" "package-nuget.ps1"
 $DistributionFile = Join-Path $RootDir "scripts" "package-distribution.ps1"
 $FrameworkInfoFile = Join-Path $RootDir "src" "distribution" "Info.plist"
@@ -58,9 +57,6 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
     -replace "#define VER_MINOR (.*)", "#define VER_MINOR $NewVerMinor" `
     -replace "#define VER_PATCH (.*)", "#define VER_PATCH $NewVerPatch" |`
     Out-File $MsQuicVerFilePath
-(Get-Content $CreateVPackFilePath) `
-    -replace "ob_createvpack_version: $VerMajor.$VerMinor.$VerPatch-", "ob_createvpack_version: $NewVerMajor.$NewVerMinor.$NewVerPatch-" |`
-    Out-File $CreateVPackFilePath
 (Get-Content $CMakeFile) `
     -replace "`set\(QUIC_MAJOR_VERSION $VerMajor\)", "set(QUIC_MAJOR_VERSION $NewVerMajor)" |`
     Out-File $CMakeFile

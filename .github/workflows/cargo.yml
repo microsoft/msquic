@@ -16,6 +16,27 @@ permissions:
   pull-requests: write
 
 jobs:
+  cargo-arm64-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+        - aarch64-unknown-linux-gnu
+        - aarch64-linux-android
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+      with:
+        toolchain: 1.99.1
+        targets: ${{ matrix.target }}
+    # Only type-check Rust bindings and test code: building or linking native MsQuic
+    # would require cross-compilation tools that this job does not install.
+    # --no-default-features disables the native build; cargo check skips linking.
+    - name: Cargo check
+      run: cargo check --no-default-features --all-targets --target ${{ matrix.target }}
+
   cargo:
     strategy:
       fail-fast: false
@@ -34,15 +55,15 @@ jobs:
     name: Cargo
     steps:
     - name: Checkout repository
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Install NASM
       if: runner.os == 'Windows'
-      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1.5.2
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForBuild -InstallTestCertificates
       shell: pwsh
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+      uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
       with:
         toolchain: 1.91.1
         components: rustfmt, clippy
@@ -70,7 +91,7 @@ jobs:
     - name: Upload the patch file
       if: steps.bindings_diff.outputs.diff-found == 'true'
       id: upload_patch
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: cargo_binding_update_${{ matrix.os }}
         path: cargo_binding_update.patch
@@ -78,7 +99,7 @@ jobs:
       if: |
         !github.event.pull_request.head.repo.fork &&
         steps.bindings_diff.outputs.diff-found == 'true'
-      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.number }}
@@ -131,9 +152,9 @@ jobs:
     name: Cargo-Preinstall
     steps:
     - name: Checkout repository
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+      uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
       with:
         toolchain: 1.91.1
         components: rustfmt, clippy

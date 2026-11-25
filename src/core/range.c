@@ -248,7 +248,6 @@ QuicRangeGetRange(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SUBRANGE*
-QUIC_NO_SANITIZE("unsigned-integer-overflow")
 QuicRangeAddRange(
     _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t Low,

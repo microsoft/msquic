@@ -27,14 +27,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
           submodules: 'recursive'
 
       # Install dependencies and build submodules before starting analysis.
       - run: |
-         sudo apt-add-repository ppa:lttng/stable-2.13
          sudo apt-get update
          sudo apt-get install -y liblttng-ust-dev libnuma-dev
          sudo sh scripts/install-powershell-docker.sh
@@ -44,7 +43,7 @@ jobs:
          cmake --build . --target OpenSSL_Target
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@7188fc363630916deb702c7fdcf4e481b751f97a
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: cpp
           config-file: ./.github/codeql/codeql-config.yml
@@ -55,4 +54,4 @@ jobs:
          cmake --build .
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@7188fc363630916deb702c7fdcf4e481b751f97a
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3

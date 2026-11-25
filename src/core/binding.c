@@ -23,15 +23,19 @@ Abstract:
 //
 #define MAX_VER_NEG_PACKET_LENGTH \
 ( \
-    sizeof(QUIC_VERSION_NEGOTIATION_PACKET) + \
-    QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
-    QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
-    sizeof(uint32_t) + \
-    (ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t)) \
+    sizeof(QUIC_VERSION_NEGOTIATION_PACKET) + /* Flags, version and DestCidLength */ \
+    2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + /* Destination and source CIDs */ \
+    sizeof(uint8_t) + /* SourceCidLength (not included in the header struct) */ \
+    sizeof(uint32_t) + /* Random reserved version */ \
+    (QUIC_MAX_NEGOTIATION_VERSIONS * sizeof(uint32_t)) /* Offered versions */ \
 )
 CXPLAT_STATIC_ASSERT(
-    QUIC_DPLPMTUD_MIN_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
+    QUIC_DPLPMTUD_MIN_MTU - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE >=
+        MAX_VER_NEG_PACKET_LENGTH,
     "Too many supported version numbers! Requires too big of buffer for response!");
+CXPLAT_STATIC_ASSERT(
+    ARRAYSIZE(DefaultSupportedVersionsList) <= QUIC_MAX_NEGOTIATION_VERSIONS,
+    "Default supported versions exceed the negotiation limit!");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -537,31 +541,31 @@ QuicBindingAcceptConnection(
     }
 
     //
-    // Save the negotiated ALPN (starting with the length prefix) to be
-    // used later in building up the TLS response.
+    // Info->ClientAlpnList points into the crypto recv buffer, which can be
+    // freed before ALPN renegotiation, so own a copy here. Check if 
+    // the full list fits and use the preallocated buffer, allocate on the  heap otherwise. 
     //
-    uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
-    uint8_t* NegotiatedAlpn;
-
-    if (NegotiatedAlpnLength <= TLS_SMALL_ALPN_BUFFER_SIZE) {
-        NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
+    
+    uint8_t* ClientAlpnList;
+    if (Info->ClientAlpnListLength < TLS_SMALL_ALPN_BUFFER_SIZE) {
+        ClientAlpnList = Connection->Crypto.TlsState.SmallAlpnBuffer;
     } else {
-        NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
-        if (NegotiatedAlpn == NULL) {
+        ClientAlpnList = CXPLAT_ALLOC_NONPAGED(Info->ClientAlpnListLength, QUIC_POOL_ALPN);
+        if (ClientAlpnList == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "NegotiatedAlpn",
-                NegotiatedAlpnLength);
+                "ClientAlpnList",
+                Info->ClientAlpnListLength);
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_INTERNAL_ERROR);
             goto Error;
         }
     }
-    CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
-    Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
-    Connection->Crypto.TlsState.ClientAlpnList = Info->ClientAlpnList;
+
+    CxPlatCopyMemory(ClientAlpnList, Info->ClientAlpnList, Info->ClientAlpnListLength);
+    Connection->Crypto.TlsState.ClientAlpnList = ClientAlpnList;
     Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
 
     //
@@ -848,13 +852,18 @@ QuicBindingProcessStatelessOperation(
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
         }
 
-        const uint16_t PacketLength =
+        if (SupportedVersionsLength > QUIC_MAX_NEGOTIATION_VERSIONS) {
+            QuicPacketLogDrop(Binding, RecvPacket, "Too many versions for VN response");
+            goto Exit;
+        }
+
+        const uint16_t PacketLength = (uint16_t)(
             sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +               // Header
             RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
             sizeof(uint32_t) +                                      // One random version
-            (uint16_t)(SupportedVersionsLength * sizeof(uint32_t)); // Our actual supported versions
+            SupportedVersionsLength * sizeof(uint32_t));           // Our actual supported versions
 
         SendDatagram =
             CxPlatSendDataAllocBuffer(SendData, PacketLength);
@@ -1338,7 +1347,7 @@ QuicBindingCreateConnection(
     }
 
     BindingRefAdded = TRUE;
-    NewConnection->Paths[0].Binding = Binding;
+    QuicPathGetActive(&NewConnection->Paths)->Binding = Binding;
 
     if (!QuicLookupAddRemoteHash(
             &Binding->Lookup,

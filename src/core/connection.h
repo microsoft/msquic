@@ -44,12 +44,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
 
         //
-        // Indicates whether packet number encryption is enabled or not for the
-        // connection.
-        //
-        BOOLEAN HeaderProtectionEnabled : 1; // TODO - Remove since it's not used
-
-        //
         // Indicates that 1-RTT encryption has been configured/negotiated to be
         // disabled.
         //
@@ -196,6 +190,14 @@ typedef union QUIC_CONNECTION_STATE {
         // later packets in case they contain CONNECTION_CLOSE frame with application-layer error.
         //
         BOOLEAN DelayedApplicationError : 1;
+
+        //
+        // Indicates the client has successfully decrypted at least one
+        // authenticated (non-VN, non-Retry) packet. Per RFC 9000 §6.2,
+        // a client MUST discard any Version Negotiation packet after
+        // receiving an authenticated packet.
+        //
+        BOOLEAN GotAuthenticatedPacket : 1;
 
 #ifdef CxPlatVerifierEnabledByAddr
         //
@@ -421,24 +423,18 @@ typedef struct QUIC_CONNECTION {
     //
     // Number of retired desintation CIDs we currently have cached.
     //
-    uint8_t RetiredDestCidCount;
+    uint8_t DestCidsPendingDeletionCount;
+
+    //
+    // Number of retired source CIDs not yet acknowledged by the peer.
+    //
+    uint8_t RetiredSourceCidCount;
 
     //
     // The maximum number of source CIDs to give the peer. This is a minimum of
     // what we're willing to support and what the peer is willing to accept.
     //
     uint8_t SourceCidLimit;
-
-    //
-    // Number of paths the connection is currently tracking.
-    //
-    _Field_range_(0, QUIC_MAX_PATH_COUNT)
-    uint8_t PathsCount;
-
-    //
-    // The next identifier to use for a new path.
-    //
-    uint8_t NextPathId;
 
     //
     // Indicates whether a worker is currently processing a connection.
@@ -515,11 +511,9 @@ typedef struct QUIC_CONNECTION {
     QUIC_VAR_INT RetirePriorTo;
 
     //
-    // Per-path state. The first entry in the list is the active path. All the
-    // rest (if any) are other tracked paths, sorted from most to least recently
-    // used.
+    // Network paths known to the connection. There is always an active path in the set.
     //
-    QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
+    QUIC_PATH_SET Paths;
 
     //
     // The list of connection IDs used for receiving.
@@ -530,6 +524,13 @@ typedef struct QUIC_CONNECTION {
     // The list of connection IDs used for sending. Given to us by the peer.
     //
     CXPLAT_LIST_ENTRY DestCids;
+
+    //
+    // Dest CIDs pending deletion. A RETIRE_CONNECTION_ID frame has been sent
+    // for each entry. Moved here from DestCids during send processing after
+    // frame encoding. ACK processing frees entries once the peer acknowledges.
+    //
+    CXPLAT_LIST_ENTRY DestCidsPendingDeletion;
 
     //
     // The original CID used by the Client in its first Initial packet.
@@ -779,6 +780,7 @@ QuicConnIsClosed(
     _In_ const QUIC_CONNECTION * const Connection
     )
 {
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): False positive: member pointer is valid.
     return Connection->State.ClosedLocally || Connection->State.ClosedRemotely;
 }
 
@@ -906,7 +908,7 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    const QUIC_PATH* Path = &Connection->Paths[0];
+    const QUIC_PATH* Path = QuicPathGetActive(&Connection->Paths);
     UNREFERENCED_PARAMETER(Path);
 
     QuicTraceEvent(
@@ -1273,6 +1275,25 @@ QuicConnGenerateNewSourceCids(
     );
 
 //
+// Get an unused destination CID from the list provided by the peer.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_CID_LIST_ENTRY*
+QuicConnGetUnusedDestCid(
+    _In_ const QUIC_CONNECTION* Connection
+    );
+
+//
+// Retires a specific destination connection ID.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnRetireCid(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CID_LIST_ENTRY* DestCid
+    );
+
+//
 // Retires the currently used destination connection ID.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1307,7 +1328,7 @@ QuicConnGetSourceCidFromSeq(
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
                 QuicBindingRemoveSourceConnectionID(
-                    Connection->Paths[0].Binding,
+                    QuicPathGetActive(&Connection->Paths)->Binding,
                     SourceCid,
                     Entry);
                 QuicTraceEvent(
@@ -1367,6 +1388,37 @@ QuicConnGetDestCidFromSeq(
 {
     for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
             Entry != &Connection->DestCids;
+            Entry = Entry->Flink) {
+        QUIC_CID_LIST_ENTRY* DestCid =
+            CXPLAT_CONTAINING_RECORD(
+                Entry,
+                QUIC_CID_LIST_ENTRY,
+                Link);
+        if (DestCid->CID.SequenceNumber == SequenceNumber) {
+            if (RemoveFromList) {
+                CxPlatListEntryRemove(Entry);
+            }
+            return DestCid;
+        }
+    }
+    return NULL;
+}
+
+//
+// Look up a retired destination CID (fully detached from all paths)
+// by sequence number.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_INLINE
+QUIC_CID_LIST_ENTRY*
+QuicConnGetRetiredDestCidFromSeq(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_VAR_INT SequenceNumber,
+    _In_ BOOLEAN RemoveFromList
+    )
+{
+    for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCidsPendingDeletion.Flink;
+            Entry != &Connection->DestCidsPendingDeletion;
             Entry = Entry->Flink) {
         QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
@@ -1678,7 +1730,7 @@ QuicConnQueueRouteCompletion(
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId,
+    _In_ uint32_t PathId,
     _In_ BOOLEAN Succeeded
     );
 
@@ -1762,13 +1814,14 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ uint64_t TimeNow
     )
 {
+    QUIC_PATH_SET* PathSet = &Connection->Paths;
     uint64_t TimeoutTime = Connection->Settings.MtuDiscoverySearchCompleteTimeoutUs;
-    for (uint8_t i = 0; i < Connection->PathsCount; i++) {
+    for (uint8_t i = 0; i < PathSet->Count; i++) {
         //
         // Only trigger a new send if we're in Search Complete and enough time has
         // passed.
         //
-        QUIC_PATH* Path = &Connection->Paths[i];
+        QUIC_PATH* Path = &PathSet->Paths[i];
         if (!Path->IsActive || !Path->MtuDiscovery.IsSearchComplete) {
             continue;
         }

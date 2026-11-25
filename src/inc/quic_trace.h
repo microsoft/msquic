@@ -188,8 +188,13 @@ clog_stdout(struct clog_param ** head, const char * format, ...)
 
 #endif
 
-#if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STUB)
+#if defined(QUIC_EVENTS_STDOUT)
 #define QuicTraceEventEnabled(Name) TRUE
+#elif defined(QUIC_LOGS_STUB)
+#define QuicTraceEventEnabled(Name) FALSE
+#endif
+
+#if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STUB)
 
 #define QuicTrace(Name, Fmt, ...)                                              \
     clog((Fmt " [" #Name ":%s:%d]\n"), ##__VA_ARGS__, __FILE__, __LINE__)

@@ -923,6 +923,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingXdpDisabledInMapMode,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingsOfferedVersionsTooLong
+// Too many offered versions
+// QuicTraceLogError(
+                    SettingsOfferedVersionsTooLong,
+                    "Too many offered versions");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsOfferedVersionsTooLong,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(

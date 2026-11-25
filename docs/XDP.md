@@ -16,7 +16,7 @@ own `xdp-setup.ps1`:
 
 ```powershell
 # Install the official (production-signed) XDP release.
-./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-v1.1
+./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-v1.4
 
 # Install a test-signed prerelease XDP package (requires test signing enabled).
 ./scripts/prepare-machine.ps1 -ForTest -UseXdp xdp-prerelease
