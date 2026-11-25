@@ -35,6 +35,7 @@ set(SOURCES
     packet_space.c
     path.c
     range.c
+    range_tiered.c
     recv_buffer.c
     registration.c
     send.c
@@ -70,7 +71,7 @@ if (MSVC AND NOT QUIC_SANITIZER_ACTIVE)
     target_compile_options(core PRIVATE /analyze)
 endif()
 
-# Special scoped down static lib for fuzzing dependencies
-add_library(core_fuzz STATIC frame.c range.c crypto_tls.c)
+# Special scoped down static lib for fuzzing dependencies.
+add_library(core_fuzz STATIC frame.c range.c range_tiered.c crypto_tls.c)
 target_link_libraries(core_fuzz PUBLIC inc)
 target_link_libraries(core_fuzz PRIVATE warnings main_binary_link_args)
