@@ -287,7 +287,11 @@ QuicRecvBufferInitialize(
     RecvBuffer->RecvMode = RecvMode;
     RecvBuffer->RetiredChunk = NULL;
     RecvBuffer->VirtualBufferLength = VirtualBufferLength;
-    QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
+    // Tiered: sparse writes may exceed 256 disjoint ranges.
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        QUIC_RANGE_MODE_ARRAY | QUIC_RANGE_MODE_TIERED,
+        &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
 
     if (RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
@@ -641,7 +645,7 @@ QuicRecvBufferWriteNewBytes(
             &RecvBuffer->WrittenRanges,
             WriteOffset);
     for (uint32_t i = StartIndex;
-         i < RecvBuffer->WrittenRanges.UsedLength && CopyOffset < WriteEnd;
+         i < QuicRangeSize(&RecvBuffer->WrittenRanges) && CopyOffset < WriteEnd;
          i++) {
         QUIC_SUBRANGE* Sub = QuicRangeGet(&RecvBuffer->WrittenRanges, i);
 

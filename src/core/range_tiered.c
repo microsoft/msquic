@@ -11,6 +11,9 @@ Abstract:
 
 #include "precomp.h"
 #include "range_tiered.h"
+#ifdef QUIC_CLOG
+#include "range_tiered.c.clog.h"
+#endif
 
 struct QUIC_RANGE_TIERED {
 
@@ -18,6 +21,8 @@ struct QUIC_RANGE_TIERED {
     QUIC_SUBRANGE* Blocks[QUIC_RANGE_TIERED_DIRECTORY_CAPACITY];
     // Each entry maps logical slot zero to a physical circular slot.
     uint16_t Starts[QUIC_RANGE_TIERED_DIRECTORY_CAPACITY];
+    // Total logical subranges stored across every active block.
+    uint32_t UsedLength;
     // Active blocks contain live records; allocated blocks may include a spare.
     uint16_t ActiveBlockCount;
     uint16_t AllocatedBlockCount;
@@ -29,6 +34,18 @@ struct QUIC_RANGE_TIERED {
 CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_RANGE_TIERED) < QUIC_RANGE_TIERED_BLOCK_BYTES,
     "Tiered range directory must fit in less than one range block");
+
+BOOLEAN
+QuicRangeTieredCanPromote(
+    _In_ uint32_t MaxAllocSize
+    )
+{
+    // The final representation contains the adopted block and one new block.
+    return
+        MaxAllocSize >=
+            (uint32_t)sizeof(QUIC_RANGE_TIERED) +
+                2U * QUIC_RANGE_TIERED_BLOCK_BYTES;
+}
 
 //
 // Returns the number of blocks required for the given subrange count.
@@ -53,16 +70,15 @@ QuicRangeTieredGetRequiredBlockCount(
 
 //
 // Returns the current live record count for an active block.
-// BlockIndex identifies a block in Range's current active layout.
+// BlockIndex identifies a block in Tiered's current active layout.
 // The final active block may be empty while insertion is reserving capacity.
 //
 static uint16_t
 QuicRangeTieredGetBlockSubRangeCount(
-    _In_ const QUIC_RANGE* Range,
+    _In_ const QUIC_RANGE_TIERED* Tiered,
     _In_ uint16_t BlockIndex
     )
 {
-    const QUIC_RANGE_TIERED* Tiered = Range->Tiered;
     CXPLAT_DBG_ASSERT(BlockIndex < Tiered->ActiveBlockCount);
     // Invariant: Every current non-final active block is full.
     if (BlockIndex + 1 < Tiered->ActiveBlockCount) {
@@ -71,9 +87,9 @@ QuicRangeTieredGetBlockSubRangeCount(
     // The current final active block contains the remaining subranges.
     const uint32_t BlockStart =
         (uint32_t)BlockIndex << QUIC_RANGE_TIERED_BLOCK_SHIFT;
-    CXPLAT_DBG_ASSERT(Range->UsedLength >= BlockStart);
+    CXPLAT_DBG_ASSERT(Tiered->UsedLength >= BlockStart);
     const uint32_t BlockSubRangeCount =
-        Range->UsedLength - BlockStart;
+        Tiered->UsedLength - BlockStart;
     CXPLAT_DBG_ASSERT(
         BlockSubRangeCount <= QUIC_RANGE_TIERED_BLOCK_CAPACITY);
     return (uint16_t)BlockSubRangeCount;
@@ -123,10 +139,9 @@ QuicRangeTieredFreeLastBlock(
 //
 static void
 QuicRangeTieredReleaseExcessBlocks(
-    _Inout_ QUIC_RANGE* Range
+    _Inout_ QUIC_RANGE_TIERED* Tiered
     )
 {
-    QUIC_RANGE_TIERED* Tiered = Range->Tiered;
     // Retain the current allocation until active use falls below one quarter.
     if (Tiered->AllocatedBlockCount <= 1 ||
         (uint32_t)Tiered->ActiveBlockCount * 4 >=
@@ -160,65 +175,26 @@ QuicRangeTieredFreeStorage(
     CXPLAT_FREE(Tiered, QUIC_POOL_RANGE);
 }
 
-//
-// Moves a small tiered range back into the inline array.
-// Range->UsedLength must fit within QUIC_RANGE_INITIAL_SUB_COUNT.
-//
-static void
-QuicRangeTieredDemote(
-    _Inout_ QUIC_RANGE* Range
-    )
-{
-    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_TIERED);
-    CXPLAT_DBG_ASSERT(
-        Range->UsedLength <=
-            QUIC_RANGE_INITIAL_SUB_COUNT);
-
-    // Save the directory before changing the backing-storage union member.
-    QUIC_RANGE_TIERED* Tiered = Range->Tiered;
-    // Copy in logical order because each physical block may be circularly wrapped.
-    for (uint32_t i = 0; i < Range->UsedLength; ++i) {
-        Range->PreAllocSubRanges[i] =
-            *QuicRangeTieredGet(Range, i);
-    }
-
-    // Inline storage is embedded in QUIC_RANGE, so demotion cannot fail.
-    QuicRangeTieredFreeStorage(Tiered);
-    Range->SubRanges = Range->PreAllocSubRanges;
-    Range->AllocLength = QUIC_RANGE_INITIAL_SUB_COUNT;
-    Range->Mode = QUIC_RANGE_MODE_ARRAY;
-}
-
-//
-// Reduces storage after removal by demoting or releasing excess blocks.
-//
-static void
-QuicRangeTieredCompact(
-    _Inout_ QUIC_RANGE* Range
-    )
-{
-    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_TIERED);
-    if (Range->UsedLength <=
-        QUIC_RANGE_INITIAL_SUB_COUNT) {
-        QuicRangeTieredDemote(Range);
-    } else {
-        QuicRangeTieredReleaseExcessBlocks(Range);
-    }
-}
-
 QUIC_SUBRANGE*
 QuicRangeTieredGet(
-    _In_ const QUIC_RANGE* Range,
+    _In_ const QUIC_RANGE_TIERED* Tiered,
     _In_ uint32_t Index
     )
 {
-    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_TIERED);
-    CXPLAT_DBG_ASSERT(Index < Range->UsedLength);
+    CXPLAT_DBG_ASSERT(Index < Tiered->UsedLength);
     return
         QuicRangeTieredGetBlockSlot(
-            Range->Tiered,
+            Tiered,
             (uint16_t)(Index >> QUIC_RANGE_TIERED_BLOCK_SHIFT),
             (uint16_t)(Index & QUIC_RANGE_TIERED_BLOCK_MASK));
+}
+
+uint32_t
+QuicRangeTieredSize(
+    _In_ const QUIC_RANGE_TIERED* Tiered
+    )
+{
+    return Tiered->UsedLength;
 }
 
 //
@@ -228,11 +204,10 @@ QuicRangeTieredGet(
 //
 static BOOLEAN
 QuicRangeTieredEnsureActiveBlocks(
-    _Inout_ QUIC_RANGE* Range,
+    _Inout_ QUIC_RANGE_TIERED* Tiered,
     _In_ uint16_t RequiredBlockCount
     )
 {
-    QUIC_RANGE_TIERED* Tiered = Range->Tiered;
     // MaxBlockCount already charges the directory and every permitted block.
     if (RequiredBlockCount > Tiered->MaxBlockCount) {
         return FALSE;
@@ -247,6 +222,11 @@ QuicRangeTieredEnsureActiveBlocks(
                 QUIC_RANGE_TIERED_BLOCK_BYTES,
                 QUIC_POOL_RANGE);
         if (Block == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "tiered range block",
+                (unsigned long long)QUIC_RANGE_TIERED_BLOCK_BYTES);
             goto Error;
         }
 
@@ -391,12 +371,11 @@ QuicRangeTieredRemoveLocal(
 //
 static void
 QuicRangeTieredRemoveOne(
-    _Inout_ QUIC_RANGE* Range,
+    _Inout_ QUIC_RANGE_TIERED* Tiered,
     _In_ uint32_t Index
     )
 {
-    QUIC_RANGE_TIERED* Tiered = Range->Tiered;
-    CXPLAT_DBG_ASSERT(Index < Range->UsedLength);
+    CXPLAT_DBG_ASSERT(Index < Tiered->UsedLength);
 
     // Preserve the pre-remove block count because the old final block may empty.
     const uint16_t OldBlockCount = Tiered->ActiveBlockCount;
@@ -407,7 +386,7 @@ QuicRangeTieredRemoveOne(
     QuicRangeTieredRemoveLocal(
         Tiered,
         BlockIndex,
-        QuicRangeTieredGetBlockSubRangeCount(Range, BlockIndex),
+        QuicRangeTieredGetBlockSubRangeCount(Tiered, BlockIndex),
         LocalIndex);
 
     // Carry each later block's first record backward to keep prior blocks full.
@@ -427,42 +406,41 @@ QuicRangeTieredRemoveOne(
     }
 
     // Publish the new logical size after every backward carry completes.
-    Range->UsedLength--;
+    Tiered->UsedLength--;
     Tiered->ActiveBlockCount =
-        QuicRangeTieredGetRequiredBlockCount(Range->UsedLength);
+        QuicRangeTieredGetRequiredBlockCount(Tiered->UsedLength);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SUBRANGE*
 QuicRangeTieredInsert(
-    _Inout_ QUIC_RANGE* Range,
+    _Inout_ QUIC_RANGE_TIERED* Tiered,
+    _In_ uint32_t MaxAllocSize,
     _In_ uint32_t Index,
     _In_ uint64_t Low,
     _In_ uint64_t Count
     )
 {
-    QUIC_RANGE_TIERED* Tiered = Range->Tiered;
-    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_TIERED);
-    CXPLAT_DBG_ASSERT(Index <= Range->UsedLength);
+    CXPLAT_DBG_ASSERT(Index <= Tiered->UsedLength);
 
-    if (Range->UsedLength == QuicRangeTieredGetCapacity(Range)) {
+    if (Tiered->UsedLength == QuicRangeTieredGetCapacity(Tiered)) {
         // Maximum-budget ranges never discard data, and index zero cannot age out.
-        if (Range->MaxAllocSize == QUIC_MAX_RANGE_ALLOC_SIZE ||
+        if (MaxAllocSize == QUIC_MAX_RANGE_ALLOC_SIZE ||
             Index == 0) {
             return NULL;
         }
         // Age out the first subrange and adjust for the resulting index shift.
-        QuicRangeTieredRemoveOne(Range, 0);
+        QuicRangeTieredRemoveOne(Tiered, 0);
         Index--;
     }
 
     const uint16_t RequiredBlockCount =
         QuicRangeTieredGetRequiredBlockCount(
-            Range->UsedLength + 1);
+            Tiered->UsedLength + 1);
     // Invariant: All required allocation succeeds before any record moves.
     if (!QuicRangeTieredEnsureActiveBlocks(
-            Range,
+            Tiered,
             RequiredBlockCount)) {
         return NULL;
     }
@@ -477,7 +455,7 @@ QuicRangeTieredInsert(
     for (;;) {
         const uint16_t BlockSubRangeCount =
             QuicRangeTieredGetBlockSubRangeCount(
-                Range,
+                Tiered,
                 BlockIndex);
         // The first block with spare capacity terminates the carry chain.
         if (BlockSubRangeCount <
@@ -509,32 +487,30 @@ QuicRangeTieredInsert(
     }
 
     // Publish the new logical size only after the carry is fully stored.
-    Range->UsedLength++;
-    return QuicRangeTieredGet(Range, Index);
+    Tiered->UsedLength++;
+    return QuicRangeTieredGet(Tiered, Index);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
+void
 QuicRangeTieredRemove(
-    _Inout_ QUIC_RANGE* Range,
+    _Inout_ QUIC_RANGE_TIERED* Tiered,
     _In_ uint32_t Index,
     _In_ uint32_t Count
     )
 {
-    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_TIERED);
     CXPLAT_DBG_ASSERT(Count > 0);
-    CXPLAT_DBG_ASSERT(Index + Count <= Range->UsedLength);
+    CXPLAT_DBG_ASSERT(Index + Count <= Tiered->UsedLength);
 
     // The common single-record path uses bounded local movement and carries.
     if (Count == 1) {
-        QuicRangeTieredRemoveOne(Range, Index);
-        QuicRangeTieredCompact(Range);
-        return TRUE;
+        QuicRangeTieredRemoveOne(Tiered, Index);
+        QuicRangeTieredReleaseExcessBlocks(Tiered);
+        return;
     }
 
-    QUIC_RANGE_TIERED* Tiered = Range->Tiered;
     const uint32_t TailCount =
-        Range->UsedLength - Index - Count;
+        Tiered->UsedLength - Index - Count;
     const uint64_t SingleRemoveEstimate =
         (uint64_t)Count *
             (QUIC_RANGE_TIERED_BLOCK_CAPACITY / 2 +
@@ -543,58 +519,50 @@ QuicRangeTieredRemove(
     if (SingleRemoveEstimate < TailCount) {
         // The next record in the removed span shifts into the same logical index.
         for (uint32_t i = 0; i < Count; ++i) {
-            QuicRangeTieredRemoveOne(Range, Index);
+            QuicRangeTieredRemoveOne(Tiered, Index);
         }
-        QuicRangeTieredCompact(Range);
-        return TRUE;
+        QuicRangeTieredReleaseExcessBlocks(Tiered);
+        return;
     }
 
     // Sources are always above destinations, so forward tail copying is overlap-safe.
     for (uint32_t i = 0; i < TailCount; ++i) {
-        *QuicRangeTieredGet(Range, Index + i) =
-            *QuicRangeTieredGet(Range, Index + Count + i);
+        *QuicRangeTieredGet(Tiered, Index + i) =
+            *QuicRangeTieredGet(Tiered, Index + Count + i);
     }
-    Range->UsedLength -= Count;
+    Tiered->UsedLength -= Count;
     Tiered->ActiveBlockCount =
-        QuicRangeTieredGetRequiredBlockCount(Range->UsedLength);
-    QuicRangeTieredCompact(Range);
-    return TRUE;
+        QuicRangeTieredGetRequiredBlockCount(Tiered->UsedLength);
+    QuicRangeTieredReleaseExcessBlocks(Tiered);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SUBRANGE*
 QuicRangeTieredConvertAndInsert(
-    _Inout_ QUIC_RANGE* Range,
+    _Inout_updates_(InitialLength) QUIC_SUBRANGE* InitialBlock,
+    _In_ uint32_t InitialLength,
+    _In_ uint32_t MaxAllocSize,
     _In_ uint32_t Index,
     _In_ uint64_t Low,
-    _In_ uint64_t Count
+    _In_ uint64_t Count,
+    _Out_ QUIC_RANGE_TIERED** NewTiered
     )
 {
-    CXPLAT_DBG_ASSERT(Range->Mode == QUIC_RANGE_MODE_ARRAY);
-    CXPLAT_DBG_ASSERT(Index <= Range->UsedLength);
+    *NewTiered = NULL;
+    CXPLAT_DBG_ASSERT(Index <= InitialLength);
     CXPLAT_DBG_ASSERT(
-        Range->UsedLength ==
+        InitialLength ==
             QUIC_RANGE_TIERED_BLOCK_CAPACITY);
-    CXPLAT_DBG_ASSERT(
-        Range->AllocLength ==
-            QUIC_RANGE_TIERED_BLOCK_CAPACITY);
-    CXPLAT_DBG_ASSERT(
-        Range->SubRanges !=
-            Range->PreAllocSubRanges);
+    CXPLAT_DBG_ASSERT(InitialBlock != NULL);
 
     const uint16_t RequiredBlockCount =
         QuicRangeTieredGetRequiredBlockCount(
-            Range->UsedLength + 1);
+            InitialLength + 1);
     CXPLAT_DBG_ASSERT(RequiredBlockCount == 2);
 
-    // The final representation contains the adopted array and one new block.
-    if (Range->MaxAllocSize <
-        sizeof(QUIC_RANGE_TIERED) +
-            (uint32_t)RequiredBlockCount *
-                QUIC_RANGE_TIERED_BLOCK_BYTES) {
-        return NULL;
-    }
+    CXPLAT_DBG_ASSERT(
+        QuicRangeTieredCanPromote(MaxAllocSize));
 
     // The directory is separate so blocks can grow without relocating old records.
     QUIC_RANGE_TIERED* Tiered =
@@ -602,13 +570,18 @@ QuicRangeTieredConvertAndInsert(
             sizeof(QUIC_RANGE_TIERED),
             QUIC_POOL_RANGE);
     if (Tiered == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "tiered range directory",
+            (unsigned long long)sizeof(QUIC_RANGE_TIERED));
         return NULL;
     }
     CxPlatZeroMemory(Tiered, sizeof(*Tiered));
     // Limit capacity by both the remaining byte budget and directory slots.
     Tiered->MaxBlockCount =
         (uint16_t)CXPLAT_MIN(
-            (Range->MaxAllocSize - (uint32_t)sizeof(*Tiered)) /
+            (MaxAllocSize - (uint32_t)sizeof(*Tiered)) /
                 QUIC_RANGE_TIERED_BLOCK_BYTES,
             QUIC_RANGE_TIERED_DIRECTORY_CAPACITY);
     if (Tiered->MaxBlockCount < RequiredBlockCount) {
@@ -616,22 +589,17 @@ QuicRangeTieredConvertAndInsert(
         return NULL;
     }
 
-    // Range retains ownership while the directory temporarily borrows block zero.
-    Tiered->Blocks[0] = Range->SubRanges;
+    // The caller retains ownership while the directory borrows block zero.
+    Tiered->Blocks[0] = InitialBlock;
+    Tiered->UsedLength = InitialLength;
     Tiered->ActiveBlockCount = 1;
     Tiered->AllocatedBlockCount = 1;
 
-    // Use tiered helpers without publishing the representation to Range yet.
-    QUIC_RANGE Temporary = *Range;
-    Temporary.Tiered = Tiered;
-    Temporary.AllocLength = 0;
-    Temporary.Mode = QUIC_RANGE_MODE_TIERED;
-
     // Allocate the second block before the borrowed array can be modified.
     if (!QuicRangeTieredEnsureActiveBlocks(
-            &Temporary,
+            Tiered,
             RequiredBlockCount)) {
-        // Block zero is still owned by Range, so free only the new directory.
+        // Block zero is still caller-owned, so free only the new directory.
         CXPLAT_FREE(Tiered, QUIC_POOL_RANGE);
         return NULL;
     }
@@ -639,58 +607,44 @@ QuicRangeTieredConvertAndInsert(
     // With both blocks ready, insertion cannot fail and transfers ownership.
     QUIC_SUBRANGE* const Inserted =
         QuicRangeTieredInsert(
-            &Temporary,
+            Tiered,
+            MaxAllocSize,
             Index,
             Low,
             Count);
     CXPLAT_FRE_ASSERT(Inserted != NULL);
 
-    // Publish the directory, which now owns the former array as block zero.
-    Range->Tiered = Tiered;
-    Range->UsedLength = Temporary.UsedLength;
-    Range->AllocLength = 0;
-    Range->Mode = QUIC_RANGE_MODE_TIERED;
+    // The caller publishes the directory, which now owns the initial block.
+    *NewTiered = Tiered;
     return Inserted;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicRangeTieredReset(
-    _Inout_ QUIC_RANGE* Range
-    )
-{
-    Range->UsedLength = 0;
-    QuicRangeTieredDemote(Range);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
 QuicRangeTieredUninitialize(
-    _Inout_ QUIC_RANGE* Range
+    _In_ QUIC_RANGE_TIERED* Tiered
     )
 {
-    QUIC_RANGE_TIERED* Tiered = Range->Tiered;
     QuicRangeTieredFreeStorage(Tiered);
-    Range->Tiered = NULL;
 }
 
 uint32_t
 QuicRangeTieredGetAllocatedBytes(
-    _In_ const QUIC_RANGE* Range
+    _In_ const QUIC_RANGE_TIERED* Tiered
     )
 {
     return
-        (uint32_t)sizeof(*Range->Tiered) +
-        (uint32_t)Range->Tiered->AllocatedBlockCount *
+        (uint32_t)sizeof(*Tiered) +
+        (uint32_t)Tiered->AllocatedBlockCount *
             (uint32_t)QUIC_RANGE_TIERED_BLOCK_BYTES;
 }
 
 uint32_t
 QuicRangeTieredGetCapacity(
-    _In_ const QUIC_RANGE* Range
+    _In_ const QUIC_RANGE_TIERED* Tiered
     )
 {
     return
-        (uint32_t)Range->Tiered->MaxBlockCount *
+        (uint32_t)Tiered->MaxBlockCount *
             QUIC_RANGE_TIERED_BLOCK_CAPACITY;
 }

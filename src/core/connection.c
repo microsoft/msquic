@@ -132,8 +132,10 @@ QuicConnAlloc(
     QuicLossDetectionInitialize(&Connection->LossDetection);
     QuicDatagramInitialize(&Connection->Datagram);
 
+    // Array-only: decoded ACKs are transient and capped at 256 subranges.
     QuicRangeInitialize(
         QUIC_MAX_RANGE_DECODE_ACKS,
+        QUIC_RANGE_MODE_ARRAY,
         &Connection->DecodedAckRanges);
 
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
