@@ -114,7 +114,7 @@ QUIC_STATUS StreamCallback(
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)   { Flags |= QUIC_SEND_FLAG_FIN; }
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_0_RTT) { Flags |= QUIC_SEND_FLAG_ALLOW_0_RTT; }
         auto Status =
-            PeerStream->Send(SendContext->Buffers, Event->RECEIVE.BufferCount, Flags, SendContext);
+            PeerStream->Send(SendContext->Buffers, BufferedMode ? 1 : Event->RECEIVE.BufferCount, Flags, SendContext);
         if (Status == QUIC_STATUS_ABORTED || Status == QUIC_STATUS_INVALID_STATE) {
             ForwardedSend::Delete(SendContext);
             return QUIC_STATUS_SUCCESS;
