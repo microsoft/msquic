@@ -890,6 +890,12 @@ void
 QuicTestStreamReliableResetMultipleSends(
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestStreamReliableResetZeroOffset(
+    );
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 void
 QuicTestStreamMultiReceive(
     );
