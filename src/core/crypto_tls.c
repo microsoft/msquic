@@ -66,7 +66,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF04DE1BULL   // varint
 #define QUIC_TP_ID_CIBIR_ENCODING                           0x1000          // {varint, varint}
 #define QUIC_TP_ID_GREASE_QUIC_BIT                          0x2AB2          // N/A
-#define QUIC_TP_ID_RELIABLE_RESET_ENABLED                   0x17f7586d2cb570   // varint
+#define QUIC_TP_ID_RELIABLE_RESET_ENABLED                   0x1D          // reset_stream_at, empty value
 #define QUIC_TP_ID_ENABLE_TIMESTAMP                         0x7158          // varint
 
 BOOLEAN

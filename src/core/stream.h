@@ -125,7 +125,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN LocalCloseReset         : 1;    // Locally closed (locally aborted).
         BOOLEAN LocalCloseResetReliable : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
         BOOLEAN LocalCloseResetReliableAcked : 1; // Indicates the peer has acknowledged we will stop sending once we sent/ACK'd ReliableOffsetSend bytes.
-        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiated a reliable reset. Keep Recv path available for RecvMaxLength bytes.
+        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiated a reliable reset up to ReliableOffsetRecv.
         BOOLEAN ReceivedStopSending     : 1;    // Peer sent STOP_SENDING frame.
         BOOLEAN LocalCloseAcked         : 1;    // Any close acknowledged.
         BOOLEAN FinAcked                : 1;    // Our FIN was acknowledged.
@@ -159,6 +159,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN InWaitingList           : 1;    // The stream is currently in the waiting list for stream id FC.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
+        BOOLEAN RemoteResetFrameReceived : 1;   // The peer's reset application error code is known.
     };
 } QUIC_STREAM_FLAGS;
 
@@ -431,9 +432,14 @@ typedef struct QUIC_STREAM {
     uint64_t RecvMax0RttLength;
 
     //
-    // Maximum allowed inbound byte offset, established when the FIN is received.
+    // Final inbound byte offset established by FIN or a reset.
     //
     uint64_t RecvMaxLength;
+
+    //
+    // Number of bytes the peer will deliver before a reliable reset.
+    //
+    uint64_t ReliableOffsetRecv;
 
     //
     // The number of bytes that are currently outstanding up to the app.
@@ -451,7 +457,7 @@ typedef struct QUIC_STREAM {
     volatile uint64_t RecvCompletionLength;
 
     //
-    // The error code for why the receive path was shutdown.
+    // The error code for a queued STOP_SENDING or a received reset.
     //
     QUIC_VAR_INT RecvShutdownErrorCode;
 

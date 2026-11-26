@@ -2154,7 +2154,6 @@ QuicConnRecvResumptionTicket(
             Connection->Crypto.TicketValidationPending = FALSE;
             goto Error;
         }
-        Connection->Crypto.TicketValidationPending = TRUE;
 
         if (TicketLength > UINT16_MAX) {
             QuicTraceEvent(
@@ -2192,7 +2191,8 @@ QuicConnRecvResumptionTicket(
             ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Settings.StreamRecvWindowBidiRemoteDefault ||
             ResumedTP.InitialMaxStreamDataUni > Connection->Settings.StreamRecvWindowUnidiDefault ||
             ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
-            ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
+            ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount ||
+            ((ResumedTP.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) && !Connection->Settings.ReliableResetEnabled)) {
             //
             // Server settings have changed since the resumption ticket was
             // encoded, so reject resumption.
@@ -2204,6 +2204,12 @@ QuicConnRecvResumptionTicket(
                 "Resumption Ticket transport params greater than current server settings");
             goto Error;
         }
+
+        //
+        // Only the app's answer can stay pending. A ticket rejected above
+        // falls back to a full handshake right away.
+        //
+        Connection->Crypto.TicketValidationPending = TRUE;
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_RESUMED;
@@ -2414,7 +2420,8 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
     }
 
-    if (Connection->Settings.ReliableResetEnabled) {
+    Connection->State.ReliableResetAdvertised = Connection->Settings.ReliableResetEnabled;
+    if (Connection->State.ReliableResetAdvertised) {
         LocalTP->Flags |= QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
     }
 
