@@ -622,6 +622,7 @@ ExecuteTestRequest(
     RegisterTestFunction(QuicTestConnectAndPing_Send0Rtt);
     RegisterTestFunction(QuicTestConnectAndPing_Reject0Rtt);
     RegisterTestFunction(QuicTestCustomTicketValidationAfterShutdown);
+    RegisterTestFunction(QuicTestDeferredTicketValidationData);
 #endif // QUIC_DISABLE_0RTT_TESTS
     RegisterTestFunction(QuicTestConnectAndPing_SendLarge);
     RegisterTestFunction(QuicTestConnectAndPing_SendIntermittently);
