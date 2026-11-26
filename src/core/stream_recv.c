@@ -1117,6 +1117,21 @@ QuicStreamReceiveComplete(
         BufferLength <= Stream->RecvPendingLength,
         "App overflowed read buffer!");
 
+    if (Stream->RecvPendingLength == 0 &&
+        QuicRecvBufferHasUnreadData(&Stream->RecvBuffer)) {
+        //
+        // No receive is outstanding, yet data is still buffered, so this
+        // completion completes nothing: it is a duplicate, or one already
+        // absorbed by a receive flush. (The only receive that legitimately
+        // completes with nothing outstanding is the FIN-only indication, and
+        // it leaves no unread data.) Ignore it, as documented, without
+        // changing the receive state: the buffered data stays deliverable,
+        // and receives paused by a partial accept stay paused until the app
+        // re-enables them.
+        //
+        return FALSE;
+    }
+
     //
     // Reclaim any buffer space comsumed by the app.
     //
