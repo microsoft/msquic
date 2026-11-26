@@ -6,6 +6,7 @@
 --*/
 
 #include "bbr.h"
+#include "bbr_v3.h"
 #include "cubic.h"
 
 typedef struct QUIC_ACK_EVENT {
@@ -57,6 +58,10 @@ typedef struct QUIC_ACK_EVENT {
 
 typedef struct QUIC_LOSS_EVENT {
 
+    uint64_t TimeNow;
+
+    QUIC_SENT_PACKET_METADATA* LostPackets;
+
     uint64_t LargestPacketNumberLost;
 
     uint64_t LargestSentPacketNumber;
@@ -105,6 +110,16 @@ typedef struct QUIC_CONGESTION_CONTROL {
     void (*QuicCongestionControlOnDataSent)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc,
         _In_ uint32_t NumRetransmittableBytes
+        );
+
+    //
+    // Optional. Lets the algorithm record its current state in the metadata
+    // of a packet that was just sent, for use when that packet is later
+    // acknowledged or declared lost.
+    //
+    void (*QuicCongestionControlOnPacketSent)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _Inout_ QUIC_SENT_PACKET_METADATA* Packet
         );
 
     BOOLEAN (*QuicCongestionControlOnDataInvalidated)(
@@ -167,6 +182,7 @@ typedef struct QUIC_CONGESTION_CONTROL {
     union {
         QUIC_CONGESTION_CONTROL_CUBIC Cubic;
         QUIC_CONGESTION_CONTROL_BBR Bbr;
+        QUIC_CONGESTION_CONTROL_BBR_V3 BbrV3;
     };
 
 } QUIC_CONGESTION_CONTROL;
@@ -279,6 +295,24 @@ QuicCongestionControlOnDataSent(
     )
 {
     Cc->QuicCongestionControlOnDataSent(Cc, NumRetransmittableBytes);
+}
+
+//
+// Called once the metadata of a sent packet is complete, so the algorithm can
+// snapshot any per-packet state it needs. Algorithms that do not track such
+// state leave the callback unset.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_INLINE
+void
+QuicCongestionControlOnPacketSent(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _Inout_ QUIC_SENT_PACKET_METADATA* Packet
+    )
+{
+    if (Cc->QuicCongestionControlOnPacketSent) {
+        Cc->QuicCongestionControlOnPacketSent(Cc, Packet);
+    }
 }
 
 //
