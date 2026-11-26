@@ -2261,6 +2261,7 @@ TEST_P(WithSendArgs, SendQtip) {
             false,  // ServerStatelessRetry
             false,  // ClientRebind
             false,  // ClientZeroRtt
+            QUIC_SERVER_NO_RESUME,
             false,  // ServerRejectZeroRtt
             GetParam().UseSendBuffer,
             GetParam().UnidirectionalStreams,
@@ -2412,8 +2413,11 @@ struct WithSend0RttArgs2 :
     static ::std::vector<Send0RttArgs2> Generate() {
         ::std::vector<Send0RttArgs2> list;
         for (int Family : { 4, 6 })
-        for (uint64_t Length : { 0, 1000, 10000, 20000 })
-            list.push_back({ Family, Length });
+        for (uint64_t Length : { 0, 1000, 10000, 20000 }) {
+            list.push_back({ Family, Length, false, false });
+            list.push_back({ Family, Length, true, false });
+            list.push_back({ Family, Length, false, true });
+        }
         return list;
     }
 };
@@ -2421,7 +2425,9 @@ struct WithSend0RttArgs2 :
 std::ostream& operator << (std::ostream& o, const Send0RttArgs2& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
-        args.Length;
+        args.Length << "/" <<
+        (args.NoResume ? "NoResume" :
+            (args.ResumeOnly ? "ResumeOnly" : "BadTicket"));
 }
 
 TEST_P(WithSend0RttArgs2, Reject0Rtt) {

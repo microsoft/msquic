@@ -2144,6 +2144,15 @@ QuicConnRecvResumptionTicket(
     QUIC_TRANSPORT_PARAMETERS ResumedTP = {0};
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
+        if (Connection->Settings.ServerResumptionLevel == QUIC_SERVER_NO_RESUME) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption disabled by server policy");
+            goto Error;
+        }
+
         if (Connection->Crypto.TicketValidationRejecting) {
             QuicTraceEvent(
                 ConnError,
@@ -3773,6 +3782,14 @@ QuicConnGetKeyOrDeferDatagram(
     _In_ QUIC_RX_PACKET* Packet
     )
 {
+    if (QuicConnIsServer(Connection) &&
+        Connection->Configuration != NULL &&
+        Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
+        Connection->Settings.ServerResumptionLevel != QUIC_SERVER_RESUME_AND_ZERORTT) {
+        QuicPacketLogDrop(Connection, Packet, "0-RTT disabled by server policy");
+        return FALSE;
+    }
+
     if (Packet->KeyType > Connection->Crypto.TlsState.ReadKey) {
 
         //

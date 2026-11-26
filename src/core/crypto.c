@@ -294,6 +294,9 @@ QuicCryptoInitializeTls(
     Crypto->TlsState.BufferTotalLength = 0;
 
     TlsConfig.IsServer = IsServer;
+    TlsConfig.ServerEarlyDataEnabled =
+        IsServer &&
+        Connection->Settings.ServerResumptionLevel == QUIC_SERVER_RESUME_AND_ZERORTT;
     if (IsServer) {
         TlsConfig.AlpnBuffer = Crypto->TlsState.NegotiatedAlpn;
         TlsConfig.AlpnBufferLength = 1 + Crypto->TlsState.NegotiatedAlpn[0];
