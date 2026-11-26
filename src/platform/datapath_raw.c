@@ -279,12 +279,6 @@ CxPlatDpRawRxEthernet(
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
-#pragma warning(push)
-#pragma warning(disable:6385) // Each Packets[i+1] below is only reached when the
-                               // preceding 'i == PacketCount - 1' check (same
-                               // short-circuited condition) is false, so i+1 is
-                               // always < PacketCount; the analyzer doesn't
-                               // correlate the OR-guard with the index. (FALSE POSITIVE)
                 while (i < PacketCount) {
                     QuicTraceEvent(
                         DatapathRecv,
@@ -294,17 +288,19 @@ CxPlatDpRawRxEthernet(
                         Packets[i]->BufferLength,
                         CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
                         CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-                    if (i == PacketCount - 1 ||
-                        Packets[i+1]->Reserved != SocketType ||
-                        Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
-                        !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress, Packets[i+1]->Route->UseQTIP)) {
+                    if (i + 1 >= PacketCount) {
                         break;
                     }
-                    Packets[i]->Next = Packets[i+1];
-                    CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
+                    CXPLAT_RECV_DATA* Next = Packets[i+1];
+                    if (Next->Reserved != SocketType ||
+                        Next->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
+                        !CxPlatSocketCompare(Socket, &Next->Route->LocalAddress, &Next->Route->RemoteAddress, Next->Route->UseQTIP)) {
+                        break;
+                    }
+                    Packets[i]->Next = Next;
+                    CXPLAT_DBG_ASSERT(Next->Next == NULL);
                     i++;
                 }
-#pragma warning(pop)
                 Datapath->ParentDataPath->UdpHandlers.Receive(CxPlatRawToSocket(Socket), Socket->ClientContext, PacketChain);
             } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
                 CxPlatDpRawSocketAckSyn(Socket, PacketChain);
