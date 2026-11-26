@@ -288,14 +288,17 @@ CxPlatDpRawRxEthernet(
                         Packets[i]->BufferLength,
                         CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
                         CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-                    if (i == PacketCount - 1 ||
-                        Packets[i+1]->Reserved != SocketType ||
-                        Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
-                        !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress, Packets[i+1]->Route->UseQTIP)) {
+                    if (i + 1 >= PacketCount) {
                         break;
                     }
-                    Packets[i]->Next = Packets[i+1];
-                    CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
+                    CXPLAT_RECV_DATA* Next = Packets[i+1];
+                    if (Next->Reserved != SocketType ||
+                        Next->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
+                        !CxPlatSocketCompare(Socket, &Next->Route->LocalAddress, &Next->Route->RemoteAddress, Next->Route->UseQTIP)) {
+                        break;
+                    }
+                    Packets[i]->Next = Next;
+                    CXPLAT_DBG_ASSERT(Next->Next == NULL);
                     i++;
                 }
                 Datapath->ParentDataPath->UdpHandlers.Receive(CxPlatRawToSocket(Socket), Socket->ClientContext, PacketChain);

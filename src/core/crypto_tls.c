@@ -715,6 +715,13 @@ QuicCryptoTlsReadClientRandom(
     return QUIC_STATUS_SUCCESS;
 }
 
+#pragma warning(push)
+#pragma warning(disable:28020) // The expression '0<=_Param_(2)&&_Param_(2)<=(1<<62)-1' is not
+                                // provably true at every QuicTraceLogConnVerbose call site below.
+                                // This is a false positive coming from the SAL annotations on the
+                                // generated ETW logging functions (see MsQuicEtw.h), not from any
+                                // real bound on Connection; there is no way to satisfy the analyzer
+                                // here short of disabling the warning for this function. (FALSE POSITIVE)
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 const uint8_t*
@@ -1280,6 +1287,7 @@ QuicCryptoTlsEncodeTransportParameters(
 
     return TPBufBase;
 }
+#pragma warning(pop)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
