@@ -3497,11 +3497,12 @@ struct StreamReceiveCompleteNoPendingReceive {
 };
 
 //
-// Validates that a receive completion processed while no receive is pending
-// leaves the rest of the receive buffer deliverable. Such a completion carries
-// nothing to reclaim, and must not be taken to mean the buffer has been fully
-// drained: doing so silences every later receive indication, and the data
-// already buffered is never delivered.
+// Validates that a receive completion processed while no receive is pending is
+// ignored, as documented. Such a completion completes nothing, so it must
+// neither be taken to mean the buffer has been fully drained (which would
+// silence every later receive indication, leaving the data already buffered
+// undelivered) nor resume receives paused by a partial accept: only
+// StreamReceiveSetEnabled may do that.
 //
 void
 QuicTestStreamReceiveCompleteWithNoPendingReceive(
@@ -3566,13 +3567,21 @@ QuicTestStreamReceiveCompleteWithNoPendingReceive(
     Context.ServerStream->ReceiveComplete(0);
 
     //
-    // The half that was not accepted must still be delivered. Enabling receives
-    // is queued behind the completion above, so it cannot be processed first.
+    // Receives are still paused: the completion above must not have resumed
+    // them. Any receive it caused would be indicated while it is processed, so
+    // once the same kind of barrier has gone past it, none can still be coming.
+    //
+    TEST_QUIC_SUCCEEDED(Context.ServerStream->GetID(&StreamId));
+    TEST_EQUAL(1u, Context.ReceiveCount);
+
+    //
+    // The half that was not accepted must still be delivered once the app
+    // re-enables receives.
     //
     TEST_QUIC_SUCCEEDED(Context.ServerStream->ReceiveSetEnabled(true));
 
     TEST_TRUE(Context.ReceiveEvent.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Context.ReceiveCount >= 2);
+    TEST_EQUAL(2u, Context.ReceiveCount);
     TEST_EQUAL(SendLength / 2, Context.LastReceiveOffset);
     TEST_EQUAL(SendLength - SendLength / 2, Context.LastReceiveLength);
 }
