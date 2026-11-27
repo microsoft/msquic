@@ -1327,6 +1327,19 @@ QuicSendFlush(
         QuicSendPathChallenges(Send);
     }
 
+    if (QuicConnIsServer(Connection) &&
+        Connection->NextSourceCidSequenceNumber == 0 &&
+        Connection->SourceCids.Next != NULL) {
+        //
+        // An Initial ACK can be sent before the ClientHello selects a listener.
+        // Use a server CID with the binding's routing ID from the first Initial.
+        //
+        CxPlatCopyMemory(Connection->CibirId, Path->Binding->CibirId, sizeof(Connection->CibirId));
+        if (QuicConnGenerateNewSourceCid(Connection, TRUE) == NULL) {
+            return TRUE;
+        }
+    }
+
     QUIC_PACKET_BUILDER Builder = { 0 };
     if (!QuicPacketBuilderInitialize(&Builder, Connection, Path)) {
         //

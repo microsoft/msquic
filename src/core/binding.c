@@ -67,6 +67,10 @@ QuicBindingInitialize(
     if (Binding->Partitioned) {
         Binding->PartitionIndex = UdpConfig->PartitionIndex;
     }
+    CxPlatZeroMemory(Binding->CibirId, sizeof(Binding->CibirId));
+    CXPLAT_DBG_ASSERT(UdpConfig->CibirIdLength <= QUIC_MAX_CIBIR_LENGTH);
+    Binding->CibirId[0] = UdpConfig->CibirIdLength;
+    CxPlatCopyMemory(Binding->CibirId + 2, UdpConfig->CibirId, UdpConfig->CibirIdLength);
     Binding->StatelessOperCount = 0;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);

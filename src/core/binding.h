@@ -241,6 +241,11 @@ typedef struct QUIC_BINDING {
     uint16_t PartitionIndex;
 
     //
+    // CIBIR ID configured on the socket, in connection CIBIR ID format.
+    //
+    uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
+
+    //
     // The datapath binding.
     //
     CXPLAT_SOCKET* Socket;

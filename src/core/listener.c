@@ -839,7 +839,8 @@ QuicListenerAcceptConnection(
                 Connection->CibirId[0]));
     }
 
-    if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
+    if (Connection->NextSourceCidSequenceNumber == 0 &&
+        QuicConnGenerateNewSourceCid(Connection, TRUE) == NULL) {
         return;
     }
 

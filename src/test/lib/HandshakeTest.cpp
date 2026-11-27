@@ -296,6 +296,101 @@ ListenerAcceptConnection(
     return true;
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+struct SplitClientHelloHelper : public DatapathHook {
+    uint16_t ServerPort;
+    bool WaitingForRetry;
+    bool FirstClientInitial = false;
+    bool DroppedClientInitial = false;
+    bool FirstServerInitial = false;
+    bool LaterServerInitial = false;
+    bool ServerCidChanged = false;
+    uint8_t ServerCidLength = 0;
+    uint8_t ServerCid[QUIC_MAX_CONNECTION_ID_LENGTH_V1] = {};
+
+    SplitClientHelloHelper(uint16_t Port, bool ServerStatelessRetry) :
+        ServerPort(Port), WaitingForRetry(ServerStatelessRetry) {
+        if (ServerPort != 0) {
+            DatapathHooks::Instance->AddHook(this);
+        }
+    }
+
+    ~SplitClientHelloHelper() {
+        Stop();
+    }
+
+    void Verify() {
+        Stop();
+        TEST_TRUE(DroppedClientInitial);
+        TEST_TRUE(FirstServerInitial);
+        TEST_TRUE(LaterServerInitial);
+        TEST_FALSE(ServerCidChanged);
+    }
+
+    void Stop() {
+        if (ServerPort != 0) {
+            DatapathHooks::Instance->RemoveHook(this);
+            ServerPort = 0;
+        }
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN Receive(_Inout_ CXPLAT_RECV_DATA* Datagram) override {
+        const uint8_t* Packet = Datagram->Buffer;
+        if (Datagram->BufferLength < 7 || !(Packet[0] & 0x80)) {
+            return FALSE;
+        }
+        const bool FromServer = QuicAddrGetPort(&Datagram->Route->RemoteAddress) == ServerPort;
+        const bool ToServer = QuicAddrGetPort(&Datagram->Route->LocalAddress) == ServerPort;
+        if (!FromServer && !ToServer) {
+            return FALSE;
+        }
+
+        uint32_t Version;
+        CxPlatCopyMemory(&Version, Packet + 1, sizeof(Version));
+        const uint8_t PacketType = (Packet[0] >> 4) & 3;
+        if (WaitingForRetry) {
+            if (FromServer && PacketType == (Version == QUIC_VERSION_2 ? 0 : 3)) {
+                WaitingForRetry = false;
+            }
+            return FALSE;
+        }
+        if (Version == 0 || PacketType != (Version == QUIC_VERSION_2 ? 1 : 0)) {
+            return FALSE;
+        }
+
+        if (ToServer) {
+            if (!FirstClientInitial) {
+                FirstClientInitial = true;
+            } else if (!FirstServerInitial || !DroppedClientInitial) {
+                // Force an ACK before the server can reassemble the ClientHello.
+                DroppedClientInitial = true;
+                return TRUE;
+            }
+        } else {
+            const uint16_t SourceCidOffset = 6 + Packet[5];
+            if (SourceCidOffset >= Datagram->BufferLength) {
+                return FALSE;
+            }
+            const uint8_t Length = Packet[SourceCidOffset];
+            const uint8_t* Cid = Packet + SourceCidOffset + 1;
+            if (Length > sizeof(ServerCid) || SourceCidOffset + 1 + Length > Datagram->BufferLength) {
+                return FALSE;
+            }
+            if (!FirstServerInitial) {
+                FirstServerInitial = true;
+                ServerCidLength = Length;
+                CxPlatCopyMemory(ServerCid, Cid, Length);
+            } else if (DroppedClientInitial) {
+                LaterServerInitial = true;
+                ServerCidChanged |= Length != ServerCidLength || memcmp(ServerCid, Cid, Length) != 0;
+            }
+        }
+        return FALSE;
+    }
+};
+#endif
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -385,6 +480,14 @@ QuicTestConnect(
     QuicAddr ServerLocalAddr(QuicAddrFamily);
     TEST_QUIC_SUCCEEDED(Listener.Start(MultipleALPNs ? Alpn2 : Alpn1, &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    const bool CheckSplitClientHello =
+        MultiPacketClientInitial && SessionResumption == QUIC_TEST_RESUMPTION_DISABLED &&
+        RandomLossPercentage == 0;
+    SplitClientHelloHelper SplitClientHello(
+        CheckSplitClientHello ? ServerLocalAddr.GetPort() : 0, ServerStatelessRetry);
+#endif
 
     ServerAcceptContext ServerAcceptCtx(&Server);
     if (AsyncTicketValidation) {
@@ -585,6 +688,12 @@ QuicTestConnect(
     } else {
         Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    if (CheckSplitClientHello) {
+        SplitClientHello.Verify();
+    }
+#endif
 }
 
 void
@@ -2326,6 +2435,10 @@ QuicTestCompatibleVersionNegotiationRetry(
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        PrivateTransportHelper TpHelper(true);
+        SplitClientHelloHelper SplitClientHello(ServerLocalAddr.GetPort(), true);
+#endif
         {
             ServerAcceptContext ServerAcceptCtx(&Server);
             Listener.Context = &ServerAcceptCtx;
@@ -2334,6 +2447,9 @@ QuicTestCompatibleVersionNegotiationRetry(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 Client.SetSslKeyLogFilePath();
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+                TEST_QUIC_SUCCEEDED(Client.SetTestTransportParameter(&TpHelper));
+#endif
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -2360,6 +2476,9 @@ QuicTestCompatibleVersionNegotiationRetry(
                 TEST_TRUE(Client.GetStatistics().StatelessRetry);
             }
         }
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        SplitClientHello.Verify();
+#endif
     }
 }
 

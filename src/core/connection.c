@@ -3725,6 +3725,9 @@ QuicConnRecvRetry(
     //
     // Update the Initial packet's key based on the new CID.
     //
+    Connection->Crypto.InitialKeyDcidLength = Packet->SourceCidLen;
+    CxPlatCopyMemory(Connection->Crypto.InitialKeyDcid, Packet->SourceCid, Packet->SourceCidLen);
+
     QuicPacketKeyFree(Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL]);
     QuicPacketKeyFree(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
     Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
