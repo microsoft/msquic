@@ -7,6 +7,7 @@ set(SOURCES
     CubicTest.cpp
     FrameTest.cpp
     PacketNumberTest.cpp
+    PacketTest.cpp
     PathTest.cpp
     PartitionTest.cpp
     RangeTest.cpp

@@ -279,6 +279,20 @@ QuicPacketIsHandshake(
 }
 
 //
+// The version-specific CID length limit applies to all v1 and v2 long headers.
+//
+QUIC_INLINE
+BOOLEAN
+QuicPacketHasValidLongHeaderCidLengths(
+    _In_ const QUIC_RX_PACKET* Packet
+    )
+{
+    return
+        Packet->DestCidLen <= QUIC_MAX_CONNECTION_ID_LENGTH_V1 &&
+        Packet->SourceCidLen <= QUIC_MAX_CONNECTION_ID_LENGTH_V1;
+}
+
+//
 // Validates both QUIC version 1 and version 2 long headers.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)

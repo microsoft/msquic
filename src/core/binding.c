@@ -48,6 +48,13 @@ QuicBindingInitialize(
     QUIC_BINDING* Binding;
     BOOLEAN HashTableInitialized = FALSE;
 
+    CXPLAT_STATIC_ASSERT(
+        sizeof(UdpConfig->CibirId) == QUIC_MAX_CIBIR_LENGTH,
+        "CIBIR ID capacities must match");
+    if (UdpConfig->CibirIdLength > sizeof(UdpConfig->CibirId)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     Binding = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BINDING), QUIC_POOL_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
@@ -68,9 +75,11 @@ QuicBindingInitialize(
         Binding->PartitionIndex = UdpConfig->PartitionIndex;
     }
     CxPlatZeroMemory(Binding->CibirId, sizeof(Binding->CibirId));
-    CXPLAT_DBG_ASSERT(UdpConfig->CibirIdLength <= QUIC_MAX_CIBIR_LENGTH);
     Binding->CibirId[0] = UdpConfig->CibirIdLength;
-    CxPlatCopyMemory(Binding->CibirId + 2, UdpConfig->CibirId, UdpConfig->CibirIdLength);
+    CxPlatCopyMemory(
+        Binding->CibirId + 2,
+        UdpConfig->CibirId,
+        UdpConfig->CibirIdLength);
     Binding->StatelessOperCount = 0;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
@@ -348,6 +357,11 @@ QuicBindingRegisterListener(
     _In_ QUIC_LISTENER* NewListener
     )
 {
+    if (NewListener->CibirId[0] != Binding->CibirId[0] ||
+        memcmp(NewListener->CibirId + 1, Binding->CibirId + 1, Binding->CibirId[0] + 1) != 0) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN MaximizeLookup = FALSE;
 

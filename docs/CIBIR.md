@@ -11,6 +11,7 @@ What CIBIR allows for is 2 or more separate server processes to share a single
 port on the same machine, as long as their CIBIR ID is different.
 
 ## CIBIR port sharing logic
+- Configure a listener's CIBIR ID before starting it. Listeners sharing an MsQuic UDP binding must use the same CIBIR configuration.
 - Applications must provide a well-known local port for server sockets when using CIBIR and XDP.
 - **IMPORTANT:** MsQuic will **NOT** reserve an OS port for server sockets when both CIBIR and XDP is enabled and available.
     - Client sockets can never share ports, so MsQuic will reserve an OS port in that scenario.

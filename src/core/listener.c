@@ -825,7 +825,9 @@ QuicListenerAcceptConnection(
         return;
     }
 
-    memcpy(Connection->CibirId, Listener->CibirId, sizeof(Listener->CibirId));
+    if (QuicConnEnsureServerInitialCid(Connection) == NULL) {
+        return;
+    }
 
     if (Connection->CibirId[0] != 0) {
         QuicTraceLogConnInfo(
@@ -837,11 +839,6 @@ QuicListenerAcceptConnection(
             (unsigned long long)QuicCibirIdToUint64(
                 Connection->CibirId + 2,
                 Connection->CibirId[0]));
-    }
-
-    if (Connection->NextSourceCidSequenceNumber == 0 &&
-        QuicConnGenerateNewSourceCid(Connection, TRUE) == NULL) {
-        return;
     }
 
     if (!QuicListenerClaimConnection(Listener, Connection, Info)) {
@@ -864,6 +861,9 @@ QuicListenerParamSet(
     )
 {
     if (Param == QUIC_PARAM_LISTENER_CIBIR_ID) {
+        if (!Listener->Stopped) {
+            return QUIC_STATUS_INVALID_STATE;
+        }
         if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }

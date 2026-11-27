@@ -178,6 +178,7 @@ QuicCryptoInitialize(
         HandshakeCidLength = DestCid->CID.Length;
     }
 
+    CXPLAT_FRE_ASSERT(HandshakeCidLength <= sizeof(Crypto->InitialKeyDcid));
     Crypto->InitialKeyDcidLength = HandshakeCidLength;
     CxPlatCopyMemory(Crypto->InitialKeyDcid, HandshakeCid, HandshakeCidLength);
 
