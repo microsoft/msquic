@@ -979,13 +979,16 @@ QuicConnEnsureServerInitialCid(
 {
     CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
     if (Connection->NextSourceCidSequenceNumber != 0) {
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
         return CXPLAT_CONTAINING_RECORD(
             Connection->SourceCids.Next,
             QUIC_CID_HASH_ENTRY,
             Link);
     }
 
+    //
     // The socket's CIBIR configuration is shared by all listeners on the binding.
+    //
     const QUIC_BINDING* Binding = QuicPathGetActive(&Connection->Paths)->Binding;
     CxPlatCopyMemory(
         Connection->CibirId,
@@ -3753,6 +3756,7 @@ QuicConnRecvRetry(
     //
     // Update the Initial packet's key based on the new CID.
     //
+    CXPLAT_FRE_ASSERT(Packet->SourceCidLen <= sizeof(Connection->Crypto.InitialKeyDcid));
     Connection->Crypto.InitialKeyDcidLength = Packet->SourceCidLen;
     CxPlatCopyMemory(
         Connection->Crypto.InitialKeyDcid,

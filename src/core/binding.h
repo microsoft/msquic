@@ -355,6 +355,20 @@ QuicBindingGetQtipEnabled(
     _In_ const QUIC_BINDING* Binding
     );
 
+QUIC_INLINE
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingMatchesCibirId(
+    _In_ const QUIC_BINDING* Binding,
+    _In_ uint8_t CibirIdLength,
+    _In_reads_bytes_(CibirIdLength) const uint8_t* CibirId
+    )
+{
+    return
+        CibirIdLength == Binding->CibirId[0] &&
+        memcmp(CibirId, Binding->CibirId + 2, CibirIdLength) == 0;
+}
+
 //
 // Looks up the listener based on the ALPN list. Optionally, outputs the
 // first ALPN that matches.

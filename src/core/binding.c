@@ -357,9 +357,17 @@ QuicBindingRegisterListener(
     _In_ QUIC_LISTENER* NewListener
     )
 {
-    if (NewListener->CibirId[0] != Binding->CibirId[0] ||
-        memcmp(NewListener->CibirId + 1, Binding->CibirId + 1, Binding->CibirId[0] + 1) != 0) {
-        return QUIC_STATUS_INVALID_PARAMETER;
+    //
+    // Another listener may have created the binding after the initial lookup.
+    //
+    if (!QuicBindingMatchesCibirId(Binding, NewListener->CibirId[0], NewListener->CibirId + 2)) {
+        QuicTraceEvent(
+            BindingErrorStatus,
+            "[bind][%p] ERROR, %u, %s.",
+            Binding,
+            QUIC_STATUS_ADDRESS_IN_USE,
+            "Binding already in use");
+        return QUIC_STATUS_ADDRESS_IN_USE;
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;

@@ -54,6 +54,8 @@ The server application may set any combination of local address and/or port numb
 
 MsQuic listens on dual-mode wildcard sockets for each unique port number, and performs address filtering, if necessary, within the QUIC layer.
 
+Within a process, listeners sharing a UDP binding must use the same [CIBIR ID](../CIBIR.md) or all leave it unset. Accepted connections and pending work can retain the binding after the last listener stops. Restarting on that port with a different CIBIR setting returns `QUIC_STATUS_ADDRESS_IN_USE` until the binding is released.
+
 Due to the use of per processor sockets for performance reasons, 2 distinct processes listening on the same port will not result in the 2nd instance failing to start. The behavior in this case is undefined, and different per platform, but will result in each app not getting the receives it expects. There is potential for a future workaround for this on Windows, but no currently known solution on Posix-based platforms. This quirk does not apply if a process using UDP without MsQuic is already bound to the port, as long as that process is not using per processor sockets.
 
 On Posix-based platforms, 2 distinct processes using wildcard port numbers can potentially receive the same port number, resulting in the above behavior. This behavior does not exist on Windows.

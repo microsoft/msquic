@@ -4686,24 +4686,12 @@ QuicTestCibirExtension(
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
             Listener.SetCibirId(CibirId, CibirIdLength));
-
-        MsQuicAutoAcceptListener SharedListener(
-            Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
-        if (!(Mode & 1)) {
-            TEST_QUIC_SUCCEEDED(SharedListener.SetCibirId(CibirId, CibirIdLength));
-        }
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            SharedListener.Start("MsQuicTest2", &ServerLocalAddr.SockAddr));
-        TEST_QUIC_SUCCEEDED(
-            SharedListener.SetCibirId(
-                (Mode & 1) ? CibirId : nullptr,
-                (Mode & 1) ? CibirIdLength : 0));
-        TEST_QUIC_SUCCEEDED(SharedListener.Start("MsQuicTest2", &ServerLocalAddr.SockAddr));
     }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-    for (bool SplitInitial : SplitInitialVariants)
+    // Observe the split Initial on a port that has yet to receive any client traffic.
+    const bool CibirSplitInitialVariants[] = { true, false };
+    for (bool SplitInitial : CibirSplitInitialVariants)
 #endif
     {
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -4749,8 +4737,33 @@ QuicTestCibirExtension(
                 (Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_DISABLED) ? 2 : 7;
             TEST_TRUE(SplitClientHello.ServerCidLength >= CibirOffset + CibirIdLength - 1);
             TEST_EQUAL(0, memcmp(SplitClientHello.ServerCid + CibirOffset, CibirId + 1, CibirIdLength - 1));
+            continue;
         }
 #endif
+
+        if (ShouldConnect) {
+            MsQuicAutoAcceptListener SharedListener(
+                Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+            if (!(Mode & 1)) {
+                TEST_QUIC_SUCCEEDED(SharedListener.SetCibirId(CibirId, CibirIdLength));
+            }
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_ADDRESS_IN_USE,
+                SharedListener.Start("MsQuicTest2", &ServerLocalAddr.SockAddr));
+
+            // An accepted connection keeps the binding alive after the listener closes.
+            Listener.Close();
+            const uint8_t OtherCibirId[] = { 0 /* offset */, 4, 3, 2, 0 };
+            TEST_QUIC_SUCCEEDED(SharedListener.SetCibirId(OtherCibirId, sizeof(OtherCibirId)));
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_ADDRESS_IN_USE,
+                SharedListener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+            TEST_QUIC_SUCCEEDED(
+                SharedListener.SetCibirId(
+                    (Mode & 1) ? CibirId : nullptr,
+                    (Mode & 1) ? CibirIdLength : 0));
+            TEST_QUIC_SUCCEEDED(SharedListener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+        }
     }
 }
 

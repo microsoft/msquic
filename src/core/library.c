@@ -2442,7 +2442,9 @@ SharedEphemeralRetry:
             (ServerOwned != Binding->ServerOwned) ||
             (Partitioned != Binding->Partitioned) ||
             (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex) ||
-            (!Binding->Connected && QuicBindingGetQtipEnabled(Binding) != EnableQtip)) {
+            (!Binding->Connected && QuicBindingGetQtipEnabled(Binding) != EnableQtip) ||
+            (ServerOwned &&
+                !QuicBindingMatchesCibirId(Binding, UdpConfig->CibirIdLength, UdpConfig->CibirId))) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
