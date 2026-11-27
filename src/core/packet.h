@@ -293,6 +293,32 @@ QuicPacketHasValidLongHeaderCidLengths(
 }
 
 //
+// Decodes the token in a v1 or v2 Retry after invariant header validation.
+// Returns NULL on success or the reason to drop the packet.
+//
+QUIC_INLINE
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return == NULL)
+const char*
+QuicPacketDecodeRetryHeaderV1(
+    _In_ const QUIC_RX_PACKET* Packet,
+    _Outptr_result_buffer_(*TokenLength) const uint8_t** Token,
+    _Out_ uint16_t* TokenLength
+    )
+{
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
+    if (!QuicPacketHasValidLongHeaderCidLengths(Packet)) {
+        return "Greater than allowed max CID length";
+    }
+    if (Packet->AvailBufferLength <= Packet->HeaderLength + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1) {
+        return "No room for Retry Token";
+    }
+    *Token = Packet->AvailBuffer + Packet->HeaderLength;
+    *TokenLength = Packet->AvailBufferLength - Packet->HeaderLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1;
+    return NULL;
+}
+
+//
 // Validates both QUIC version 1 and version 2 long headers.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -441,7 +441,8 @@ QuicTestConnect(
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
-    _In_ uint8_t RandomLossPercentage
+    _In_ uint8_t RandomLossPercentage,
+    _In_ bool ForceEarlyInitialAck
     )
 {
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
@@ -522,12 +523,10 @@ QuicTestConnect(
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-    // Focus on the Initial flight without resumption traffic or unrelated packet loss.
-    const bool CheckSplitClientHello =
-        MultiPacketClientInitial && SessionResumption == QUIC_TEST_RESUMPTION_DISABLED &&
-        RandomLossPercentage == 0;
     SplitClientHelloHelper SplitClientHello(
-        CheckSplitClientHello ? ServerLocalAddr.GetPort() : 0, ServerStatelessRetry);
+        ForceEarlyInitialAck ? ServerLocalAddr.GetPort() : 0, ServerStatelessRetry);
+#else
+    UNREFERENCED_PARAMETER(ForceEarlyInitialAck);
 #endif
 
     ServerAcceptContext ServerAcceptCtx(&Server);
@@ -731,7 +730,7 @@ QuicTestConnect(
     }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-    if (CheckSplitClientHello) {
+    if (ForceEarlyInitialAck) {
         SplitClientHello.Verify();
     }
 #endif
@@ -742,17 +741,27 @@ QuicTestConnect_Connect(
     const HandshakeArgs& Params
     )
 {
-    QuicTestConnect(
-        Params.Family,
-        Params.ServerStatelessRetry,
-        false,
-        Params.MultipleALPNs,
-        Params.GreaseQuicBitExtension,
-        QUIC_TEST_ASYNC_CONFIG_DISABLED,
-        Params.MultiPacketClientInitial,
-        QUIC_TEST_RESUMPTION_DISABLED,
-        0 // RandomLossPercentage
-        );
+    auto Connect = [&](bool ForceEarlyInitialAck) {
+        QuicTestConnect(
+            Params.Family,
+            Params.ServerStatelessRetry,
+            false,
+            Params.MultipleALPNs,
+            Params.GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            Params.MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_DISABLED,
+            0, // RandomLossPercentage
+            ForceEarlyInitialAck
+            );
+    };
+    Connect(false);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    // Add one forced-ACK case for each address family and Retry setting.
+    if (Params.MultiPacketClientInitial && !Params.MultipleALPNs && !Params.GreaseQuicBitExtension) {
+        Connect(true);
+    }
+#endif
 }
 
 void

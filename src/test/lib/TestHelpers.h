@@ -482,7 +482,7 @@ struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
         if (Enabled) {
             Type = PRIVATE_TP_TYPE;
             Length = Resumption ? PRIVATE_TP_LENGTH : PRIVATE_TP_LENGTH_HUGE;
-            Buffer = new(std::nothrow) uint8_t[Length];
+            Buffer = new(std::nothrow) uint8_t[Length]{};
             TEST_TRUE(Buffer != nullptr);
         } else {
             Buffer = nullptr;

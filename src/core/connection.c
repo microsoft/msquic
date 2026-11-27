@@ -2493,19 +2493,12 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->OrigDestCID->Length);
 
             if (Connection->State.HandshakeUsedRetryPacket) {
-                CXPLAT_DBG_ASSERT(SourceCid->Link.Next != NULL);
-                const QUIC_CID_HASH_ENTRY* PrevSourceCid =
-                    CXPLAT_CONTAINING_RECORD(
-                        SourceCid->Link.Next,
-                        QUIC_CID_HASH_ENTRY,
-                        Link);
-
                 LocalTP->Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
-                LocalTP->RetrySourceConnectionIDLength = PrevSourceCid->CID.Length;
+                LocalTP->RetrySourceConnectionIDLength = Connection->Crypto.InitialKeyDcidLength;
                 CxPlatCopyMemory(
                     LocalTP->RetrySourceConnectionID,
-                    PrevSourceCid->CID.Data,
-                    PrevSourceCid->CID.Length);
+                    Connection->Crypto.InitialKeyDcid,
+                    Connection->Crypto.InitialKeyDcidLength);
             }
         }
 
@@ -2720,7 +2713,16 @@ QuicConnValidateTransportParameterCIDs(
                     "Server didn't provide the retry source CID in TP");
                 return FALSE;
             }
-            // TODO - Validate
+            if (Connection->Crypto.InitialKeyDcidLength != Connection->PeerTransportParams.RetrySourceConnectionIDLength ||
+                memcmp(Connection->Crypto.InitialKeyDcid, Connection->PeerTransportParams.RetrySourceConnectionID,
+                    Connection->Crypto.InitialKeyDcidLength) != 0) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Retry source CID from TP doesn't match");
+                return FALSE;
+            }
         } else {
             if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
                 QuicTraceEvent(
@@ -3660,13 +3662,11 @@ QuicConnRecvRetry(
     // Decode and validate the Retry packet.
     //
 
-    if (!QuicPacketHasValidLongHeaderCidLengths(Packet)) {
-        QuicPacketLogDrop(Connection, Packet, "Greater than allowed max CID length");
-        return;
-    }
-
-    if (Packet->AvailBufferLength - Packet->HeaderLength <= QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1) {
-        QuicPacketLogDrop(Connection, Packet, "No room for Retry Token");
+    const uint8_t* Token;
+    uint16_t TokenLength;
+    const char* DropReason = QuicPacketDecodeRetryHeaderV1(Packet, &Token, &TokenLength);
+    if (DropReason != NULL) {
+        QuicPacketLogDrop(Connection, Packet, DropReason);
         return;
     }
 
@@ -3683,9 +3683,6 @@ QuicConnRecvRetry(
         }
     }
     CXPLAT_FRE_ASSERT(VersionInfo != NULL);
-
-    const uint8_t* Token = (Packet->AvailBuffer + Packet->HeaderLength);
-    uint16_t TokenLength = Packet->AvailBufferLength - (Packet->HeaderLength + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1);
 
     QuicPacketLogHeader(
         Connection,
