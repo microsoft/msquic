@@ -296,6 +296,141 @@ ListenerAcceptConnection(
     return true;
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+static constexpr bool SplitInitialVariants[] = { false, true };
+
+struct SplitClientHelloHelper : public DatapathHook {
+    static constexpr uint8_t MaxDroppedClientInitials = 8;
+    uint16_t ServerPort;
+    bool UseRetry;
+    bool FirstClientInitial = false;
+    uint8_t DroppedClientInitials = 0;
+    bool DropLimitReached = false;
+    bool FirstServerInitial = false;
+    bool LaterServerInitial = false;
+    bool ServerHandshake = false;
+    bool ServerCidChanged = false;
+    uint8_t ServerCidLength = 0;
+    uint8_t ServerCid[QUIC_MAX_CONNECTION_ID_LENGTH_V1] = {};
+
+    SplitClientHelloHelper(uint16_t Port, bool ServerStatelessRetry) :
+        ServerPort(Port), UseRetry(ServerStatelessRetry) {
+        if (ServerPort != 0) {
+            DatapathHooks::Instance->AddHook(this);
+        }
+    }
+
+    ~SplitClientHelloHelper() {
+        Stop();
+    }
+
+    void Verify() {
+        Stop();
+        TEST_TRUE(DroppedClientInitials > 0);
+        TEST_FALSE(DropLimitReached);
+        TEST_TRUE(FirstServerInitial);
+        TEST_TRUE(LaterServerInitial);
+        TEST_TRUE(ServerHandshake);
+        TEST_FALSE(ServerCidChanged);
+    }
+
+    void Stop() {
+        if (ServerPort != 0) {
+            DatapathHooks::Instance->RemoveHook(this);
+            ServerPort = 0;
+        }
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN Receive(_Inout_ CXPLAT_RECV_DATA* Datagram) override {
+        const bool FromServer = QuicAddrGetPort(&Datagram->Route->RemoteAddress) == ServerPort;
+        const bool ToServer = QuicAddrGetPort(&Datagram->Route->LocalAddress) == ServerPort;
+        if (!FromServer && !ToServer) {
+            return FALSE;
+        }
+
+        const uint8_t* Buffer = Datagram->Buffer;
+        const uint16_t BufferLength = Datagram->BufferLength;
+        uint16_t Offset = 0;
+        while (BufferLength - Offset >= 7 && (Buffer[Offset] & 0x80)) {
+            const uint8_t PacketType = (Buffer[Offset] >> 4) & 3;
+            uint32_t Version;
+            CxPlatCopyMemory(&Version, Buffer + Offset + 1, sizeof(Version));
+            const bool IsV2 = Version == QUIC_VERSION_2;
+            if (Version == 0 || PacketType == (IsV2 ? 0 : 3)) {
+                break;
+            }
+            const bool IsInitial = PacketType == (IsV2 ? 1 : 0);
+            const bool IsHandshake = PacketType == (IsV2 ? 3 : 2);
+
+            Offset += 5;
+            const uint8_t DestCidLength = Buffer[Offset++];
+            if (DestCidLength >= BufferLength - Offset) {
+                break;
+            }
+            Offset += DestCidLength;
+            const uint8_t SourceCidLength = Buffer[Offset++];
+            if (SourceCidLength > sizeof(ServerCid) || SourceCidLength > BufferLength - Offset) {
+                break;
+            }
+            const uint8_t* SourceCid = Buffer + Offset;
+            Offset += SourceCidLength;
+
+            QUIC_VAR_INT TokenLength = 0;
+            if (IsInitial) {
+                if (!QuicVarIntDecode(BufferLength, Buffer, &Offset, &TokenLength) ||
+                    TokenLength > static_cast<uint16_t>(BufferLength - Offset)) {
+                    break;
+                }
+                Offset += static_cast<uint16_t>(TokenLength);
+            }
+
+            QUIC_VAR_INT PayloadLength;
+            if (!QuicVarIntDecode(BufferLength, Buffer, &Offset, &PayloadLength) ||
+                PayloadLength > static_cast<uint16_t>(BufferLength - Offset)) {
+                break;
+            }
+            Offset += static_cast<uint16_t>(PayloadLength);
+
+            if (ToServer && IsInitial) {
+                return (!UseRetry || TokenLength != 0) && DropClientInitial();
+            }
+
+            if (FromServer && (IsInitial || IsHandshake)) {
+                if (!FirstServerInitial && IsInitial) {
+                    FirstServerInitial = true;
+                    ServerCidLength = SourceCidLength;
+                    CxPlatCopyMemory(ServerCid, SourceCid, SourceCidLength);
+                } else if (FirstServerInitial) {
+                    LaterServerInitial |= IsInitial;
+                    ServerHandshake |= IsHandshake;
+                    ServerCidChanged |= SourceCidLength != ServerCidLength ||
+                        memcmp(ServerCid, SourceCid, SourceCidLength) != 0;
+                }
+            }
+        }
+        return FALSE;
+    }
+
+    BOOLEAN DropClientInitial() {
+        if (!FirstClientInitial) {
+            FirstClientInitial = true;
+            return FALSE;
+        }
+        if (FirstServerInitial && DroppedClientInitials > 0) {
+            return FALSE;
+        }
+        if (DroppedClientInitials == MaxDroppedClientInitials) {
+            DropLimitReached = true;
+            return FALSE;
+        }
+        // Force an ACK before the server can reassemble the ClientHello.
+        ++DroppedClientInitials;
+        return TRUE;
+    }
+};
+#endif
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -306,7 +441,8 @@ QuicTestConnect(
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
-    _In_ uint8_t RandomLossPercentage
+    _In_ uint8_t RandomLossPercentage,
+    _In_ bool ForceEarlyInitialAck
     )
 {
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
@@ -385,6 +521,13 @@ QuicTestConnect(
     QuicAddr ServerLocalAddr(QuicAddrFamily);
     TEST_QUIC_SUCCEEDED(Listener.Start(MultipleALPNs ? Alpn2 : Alpn1, &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    SplitClientHelloHelper SplitClientHello(
+        ForceEarlyInitialAck ? ServerLocalAddr.GetPort() : 0, ServerStatelessRetry);
+#else
+    UNREFERENCED_PARAMETER(ForceEarlyInitialAck);
+#endif
 
     ServerAcceptContext ServerAcceptCtx(&Server);
     if (AsyncTicketValidation) {
@@ -585,6 +728,12 @@ QuicTestConnect(
     } else {
         Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    if (ForceEarlyInitialAck) {
+        SplitClientHello.Verify();
+    }
+#endif
 }
 
 void
@@ -592,17 +741,27 @@ QuicTestConnect_Connect(
     const HandshakeArgs& Params
     )
 {
-    QuicTestConnect(
-        Params.Family,
-        Params.ServerStatelessRetry,
-        false,
-        Params.MultipleALPNs,
-        Params.GreaseQuicBitExtension,
-        QUIC_TEST_ASYNC_CONFIG_DISABLED,
-        Params.MultiPacketClientInitial,
-        QUIC_TEST_RESUMPTION_DISABLED,
-        0 // RandomLossPercentage
-        );
+    auto Connect = [&](bool ForceEarlyInitialAck) {
+        QuicTestConnect(
+            Params.Family,
+            Params.ServerStatelessRetry,
+            false,
+            Params.MultipleALPNs,
+            Params.GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            Params.MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_DISABLED,
+            0, // RandomLossPercentage
+            ForceEarlyInitialAck
+            );
+    };
+    Connect(false);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    // Add one forced-ACK case for each address family and Retry setting.
+    if (Params.MultiPacketClientInitial && !Params.MultipleALPNs && !Params.GreaseQuicBitExtension) {
+        Connect(true);
+    }
+#endif
 }
 
 void
@@ -2208,7 +2367,15 @@ QuicTestCompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionNegotiationExtEnabled(!DisableVNEClient));
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    for (bool SplitInitial : SplitInitialVariants)
+#endif
     {
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        if (SplitInitial && (DisableVNEClient || DisableVNEServer)) {
+            continue;
+        }
+#endif
         UniquePtr<TestConnection> Server;
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
@@ -2217,6 +2384,10 @@ QuicTestCompatibleVersionNegotiation(
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        PrivateTransportHelper TpHelper(SplitInitial);
+        SplitClientHelloHelper SplitClientHello(SplitInitial ? ServerLocalAddr.GetPort() : 0, false);
+#endif
         {
             ServerAcceptContext ServerAcceptCtx(&Server);
             Listener.Context = &ServerAcceptCtx;
@@ -2225,6 +2396,11 @@ QuicTestCompatibleVersionNegotiation(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 Client.SetSslKeyLogFilePath();
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+                if (SplitInitial) {
+                    TEST_QUIC_SUCCEEDED(Client.SetTestTransportParameter(&TpHelper));
+                }
+#endif
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -2255,6 +2431,11 @@ QuicTestCompatibleVersionNegotiation(
                 TEST_FALSE(Client.GetStatistics().VersionNegotiation);
             }
         }
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        if (SplitInitial) {
+            SplitClientHello.Verify();
+        }
+#endif
     }
 }
 
@@ -2317,6 +2498,9 @@ QuicTestCompatibleVersionNegotiationRetry(
     TEST_TRUE(ClientConfiguration.IsValid());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    for (bool SplitInitial : SplitInitialVariants)
+#endif
     {
         UniquePtr<TestConnection> Server;
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -2326,6 +2510,10 @@ QuicTestCompatibleVersionNegotiationRetry(
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        PrivateTransportHelper TpHelper(SplitInitial);
+        SplitClientHelloHelper SplitClientHello(SplitInitial ? ServerLocalAddr.GetPort() : 0, true);
+#endif
         {
             ServerAcceptContext ServerAcceptCtx(&Server);
             Listener.Context = &ServerAcceptCtx;
@@ -2334,6 +2522,11 @@ QuicTestCompatibleVersionNegotiationRetry(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 Client.SetSslKeyLogFilePath();
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+                if (SplitInitial) {
+                    TEST_QUIC_SUCCEEDED(Client.SetTestTransportParameter(&TpHelper));
+                }
+#endif
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -2360,6 +2553,11 @@ QuicTestCompatibleVersionNegotiationRetry(
                 TEST_TRUE(Client.GetStatistics().StatelessRetry);
             }
         }
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        if (SplitInitial) {
+            SplitClientHello.Verify();
+        }
+#endif
     }
 }
 
@@ -4460,7 +4658,7 @@ QuicTestCibirExtension(
 
     const uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 1 };
     const uint8_t CibirIdLength = sizeof(CibirId);
-    const bool ShouldConnnect = !!(Mode & 1) == !!(Mode & 2);
+    const bool ShouldConnect = !!(Mode & 1) == !!(Mode & 2);
 
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -4493,18 +4691,89 @@ QuicTestCibirExtension(
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration);
-    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-    if (Mode & 2) {
-        TEST_QUIC_SUCCEEDED(Connection.SetShareUdpBinding());
-        TEST_QUIC_SUCCEEDED(Connection.SetCibirId(CibirId, CibirIdLength));
+    if (ShouldConnect) {
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            Listener.SetCibirId(CibirId, CibirIdLength));
     }
-    if (!ShouldConnnect) {
-        // TODO - Set expected transport error
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    // Observe the split Initial on a port that has yet to receive any client traffic.
+    const bool CibirSplitInitialVariants[] = { true, false };
+    for (bool SplitInitial : CibirSplitInitialVariants)
+#endif
+    {
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        if (SplitInitial && Mode != 3) {
+            continue;
+        }
+        PrivateTransportHelper TpHelper(SplitInitial);
+        SplitClientHelloHelper SplitClientHello(SplitInitial ? ServerLocalAddr.GetPort() : 0, false);
+#endif
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        if (Mode & 2) {
+            TEST_QUIC_SUCCEEDED(Connection.SetShareUdpBinding());
+            TEST_QUIC_SUCCEEDED(Connection.SetCibirId(CibirId, CibirIdLength));
+        }
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        if (SplitInitial) {
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER,
+                    sizeof(QUIC_PRIVATE_TRANSPORT_PARAMETER),
+                    &TpHelper));
+        }
+#endif
+        if (!ShouldConnect) {
+            // TODO - Set expected transport error
+        }
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+        Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
+        TEST_EQUAL(Connection.HandshakeComplete, ShouldConnect);
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        if (SplitInitial) {
+            SplitClientHello.Verify();
+            QUIC_GLOBAL_SETTINGS Settings{};
+            uint32_t SettingsLength = sizeof(Settings);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr, QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS, &SettingsLength, &Settings));
+            // The CIBIR ID follows the optional five-byte server ID and two-byte partition ID.
+            const uint8_t CibirOffset =
+                (Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_DISABLED) ? 2 : 7;
+            TEST_TRUE(SplitClientHello.ServerCidLength >= CibirOffset + CibirIdLength - 1);
+            TEST_EQUAL(0, memcmp(SplitClientHello.ServerCid + CibirOffset, CibirId + 1, CibirIdLength - 1));
+            continue;
+        }
+#endif
+
+        if (ShouldConnect) {
+            MsQuicAutoAcceptListener SharedListener(
+                Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+            if (!(Mode & 1)) {
+                TEST_QUIC_SUCCEEDED(SharedListener.SetCibirId(CibirId, CibirIdLength));
+            }
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_ADDRESS_IN_USE,
+                SharedListener.Start("MsQuicTest2", &ServerLocalAddr.SockAddr));
+
+            // An accepted connection keeps the binding alive after the listener closes.
+            Listener.Close();
+            const uint8_t OtherCibirId[] = { 0 /* offset */, 4, 3, 2, 0 };
+            TEST_QUIC_SUCCEEDED(SharedListener.SetCibirId(OtherCibirId, sizeof(OtherCibirId)));
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_ADDRESS_IN_USE,
+                SharedListener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+            TEST_QUIC_SUCCEEDED(
+                SharedListener.SetCibirId(
+                    (Mode & 1) ? CibirId : nullptr,
+                    (Mode & 1) ? CibirIdLength : 0));
+            TEST_QUIC_SUCCEEDED(SharedListener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+        }
     }
-    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-    Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
-    TEST_EQUAL(Connection.HandshakeComplete, ShouldConnnect);
 }
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

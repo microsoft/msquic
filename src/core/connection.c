@@ -971,6 +971,32 @@ QuicConnGenerateNewSourceCid(
     return SourceCid;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_CID_HASH_ENTRY*
+QuicConnEnsureServerInitialCid(
+    _Inout_ QUIC_CONNECTION* Connection
+    )
+{
+    CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
+    if (Connection->NextSourceCidSequenceNumber != 0) {
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+        return CXPLAT_CONTAINING_RECORD(
+            Connection->SourceCids.Next,
+            QUIC_CID_HASH_ENTRY,
+            Link);
+    }
+
+    //
+    // The socket's CIBIR configuration is shared by all listeners on the binding.
+    //
+    const QUIC_BINDING* Binding = QuicPathGetActive(&Connection->Paths)->Binding;
+    CxPlatCopyMemory(
+        Connection->CibirId,
+        Binding->CibirId,
+        sizeof(Connection->CibirId));
+    return QuicConnGenerateNewSourceCid(Connection, TRUE);
+}
+
 uint32_t
 QuicConnSourceCidsCount(
     _In_ const QUIC_CONNECTION* Connection
@@ -2467,19 +2493,12 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->OrigDestCID->Length);
 
             if (Connection->State.HandshakeUsedRetryPacket) {
-                CXPLAT_DBG_ASSERT(SourceCid->Link.Next != NULL);
-                const QUIC_CID_HASH_ENTRY* PrevSourceCid =
-                    CXPLAT_CONTAINING_RECORD(
-                        SourceCid->Link.Next,
-                        QUIC_CID_HASH_ENTRY,
-                        Link);
-
                 LocalTP->Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
-                LocalTP->RetrySourceConnectionIDLength = PrevSourceCid->CID.Length;
+                LocalTP->RetrySourceConnectionIDLength = Connection->Crypto.InitialKeyDcidLength;
                 CxPlatCopyMemory(
                     LocalTP->RetrySourceConnectionID,
-                    PrevSourceCid->CID.Data,
-                    PrevSourceCid->CID.Length);
+                    Connection->Crypto.InitialKeyDcid,
+                    Connection->Crypto.InitialKeyDcidLength);
             }
         }
 
@@ -2694,7 +2713,16 @@ QuicConnValidateTransportParameterCIDs(
                     "Server didn't provide the retry source CID in TP");
                 return FALSE;
             }
-            // TODO - Validate
+            if (Connection->Crypto.InitialKeyDcidLength != Connection->PeerTransportParams.RetrySourceConnectionIDLength ||
+                memcmp(Connection->Crypto.InitialKeyDcid, Connection->PeerTransportParams.RetrySourceConnectionID,
+                    Connection->Crypto.InitialKeyDcidLength) != 0) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Retry source CID from TP doesn't match");
+                return FALSE;
+            }
         } else {
             if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
                 QuicTraceEvent(
@@ -3634,8 +3662,11 @@ QuicConnRecvRetry(
     // Decode and validate the Retry packet.
     //
 
-    if (Packet->AvailBufferLength - Packet->HeaderLength <= QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1) {
-        QuicPacketLogDrop(Connection, Packet, "No room for Retry Token");
+    const uint8_t* Token;
+    uint16_t TokenLength;
+    const char* DropReason = QuicPacketDecodeRetryHeaderV1(Packet, &Token, &TokenLength);
+    if (DropReason != NULL) {
+        QuicPacketLogDrop(Connection, Packet, DropReason);
         return;
     }
 
@@ -3652,9 +3683,6 @@ QuicConnRecvRetry(
         }
     }
     CXPLAT_FRE_ASSERT(VersionInfo != NULL);
-
-    const uint8_t* Token = (Packet->AvailBuffer + Packet->HeaderLength);
-    uint16_t TokenLength = Packet->AvailBufferLength - (Packet->HeaderLength + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1);
 
     QuicPacketLogHeader(
         Connection,
@@ -3725,17 +3753,17 @@ QuicConnRecvRetry(
     //
     // Update the Initial packet's key based on the new CID.
     //
+    CXPLAT_FRE_ASSERT(Packet->SourceCidLen <= sizeof(Connection->Crypto.InitialKeyDcid));
+    Connection->Crypto.InitialKeyDcidLength = Packet->SourceCidLen;
+    CxPlatCopyMemory(
+        Connection->Crypto.InitialKeyDcid,
+        Packet->SourceCid,
+        Connection->Crypto.InitialKeyDcidLength);
+
     QuicPacketKeyFree(Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL]);
     QuicPacketKeyFree(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
     Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
     Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
-
-    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
-    DestCid =
-        CXPLAT_CONTAINING_RECORD(
-            Connection->DestCids.Flink,
-            QUIC_CID_LIST_ENTRY,
-            Link);
 
     QUIC_STATUS Status;
     if (QUIC_FAILED(
@@ -3744,8 +3772,8 @@ QuicConnRecvRetry(
             QuicConnIsServer(Connection),
             &VersionInfo->HkdfLabels,
             VersionInfo->Salt,
-            DestCid->CID.Length,
-            DestCid->CID.Data,
+            Connection->Crypto.InitialKeyDcidLength,
+            Connection->Crypto.InitialKeyDcid,
             &Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
             &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]))) {
         QuicConnFatalError(Connection, Status, "Failed to create initial keys");

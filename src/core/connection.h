@@ -1265,6 +1265,15 @@ QuicConnGenerateNewSourceCid(
     );
 
 //
+// Returns the server's assigned Initial source CID, generating it if needed.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_CID_HASH_ENTRY*
+QuicConnEnsureServerInitialCid(
+    _Inout_ QUIC_CONNECTION* Connection
+    );
+
+//
 // Generates any necessary source CIDs.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

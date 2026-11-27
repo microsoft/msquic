@@ -10,11 +10,57 @@ Abstract:
 --*/
 
 #include "main.h"
+#include <memory>
 #ifdef QUIC_CLOG
 #include "TransportParamTest.cpp.clog.h"
 #endif
 
 static QUIC_CONNECTION JunkConnection;
+
+extern "C" BOOLEAN QuicConnValidateTransportParameterCIDs(_In_ QUIC_CONNECTION* Connection);
+
+TEST(TransportParamTest, ValidateRetrySourceConnectionId)
+{
+    const uint8_t OriginalId[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+    const uint8_t RetryId[] = { 8, 7, 6, 5, 4, 3, 2, 1 };
+    auto FreeCid = [](QUIC_CID_LIST_ENTRY* Cid) { CXPLAT_FREE(Cid, QUIC_POOL_CIDLIST); };
+    using CidPtr = std::unique_ptr<QUIC_CID_LIST_ENTRY, decltype(FreeCid)>;
+    CidPtr OriginalDestCid(QuicCidNewDestination(sizeof(OriginalId), OriginalId), FreeCid);
+    CidPtr ServerInitialCid(QuicCidNewDestination(0, nullptr), FreeCid);
+    ASSERT_NE(nullptr, OriginalDestCid);
+    ASSERT_NE(nullptr, ServerInitialCid);
+
+    QUIC_CONNECTION Connection{};
+    Connection._.Type = QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
+    Connection.OrigDestCID = &OriginalDestCid->CID;
+    CxPlatListInitializeHead(&Connection.DestCids);
+    CxPlatListInsertTail(&Connection.DestCids, &ServerInitialCid->Link);
+
+    auto& PeerTP = Connection.PeerTransportParams;
+    PeerTP.Flags = QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID | QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID;
+    PeerTP.OriginalDestinationConnectionIDLength = sizeof(OriginalId);
+    CxPlatCopyMemory(PeerTP.OriginalDestinationConnectionID, OriginalId, sizeof(OriginalId));
+    EXPECT_TRUE(QuicConnValidateTransportParameterCIDs(&Connection));
+
+    Connection.State.HandshakeUsedRetryPacket = TRUE;
+    Connection.Crypto.InitialKeyDcidLength = sizeof(RetryId);
+    CxPlatCopyMemory(Connection.Crypto.InitialKeyDcid, RetryId, sizeof(RetryId));
+    EXPECT_FALSE(QuicConnValidateTransportParameterCIDs(&Connection));
+
+    PeerTP.Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
+    PeerTP.RetrySourceConnectionIDLength = sizeof(RetryId);
+    CxPlatCopyMemory(PeerTP.RetrySourceConnectionID, RetryId, sizeof(RetryId));
+    EXPECT_TRUE(QuicConnValidateTransportParameterCIDs(&Connection));
+
+    --PeerTP.RetrySourceConnectionIDLength;
+    EXPECT_FALSE(QuicConnValidateTransportParameterCIDs(&Connection));
+    ++PeerTP.RetrySourceConnectionIDLength;
+    PeerTP.RetrySourceConnectionID[sizeof(RetryId) - 1] ^= 1;
+    EXPECT_FALSE(QuicConnValidateTransportParameterCIDs(&Connection));
+
+    Connection.State.HandshakeUsedRetryPacket = FALSE;
+    EXPECT_FALSE(QuicConnValidateTransportParameterCIDs(&Connection));
+}
 
 void CompareTransportParams(
     _In_ const QUIC_TRANSPORT_PARAMETERS* A,

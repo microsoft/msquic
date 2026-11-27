@@ -205,7 +205,8 @@ QuicTestConnect(
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
-    _In_ uint8_t RandomLossPercentage // 0 to 100
+    _In_ uint8_t RandomLossPercentage, // 0 to 100
+    _In_ bool ForceEarlyInitialAck = false
     );
 
 struct HandshakeArgs {

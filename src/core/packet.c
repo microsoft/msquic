@@ -225,8 +225,7 @@ QuicPacketValidateLongHeaderV1(
         (Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V1) ||
         (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V2)); // Retry uses a different code path.
 
-    if (Packet->DestCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1 ||
-        Packet->SourceCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
+    if (!QuicPacketHasValidLongHeaderCidLengths(Packet)) {
         QuicPacketLogDrop(Owner, Packet, "Greater than allowed max CID length");
         return FALSE;
     }

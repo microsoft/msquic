@@ -115,6 +115,12 @@ typedef struct QUIC_CRYPTO {
     uint8_t* ResumptionTicket;
     uint32_t ResumptionTicketLength;
 
+    //
+    // The client Initial DCID used to derive Initial keys, updated only on Retry.
+    //
+    uint8_t InitialKeyDcidLength;
+    uint8_t InitialKeyDcid[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
+
 } QUIC_CRYPTO;
 
 QUIC_INLINE

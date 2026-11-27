@@ -48,6 +48,13 @@ QuicBindingInitialize(
     QUIC_BINDING* Binding;
     BOOLEAN HashTableInitialized = FALSE;
 
+    CXPLAT_STATIC_ASSERT(
+        sizeof(UdpConfig->CibirId) == QUIC_MAX_CIBIR_LENGTH,
+        "CIBIR ID capacities must match");
+    if (UdpConfig->CibirIdLength > sizeof(UdpConfig->CibirId)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     Binding = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BINDING), QUIC_POOL_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
@@ -67,6 +74,12 @@ QuicBindingInitialize(
     if (Binding->Partitioned) {
         Binding->PartitionIndex = UdpConfig->PartitionIndex;
     }
+    CxPlatZeroMemory(Binding->CibirId, sizeof(Binding->CibirId));
+    Binding->CibirId[0] = UdpConfig->CibirIdLength;
+    CxPlatCopyMemory(
+        Binding->CibirId + 2,
+        UdpConfig->CibirId,
+        UdpConfig->CibirIdLength);
     Binding->StatelessOperCount = 0;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
@@ -344,6 +357,19 @@ QuicBindingRegisterListener(
     _In_ QUIC_LISTENER* NewListener
     )
 {
+    //
+    // Another listener may have created the binding after the initial lookup.
+    //
+    if (!QuicBindingMatchesCibirId(Binding, NewListener->CibirId[0], NewListener->CibirId + 2)) {
+        QuicTraceEvent(
+            BindingErrorStatus,
+            "[bind][%p] ERROR, %u, %s.",
+            Binding,
+            QUIC_STATUS_ADDRESS_IN_USE,
+            "Binding already in use");
+        return QUIC_STATUS_ADDRESS_IN_USE;
+    }
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN MaximizeLookup = FALSE;
 

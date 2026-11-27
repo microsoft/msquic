@@ -193,6 +193,19 @@ QuicPacketBuilderPrepare(
         return FALSE;
     }
 
+    if (NewPacketKeyType == QUIC_PACKET_KEY_INITIAL &&
+        QuicConnIsServer(Connection) &&
+        !Connection->State.ClosedLocally) {
+        //
+        // An Initial ACK can be sent before the ClientHello selects a listener.
+        //
+        QUIC_CID_HASH_ENTRY* SourceCid = QuicConnEnsureServerInitialCid(Connection);
+        if (SourceCid == NULL) {
+            return FALSE;
+        }
+        Builder->SourceCid = SourceCid;
+    }
+
     BOOLEAN Result = FALSE;
     uint8_t NewPacketType =
         Connection->Stats.QuicVersion == QUIC_VERSION_2 ?

@@ -178,6 +178,10 @@ QuicCryptoInitialize(
         HandshakeCidLength = DestCid->CID.Length;
     }
 
+    CXPLAT_FRE_ASSERT(HandshakeCidLength <= sizeof(Crypto->InitialKeyDcid));
+    Crypto->InitialKeyDcidLength = HandshakeCidLength;
+    CxPlatCopyMemory(Crypto->InitialKeyDcid, HandshakeCid, HandshakeCidLength);
+
     Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
@@ -391,8 +395,6 @@ QuicCryptoOnVersionChange(
 {
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-    const uint8_t* HandshakeCid;
-    uint8_t HandshakeCidLength;
 
     if (!Crypto->Initialized) {
         //
@@ -417,29 +419,6 @@ QuicCryptoOnVersionChange(
         CxPlatTlsUpdateHkdfLabels(Crypto->TLS, &VersionInfo->HkdfLabels);
     }
 
-    if (QuicConnIsServer(Connection)) {
-        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-        QUIC_CID_HASH_ENTRY* SourceCid =
-            CXPLAT_CONTAINING_RECORD(
-                Connection->SourceCids.Next,
-                QUIC_CID_HASH_ENTRY,
-                Link);
-
-        HandshakeCid = SourceCid->CID.Data;
-        HandshakeCidLength = SourceCid->CID.Length;
-
-    } else {
-        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
-        QUIC_CID_LIST_ENTRY* DestCid =
-            CXPLAT_CONTAINING_RECORD(
-                Connection->DestCids.Flink,
-                QUIC_CID_LIST_ENTRY,
-                Link);
-
-        HandshakeCid = DestCid->CID.Data;
-        HandshakeCidLength = DestCid->CID.Length;
-    }
-
     if (Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL) {
         CXPLAT_FRE_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
         QuicPacketKeyFree(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL]);
@@ -453,8 +432,8 @@ QuicCryptoOnVersionChange(
             QuicConnIsServer(Connection),
             &VersionInfo->HkdfLabels,
             VersionInfo->Salt,
-            HandshakeCidLength,
-            HandshakeCid,
+            Crypto->InitialKeyDcidLength,
+            Crypto->InitialKeyDcid,
             &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
             &Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
     if (QUIC_FAILED(Status)) {
