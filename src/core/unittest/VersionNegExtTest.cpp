@@ -368,3 +368,78 @@ INSTANTIATE_TEST_SUITE_P(
     VersionNegExtTest,
     WithType,
     ::testing::Values(QUIC_HANDLE_TYPE_CONNECTION_SERVER, QUIC_HANDLE_TYPE_CONNECTION_CLIENT));
+
+//
+// The Retry Integrity Tag (Section 5.8 of RFC 9001) is keyed from a secret that
+// is specific to the QUIC version, so a wrong secret in QuicSupportedVersionList
+// produces a tag that no peer on that version accepts. Both standards publish a
+// Retry packet computed over the client-chosen Destination Connection ID
+// 0x8394c8f03e515708, which the packet itself does not carry, so the tag can be
+// recomputed here and compared against the published one.
+//
+TEST(VersionNegExtTest, WellKnownRetryIntegrityTag)
+{
+    const uint8_t OrigDestCid[] = {
+        0x83, 0x94, 0xc8, 0xf0, 0x3e, 0x51, 0x57, 0x08
+    };
+
+    //
+    // Each sample is the complete Retry packet: everything but the trailing
+    // QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1 bytes is the input to the tag, and
+    // those trailing bytes are the expected tag.
+    //
+    const uint8_t V1Retry[] = { // RFC 9001, Appendix A.4
+        0xff, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0xf0,
+        0x67, 0xa5, 0x50, 0x2a, 0x42, 0x62, 0xb5, 0x74,
+        0x6f, 0x6b, 0x65, 0x6e, 0x04, 0xa2, 0x65, 0xba,
+        0x2e, 0xff, 0x4d, 0x82, 0x90, 0x58, 0xfb, 0x3f,
+        0x0f, 0x24, 0x96, 0xba
+    };
+    const uint8_t V2Retry[] = { // RFC 9369, Appendix A.4
+        0xcf, 0x6b, 0x33, 0x43, 0xcf, 0x00, 0x08, 0xf0,
+        0x67, 0xa5, 0x50, 0x2a, 0x42, 0x62, 0xb5, 0x74,
+        0x6f, 0x6b, 0x65, 0x6e, 0xc8, 0x64, 0x6c, 0xe8,
+        0xbf, 0xe3, 0x39, 0x52, 0xd9, 0x55, 0x54, 0x36,
+        0x65, 0xdc, 0xc7, 0xb6
+    };
+
+    struct {
+        uint32_t Version;
+        const char* Name;
+        const uint8_t* Retry;
+        uint16_t RetryLength;
+    } Cases[] = {
+        { QUIC_VERSION_1, "QUIC v1", V1Retry, (uint16_t)sizeof(V1Retry) },
+        { QUIC_VERSION_2, "QUIC v2", V2Retry, (uint16_t)sizeof(V2Retry) },
+    };
+
+    for (uint32_t c = 0; c < ARRAYSIZE(Cases); ++c) {
+        const QUIC_VERSION_INFO* Info = nullptr;
+        for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+            if (QuicSupportedVersionList[i].Number == Cases[c].Version) {
+                Info = &QuicSupportedVersionList[i];
+                break;
+            }
+        }
+        ASSERT_NE(nullptr, Info) << Cases[c].Name << " is not in QuicSupportedVersionList";
+
+        const uint16_t PseudoPacketLength =
+            (uint16_t)(Cases[c].RetryLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1);
+        uint8_t IntegrityField[QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1];
+        TEST_QUIC_SUCCEEDED(
+            QuicPacketGenerateRetryIntegrity(
+                Info,
+                (uint8_t)sizeof(OrigDestCid),
+                OrigDestCid,
+                PseudoPacketLength,
+                Cases[c].Retry,
+                IntegrityField));
+
+        ASSERT_EQ(0,
+            memcmp(
+                IntegrityField,
+                Cases[c].Retry + PseudoPacketLength,
+                sizeof(IntegrityField)))
+            << Cases[c].Name << ": Retry Integrity Tag";
+    }
+}
